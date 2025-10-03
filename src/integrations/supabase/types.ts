@@ -233,6 +233,7 @@ export type Database = {
           quote_id: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           subtotal: number
+          tenant_id: string | null
           total_amount: number
           updated_at: string | null
           work_order_id: string | null
@@ -247,6 +248,7 @@ export type Database = {
           quote_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           subtotal: number
+          tenant_id?: string | null
           total_amount: number
           updated_at?: string | null
           work_order_id?: string | null
@@ -261,6 +263,7 @@ export type Database = {
           quote_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           subtotal?: number
+          tenant_id?: string | null
           total_amount?: number
           updated_at?: string | null
           work_order_id?: string | null
@@ -271,6 +274,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
