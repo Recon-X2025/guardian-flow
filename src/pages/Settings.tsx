@@ -8,35 +8,20 @@ import { Shield, UserPlus, Search, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-
-type AppRole = 'admin' | 'manager' | 'technician' | 'customer';
+import { AppRole, useRBAC } from '@/contexts/RBACContext';
 
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const rbac = useRBAC();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<AppRole>('customer');
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    checkAdminStatus();
     fetchProfiles();
   }, []);
-
-  const checkAdminStatus = async () => {
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-    
-    setIsAdmin(!!data);
-  };
 
   const fetchProfiles = async () => {
     try {
@@ -134,18 +119,27 @@ export default function Settings() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'admin':
+      case 'sys_admin':
+      case 'tenant_admin':
         return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'manager':
+      case 'ops_manager':
+      case 'finance_manager':
         return 'bg-primary/10 text-primary border-primary/20';
       case 'technician':
+      case 'dispatcher':
         return 'bg-success/10 text-success border-success/20';
-      default:
+      case 'fraud_investigator':
+      case 'auditor':
+        return 'bg-warning/10 text-warning border-warning/20';
+      case 'customer':
+      case 'guest':
         return 'bg-muted text-muted-foreground border-border';
+      default:
+        return 'bg-accent/10 text-accent border-accent/20';
     }
   };
 
-  if (!isAdmin) {
+  if (!rbac.isAdmin) {
     return (
       <div className="space-y-6">
         <div>
@@ -197,8 +191,19 @@ export default function Settings() {
               <SelectContent>
                 <SelectItem value="customer">Customer</SelectItem>
                 <SelectItem value="technician">Technician</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="dispatcher">Dispatcher</SelectItem>
+                <SelectItem value="ops_manager">Ops Manager</SelectItem>
+                <SelectItem value="finance_manager">Finance Manager</SelectItem>
+                <SelectItem value="fraud_investigator">Fraud Investigator</SelectItem>
+                <SelectItem value="billing_agent">Billing Agent</SelectItem>
+                <SelectItem value="support_agent">Support Agent</SelectItem>
+                <SelectItem value="partner_user">Partner User</SelectItem>
+                <SelectItem value="partner_admin">Partner Admin</SelectItem>
+                <SelectItem value="product_owner">Product Owner</SelectItem>
+                <SelectItem value="ml_ops">ML Ops</SelectItem>
+                <SelectItem value="auditor">Auditor</SelectItem>
+                <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                <SelectItem value="sys_admin">System Admin</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={assignRole}>
@@ -274,20 +279,28 @@ export default function Settings() {
         <CardContent>
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className={getRoleBadgeColor('admin')}>Admin</Badge>
-              <span className="text-muted-foreground">Full system access, manage users, penalties, inventory</span>
+              <Badge variant="outline" className={getRoleBadgeColor('sys_admin')}>System Admin</Badge>
+              <span className="text-muted-foreground">Platform operator with global access</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className={getRoleBadgeColor('manager')}>Manager</Badge>
-              <span className="text-muted-foreground">Create tickets, work orders, manage validations</span>
+              <Badge variant="outline" className={getRoleBadgeColor('tenant_admin')}>Tenant Admin</Badge>
+              <span className="text-muted-foreground">Tenant owner, manage users and config</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={getRoleBadgeColor('ops_manager')}>Ops Manager</Badge>
+              <span className="text-muted-foreground">Manage WO, overrides, operator dashboards</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={getRoleBadgeColor('finance_manager')}>Finance Manager</Badge>
+              <span className="text-muted-foreground">Invoices, settlements, penalties, payouts</span>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={getRoleBadgeColor('technician')}>Technician</Badge>
-              <span className="text-muted-foreground">Upload photos, update assigned work orders</span>
+              <span className="text-muted-foreground">Field engineer, WO execution, photo capture</span>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={getRoleBadgeColor('customer')}>Customer</Badge>
-              <span className="text-muted-foreground">View tickets and work orders</span>
+              <span className="text-muted-foreground">View tickets, service orders, invoices</span>
             </div>
           </div>
         </CardContent>

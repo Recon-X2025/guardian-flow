@@ -73,41 +73,61 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          actor_role: string | null
           changes: Json | null
           correlation_id: string | null
           created_at: string | null
           id: string
           ip_address: unknown | null
+          mfa_verified: boolean | null
+          reason: string | null
           resource_id: string | null
           resource_type: string
+          tenant_id: string | null
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
           action: string
+          actor_role?: string | null
           changes?: Json | null
           correlation_id?: string | null
           created_at?: string | null
           id?: string
           ip_address?: unknown | null
+          mfa_verified?: boolean | null
+          reason?: string | null
           resource_id?: string | null
           resource_type: string
+          tenant_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
           action?: string
+          actor_role?: string | null
           changes?: Json | null
           correlation_id?: string | null
           created_at?: string | null
           id?: string
           ip_address?: unknown | null
+          mfa_verified?: boolean | null
+          reason?: string | null
           resource_id?: string | null
           resource_type?: string
+          tenant_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fraud_alerts: {
         Row: {
@@ -292,6 +312,72 @@ export type Database = {
         }
         Relationships: []
       }
+      override_requests: {
+        Row: {
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          expires_at: string
+          id: string
+          mfa_verified: boolean | null
+          mfa_verified_at: string | null
+          reason: string
+          requester_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          expires_at: string
+          id?: string
+          mfa_verified?: boolean | null
+          mfa_verified_at?: string | null
+          reason: string
+          requester_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          expires_at?: string
+          id?: string
+          mfa_verified?: boolean | null
+          mfa_verified_at?: string | null
+          reason?: string
+          requester_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "override_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "override_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       penalty_applications: {
         Row: {
           amount: number
@@ -403,6 +489,30 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       photo_validations: {
         Row: {
           anomaly_details: Json | null
@@ -469,7 +579,10 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          mfa_enabled: boolean | null
+          mfa_secret: string | null
           phone: string | null
+          tenant_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -477,7 +590,10 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          mfa_enabled?: boolean | null
+          mfa_secret?: string | null
           phone?: string | null
+          tenant_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -485,10 +601,21 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          mfa_enabled?: boolean | null
+          mfa_secret?: string | null
           phone?: string | null
+          tenant_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quotes: {
         Row: {
@@ -530,6 +657,35 @@ export type Database = {
             columns: ["sapos_offer_id"]
             isOneToOne: false
             referencedRelation: "sapos_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          permission_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permission_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permission_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
             referencedColumns: ["id"]
           },
         ]
@@ -729,6 +885,36 @@ export type Database = {
           },
         ]
       }
+      tenants: {
+        Row: {
+          active: boolean | null
+          config: Json | null
+          created_at: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           created_at: string | null
@@ -774,23 +960,54 @@ export type Database = {
       user_roles: {
         Row: {
           created_at: string | null
+          granted_at: string | null
+          granted_by: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       warranty_records: {
         Row: {
@@ -979,11 +1196,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      has_any_permission: {
+        Args: { _permissions: string[]; _user_id: string }
+        Returns: boolean
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
@@ -1001,7 +1226,23 @@ export type Database = {
         | "part_mismatch"
         | "suspicious_usage"
         | "data_breach"
-      app_role: "admin" | "manager" | "technician" | "customer"
+      app_role:
+        | "sys_admin"
+        | "tenant_admin"
+        | "ops_manager"
+        | "finance_manager"
+        | "fraud_investigator"
+        | "partner_admin"
+        | "partner_user"
+        | "technician"
+        | "dispatcher"
+        | "customer"
+        | "product_owner"
+        | "support_agent"
+        | "ml_ops"
+        | "billing_agent"
+        | "auditor"
+        | "guest"
       investigation_status: "open" | "in_progress" | "resolved" | "escalated"
       invoice_status:
         | "draft"
@@ -1168,7 +1409,24 @@ export const Constants = {
         "suspicious_usage",
         "data_breach",
       ],
-      app_role: ["admin", "manager", "technician", "customer"],
+      app_role: [
+        "sys_admin",
+        "tenant_admin",
+        "ops_manager",
+        "finance_manager",
+        "fraud_investigator",
+        "partner_admin",
+        "partner_user",
+        "technician",
+        "dispatcher",
+        "customer",
+        "product_owner",
+        "support_agent",
+        "ml_ops",
+        "billing_agent",
+        "auditor",
+        "guest",
+      ],
       investigation_status: ["open", "in_progress", "resolved", "escalated"],
       invoice_status: [
         "draft",
