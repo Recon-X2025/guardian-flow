@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Search, AlertTriangle, DollarSign, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AddPenaltyRuleDialog } from '@/components/AddPenaltyRuleDialog';
 
 export default function Penalties() {
   const { toast } = useToast();
   const [penalties, setPenalties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchPenalties();
@@ -62,7 +64,7 @@ export default function Penalties() {
           <h1 className="text-3xl font-bold text-foreground">Penalty Management</h1>
           <p className="text-muted-foreground">Track penalties and partner compliance violations</p>
         </div>
-        <Button>
+        <Button onClick={() => setAddDialogOpen(true)}>
           Add Penalty Rule
         </Button>
       </div>
@@ -239,6 +241,12 @@ export default function Penalties() {
           </div>
         </CardContent>
       </Card>
+
+      <AddPenaltyRuleDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onSuccess={fetchPenalties}
+      />
     </div>
   );
 }

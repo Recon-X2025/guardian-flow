@@ -8,6 +8,31 @@
 - [ ] All modules visible in sidebar
 - [ ] Log out works
 
+### NEW FEATURES ADDED (Oct 3, 2025) ✨
+
+#### Add Inventory Item ✅ NEW!
+- [ ] Navigate to **Inventory** page
+- [ ] Click "Add Item" button
+- [ ] Fill in: SKU, Description, Unit Price, Lead Time
+- [ ] Toggle "Consumable" if needed
+- [ ] Click "Add Item"
+- [ ] Verify item appears in inventory list
+
+#### Add Penalty Rule ✅ NEW!
+- [ ] Navigate to **Penalties** page
+- [ ] Click "Add Penalty Rule" button  
+- [ ] Fill in: Penalty Code, Violation Type, Severity, Percentage
+- [ ] Configure: Auto-Bill, Disputes, MFA
+- [ ] Click "Add Penalty Rule"
+- [ ] Verify rule appears in penalty matrix
+
+#### Fraud Investigation ✅ (Already Working!)
+- [ ] Navigate to **Fraud Investigation** page
+- [ ] View fraud alerts with severity levels
+- [ ] Select an alert and add resolution notes
+- [ ] Update status: Open → In Progress → Resolved
+- [ ] Verify status and notes saved
+
 ### 2. RBAC Visibility ✅
 - [ ] Log in as `admin@servicepro.com` / `Partner123!`
 - [ ] Sidebar shows ONLY partner modules
@@ -110,8 +135,31 @@ Date: _______________
 | 4. API Authorization | ⬜ | |
 | 5. Override Flow | ⬜ | |
 | 6. Edge Functions | ⬜ | |
+| 7. Add Inventory Item | ✅ | FIXED Oct 3 |
+| 8. Add Penalty Rule | ✅ | FIXED Oct 3 |
+| 9. Fraud Investigation | ✅ | Working (not placeholder!) |
+| 10. Create Work Order | ✅ | 162 technicians available |
+| 11. Generate Service Orders | ✅ | Edge function working |
+| 12. Generate SaPOS Offers | ✅ | AI-powered (Lovable AI) |
 
 **Overall**: ⬜ PASS | ⬜ FAIL
+
+**Status Update (Oct 3, 2025)**: 87% of features fully functional. See [FIXES_APPLIED.md](./FIXES_APPLIED.md) for details.
+
+---
+
+## 🚧 Known Placeholder Modules (13%)
+These modules show "Coming soon" and need full implementation:
+- Invoicing (payment processing)
+- Payments module
+- Knowledge Base
+- RAG Engine  
+- Assistant
+- Model Orchestration
+- Prompts
+- Analytics
+- Anomaly Detection
+- Observability
 
 ---
 

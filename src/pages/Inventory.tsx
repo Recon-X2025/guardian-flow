@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AddInventoryItemDialog } from '@/components/AddInventoryItemDialog';
 
 export default function Inventory() {
   const { toast } = useToast();
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchInventory();
@@ -65,7 +67,7 @@ export default function Inventory() {
           <h1 className="text-3xl font-bold text-foreground">Inventory Management</h1>
           <p className="text-muted-foreground">Track parts, stock levels, and reservations</p>
         </div>
-        <Button>
+        <Button onClick={() => setAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Item
         </Button>
@@ -211,6 +213,12 @@ export default function Inventory() {
           </div>
         </CardContent>
       </Card>
+
+      <AddInventoryItemDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onSuccess={fetchInventory}
+      />
     </div>
   );
 }
