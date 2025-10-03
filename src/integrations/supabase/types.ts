@@ -1230,6 +1230,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_tenant_id: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       has_any_permission: {
         Args: { _permissions: string[]; _user_id: string }
         Returns: boolean
