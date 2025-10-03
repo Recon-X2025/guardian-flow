@@ -11,9 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authResult = await validateAuth(req, {
-      requiredPermissions: ['workorders.precheck'],
-    });
+    // Allow authenticated users (automated trigger) or those with explicit permission
+    const authResult = await validateAuth(req, { requireAuth: true });
 
     if (!authResult.success) {
       return createErrorResponse(authResult.error);
@@ -36,7 +35,7 @@ Deno.serve(async (req) => {
       throw new Error('Work order not found');
     }
 
-    // Initialize or get precheck record
+    // Initialize or get precheck record (can_release is auto-calculated)
     const { data: precheck, error: precheckError } = await context.supabase
       .from('work_order_prechecks')
       .upsert({

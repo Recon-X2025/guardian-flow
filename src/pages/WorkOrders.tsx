@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, PlayCircle, FileText, Sparkles } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PrecheckStatus } from '@/components/PrecheckStatus';
-import { TriggerPrecheckDialog } from '@/components/TriggerPrecheckDialog';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +19,6 @@ export default function WorkOrders() {
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
   const [precheckDialogOpen, setPrecheckDialogOpen] = useState(false);
-  const [triggerPrecheckOpen, setTriggerPrecheckOpen] = useState(false);
   const [generateSOOpen, setGenerateSOOpen] = useState(false);
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
 
@@ -195,18 +193,6 @@ export default function WorkOrders() {
                       size="sm"
                       onClick={() => {
                         setSelectedWO(wo.id);
-                        setTriggerPrecheckOpen(true);
-                      }}
-                      disabled={wo.status !== 'draft'}
-                    >
-                      <PlayCircle className="h-4 w-4 mr-1" />
-                      Run Precheck
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedWO(wo.id);
                         setPrecheckDialogOpen(true);
                       }}
                     >
@@ -261,12 +247,6 @@ export default function WorkOrders() {
 
       {selectedWO && (
         <>
-          <TriggerPrecheckDialog
-            open={triggerPrecheckOpen}
-            onOpenChange={setTriggerPrecheckOpen}
-            workOrderId={selectedWO}
-            onSuccess={fetchWorkOrders}
-          />
           <GenerateSaPOSDialog
             open={saposDialogOpen}
             onOpenChange={setSaposDialogOpen}

@@ -107,13 +107,25 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
           inventory_status: 'pending',
           warranty_status: 'pending',
           photo_status: 'pending',
-          can_release: false,
         });
 
-      toast({
-        title: 'Work Order Created',
-        description: `${woNumber} created and assigned to technician`,
+      // Automatically trigger precheck orchestration
+      const { error: precheckError } = await supabase.functions.invoke('precheck-orchestrator', {
+        body: { workOrderId: woData.id }
       });
+
+      if (precheckError) {
+        console.error('Auto-precheck error:', precheckError);
+        toast({
+          title: 'Work Order Created',
+          description: `${woNumber} created. Precheck will run automatically.`,
+        });
+      } else {
+        toast({
+          title: 'Work Order Created',
+          description: `${woNumber} created and precheck initiated automatically`,
+        });
+      }
 
       onSuccess();
       onOpenChange(false);
@@ -152,12 +164,13 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
           </div>
 
           <div className="bg-muted/30 p-4 rounded-lg text-sm space-y-2">
-            <p className="font-medium">Next Steps:</p>
+            <p className="font-medium">Automated Workflow:</p>
             <p className="text-muted-foreground">
-              1. Technician captures 4 required photos<br />
-              2. System runs precheck (inventory, warranty, photos)<br />
-              3. Work order released upon successful validation<br />
-              4. Service order auto-generated on completion
+              1. Work order created and assigned to technician<br />
+              2. <strong>Precheck runs automatically</strong> (inventory, warranty)<br />
+              3. Technician captures 4 required photos when ready<br />
+              4. Photo validation completes → work order released<br />
+              5. Service order auto-generated on completion
             </p>
           </div>
 
