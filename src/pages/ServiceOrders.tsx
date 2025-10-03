@@ -1,0 +1,211 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, FileText, Download, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+export default function ServiceOrders() {
+  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedSO, setSelectedSO] = useState<any | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const { toast } = useToast();
+
+  const fetchServiceOrders = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('service_orders')
+        .select('*, work_orders(wo_number, cost_to_customer)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setServiceOrders(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error loading service orders",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchServiceOrders();
+  }, []);
+
+  const generateSO = async (workOrderId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-service-order', {
+        body: { workOrderId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Service Order Generated",
+        description: `SO ${data.serviceOrder.so_number} created successfully`,
+      });
+
+      fetchServiceOrders();
+    } catch (error: any) {
+      toast({
+        title: "Generation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const previewSO = (so: any) => {
+    setSelectedSO(so);
+    setPreviewOpen(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Service Orders</h1>
+          <p className="text-muted-foreground">
+            Auto-generated service documentation with signatures and evidence
+          </p>
+        </div>
+        <Button onClick={() => generateSO('demo-wo-id')}>
+          <FileText className="mr-2 h-4 w-4" />
+          Generate SO
+        </Button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total SOs</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{serviceOrders.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Signed</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {serviceOrders.filter(so => so.signed_at).length}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {serviceOrders.filter(so => 
+                new Date(so.created_at).getMonth() === new Date().getMonth()
+              ).length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Service Orders</CardTitle>
+          <CardDescription>Generated from work order completion</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {serviceOrders.map((so) => (
+              <div
+                key={so.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold">{so.so_number}</h3>
+                    {so.signed_at && (
+                      <Badge className="bg-green-100 text-green-800">Signed</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>WO: {so.work_orders?.wo_number || 'N/A'}</span>
+                    <span>Cost: ${so.work_orders?.cost_to_customer || 0}</span>
+                    <span>Created: {new Date(so.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => previewSO(so)}>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Preview
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    PDF
+                  </Button>
+                </div>
+              </div>
+            ))}
+
+            {serviceOrders.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                No service orders yet. Generate one from a completed work order.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Service Order: {selectedSO?.so_number}</DialogTitle>
+          </DialogHeader>
+          {selectedSO && (
+            <div 
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: selectedSO.html_content || '<p>No content</p>' }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Template Management</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            • Default template includes: warranty status, parts breakdown, signatures, QR code for photos
+          </p>
+          <p className="text-muted-foreground">
+            • OEMs can upload custom templates (Handlebars/Mustache syntax)
+          </p>
+          <p className="text-muted-foreground">
+            • All SOs include audit trail and are immutable once signed
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

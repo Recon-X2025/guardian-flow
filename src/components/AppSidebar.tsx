@@ -57,7 +57,7 @@ const financialModules = [
   { title: "Quotes", url: "/quotes", icon: FileText },
   { title: "Invoicing", url: "/invoicing", icon: Receipt },
   { title: "Payments", url: "/payments", icon: CreditCard },
-  { title: "Finance & Settlements", url: "/settlements", icon: DollarSign },
+  { title: "Finance", url: "/finance", icon: DollarSign },
   { title: "Penalties", url: "/penalties", icon: AlertTriangle },
 ];
 

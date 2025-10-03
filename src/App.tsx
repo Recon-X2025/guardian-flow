@@ -15,6 +15,10 @@ import WorkOrders from "./pages/WorkOrders";
 import Inventory from "./pages/Inventory";
 import Warranty from "./pages/Warranty";
 import Penalties from "./pages/Penalties";
+import SaPOS from "./pages/SaPOS";
+import ServiceOrders from "./pages/ServiceOrders";
+import FraudInvestigation from "./pages/FraudInvestigation";
+import Finance from "./pages/Finance";
 import PhotoCapturePage from "./pages/PhotoCapturePage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -68,14 +72,16 @@ const App = () => (
                             <Route path="/payments" element={<div className="text-center py-12 text-muted-foreground">Payments module - Coming soon</div>} />
                             <Route path="/settlements" element={<div className="text-center py-12 text-muted-foreground">Finance & Settlements module - Coming soon</div>} />
                             <Route path="/penalties" element={<Penalties />} />
-                            <Route path="/sapos" element={<div className="text-center py-12 text-muted-foreground">SaPOS AI module - Coming soon</div>} />
+                            <Route path="/sapos" element={<SaPOS />} />
+                            <Route path="/service-orders" element={<ServiceOrders />} />
+                            <Route path="/fraud" element={<FraudInvestigation />} />
+                            <Route path="/finance" element={<Finance />} />
                             <Route path="/knowledge-base" element={<div className="text-center py-12 text-muted-foreground">Knowledge Base module - Coming soon</div>} />
                             <Route path="/rag" element={<div className="text-center py-12 text-muted-foreground">RAG Engine module - Coming soon</div>} />
                             <Route path="/assistant" element={<div className="text-center py-12 text-muted-foreground">Assistant module - Coming soon</div>} />
                             <Route path="/models" element={<div className="text-center py-12 text-muted-foreground">Model Orchestration module - Coming soon</div>} />
                             <Route path="/prompts" element={<div className="text-center py-12 text-muted-foreground">Prompts module - Coming soon</div>} />
                             <Route path="/analytics" element={<div className="text-center py-12 text-muted-foreground">Analytics module - Coming soon</div>} />
-                            <Route path="/fraud" element={<div className="text-center py-12 text-muted-foreground">Fraud Detection module - Coming soon</div>} />
                             <Route path="/anomaly" element={<div className="text-center py-12 text-muted-foreground">Anomaly Detection module - Coming soon</div>} />
                             <Route path="/observability" element={<div className="text-center py-12 text-muted-foreground">Observability module - Coming soon</div>} />
                             <Route path="/settings" element={<Settings />} />

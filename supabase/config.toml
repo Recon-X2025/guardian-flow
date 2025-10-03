@@ -1,1 +1,25 @@
 project_id = "blvrfzymeerefsdwqhoh"
+
+[functions.check-inventory]
+verify_jwt = true
+
+[functions.check-warranty]
+verify_jwt = true
+
+[functions.validate-photos]
+verify_jwt = true
+
+[functions.precheck-orchestrator]
+verify_jwt = true
+
+[functions.generate-sapos-offers]
+verify_jwt = true
+
+[functions.generate-service-order]
+verify_jwt = true
+
+[functions.request-mfa]
+verify_jwt = true
+
+[functions.verify-mfa]
+verify_jwt = true

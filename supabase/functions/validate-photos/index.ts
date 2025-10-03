@@ -106,6 +106,14 @@ serve(async (req) => {
       });
     }
 
+    // Anomaly detection placeholder (TODO: integrate CV/ML model)
+    const anomalyDetected = false;
+    const anomalyDetails = {
+      tampering_score: 0,
+      duplicate_score: 0,
+      mismatch_score: 0
+    };
+
     // Create validation record
     const { data: validation, error: validationError } = await supabase
       .from('photo_validations')
@@ -113,6 +121,8 @@ serve(async (req) => {
         work_order_id: woId,
         stage: stage,
         photos_validated: true,
+        anomaly_detected: anomalyDetected,
+        anomaly_details: anomalyDetails,
         validation_result: {
           images_count: images.length,
           roles_provided: providedRoles,
