@@ -30,6 +30,12 @@ import Dispatch from "./pages/Dispatch";
 import Procurement from "./pages/Procurement";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Invoicing from "./pages/Invoicing";
+import Payments from "./pages/Payments";
+import Analytics from "./pages/Analytics";
+import Observability from "./pages/Observability";
+import KnowledgeBase from "./pages/KnowledgeBase";
+import Assistant from "./pages/Assistant";
 
 const queryClient = new QueryClient();
 
@@ -114,12 +120,12 @@ const App = () => (
                                 } />
                                 <Route path="/invoicing" element={
                                   <RoleGuard permissions={["invoice.view"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Invoicing module - Coming soon</div>
+                                    <Invoicing />
                                   </RoleGuard>
                                 } />
                                 <Route path="/payments" element={
                                   <RoleGuard permissions={["invoice.pay"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Payments module - Coming soon</div>
+                                    <Payments />
                                   </RoleGuard>
                                 } />
                                 <Route path="/finance" element={
@@ -149,42 +155,42 @@ const App = () => (
                                 } />
                                 <Route path="/knowledge-base" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Knowledge Base module - Coming soon</div>
+                                    <KnowledgeBase />
                                   </RoleGuard>
                                 } />
                                 <Route path="/rag" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">RAG Engine module - Coming soon</div>
+                                    <KnowledgeBase />
                                   </RoleGuard>
                                 } />
                                 <Route path="/assistant" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Assistant module - Coming soon</div>
+                                    <Assistant />
                                   </RoleGuard>
                                 } />
                                 <Route path="/models" element={
                                   <RoleGuard permissions={["mlops.view"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Model Orchestration module - Coming soon</div>
+                                    <Analytics />
                                   </RoleGuard>
                                 } />
                                 <Route path="/prompts" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Prompts module - Coming soon</div>
+                                    <Assistant />
                                   </RoleGuard>
                                 } />
                                 <Route path="/analytics" element={
                                   <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Analytics module - Coming soon</div>
+                                    <Analytics />
                                   </RoleGuard>
                                 } />
                                 <Route path="/anomaly" element={
                                   <RoleGuard permissions={["fraud.view"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Anomaly Detection module - Coming soon</div>
+                                    <Analytics />
                                   </RoleGuard>
                                 } />
                                 <Route path="/observability" element={
                                   <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <div className="text-center py-12 text-muted-foreground">Observability module - Coming soon</div>
+                                    <Observability />
                                   </RoleGuard>
                                 } />
                                 <Route path="/settings" element={<Settings />} />

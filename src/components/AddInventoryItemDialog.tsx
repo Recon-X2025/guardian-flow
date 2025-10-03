@@ -75,7 +75,7 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSuccess }: AddInv
               id="sku"
               value={formData.sku}
               onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              placeholder="e.g., HVAC-FILTER-001"
+              placeholder="e.g., PC-RAM-16GB or PR-TONER-BK"
               required
             />
           </div>

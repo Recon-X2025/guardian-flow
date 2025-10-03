@@ -1,0 +1,201 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Search, CreditCard, TrendingUp, AlertCircle, DollarSign, CheckCircle2, Clock } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+export default function Payments() {
+  const { toast } = useToast();
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPendingPayments();
+  }, []);
+
+  const fetchPendingPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          work_order:work_orders(wo_number, ticket:tickets(customer_name, unit_serial))
+        `)
+        .in('status', ['draft', 'sent', 'overdue'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setInvoices(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Error loading payments',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProcessPayment = async (invoiceId: string) => {
+    toast({
+      title: 'Payment Gateway Integration',
+      description: 'Stripe or custom payment gateway integration pending. Configure in Settings.',
+    });
+  };
+
+  const totalPending = invoices.filter(inv => ['draft', 'sent'].includes(inv.status)).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
+  const overdueCount = invoices.filter(inv => inv.status === 'overdue').length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Payments</h1>
+          <p className="text-muted-foreground">Process customer payments and manage transactions</p>
+        </div>
+        <Button>
+          <CreditCard className="mr-2 h-4 w-4" />
+          Configure Payment Gateway
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalPending.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">{invoices.length} invoices</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{overdueCount}</div>
+            <p className="text-xs text-muted-foreground">Requires attention</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Payment Success Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">98.5%</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Outstanding Invoices</CardTitle>
+              <CardDescription>Process payments for invoices</CardDescription>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search payments..." className="pl-8" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading payments...</div>
+          ) : invoices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-2" />
+              <p>All invoices paid! No pending payments.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((invoice) => (
+                <div
+                  key={invoice.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}</span>
+                      <Badge variant="outline" className={invoice.status === 'overdue' ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-warning/10 text-warning border-warning/20'}>
+                        {invoice.status}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                      <div>
+                        <span className="font-medium">Customer:</span> {invoice.work_order?.ticket?.customer_name || 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Amount:</span> <span className="font-bold text-foreground">${Number(invoice.total_amount).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Due: {new Date(invoice.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => handleProcessPayment(invoice.id)}
+                    >
+                      <CreditCard className="h-4 w-4 mr-1" />
+                      Process Payment
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      View Invoice
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-primary/5 border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Gateway Integration
+          </CardTitle>
+          <CardDescription>Connect your payment processor</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              ReconX AI supports multiple payment processors:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg bg-card">
+                <p className="font-semibold mb-1">Stripe</p>
+                <p className="text-xs text-muted-foreground">Full PCI compliance, global coverage</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-card">
+                <p className="font-semibold mb-1">Custom Gateway</p>
+                <p className="text-xs text-muted-foreground">Integrate your preferred processor</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-card">
+                <p className="font-semibold mb-1">ACH/Wire Transfer</p>
+                <p className="text-xs text-muted-foreground">Direct bank transfers</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Configure payment methods in Settings → Integrations
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
