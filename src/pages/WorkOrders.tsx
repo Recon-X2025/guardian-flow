@@ -167,6 +167,11 @@ export default function WorkOrders() {
                           Parts Reserved
                         </Badge>
                       )}
+                      {wo.repair_type && (
+                        <Badge variant={wo.repair_type === 'in_warranty' ? 'default' : 'secondary'} className="text-xs">
+                          {wo.repair_type === 'in_warranty' ? 'Cost-Free' : 'At-Cost'}
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">

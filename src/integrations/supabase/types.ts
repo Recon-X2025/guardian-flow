@@ -1164,6 +1164,7 @@ export type Database = {
           id: string
           parts_reserved: boolean | null
           released_at: string | null
+          repair_type: string | null
           status: Database["public"]["Enums"]["work_order_status"] | null
           technician_id: string | null
           ticket_id: string | null
@@ -1180,6 +1181,7 @@ export type Database = {
           id?: string
           parts_reserved?: boolean | null
           released_at?: string | null
+          repair_type?: string | null
           status?: Database["public"]["Enums"]["work_order_status"] | null
           technician_id?: string | null
           ticket_id?: string | null
@@ -1196,6 +1198,7 @@ export type Database = {
           id?: string
           parts_reserved?: boolean | null
           released_at?: string | null
+          repair_type?: string | null
           status?: Database["public"]["Enums"]["work_order_status"] | null
           technician_id?: string | null
           ticket_id?: string | null

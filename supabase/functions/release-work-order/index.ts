@@ -119,16 +119,31 @@ Deno.serve(async (req) => {
       console.log(`[${correlationId}] Override applied with MFA token: ${overrideToken}`);
     }
 
-    // Release work order
+    // Determine repair type based on warranty
+    let repairType = 'out_of_warranty';
+    if (workOrder.warranty_checked && workOrder.warranty_result) {
+      const warrantyResult = typeof workOrder.warranty_result === 'string' 
+        ? JSON.parse(workOrder.warranty_result) 
+        : workOrder.warranty_result;
+      
+      if (warrantyResult.covered === true) {
+        repairType = 'in_warranty';
+      }
+    }
+
+    // Release work order with repair type
     const { error: releaseError } = await context.supabase
       .from('work_orders')
       .update({
         status: 'released',
-        released_at: new Date().toISOString()
+        released_at: new Date().toISOString(),
+        repair_type: repairType
       })
       .eq('id', workOrderId);
 
     if (releaseError) throw releaseError;
+
+    console.log(`[${correlationId}] Work order released as ${repairType} repair`);
 
     // Log audit event
     await logAuditEvent(context.supabase, {

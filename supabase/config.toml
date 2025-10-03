@@ -45,6 +45,9 @@ verify_jwt = false
 [functions.release-work-order]
 verify_jwt = true
 
+[functions.complete-work-order]
+verify_jwt = true
+
 [functions.upload-so-template]
 verify_jwt = true
 
