@@ -20,6 +20,10 @@ import ServiceOrders from "./pages/ServiceOrders";
 import FraudInvestigation from "./pages/FraudInvestigation";
 import Finance from "./pages/Finance";
 import PhotoCapturePage from "./pages/PhotoCapturePage";
+import Quotes from "./pages/Quotes";
+import Scheduler from "./pages/Scheduler";
+import Dispatch from "./pages/Dispatch";
+import Procurement from "./pages/Procurement";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -61,21 +65,18 @@ const App = () => (
                             <Route path="/work-orders" element={<WorkOrders />} />
                             <Route path="/inventory" element={<Inventory />} />
                             <Route path="/photo-capture" element={<PhotoCapturePage />} />
-                            {/* Placeholder routes for other modules */}
-                            <Route path="/service-orders" element={<div className="text-center py-12 text-muted-foreground">Service Orders module - Coming soon</div>} />
-                            <Route path="/scheduler" element={<div className="text-center py-12 text-muted-foreground">Scheduler module - Coming soon</div>} />
-                            <Route path="/dispatch" element={<div className="text-center py-12 text-muted-foreground">Dispatch module - Coming soon</div>} />
-                            <Route path="/procurement" element={<div className="text-center py-12 text-muted-foreground">Procurement module - Coming soon</div>} />
+                            <Route path="/scheduler" element={<Scheduler />} />
+                            <Route path="/dispatch" element={<Dispatch />} />
+                            <Route path="/procurement" element={<Procurement />} />
                             <Route path="/warranty" element={<Warranty />} />
-                            <Route path="/quotes" element={<div className="text-center py-12 text-muted-foreground">Quotes module - Coming soon</div>} />
+                            <Route path="/quotes" element={<Quotes />} />
                             <Route path="/invoicing" element={<div className="text-center py-12 text-muted-foreground">Invoicing module - Coming soon</div>} />
                             <Route path="/payments" element={<div className="text-center py-12 text-muted-foreground">Payments module - Coming soon</div>} />
-                            <Route path="/settlements" element={<div className="text-center py-12 text-muted-foreground">Finance & Settlements module - Coming soon</div>} />
+                            <Route path="/finance" element={<Finance />} />
                             <Route path="/penalties" element={<Penalties />} />
                             <Route path="/sapos" element={<SaPOS />} />
                             <Route path="/service-orders" element={<ServiceOrders />} />
                             <Route path="/fraud" element={<FraudInvestigation />} />
-                            <Route path="/finance" element={<Finance />} />
                             <Route path="/knowledge-base" element={<div className="text-center py-12 text-muted-foreground">Knowledge Base module - Coming soon</div>} />
                             <Route path="/rag" element={<div className="text-center py-12 text-muted-foreground">RAG Engine module - Coming soon</div>} />
                             <Route path="/assistant" element={<div className="text-center py-12 text-muted-foreground">Assistant module - Coming soon</div>} />

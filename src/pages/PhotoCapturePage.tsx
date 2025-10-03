@@ -1,18 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import PhotoCapture from "@/components/PhotoCapture";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle2, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, CheckCircle2, Shield, Camera } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PhotoCapturePage() {
   const [stage, setStage] = useState<"replacement" | "post_repair" | "pickup">("replacement");
-  const [validated, setValidated] = useState(false);
+  const [validations, setValidations] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  const fetchValidations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('photo_validations')
+        .select('*')
+        .eq('work_order_id', 'demo-wo-id')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setValidations(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error loading validations",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchValidations();
+  }, []);
 
   const handleComplete = (payload: any) => {
     console.log("Photos validated:", payload);
-    setValidated(true);
+    toast({
+      title: "Stage Complete",
+      description: `${stage} photos validated successfully`,
+    });
+    fetchValidations();
   };
+
+  const requiredStages = ["replacement", "post_repair", "pickup"];
+  const completedStages = validations
+    .filter(v => v.photos_validated && !v.anomaly_detected)
+    .map(v => v.stage);
+  
+  const allStagesComplete = requiredStages.every(s => completedStages.includes(s));
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -22,6 +60,52 @@ export default function PhotoCapturePage() {
           Critical stages require 4 mandatory photos for audit compliance
         </p>
       </div>
+
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5 text-blue-600" />
+            3-Stage Photo Enforcement
+          </CardTitle>
+          <CardDescription>Track validation status across all critical stages</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3">
+            {requiredStages.map((stageName) => {
+              const isComplete = completedStages.includes(stageName);
+              return (
+                <div
+                  key={stageName}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-white"
+                >
+                  <div className="flex items-center gap-3">
+                    {isComplete ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-gray-400" />
+                    )}
+                    <span className="font-medium capitalize">
+                      {stageName.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <Badge className={isComplete ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                    {isComplete ? 'Validated' : 'Pending'}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+
+          {allStagesComplete && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 text-green-800">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-medium">All Photo Stages Complete</span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="bg-primary/5 border-primary/20">
         <CardHeader>
@@ -74,17 +158,26 @@ export default function PhotoCapturePage() {
                 <SelectValue placeholder="Select stage" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="replacement">Replacement</SelectItem>
-                <SelectItem value="post_repair">Post-Repair QA</SelectItem>
-                <SelectItem value="pickup">Reverse Logistics Pickup</SelectItem>
+                <SelectItem value="replacement">
+                  <div className="flex items-center gap-2">
+                    {completedStages.includes('replacement') && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                    Replacement
+                  </div>
+                </SelectItem>
+                <SelectItem value="post_repair">
+                  <div className="flex items-center gap-2">
+                    {completedStages.includes('post_repair') && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                    Post-Repair QA
+                  </div>
+                </SelectItem>
+                <SelectItem value="pickup">
+                  <div className="flex items-center gap-2">
+                    {completedStages.includes('pickup') && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                    Reverse Logistics Pickup
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
-            {validated && (
-              <Badge variant="default" className="bg-success">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Photos Validated
-              </Badge>
-            )}
           </div>
         </CardContent>
       </Card>

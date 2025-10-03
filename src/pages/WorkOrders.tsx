@@ -3,14 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PrecheckStatus } from '@/components/PrecheckStatus';
 
 export default function WorkOrders() {
   const { toast } = useToast();
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedWO, setSelectedWO] = useState<string | null>(null);
+  const [precheckDialogOpen, setPrecheckDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkOrders();
@@ -25,16 +29,16 @@ export default function WorkOrders() {
           ticket:tickets(*),
           technician:profiles(full_name)
         `)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false})
         .limit(20);
 
       if (error) throw error;
       setWorkOrders(data || []);
     } catch (error: any) {
       toast({
-        title: 'Error loading work orders',
+        title: "Error loading work orders",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -43,40 +47,35 @@ export default function WorkOrders() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-4 w-4" />;
-      case 'in_progress':
-      case 'assigned':
-        return <Clock className="h-4 w-4" />;
-      case 'pending_validation':
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
+      case 'completed': return CheckCircle2;
+      case 'in_progress': return Clock;
+      case 'pending_validation': return AlertCircle;
+      default: return Shield;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-success/10 text-success border-success/20';
-      case 'in_progress':
-      case 'assigned':
-        return 'bg-primary/10 text-primary border-primary/20';
-      case 'pending_validation':
-        return 'bg-warning/10 text-warning border-warning/20';
-      case 'draft':
-        return 'bg-muted text-muted-foreground border-border';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'pending_validation': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const totalWO = workOrders.length;
+  const pendingValidation = workOrders.filter(wo => wo.status === 'pending_validation').length;
+  const inProgress = workOrders.filter(wo => wo.status === 'in_progress').length;
+  const completed = workOrders.filter(wo => wo.status === 'completed').length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Work Orders</h1>
-          <p className="text-muted-foreground">Manage field service work orders and assignments</p>
+          <p className="text-muted-foreground">
+            Manage field service work orders with precheck gating
+          </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -84,128 +83,140 @@ export default function WorkOrders() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid gap-6 md:grid-cols-4">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total WOs</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{workOrders.length}</div>
+            <div className="text-2xl font-bold">{totalWO}</div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Validation</CardTitle>
+            <AlertCircle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">
-              {workOrders.filter(wo => wo.status === 'pending_validation').length}
-            </div>
+            <div className="text-2xl font-bold">{pendingValidation}</div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {workOrders.filter(wo => wo.status === 'in_progress').length}
-            </div>
+            <div className="text-2xl font-bold">{inProgress}</div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">
-              {workOrders.filter(wo => wo.status === 'completed').length}
-            </div>
+            <div className="text-2xl font-bold">{completed}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Active Work Orders</CardTitle>
-              <CardDescription>View and manage all work orders</CardDescription>
-            </div>
-            <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search work orders..." className="pl-8" />
-            </div>
+          <CardTitle>Active Work Orders</CardTitle>
+          <CardDescription>Work orders with precheck gating enabled</CardDescription>
+          <div className="flex items-center gap-2 mt-4">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search work orders..."
+              className="max-w-sm"
+            />
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading work orders...</div>
-          ) : workOrders.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No work orders found</div>
-          ) : (
-            <div className="space-y-3">
-              {workOrders.map((wo) => (
+          <div className="space-y-4">
+            {workOrders.map((wo) => {
+              const StatusIcon = getStatusIcon(wo.status);
+              return (
                 <div
                   key={wo.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{wo.wo_number || 'Draft'}</span>
-                      <Badge variant="outline" className={getStatusColor(wo.status)}>
-                        {getStatusIcon(wo.status)}
-                        <span className="ml-1">{wo.status?.replace('_', ' ')}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold">{wo.wo_number || 'Draft'}</h3>
+                      <Badge className={getStatusColor(wo.status)}>
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {wo.status?.replace('_', ' ')}
                       </Badge>
                       {wo.warranty_checked && (
-                        <Badge variant="outline" className="bg-info/10 text-info border-info/20">
-                          <Shield className="h-3 w-3 mr-1" />
-                          Warranty Checked
+                        <Badge variant="outline" className="text-xs">
+                          Warranty OK
                         </Badge>
                       )}
                       {wo.parts_reserved && (
-                        <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                        <Badge variant="outline" className="text-xs">
                           <Package className="h-3 w-3 mr-1" />
                           Parts Reserved
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-foreground">
-                      Ticket: {wo.ticket?.unit_serial || 'N/A'}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Tech: {wo.technician?.full_name || 'Unassigned'}</span>
-                      <span>•</span>
-                      <span>Cost: ${wo.cost_to_customer?.toFixed(2) || '0.00'}</span>
-                      <span>•</span>
-                      <span>{new Date(wo.created_at).toLocaleDateString()}</span>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                      <div>
+                        <span className="font-medium">Ticket:</span> {wo.ticket?.symptom || 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Technician:</span> {wo.technician?.full_name || 'Unassigned'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Cost:</span> ${Number(wo.cost_to_customer || 0).toFixed(2)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(wo.created_at).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    View Details
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWO(wo.id);
+                        setPrecheckDialogOpen(true);
+                      }}
+                    >
+                      View Precheck
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              );
+            })}
 
-      <Card className="bg-muted/30">
-        <CardHeader>
-          <CardTitle>Pre-Release Validation</CardTitle>
-          <CardDescription>Work orders must pass validation before release</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>✓ Inventory cascade check (hub → OEM → partner → buffer)</p>
-            <p>✓ Warranty coverage verification for non-consumable parts</p>
-            <p>✓ Technician skill certification matching</p>
-            <p>✓ Parts reservation confirmation</p>
-            <p className="text-xs text-warning">⚠ RBAC override available with manager approval + MFA</p>
+            {workOrders.length === 0 && !loading && (
+              <p className="text-center text-muted-foreground py-8">
+                No work orders found
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={precheckDialogOpen} onOpenChange={setPrecheckDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Work Order Precheck Status</DialogTitle>
+          </DialogHeader>
+          {selectedWO && <PrecheckStatus workOrderId={selectedWO} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
