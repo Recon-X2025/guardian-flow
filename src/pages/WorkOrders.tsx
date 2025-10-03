@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function WorkOrders() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
