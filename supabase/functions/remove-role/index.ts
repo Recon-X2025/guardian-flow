@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,36 +18,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const authResult = await validateAuth(req, {
+      requiredRoles: ['sys_admin', 'tenant_admin'],
+    });
 
-    // Verify the requesting user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Check if user has admin role
-    const { data: adminCheck } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['sys_admin', 'tenant_admin']);
-
-    if (!adminCheck || adminCheck.length === 0) {
-      throw new Error('Insufficient permissions - admin role required');
-    }
-
+    const { context } = authResult;
     const { userId, role, tenantId }: RemoveRoleRequest = await req.json();
 
     if (!userId || !role) {
@@ -55,7 +34,7 @@ Deno.serve(async (req) => {
     }
 
     // Build the delete query
-    let query = supabase
+    let query = context.supabase
       .from('user_roles')
       .delete()
       .eq('user_id', userId)
@@ -73,17 +52,19 @@ Deno.serve(async (req) => {
     }
 
     // Log the action
-    await supabase.from('audit_logs').insert({
-      user_id: user.id,
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'role_removed',
-      resource_type: 'user_role',
-      resource_id: deletedRole.id,
+      resourceType: 'user_role',
+      resourceId: deletedRole.id,
       changes: { userId, role, tenantId },
-      actor_role: adminCheck[0].role,
-      tenant_id: tenantId || null,
+      actorRole: context.roles[0],
+      tenantId: tenantId || null,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    console.log(`Role ${role} removed from user ${userId} by ${user.email}`);
+    console.log(`Role ${role} removed from user ${userId} by ${context.user.email}`);
 
     return new Response(
       JSON.stringify({ success: true, data: deletedRole }),

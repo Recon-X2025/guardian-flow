@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,36 +19,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Validate authentication and check for admin role
+    const authResult = await validateAuth(req, {
+      requiredRoles: ['sys_admin', 'tenant_admin'],
+    });
 
-    // Verify the requesting user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Check if user has admin role
-    const { data: adminCheck } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['sys_admin', 'tenant_admin']);
-
-    if (!adminCheck || adminCheck.length === 0) {
-      throw new Error('Insufficient permissions - admin role required');
-    }
-
+    const { context } = authResult;
     const { userId, role, tenantId }: AssignRoleRequest = await req.json();
 
     if (!userId || !role) {
@@ -55,7 +36,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify the target user exists
-    const { data: targetProfile, error: profileError } = await supabase
+    const { data: targetProfile, error: profileError } = await context.supabase
       .from('profiles')
       .select('id')
       .eq('id', userId)
@@ -66,19 +47,23 @@ Deno.serve(async (req) => {
     }
 
     // If tenant admin, verify they're assigning within their tenant
-    const isTenantAdmin = adminCheck.some(r => r.role === 'tenant_admin');
+    const isTenantAdmin = context.roles.includes('tenant_admin');
     if (isTenantAdmin && !tenantId) {
       throw new Error('Tenant ID required for tenant admin');
     }
 
+    if (isTenantAdmin && tenantId !== context.tenantId) {
+      throw new Error('Cannot assign roles outside your tenant');
+    }
+
     // Assign the role
-    const { data: roleData, error: roleError } = await supabase
+    const { data: roleData, error: roleError } = await context.supabase
       .from('user_roles')
       .insert({
         user_id: userId,
         role: role,
         tenant_id: tenantId || null,
-        granted_by: user.id,
+        granted_by: context.user.id,
       })
       .select()
       .single();
@@ -89,17 +74,19 @@ Deno.serve(async (req) => {
     }
 
     // Log the action
-    await supabase.from('audit_logs').insert({
-      user_id: user.id,
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'role_assigned',
-      resource_type: 'user_role',
-      resource_id: roleData.id,
+      resourceType: 'user_role',
+      resourceId: roleData.id,
       changes: { userId, role, tenantId },
-      actor_role: adminCheck[0].role,
-      tenant_id: tenantId || null,
+      actorRole: context.roles[0],
+      tenantId: tenantId || null,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    console.log(`Role ${role} assigned to user ${userId} by ${user.email}`);
+    console.log(`Role ${role} assigned to user ${userId} by ${context.user.email}`);
 
     return new Response(
       JSON.stringify({ success: true, data: roleData }),

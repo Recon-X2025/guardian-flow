@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,35 +18,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Validate authentication and check for manager role + MFA permission
+    const authResult = await validateAuth(req, {
+      requiredRoles: ['ops_manager', 'tenant_admin', 'sys_admin'],
+      requiredPermissions: ['override.approve'],
+    });
 
-    // Verify the requesting user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Check if user has manager role
-    const { data: managerCheck } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['ops_manager', 'tenant_admin', 'sys_admin']);
-
-    if (!managerCheck || managerCheck.length === 0) {
-      throw new Error('Insufficient permissions - manager role required');
-    }
+    const { context } = authResult;
 
     const { requestId, mfaTokenId, mfaToken }: ApproveOverrideRequest = await req.json();
 
@@ -61,12 +43,12 @@ Deno.serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const tokenHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    const { data: mfaRecord, error: mfaError } = await supabase
+    const { data: mfaRecord, error: mfaError } = await context.supabase
       .from('mfa_tokens')
       .select('*')
       .eq('id', mfaTokenId)
       .eq('token_hash', tokenHash)
-      .eq('user_id', user.id)
+      .eq('user_id', context.user.id)
       .is('used_at', null)
       .single();
 
@@ -80,13 +62,13 @@ Deno.serve(async (req) => {
     }
 
     // Mark MFA token as used
-    await supabase
+    await context.supabase
       .from('mfa_tokens')
       .update({ used_at: new Date().toISOString() })
       .eq('id', mfaTokenId);
 
     // Get the override request
-    const { data: overrideRequest, error: requestError } = await supabase
+    const { data: overrideRequest, error: requestError } = await context.supabase
       .from('override_requests')
       .select('*')
       .eq('id', requestId)
@@ -102,7 +84,7 @@ Deno.serve(async (req) => {
 
     // Check if request is expired
     if (new Date(overrideRequest.expires_at) < new Date()) {
-      await supabase
+      await context.supabase
         .from('override_requests')
         .update({ status: 'expired' })
         .eq('id', requestId);
@@ -110,11 +92,11 @@ Deno.serve(async (req) => {
     }
 
     // Approve the override request
-    const { data: approvedRequest, error: approveError } = await supabase
+    const { data: approvedRequest, error: approveError } = await context.supabase
       .from('override_requests')
       .update({
         status: 'approved',
-        approved_by: user.id,
+        approved_by: context.user.id,
         approved_at: new Date().toISOString(),
         mfa_verified: true,
         mfa_verified_at: new Date().toISOString(),
@@ -129,22 +111,25 @@ Deno.serve(async (req) => {
     }
 
     // Log the action with MFA verification
-    await supabase.from('audit_logs').insert({
-      user_id: user.id,
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'override_approved',
-      resource_type: 'override_request',
-      resource_id: requestId,
+      resourceType: 'override_request',
+      resourceId: requestId,
       changes: { 
         requestId, 
         actionType: overrideRequest.action_type,
         entityType: overrideRequest.entity_type,
         entityId: overrideRequest.entity_id 
       },
-      actor_role: managerCheck[0].role,
-      mfa_verified: true,
+      actorRole: context.roles[0],
+      mfaVerified: true,
+      tenantId: context.tenantId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    console.log(`Override request ${requestId} approved by ${user.email} with MFA verification`);
+    console.log(`Override request ${requestId} approved by ${context.user.email} with MFA verification`);
 
     return new Response(
       JSON.stringify({ 

@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,24 +20,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['override.request'],
+    });
 
-    // Verify the requesting user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
+    const { context } = authResult;
 
     const { 
       actionType, 
@@ -56,10 +47,10 @@ Deno.serve(async (req) => {
     expiresAt.setMinutes(expiresAt.getMinutes() + expiresInMinutes);
 
     // Create the override request
-    const { data: overrideRequest, error: createError } = await supabase
+    const { data: overrideRequest, error: createError } = await context.supabase
       .from('override_requests')
       .insert({
-        requester_id: user.id,
+        requester_id: context.user.id,
         action_type: actionType,
         entity_type: entityType,
         entity_id: entityId,
@@ -76,15 +67,20 @@ Deno.serve(async (req) => {
     }
 
     // Log the action
-    await supabase.from('audit_logs').insert({
-      user_id: user.id,
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'override_requested',
-      resource_type: 'override_request',
-      resource_id: overrideRequest.id,
+      resourceType: 'override_request',
+      resourceId: overrideRequest.id,
       changes: { actionType, entityType, entityId, reason },
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      reason: reason,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    console.log(`Override request created by ${user.email} for ${entityType}:${entityId}`);
+    console.log(`Override request created by ${context.user.email} for ${entityType}:${entityId}`);
 
     return new Response(
       JSON.stringify({ 
