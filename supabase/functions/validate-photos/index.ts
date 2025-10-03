@@ -12,34 +12,54 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const correlationId = crypto.randomUUID();
+  console.log(`[${correlationId}] validate-photos: Request started`);
+
   try {
     const authResult = await validateAuth(req, {
       requiredPermissions: ['photos.validate'],
     });
 
     if (!authResult.success) {
-      return createErrorResponse(authResult.error);
+      console.error(`[${correlationId}] Auth failed:`, authResult.error);
+      return createErrorResponse(authResult.error, 401);
     }
 
     const { context } = authResult;
-    const { woId, stage, images } = await req.json();
+    const requestBody = await req.json();
+    const { woId, stage, images } = requestBody;
 
+    // Validate required fields
     if (!woId || !stage || !images || !Array.isArray(images)) {
+      console.error(`[${correlationId}] Missing required fields`);
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: woId, stage, images' }),
+        JSON.stringify({ 
+          code: 'validation_error',
+          message: 'Missing required fields: woId, stage, images',
+          correlationId
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log(`[${correlationId}] Validating ${images.length} photos for WO: ${woId}, stage: ${stage}`);
+
     // Validate minimum 4 photos
     if (images.length < 4) {
+      console.warn(`[${correlationId}] Insufficient photos: ${images.length}`);
       return new Response(
         JSON.stringify({
           photos_validated: false,
-          error: 'Minimum 4 photos required',
-          images_provided: images.length
+          code: 'insufficient_photos',
+          message: 'Minimum 4 photos required per stage',
+          details: {
+            images_provided: images.length,
+            required_count: 4,
+            required_roles: REQUIRED_ROLES
+          },
+          correlationId
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -48,15 +68,23 @@ Deno.serve(async (req) => {
     const missingRoles = REQUIRED_ROLES.filter(role => !providedRoles.includes(role));
 
     if (missingRoles.length > 0) {
+      console.warn(`[${correlationId}] Missing photo roles:`, missingRoles);
       return new Response(
         JSON.stringify({
           photos_validated: false,
-          error: 'Missing required photo roles',
-          missing_roles: missingRoles
+          code: 'missing_roles',
+          message: 'Missing required photo roles',
+          details: {
+            missing_roles: missingRoles,
+            provided_roles: providedRoles
+          },
+          correlationId
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`[${correlationId}] All required roles present`);
 
     // Verify work order exists
     const { data: workOrder, error: woError } = await context.supabase
@@ -66,15 +94,23 @@ Deno.serve(async (req) => {
       .single();
 
     if (woError || !workOrder) {
+      console.error(`[${correlationId}] Work order not found:`, woError);
       return new Response(
-        JSON.stringify({ error: 'Work order not found' }),
+        JSON.stringify({ 
+          code: 'not_found',
+          message: 'Work order not found',
+          correlationId
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log(`[${correlationId}] Work order verified: ${workOrder.wo_number}`);
+
     // Store attachments
+    console.log(`[${correlationId}] Storing ${images.length} attachments`);
     for (const image of images) {
-      await context.supabase.from('attachments').insert({
+      const { error: attachError } = await context.supabase.from('attachments').insert({
         work_order_id: woId,
         uploader_id: context.user.id,
         filename: image.filename || 'photo.jpg',
@@ -86,19 +122,28 @@ Deno.serve(async (req) => {
         captured_at: image.captured_at,
         metadata: {
           image_id: image.id,
-          validation_timestamp: new Date().toISOString()
+          validation_timestamp: new Date().toISOString(),
+          correlationId
         }
       });
+
+      if (attachError) {
+        console.error(`[${correlationId}] Attachment insert error:`, attachError);
+        // Continue with other images even if one fails
+      }
     }
 
-    // Anomaly detection placeholder (TODO: integrate CV/ML model)
+    console.log(`[${correlationId}] Running anomaly detection (placeholder)`);
+    // Anomaly detection placeholder (TODO: integrate CV/ML model for PC & Print devices)
     const anomalyDetected = false;
     const anomalyDetails = {
       tampering_score: 0,
       duplicate_score: 0,
-      mismatch_score: 0
+      mismatch_score: 0,
+      notes: 'CV anomaly detection pending GPU infrastructure deployment'
     };
 
+    console.log(`[${correlationId}] Creating validation record`);
     // Create validation record
     const { data: validation, error: validationError } = await context.supabase
       .from('photo_validations')
@@ -113,6 +158,7 @@ Deno.serve(async (req) => {
           roles_provided: providedRoles,
           all_hashed: images.every((img: any) => img.hash),
           all_gps_stamped: images.every((img: any) => img.gps),
+          correlationId
         },
         validated_by: context.user.id,
         validated_at: new Date().toISOString()
@@ -121,9 +167,18 @@ Deno.serve(async (req) => {
       .single();
 
     if (validationError) {
-      console.error('Validation record error:', validationError);
-      throw validationError;
+      console.error(`[${correlationId}] Validation record error:`, validationError);
+      return new Response(
+        JSON.stringify({
+          code: 'validation_failed',
+          message: `Failed to create validation record: ${validationError.message}`,
+          correlationId
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    console.log(`[${correlationId}] Validation record created: ${validation.id}`);
 
     // Log audit event
     await logAuditEvent(context.supabase, {
@@ -134,11 +189,12 @@ Deno.serve(async (req) => {
       changes: { stage, images_count: images.length, anomaly_detected: anomalyDetected },
       actorRole: context.roles[0],
       tenantId: context.tenantId,
+      correlationId,
       ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
       userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    console.log(`Photos validated for WO ${woId}, stage ${stage} by user ${context.user.id}`);
+    console.log(`[${correlationId}] Returning success response`);
 
     return new Response(
       JSON.stringify({
@@ -152,16 +208,23 @@ Deno.serve(async (req) => {
         provenance: {
           validation_method: 'automatic',
           all_roles_present: true,
-          security_features: ['sha256_hash', 'gps_stamp', 'timestamp']
-        }
+          security_features: ['sha256_hash', 'gps_stamp', 'timestamp'],
+          domain: 'pc_print_field_service'
+        },
+        correlationId
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
-    console.error('Photo validation error:', error);
+  } catch (error: any) {
+    console.error(`[${correlationId}] Unhandled error in validate-photos:`, error);
     return new Response(
-      JSON.stringify({ error: (error as Error).message || 'Unknown error' }),
+      JSON.stringify({ 
+        code: 'internal_error',
+        message: error.message || 'Unknown error',
+        details: error.stack,
+        correlationId
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

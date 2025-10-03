@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Default SO template (Handlebars syntax)
+// Default SO template for PC & Print field service
 const DEFAULT_TEMPLATE = `
 <!DOCTYPE html>
 <html>
@@ -22,16 +22,16 @@ const DEFAULT_TEMPLATE = `
 </head>
 <body>
   <div class="header">
-    <h1>Service Order: {{so_number}}</h1>
+    <h1>PC & Print Service Order: {{so_number}}</h1>
     <p>Work Order: {{wo_number}}</p>
     <p>Date: {{created_at}}</p>
   </div>
 
   <div class="section">
-    <h3>Unit Information</h3>
+    <h3>Device Information</h3>
     <p><strong>Serial Number:</strong> {{unit_serial}}</p>
     <p><strong>Customer:</strong> {{customer_name}}</p>
-    <p><strong>Symptom:</strong> {{symptom}}</p>
+    <p><strong>Issue Reported:</strong> {{symptom}}</p>
   </div>
 
   <div class="section">
@@ -90,20 +90,39 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const correlationId = crypto.randomUUID();
+  console.log(`[${correlationId}] generate-service-order: Request started`);
+
   try {
     const authResult = await validateAuth(req, {
       requiredPermissions: ['service_orders.generate'],
     });
 
     if (!authResult.success) {
-      return createErrorResponse(authResult.error);
+      console.error(`[${correlationId}] Auth failed:`, authResult.error);
+      return createErrorResponse(authResult.error, 401);
     }
 
     const { context } = authResult;
-    const { workOrderId, templateId } = await req.json();
+    const requestBody = await req.json();
+    const { workOrderId, templateId } = requestBody;
+
+    if (!workOrderId) {
+      console.error(`[${correlationId}] Missing workOrderId`);
+      return new Response(
+        JSON.stringify({
+          code: 'validation_error',
+          message: 'workOrderId is required',
+          correlationId,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[${correlationId}] Fetching work order: ${workOrderId}`);
 
     // Get work order with all related data
-    const { data: workOrder } = await context.supabase
+    const { data: workOrder, error: woError } = await context.supabase
       .from('work_orders')
       .select(`
         *,
@@ -113,22 +132,60 @@ Deno.serve(async (req) => {
       .eq('id', workOrderId)
       .single();
 
-    if (!workOrder) throw new Error('Work order not found');
+    if (woError || !workOrder) {
+      console.error(`[${correlationId}] Work order fetch error:`, woError);
+      return new Response(
+        JSON.stringify({
+          code: 'not_found',
+          message: `Work order not found: ${woError?.message || 'Unknown error'}`,
+          correlationId,
+        }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[${correlationId}] Work order found: ${workOrder.wo_number}`);
 
     // Get template (custom or default)
     let templateContent = DEFAULT_TEMPLATE;
     if (templateId) {
-      const { data: template } = await context.supabase
+      console.log(`[${correlationId}] Fetching custom template: ${templateId}`);
+      const { data: template, error: templateError } = await context.supabase
         .from('service_order_templates')
         .select('template_content')
         .eq('id', templateId)
         .single();
-      if (template) templateContent = template.template_content;
+      
+      if (templateError) {
+        console.error(`[${correlationId}] Template fetch error:`, templateError);
+        return new Response(
+          JSON.stringify({
+            code: 'template_not_found',
+            message: `Template not found: ${templateError.message}`,
+            details: { templateId },
+            correlationId,
+          }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (template) {
+        templateContent = template.template_content;
+        console.log(`[${correlationId}] Custom template loaded`);
+      }
+    } else {
+      console.log(`[${correlationId}] Using default PC & Print template`);
     }
 
     // Prepare rendering data
     const warrantyResult = workOrder.work_order_prechecks?.[0]?.warranty_result || {};
-    const soNumber = `SO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+    const year = new Date().getFullYear();
+    const { count } = await context.supabase
+      .from('service_orders')
+      .select('*', { count: 'exact', head: true });
+    
+    const soNumber = `SO-${year}-${String((count || 0) + 1).padStart(4, '0')}`;
+    console.log(`[${correlationId}] Generated SO number: ${soNumber}`);
 
     const renderData = {
       so_number: soNumber,
@@ -152,9 +209,11 @@ Deno.serve(async (req) => {
       htmlContent = htmlContent.replace(regex, String(value));
     });
 
-    // Handle conditionals and loops (basic implementation)
+    // Handle conditionals (basic implementation)
     htmlContent = htmlContent.replace(/{{#if warranty_covered}}.*?{{\/if}}/gs, 
       warrantyResult.covered ? warrantyResult.warranty_end ? `Coverage Ends: ${warrantyResult.warranty_end}` : '' : '');
+
+    console.log(`[${correlationId}] Creating service order record`);
 
     // Store service order
     const { data: serviceOrder, error: soError } = await context.supabase
@@ -170,7 +229,19 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
-    if (soError) throw soError;
+    if (soError) {
+      console.error(`[${correlationId}] Service order creation error:`, soError);
+      return new Response(
+        JSON.stringify({
+          code: 'creation_failed',
+          message: `Failed to create service order: ${soError.message}`,
+          correlationId,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[${correlationId}] Service order created successfully: ${serviceOrder.id}`);
 
     // Log audit event
     await logAuditEvent(context.supabase, {
@@ -181,18 +252,32 @@ Deno.serve(async (req) => {
       changes: { so_number: soNumber, work_order_id: workOrderId },
       actorRole: context.roles[0],
       tenantId: context.tenantId,
+      correlationId,
       ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
       userAgent: req.headers.get('user-agent') || undefined,
     });
 
-    return new Response(JSON.stringify({ serviceOrder, html: htmlContent }), {
+    console.log(`[${correlationId}] Returning success response`);
+
+    return new Response(JSON.stringify({ 
+      serviceOrder, 
+      html: htmlContent,
+      correlationId,
+      message: 'Service order generated successfully'
+    }), {
+      status: 201,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('Service order generation error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error(`[${correlationId}] Unhandled error in generate-service-order:`, error);
+    return new Response(
+      JSON.stringify({
+        code: 'internal_error',
+        message: error.message || 'An unexpected error occurred',
+        details: error.stack,
+        correlationId,
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });

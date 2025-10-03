@@ -133,7 +133,7 @@ export default function Tickets() {
                   <Label htmlFor="unitSerial">Unit Serial Number *</Label>
                   <Input 
                     id="unitSerial" 
-                    placeholder="e.g., HVAC-12345-XYZ" 
+                    placeholder="e.g., PC-2024-12345 or PR-MFP-67890" 
                     value={formData.unitSerial}
                     onChange={(e) => setFormData({ ...formData, unitSerial: e.target.value })}
                     required 
