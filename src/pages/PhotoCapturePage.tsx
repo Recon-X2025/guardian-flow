@@ -18,8 +18,8 @@ export default function PhotoCapturePage() {
       const { data, error } = await supabase
         .from('photo_validations')
         .select('*')
-        .eq('work_order_id', 'demo-wo-id')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
       setValidations(data || []);
