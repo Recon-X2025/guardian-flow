@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,20 +85,25 @@ const DEFAULT_TEMPLATE = `
 </html>
 `;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['service_orders.generate'],
+    });
 
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
+    }
+
+    const { context } = authResult;
     const { workOrderId, templateId } = await req.json();
 
     // Get work order with all related data
-    const { data: workOrder } = await supabase
+    const { data: workOrder } = await context.supabase
       .from('work_orders')
       .select(`
         *,
@@ -114,7 +118,7 @@ serve(async (req) => {
     // Get template (custom or default)
     let templateContent = DEFAULT_TEMPLATE;
     if (templateId) {
-      const { data: template } = await supabase
+      const { data: template } = await context.supabase
         .from('service_order_templates')
         .select('template_content')
         .eq('id', templateId)
@@ -153,7 +157,7 @@ serve(async (req) => {
       warrantyResult.covered ? warrantyResult.warranty_end ? `Coverage Ends: ${warrantyResult.warranty_end}` : '' : '');
 
     // Store service order
-    const { data: serviceOrder, error: soError } = await supabase
+    const { data: serviceOrder, error: soError } = await context.supabase
       .from('service_orders')
       .insert({
         work_order_id: workOrderId,
@@ -168,14 +172,17 @@ serve(async (req) => {
 
     if (soError) throw soError;
 
-    // Audit log
-    await supabase.from('audit_logs').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+    // Log audit event
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'service_order_generated',
-      resource_type: 'service_order',
-      resource_id: serviceOrder.id,
+      resourceType: 'service_order',
+      resourceId: serviceOrder.id,
       changes: { so_number: soNumber, work_order_id: workOrderId },
-      correlation_id: crypto.randomUUID()
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
     return new Response(JSON.stringify({ serviceOrder, html: htmlContent }), {

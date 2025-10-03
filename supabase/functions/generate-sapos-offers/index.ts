@@ -1,39 +1,43 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['sapos.generate'],
+    });
 
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
+    }
+
+    const { context } = authResult;
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const { workOrderId, customerId } = await req.json();
 
     // Get work order and warranty context
-    const { data: workOrder } = await supabase
+    const { data: workOrder } = await context.supabase
       .from('work_orders')
       .select('*, tickets(unit_serial, customer_name)')
       .eq('id', workOrderId)
       .single();
 
-    const { data: warranty } = await supabase
+    const { data: warranty } = await context.supabase
       .from('warranty_records')
       .select('*')
       .eq('unit_serial', workOrder?.tickets?.unit_serial)
       .single();
 
     // Build context for AI
-    const context = {
+    const aiContext = {
       customer_name: workOrder?.tickets?.customer_name,
       unit_serial: workOrder?.tickets?.unit_serial,
       warranty_status: warranty ? 'active' : 'expired',
@@ -64,7 +68,7 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
           },
           {
             role: 'user',
-            content: `Context: ${JSON.stringify(context)}`
+            content: `Context: ${JSON.stringify(aiContext)}`
           }
         ],
         tools: [
@@ -106,7 +110,7 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
 
     // Store offers in database with AI provenance
     const insertPromises = offers.map((offer: any) => 
-      supabase.from('sapos_offers').insert({
+      context.supabase.from('sapos_offers').insert({
         work_order_id: workOrderId,
         customer_id: customerId,
         title: offer.title,
@@ -123,14 +127,17 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
 
     await Promise.all(insertPromises);
 
-    // Audit log
-    await supabase.from('audit_logs').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+    // Log audit event
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'sapos_offers_generated',
-      resource_type: 'work_order',
-      resource_id: workOrderId,
+      resourceType: 'work_order',
+      resourceId: workOrderId,
       changes: { offers_count: offers.length, model: 'google/gemini-2.5-flash' },
-      correlation_id: crypto.randomUUID()
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
     return new Response(JSON.stringify({ offers }), {

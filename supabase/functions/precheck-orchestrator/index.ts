@@ -1,28 +1,32 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['workorders.precheck'],
+    });
 
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
+    }
+
+    const { context } = authResult;
     const { workOrderId } = await req.json();
     const correlationId = crypto.randomUUID();
 
     console.log(`[${correlationId}] Starting precheck orchestration for WO: ${workOrderId}`);
 
     // Get work order details
-    const { data: workOrder, error: woError } = await supabase
+    const { data: workOrder, error: woError } = await context.supabase
       .from('work_orders')
       .select('*, tickets(unit_serial, customer_id)')
       .eq('id', workOrderId)
@@ -33,7 +37,7 @@ serve(async (req) => {
     }
 
     // Initialize or get precheck record
-    const { data: precheck, error: precheckError } = await supabase
+    const { data: precheck, error: precheckError } = await context.supabase
       .from('work_order_prechecks')
       .upsert({
         work_order_id: workOrderId,
@@ -56,7 +60,7 @@ serve(async (req) => {
 
     // STEP 1: Inventory Cascade Check
     console.log(`[${correlationId}] Running inventory cascade...`);
-    const { data: inventoryResult, error: invError } = await supabase.functions.invoke('check-inventory', {
+    const { data: inventoryResult, error: invError } = await context.supabase.functions.invoke('check-inventory', {
       body: {
         parts: workOrder.parts_reserved ? JSON.parse(workOrder.warranty_result || '{}').parts || [] : [],
         hubId: workOrder.hub_id
@@ -65,7 +69,7 @@ serve(async (req) => {
 
     if (!invError && inventoryResult) {
       results.inventory = inventoryResult;
-      await supabase.from('work_order_prechecks')
+      await context.supabase.from('work_order_prechecks')
         .update({
           inventory_status: inventoryResult.all_available ? 'passed' : 'failed',
           inventory_result: inventoryResult
@@ -75,7 +79,7 @@ serve(async (req) => {
 
     // STEP 2: Warranty Check
     console.log(`[${correlationId}] Running warranty check...`);
-    const { data: warrantyResult, error: warError } = await supabase.functions.invoke('check-warranty', {
+    const { data: warrantyResult, error: warError } = await context.supabase.functions.invoke('check-warranty', {
       body: {
         unitSerial: workOrder.tickets?.unit_serial,
         parts: workOrder.parts_reserved ? JSON.parse(workOrder.warranty_result || '{}').parts || [] : []
@@ -95,8 +99,8 @@ serve(async (req) => {
         });
       }
 
-      await supabase.from('work_orders').update({ cost_to_customer: customerCost }).eq('id', workOrderId);
-      await supabase.from('work_order_prechecks')
+      await context.supabase.from('work_orders').update({ cost_to_customer: customerCost }).eq('id', workOrderId);
+      await context.supabase.from('work_order_prechecks')
         .update({
           warranty_status: 'passed',
           warranty_result: warrantyResult
@@ -106,7 +110,7 @@ serve(async (req) => {
 
     // STEP 3: Photo Validation Check
     console.log(`[${correlationId}] Checking photo validations...`);
-    const { data: photoValidations } = await supabase
+    const { data: photoValidations } = await context.supabase
       .from('photo_validations')
       .select('*')
       .eq('work_order_id', workOrderId)
@@ -126,7 +130,7 @@ serve(async (req) => {
       all_valid: allPhotosValid
     };
 
-    await supabase.from('work_order_prechecks')
+    await context.supabase.from('work_order_prechecks')
       .update({
         photo_status: allPhotosValid ? 'passed' : 'failed',
         photo_result: results.photos
@@ -134,7 +138,7 @@ serve(async (req) => {
       .eq('id', precheck.id);
 
     // Final check
-    const { data: finalPrecheck } = await supabase
+    const { data: finalPrecheck } = await context.supabase
       .from('work_order_prechecks')
       .select('can_release')
       .eq('id', precheck.id)
@@ -142,14 +146,18 @@ serve(async (req) => {
 
     results.can_release = finalPrecheck?.can_release || false;
 
-    // Audit log
-    await supabase.from('audit_logs').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+    // Log audit event
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
       action: 'precheck_completed',
-      resource_type: 'work_order',
-      resource_id: workOrderId,
+      resourceType: 'work_order',
+      resourceId: workOrderId,
       changes: results,
-      correlation_id: correlationId
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      correlationId: correlationId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
     });
 
     console.log(`[${correlationId}] Precheck complete. Can release: ${results.can_release}`);

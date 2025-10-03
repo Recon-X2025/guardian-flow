@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,12 +7,21 @@ const corsHeaders = {
 
 const REQUIRED_ROLES = ['context_wide', 'pre_closeup', 'serial', 'replacement_part'];
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['photos.validate'],
+    });
+
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
+    }
+
+    const { context } = authResult;
     const { woId, stage, images } = await req.json();
 
     if (!woId || !stage || !images || !Array.isArray(images)) {
@@ -50,31 +58,8 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get authenticated user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Verify work order exists
-    const { data: workOrder, error: woError } = await supabase
+    const { data: workOrder, error: woError } = await context.supabase
       .from('work_orders')
       .select('*')
       .eq('id', woId)
@@ -89,9 +74,9 @@ serve(async (req) => {
 
     // Store attachments
     for (const image of images) {
-      await supabase.from('attachments').insert({
+      await context.supabase.from('attachments').insert({
         work_order_id: woId,
-        uploader_id: user.id,
+        uploader_id: context.user.id,
         filename: image.filename || 'photo.jpg',
         file_hash: image.hash,
         role: image.role,
@@ -115,7 +100,7 @@ serve(async (req) => {
     };
 
     // Create validation record
-    const { data: validation, error: validationError } = await supabase
+    const { data: validation, error: validationError } = await context.supabase
       .from('photo_validations')
       .insert({
         work_order_id: woId,
@@ -129,7 +114,7 @@ serve(async (req) => {
           all_hashed: images.every((img: any) => img.hash),
           all_gps_stamped: images.every((img: any) => img.gps),
         },
-        validated_by: user.id,
+        validated_by: context.user.id,
         validated_at: new Date().toISOString()
       })
       .select()
@@ -140,7 +125,20 @@ serve(async (req) => {
       throw validationError;
     }
 
-    console.log(`Photos validated for WO ${woId}, stage ${stage} by user ${user.id}`);
+    // Log audit event
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
+      action: 'photos_validated',
+      resourceType: 'work_order',
+      resourceId: woId,
+      changes: { stage, images_count: images.length, anomaly_detected: anomalyDetected },
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
+    });
+
+    console.log(`Photos validated for WO ${woId}, stage ${stage} by user ${context.user.id}`);
 
     return new Response(
       JSON.stringify({
@@ -150,7 +148,7 @@ serve(async (req) => {
         stage: stage,
         images_count: images.length,
         validated_at: validation.validated_at,
-        validated_by: user.id,
+        validated_by: context.user.id,
         provenance: {
           validation_method: 'automatic',
           all_roles_present: true,

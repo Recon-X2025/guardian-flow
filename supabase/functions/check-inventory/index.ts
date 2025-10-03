@@ -1,17 +1,25 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['inventory.check'],
+    });
+
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
+    }
+
+    const { context } = authResult;
     const { parts, hubId } = await req.json();
 
     if (!parts || !Array.isArray(parts) || parts.length === 0) {
@@ -21,9 +29,6 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const results = [];
 
@@ -31,7 +36,7 @@ serve(async (req) => {
       const { sku, quantity } = partRequest;
 
       // Get inventory item
-      const { data: item, error: itemError } = await supabase
+      const { data: item, error: itemError } = await context.supabase
         .from('inventory_items')
         .select('*')
         .eq('sku', sku)
@@ -55,7 +60,7 @@ serve(async (req) => {
       let availableQty = 0;
 
       for (const source of stockSources) {
-        const { data: stockLevel } = await supabase
+        const { data: stockLevel } = await context.supabase
           .from('stock_levels')
           .select('*')
           .eq('item_id', item.id)
@@ -99,6 +104,18 @@ serve(async (req) => {
     }
 
     const allAvailable = results.every(r => r.available);
+
+    // Log audit event
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
+      action: 'inventory_checked',
+      resourceType: 'inventory',
+      changes: { parts_count: parts.length, all_available: allAvailable, hub_id: hubId },
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
+    });
 
     return new Response(
       JSON.stringify({

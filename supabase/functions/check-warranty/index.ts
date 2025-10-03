@@ -1,17 +1,25 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAuth, createErrorResponse, logAuditEvent } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authResult = await validateAuth(req, {
+      requiredPermissions: ['warranty.check'],
+    });
+
+    if (!authResult.success) {
+      return createErrorResponse(authResult.error);
+    }
+
+    const { context } = authResult;
     const { unitSerial, parts } = await req.json();
     
     if (!unitSerial) {
@@ -21,12 +29,8 @@ serve(async (req) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     // Check warranty record
-    const { data: warrantyRecord, error: warrantyError } = await supabase
+    const { data: warrantyRecord, error: warrantyError } = await context.supabase
       .from('warranty_records')
       .select('*')
       .eq('unit_serial', unitSerial)
@@ -66,7 +70,7 @@ serve(async (req) => {
     // Check parts coverage if parts are provided
     let partsCoverage = null;
     if (parts && Array.isArray(parts)) {
-      const { data: inventoryItems } = await supabase
+      const { data: inventoryItems } = await context.supabase
         .from('inventory_items')
         .select('*')
         .in('sku', parts);
@@ -82,6 +86,19 @@ serve(async (req) => {
         };
       });
     }
+
+    // Log audit event
+    await logAuditEvent(context.supabase, {
+      userId: context.user.id,
+      action: 'warranty_checked',
+      resourceType: 'warranty',
+      resourceId: warrantyRecord.id,
+      changes: { unit_serial: unitSerial, covered: true, parts_count: parts?.length || 0 },
+      actorRole: context.roles[0],
+      tenantId: context.tenantId,
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || undefined,
+      userAgent: req.headers.get('user-agent') || undefined,
+    });
 
     return new Response(
       JSON.stringify({
