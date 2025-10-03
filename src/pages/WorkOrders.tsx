@@ -11,6 +11,7 @@ import { PrecheckStatus } from '@/components/PrecheckStatus';
 import { TriggerPrecheckDialog } from '@/components/TriggerPrecheckDialog';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
+import { useNavigate } from 'react-router-dom';
 
 export default function WorkOrders() {
   const { toast } = useToast();
@@ -83,7 +84,7 @@ export default function WorkOrders() {
             Manage field service work orders with precheck gating
           </p>
         </div>
-        <Button>
+        <Button onClick={() => navigate('/tickets')}>
           <Plus className="mr-2 h-4 w-4" />
           Create Work Order
         </Button>
