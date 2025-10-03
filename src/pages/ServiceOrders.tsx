@@ -9,7 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 export default function ServiceOrders() {
   const [serviceOrders, setServiceOrders] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [selectedWO, setSelectedWO] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [selectedSO, setSelectedSO] = useState<any | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const { toast } = useToast();
@@ -37,9 +40,30 @@ export default function ServiceOrders() {
 
   useEffect(() => {
     fetchServiceOrders();
+    fetchWorkOrders();
   }, []);
 
+  const fetchWorkOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select('id, wo_number, status')
+        .in('status', ['in_progress', 'pending_validation'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setWorkOrders(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error loading work orders",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const generateSO = async (workOrderId: string) => {
+    setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-service-order', {
         body: { workOrderId }
@@ -53,12 +77,15 @@ export default function ServiceOrders() {
       });
 
       fetchServiceOrders();
+      setSelectedWO('');
     } catch (error: any) {
       toast({
         title: "Generation failed",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -84,10 +111,43 @@ export default function ServiceOrders() {
             Auto-generated service documentation with signatures and evidence
           </p>
         </div>
-        <Button onClick={() => generateSO('demo-wo-id')}>
-          <FileText className="mr-2 h-4 w-4" />
-          Generate SO
-        </Button>
+        <div className="flex gap-2">
+          <select
+            className="px-3 py-2 border rounded-md"
+            value={selectedWO}
+            onChange={(e) => setSelectedWO(e.target.value)}
+            disabled={generating}
+          >
+            <option value="">Select Work Order...</option>
+            {workOrders.map(wo => (
+              <option key={wo.id} value={wo.id}>
+                {wo.wo_number} ({wo.status})
+              </option>
+            ))}
+          </select>
+          <Button 
+            onClick={() => {
+              if (!selectedWO) {
+                toast({ title: "Select a work order first", variant: "destructive" });
+                return;
+              }
+              generateSO(selectedWO);
+            }}
+            disabled={generating || !selectedWO}
+          >
+            {generating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Generate SO
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

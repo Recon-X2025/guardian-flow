@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function PhotoCapturePage() {
   const [stage, setStage] = useState<"replacement" | "post_repair" | "pickup">("replacement");
   const [validations, setValidations] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [selectedWO, setSelectedWO] = useState<string>('');
   const { toast } = useToast();
 
   const fetchValidations = async () => {
@@ -34,7 +36,30 @@ export default function PhotoCapturePage() {
 
   useEffect(() => {
     fetchValidations();
+    fetchWorkOrders();
   }, []);
+
+  const fetchWorkOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('work_orders')
+        .select('id, wo_number, status')
+        .in('status', ['draft', 'in_progress', 'pending_validation'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setWorkOrders(data || []);
+      if (data && data.length > 0) {
+        setSelectedWO(data[0].id);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error loading work orders",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleComplete = (payload: any) => {
     console.log("Photos validated:", payload);
@@ -148,11 +173,23 @@ export default function PhotoCapturePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Select Service Stage</CardTitle>
-          <CardDescription>Choose the stage that requires photo documentation</CardDescription>
+          <CardTitle>Select Work Order & Service Stage</CardTitle>
+          <CardDescription>Choose the work order and stage that requires photo documentation</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 items-center">
+            <select
+              className="px-3 py-2 border rounded-md"
+              value={selectedWO}
+              onChange={(e) => setSelectedWO(e.target.value)}
+            >
+              <option value="">Select Work Order...</option>
+              {workOrders.map(wo => (
+                <option key={wo.id} value={wo.id}>
+                  {wo.wo_number} ({wo.status})
+                </option>
+              ))}
+            </select>
             <Select value={stage} onValueChange={(v: any) => setStage(v)}>
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select stage" />
@@ -182,11 +219,19 @@ export default function PhotoCapturePage() {
         </CardContent>
       </Card>
 
-      <PhotoCapture
-        stage={stage}
-        workOrderId="WO-2024-001"
-        onComplete={handleComplete}
-      />
+      {selectedWO ? (
+        <PhotoCapture
+          stage={stage}
+          workOrderId={selectedWO}
+          onComplete={handleComplete}
+        />
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            Please select a work order to start photo capture
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
