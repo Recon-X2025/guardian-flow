@@ -671,6 +671,30 @@ export type Database = {
           },
         ]
       }
+      request_context: {
+        Row: {
+          correlation_id: string
+          created_at: string | null
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          correlation_id?: string
+          created_at?: string | null
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          correlation_id?: string
+          created_at?: string | null
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string | null
@@ -1227,6 +1251,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      raise_insufficient_privileges: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      test_tenant_isolation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          message: string
+          passed: boolean
+          test_name: string
+        }[]
       }
     }
     Enums: {

@@ -30,6 +30,7 @@ interface UserRole {
 interface RBACContextType {
   roles: UserRole[];
   permissions: string[];
+  tenantId: string | null;
   loading: boolean;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
@@ -43,21 +44,32 @@ interface RBACContextType {
 const RBACContext = createContext<RBACContextType | undefined>(undefined);
 
 export function RBACProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchRolesAndPermissions = async () => {
-    if (!user) {
+    if (!user || !session) {
       setRoles([]);
       setPermissions([]);
+      setTenantId(null);
       setLoading(false);
       return;
     }
 
     try {
-      // Fetch user roles
+      // Call backend auth/me endpoint for server-validated context
+      const { data, error } = await supabase.functions.invoke('auth-me', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Fetch full user_roles with metadata for client use
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('*')
@@ -66,30 +78,13 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
       if (rolesError) throw rolesError;
 
       setRoles(userRoles || []);
-
-      // Fetch permissions based on roles
-      if (userRoles && userRoles.length > 0) {
-        const roleNames = userRoles.map(r => r.role);
-        
-        const { data: rolePerms, error: permsError } = await supabase
-          .from('role_permissions')
-          .select('permission_id, permissions(name)')
-          .in('role', roleNames);
-
-        if (permsError) throw permsError;
-
-        const permissionNames = rolePerms
-          ?.map((rp: any) => rp.permissions?.name)
-          .filter(Boolean) || [];
-
-        setPermissions(permissionNames);
-      } else {
-        setPermissions([]);
-      }
+      setPermissions(data.permissions || []);
+      setTenantId(data.tenant_id || null);
     } catch (error) {
       console.error('Error fetching roles/permissions:', error);
       setRoles([]);
       setPermissions([]);
+      setTenantId(null);
     } finally {
       setLoading(false);
     }
@@ -97,7 +92,7 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchRolesAndPermissions();
-  }, [user]);
+  }, [user, session]);
 
   const hasRole = (role: AppRole): boolean => {
     return roles.some(r => r.role === role);
@@ -121,6 +116,7 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
   const value: RBACContextType = {
     roles,
     permissions,
+    tenantId,
     loading,
     hasRole,
     hasAnyRole,
