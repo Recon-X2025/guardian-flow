@@ -89,11 +89,13 @@ export default function Auth() {
     }
   };
 
+  const handleAccountSelect = (email: string, password: string) => {
+    setLoginForm({ email, password });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
       <div className="w-full max-w-4xl space-y-6">
-        <SeedAccountsButton />
-        
         <div className="max-w-md mx-auto space-y-6">
           <div className="text-center space-y-2">
             <div className="flex justify-center mb-4">
@@ -248,6 +250,8 @@ export default function Auth() {
             </div>
           </CardContent>
         </Card>
+        
+        <SeedAccountsButton onSelectAccount={handleAccountSelect} />
         </div>
       </div>
     </div>

@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Users, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Users, Check, AlertCircle, LogIn } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 interface SeedResult {
   created: string[];
@@ -12,9 +13,32 @@ interface SeedResult {
   errors: { email: string; error: string }[];
 }
 
-export function SeedAccountsButton() {
+interface TestAccount {
+  email: string;
+  password: string;
+  role: string;
+  name: string;
+}
+
+interface SeedAccountsButtonProps {
+  onSelectAccount?: (email: string, password: string) => void;
+}
+
+const TEST_ACCOUNTS: TestAccount[] = [
+  { email: 'admin@techcorp.com', password: 'Admin123!', role: 'sys_admin', name: 'System Admin' },
+  { email: 'tenant.admin@techcorp.com', password: 'Admin123!', role: 'tenant_admin', name: 'Tenant Admin' },
+  { email: 'ops@techcorp.com', password: 'Ops123!', role: 'ops_manager', name: 'Operations Manager' },
+  { email: 'finance@techcorp.com', password: 'Finance123!', role: 'finance_manager', name: 'Finance Manager' },
+  { email: 'fraud@techcorp.com', password: 'Fraud123!', role: 'fraud_investigator', name: 'Fraud Investigator' },
+  { email: 'partner.admin@servicepro.com', password: 'Partner123!', role: 'partner_admin', name: 'Partner Admin' },
+  { email: 'tech1@servicepro.com', password: 'Tech123!', role: 'technician', name: 'Technician One' },
+  { email: 'customer@example.com', password: 'Customer123!', role: 'customer', name: 'Customer User' },
+];
+
+export function SeedAccountsButton({ onSelectAccount }: SeedAccountsButtonProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
+  const [showAccounts, setShowAccounts] = useState(false);
   const { toast } = useToast();
 
   const handleSeedAccounts = async () => {
@@ -44,34 +68,43 @@ export function SeedAccountsButton() {
   };
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Test Accounts Setup
+          Test Accounts
         </CardTitle>
         <CardDescription>
-          Create 15 test accounts with different roles for testing the RBAC system
+          Create test accounts or click any account below to auto-fill login
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button
-          onClick={handleSeedAccounts}
-          disabled={loading}
-          className="w-full"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating Accounts...
-            </>
-          ) : (
-            <>
-              <Users className="mr-2 h-4 w-4" />
-              Create Test Accounts
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleSeedAccounts}
+            disabled={loading}
+            className="flex-1"
+            variant="default"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Users className="mr-2 h-4 w-4" />
+                Create All Accounts
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => setShowAccounts(!showAccounts)}
+            variant="outline"
+          >
+            {showAccounts ? 'Hide' : 'Show'} Accounts
+          </Button>
+        </div>
 
         {result && (
           <div className="space-y-2">
@@ -121,20 +154,43 @@ export function SeedAccountsButton() {
           </div>
         )}
 
-        <div className="mt-4 p-4 bg-muted rounded-lg text-sm space-y-2">
-          <p className="font-medium">Test Account Credentials:</p>
-          <ul className="space-y-1 text-muted-foreground">
-            <li>• admin@techcorp.com - Password: Admin123!</li>
-            <li>• tenant.admin@techcorp.com - Password: Admin123!</li>
-            <li>• ops@techcorp.com - Password: Ops123!</li>
-            <li>• finance@techcorp.com - Password: Finance123!</li>
-            <li>• fraud@techcorp.com - Password: Fraud123!</li>
-            <li>• partner.admin@servicepro.com - Password: Partner123!</li>
-            <li>• tech1@servicepro.com - Password: Tech123!</li>
-            <li>• customer@example.com - Password: Customer123!</li>
-            <li className="text-xs mt-2">...and 7 more accounts</li>
-          </ul>
-        </div>
+        {showAccounts && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Click any account to auto-fill login:</p>
+            <div className="grid gap-2 max-h-64 overflow-y-auto">
+              {TEST_ACCOUNTS.map((account) => (
+                <Button
+                  key={account.email}
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => {
+                    if (onSelectAccount) {
+                      onSelectAccount(account.email, account.password);
+                      toast({
+                        title: 'Login credentials filled',
+                        description: `Click "Sign In" to login as ${account.name}`,
+                      });
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <LogIn className="h-4 w-4" />
+                    <div className="flex-1 text-left">
+                      <div className="font-medium">{account.name}</div>
+                      <div className="text-xs text-muted-foreground">{account.email}</div>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {account.role.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Note: Accounts must be created first using the "Create All Accounts" button
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
