@@ -5,15 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Search, Clock, CheckCircle2, AlertCircle, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateWorkOrderDialog } from "@/components/CreateWorkOrderDialog";
 
 export default function Tickets() {
   const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
+  const [woDialogOpen, setWoDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     unitSerial: '',
     customer: '',
@@ -220,15 +223,38 @@ export default function Tickets() {
                         <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTicket(ticket.id);
+                          setWoDialogOpen(true);
+                        }}
+                        disabled={ticket.status !== 'open'}
+                      >
+                        <Briefcase className="h-4 w-4 mr-1" />
+                        Create WO
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        View Details
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
         </CardContent>
       </Card>
+
+      {selectedTicket && (
+        <CreateWorkOrderDialog
+          open={woDialogOpen}
+          onOpenChange={setWoDialogOpen}
+          ticketId={selectedTicket}
+          onSuccess={fetchTickets}
+        />
+      )}
 
       <Card className="bg-muted/30">
         <CardHeader>

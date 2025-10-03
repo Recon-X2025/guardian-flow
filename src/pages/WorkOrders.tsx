@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, PlayCircle, FileText, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { PrecheckStatus } from '@/components/PrecheckStatus';
+import { TriggerPrecheckDialog } from '@/components/TriggerPrecheckDialog';
+import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
+import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
 
 export default function WorkOrders() {
   const { toast } = useToast();
@@ -15,6 +18,9 @@ export default function WorkOrders() {
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
   const [precheckDialogOpen, setPrecheckDialogOpen] = useState(false);
+  const [triggerPrecheckOpen, setTriggerPrecheckOpen] = useState(false);
+  const [generateSOOpen, setGenerateSOOpen] = useState(false);
+  const [saposDialogOpen, setSaposDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkOrders();
@@ -187,13 +193,46 @@ export default function WorkOrders() {
                       size="sm"
                       onClick={() => {
                         setSelectedWO(wo.id);
+                        setTriggerPrecheckOpen(true);
+                      }}
+                      disabled={wo.status !== 'draft'}
+                    >
+                      <PlayCircle className="h-4 w-4 mr-1" />
+                      Run Precheck
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWO(wo.id);
                         setPrecheckDialogOpen(true);
                       }}
                     >
-                      View Precheck
+                      View Status
                     </Button>
-                    <Button variant="outline" size="sm">
-                      View Details
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWO(wo.id);
+                        setSaposDialogOpen(true);
+                      }}
+                      disabled={wo.status !== 'in_progress'}
+                    >
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      SaPOS
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWO(wo.id);
+                        setGenerateSOOpen(true);
+                      }}
+                      disabled={wo.status !== 'in_progress'}
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
+                      Generate SO
                     </Button>
                   </div>
                 </div>
@@ -217,6 +256,28 @@ export default function WorkOrders() {
           {selectedWO && <PrecheckStatus workOrderId={selectedWO} />}
         </DialogContent>
       </Dialog>
+
+      {selectedWO && (
+        <>
+          <TriggerPrecheckDialog
+            open={triggerPrecheckOpen}
+            onOpenChange={setTriggerPrecheckOpen}
+            workOrderId={selectedWO}
+            onSuccess={fetchWorkOrders}
+          />
+          <GenerateSaPOSDialog
+            open={saposDialogOpen}
+            onOpenChange={setSaposDialogOpen}
+            workOrderId={selectedWO}
+          />
+          <GenerateServiceOrderDialog
+            open={generateSOOpen}
+            onOpenChange={setGenerateSOOpen}
+            workOrderId={selectedWO}
+            onSuccess={fetchWorkOrders}
+          />
+        </>
+      )}
     </div>
   );
 }
