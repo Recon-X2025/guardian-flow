@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wrench, Loader2, Shield, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SeedAccountsButton } from '@/components/SeedAccountsButton';
 
 export default function Auth() {
   const { signIn, signUp, user } = useAuth();
@@ -90,16 +91,19 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-              <Wrench className="h-8 w-8 text-white" />
+      <div className="w-full max-w-4xl space-y-6">
+        <SeedAccountsButton />
+        
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="text-center space-y-2">
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
+                <Wrench className="h-8 w-8 text-white" />
+              </div>
             </div>
+            <h1 className="text-3xl font-bold">ReconX AI</h1>
+            <p className="text-muted-foreground">Enterprise Field Service Platform</p>
           </div>
-          <h1 className="text-3xl font-bold">ReconX AI</h1>
-          <p className="text-muted-foreground">Enterprise Field Service Platform</p>
-        </div>
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -244,6 +248,7 @@ export default function Auth() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
