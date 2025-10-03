@@ -8,8 +8,10 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RBACProvider } from "@/contexts/RBACContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleGuard } from "@/components/RoleGuard";
 import { UserMenu } from "@/components/UserMenu";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AccessDenied } from "@/components/AccessDenied";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Tickets from "./pages/Tickets";
@@ -65,31 +67,128 @@ const App = () => (
                             <main className="flex-1 p-6 bg-background">
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
-                                <Route path="/tickets" element={<Tickets />} />
-                                <Route path="/work-orders" element={<WorkOrders />} />
-                                <Route path="/inventory" element={<Inventory />} />
-                                <Route path="/photo-capture" element={<PhotoCapturePage />} />
-                                <Route path="/scheduler" element={<Scheduler />} />
-                                <Route path="/dispatch" element={<Dispatch />} />
-                                <Route path="/procurement" element={<Procurement />} />
-                                <Route path="/warranty" element={<Warranty />} />
-                                <Route path="/quotes" element={<Quotes />} />
-                                <Route path="/invoicing" element={<div className="text-center py-12 text-muted-foreground">Invoicing module - Coming soon</div>} />
-                                <Route path="/payments" element={<div className="text-center py-12 text-muted-foreground">Payments module - Coming soon</div>} />
-                                <Route path="/finance" element={<Finance />} />
-                                <Route path="/penalties" element={<Penalties />} />
-                                <Route path="/sapos" element={<SaPOS />} />
-                                <Route path="/service-orders" element={<ServiceOrders />} />
-                                <Route path="/fraud" element={<FraudInvestigation />} />
-                                <Route path="/knowledge-base" element={<div className="text-center py-12 text-muted-foreground">Knowledge Base module - Coming soon</div>} />
-                                <Route path="/rag" element={<div className="text-center py-12 text-muted-foreground">RAG Engine module - Coming soon</div>} />
-                                <Route path="/assistant" element={<div className="text-center py-12 text-muted-foreground">Assistant module - Coming soon</div>} />
-                                <Route path="/models" element={<div className="text-center py-12 text-muted-foreground">Model Orchestration module - Coming soon</div>} />
-                                <Route path="/prompts" element={<div className="text-center py-12 text-muted-foreground">Prompts module - Coming soon</div>} />
-                                <Route path="/analytics" element={<div className="text-center py-12 text-muted-foreground">Analytics module - Coming soon</div>} />
-                                <Route path="/anomaly" element={<div className="text-center py-12 text-muted-foreground">Anomaly Detection module - Coming soon</div>} />
-                                <Route path="/observability" element={<div className="text-center py-12 text-muted-foreground">Observability module - Coming soon</div>} />
+                                <Route path="/tickets" element={
+                                  <RoleGuard permissions={["ticket.read"]} showError={true}>
+                                    <Tickets />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/work-orders" element={
+                                  <RoleGuard permissions={["wo.read"]} showError={true}>
+                                    <WorkOrders />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/inventory" element={
+                                  <RoleGuard permissions={["inventory.view"]} showError={true}>
+                                    <Inventory />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/photo-capture" element={
+                                  <RoleGuard permissions={["attachment.upload"]} showError={true}>
+                                    <PhotoCapturePage />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/scheduler" element={
+                                  <RoleGuard permissions={["wo.assign"]} showError={true}>
+                                    <Scheduler />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/dispatch" element={
+                                  <RoleGuard permissions={["wo.assign"]} showError={true}>
+                                    <Dispatch />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/procurement" element={
+                                  <RoleGuard permissions={["inventory.procure"]} showError={true}>
+                                    <Procurement />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/warranty" element={
+                                  <RoleGuard permissions={["warranty.view"]} showError={true}>
+                                    <Warranty />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/quotes" element={
+                                  <RoleGuard permissions={["quote.view"]} showError={true}>
+                                    <Quotes />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/invoicing" element={
+                                  <RoleGuard permissions={["invoice.view"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Invoicing module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/payments" element={
+                                  <RoleGuard permissions={["invoice.pay"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Payments module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/finance" element={
+                                  <RoleGuard permissions={["finance.view"]} showError={true}>
+                                    <Finance />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/penalties" element={
+                                  <RoleGuard permissions={["penalty.calculate"]} showError={true}>
+                                    <Penalties />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/sapos" element={
+                                  <RoleGuard permissions={["sapos.view"]} showError={true}>
+                                    <SaPOS />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/service-orders" element={
+                                  <RoleGuard permissions={["so.view"]} showError={true}>
+                                    <ServiceOrders />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/fraud" element={
+                                  <RoleGuard permissions={["fraud.view"]} showError={true}>
+                                    <FraudInvestigation />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/knowledge-base" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Knowledge Base module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/rag" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">RAG Engine module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/assistant" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Assistant module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/models" element={
+                                  <RoleGuard permissions={["mlops.view"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Model Orchestration module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/prompts" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Prompts module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/analytics" element={
+                                  <RoleGuard permissions={["audit.read"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Analytics module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/anomaly" element={
+                                  <RoleGuard permissions={["fraud.view"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Anomaly Detection module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
+                                <Route path="/observability" element={
+                                  <RoleGuard permissions={["audit.read"]} showError={true}>
+                                    <div className="text-center py-12 text-muted-foreground">Observability module - Coming soon</div>
+                                  </RoleGuard>
+                                } />
                                 <Route path="/settings" element={<Settings />} />
+                                <Route path="/access-denied" element={<AccessDenied />} />
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
