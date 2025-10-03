@@ -23,3 +23,21 @@ verify_jwt = true
 
 [functions.verify-mfa]
 verify_jwt = true
+
+[functions.assign-role]
+verify_jwt = true
+
+[functions.remove-role]
+verify_jwt = true
+
+[functions.create-override-request]
+verify_jwt = true
+
+[functions.approve-override-request]
+verify_jwt = true
+
+[functions.reject-override-request]
+verify_jwt = true
+
+[functions.seed-test-accounts]
+verify_jwt = false
