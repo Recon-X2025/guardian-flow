@@ -25,16 +25,21 @@ export default function Scheduler() {
           .order('created_at', { ascending: false })
           .limit(20),
         supabase
-          .from('profiles')
-          .select('*')
-          .limit(10)
+          .from('user_roles')
+          .select('profiles(id, full_name, email)')
+          .eq('role', 'technician')
+          .limit(50)
       ]);
 
       if (woData.error) throw woData.error;
       if (techData.error) throw techData.error;
 
       setWorkOrders(woData.data || []);
-      setTechnicians(techData.data || []);
+      // Extract profiles from user_roles join
+      const techProfiles = (techData.data || [])
+        .map((ur: any) => ur.profiles)
+        .filter(Boolean);
+      setTechnicians(techProfiles);
     } catch (error: any) {
       toast({
         title: "Error loading data",
