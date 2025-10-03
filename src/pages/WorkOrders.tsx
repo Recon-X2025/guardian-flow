@@ -3,11 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { PrecheckStatus } from '@/components/PrecheckStatus';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +16,6 @@ export default function WorkOrders() {
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
-  const [precheckDialogOpen, setPrecheckDialogOpen] = useState(false);
   const [generateSOOpen, setGenerateSOOpen] = useState(false);
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
 
@@ -188,16 +185,6 @@ export default function WorkOrders() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedWO(wo.id);
-                        setPrecheckDialogOpen(true);
-                      }}
-                    >
-                      View Status
-                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -235,15 +222,6 @@ export default function WorkOrders() {
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={precheckDialogOpen} onOpenChange={setPrecheckDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Work Order Precheck Status</DialogTitle>
-          </DialogHeader>
-          {selectedWO && <PrecheckStatus workOrderId={selectedWO} />}
-        </DialogContent>
-      </Dialog>
 
       {selectedWO && (
         <>
