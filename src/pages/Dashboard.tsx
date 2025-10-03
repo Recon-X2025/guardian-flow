@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -9,8 +10,12 @@ export default function Dashboard() {
     pendingTickets: 0,
     partsInStock: 0,
     totalRevenue: 0,
+    completedWOs: 0,
+    pendingValidation: 0,
   });
   const [recentWorkOrders, setRecentWorkOrders] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [statusData, setStatusData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,11 +24,14 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch work orders count
-      const { count: woCount } = await supabase
+      // Fetch all work orders for comprehensive analysis
+      const { data: allWorkOrders } = await supabase
         .from('work_orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['in_progress', 'assigned']);
+        .select('*, created_at, status');
+
+      const activeWOs = allWorkOrders?.filter(wo => ['in_progress', 'assigned'].includes(wo.status || '')).length || 0;
+      const completedWOs = allWorkOrders?.filter(wo => wo.status === 'completed').length || 0;
+      const pendingWOs = allWorkOrders?.filter(wo => wo.status === 'pending_validation').length || 0;
 
       // Fetch tickets count
       const { count: ticketCount } = await supabase
@@ -42,6 +50,14 @@ export default function Dashboard() {
         return sum + stock;
       }, 0) || 0;
 
+      // Fetch invoices for revenue
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('total_amount')
+        .eq('status', 'paid');
+
+      const revenue = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
+
       // Fetch recent work orders with details
       const { data: workOrders } = await supabase
         .from('work_orders')
@@ -54,13 +70,41 @@ export default function Dashboard() {
         .limit(3);
 
       setStats({
-        activeWorkOrders: woCount || 0,
+        activeWorkOrders: activeWOs,
         pendingTickets: ticketCount || 0,
         partsInStock: totalParts,
-        totalRevenue: 0, // TODO: Calculate from invoices when implemented
+        totalRevenue: revenue,
+        completedWOs,
+        pendingValidation: pendingWOs,
       });
 
       setRecentWorkOrders(workOrders || []);
+
+      // Generate chart data - last 7 days
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split('T')[0];
+      });
+
+      const chartDataProcessed = last7Days.map(date => {
+        const count = allWorkOrders?.filter(wo => wo.created_at?.startsWith(date)).length || 0;
+        return {
+          date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          count
+        };
+      });
+
+      setChartData(chartDataProcessed);
+
+      // Status distribution
+      const statusCounts = [
+        { name: 'Completed', value: completedWOs, color: '#22c55e' },
+        { name: 'In Progress', value: activeWOs, color: '#3b82f6' },
+        { name: 'Pending', value: pendingWOs, color: '#f97316' },
+      ].filter(s => s.value > 0);
+
+      setStatusData(statusCounts);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -88,8 +132,8 @@ export default function Dashboard() {
       color: "text-success",
     },
     {
-      title: "Revenue (MTD)",
-      value: "$0.00",
+      title: "Revenue (Total)",
+      value: `$${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: "text-accent",
     },
@@ -196,6 +240,66 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Work Orders Trend</CardTitle>
+            <CardDescription>Last 7 days activity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="date" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                No data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Status Distribution</CardTitle>
+            <CardDescription>Current work order breakdown</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                No data available
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

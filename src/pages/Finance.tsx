@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, DollarSign, TrendingDown, Receipt, AlertTriangle } from "lucide-react";
+import { Loader2, DollarSign, TrendingDown, Receipt, AlertTriangle, TrendingUp } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Finance() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [penalties, setPenalties] = useState<any[]>([]);
+  const [revenueChart, setRevenueChart] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -30,6 +32,26 @@ export default function Finance() {
 
       setInvoices(invoicesRes.data || []);
       setPenalties(penaltiesRes.data || []);
+
+      // Generate revenue chart - last 30 days
+      const last30Days = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (29 - i));
+        return date.toISOString().split('T')[0];
+      });
+
+      const chartData = last30Days.map(date => {
+        const dailyRevenue = (invoicesRes.data || [])
+          .filter((inv: any) => inv.created_at?.startsWith(date) && inv.status === 'paid')
+          .reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+        
+        return {
+          date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          revenue: dailyRevenue
+        };
+      });
+
+      setRevenueChart(chartData);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -78,7 +100,7 @@ export default function Finance() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -86,6 +108,7 @@ export default function Finance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">Paid invoices</p>
           </CardContent>
         </Card>
 
@@ -106,6 +129,18 @@ export default function Finance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{invoices.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total count</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Paid</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{invoices.filter(i => i.status === 'paid').length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Completed payments</p>
           </CardContent>
         </Card>
 
@@ -116,9 +151,34 @@ export default function Finance() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{onHoldInvoices.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Under review</p>
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue Trend</CardTitle>
+          <CardDescription>Last 30 days - paid invoices only</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {revenueChart.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={revenueChart}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="date" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              No revenue data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
