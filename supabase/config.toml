@@ -42,5 +42,11 @@ verify_jwt = true
 [functions.seed-test-accounts]
 verify_jwt = false
 
-[functions.auth-me]
+[functions.release-work-order]
+verify_jwt = true
+
+[functions.upload-so-template]
+verify_jwt = true
+
+[functions.calculate-penalties]
 verify_jwt = true

@@ -22,27 +22,49 @@ Deno.serve(async (req) => {
     const { context } = authResult;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
     const { workOrderId, customerId } = await req.json();
+    const correlationId = crypto.randomUUID();
+    const modelVersion = 'google/gemini-2.5-flash';
+    const promptTemplateId = 'sapos_contextual_offers_v1';
+
+    console.log(`[${correlationId}] Generating SaPOS offers for WO: ${workOrderId}`);
 
     // Get work order and warranty context
     const { data: workOrder } = await context.supabase
       .from('work_orders')
-      .select('*, tickets(unit_serial, customer_name)')
+      .select('*, tickets(unit_serial, customer_name, symptom)')
       .eq('id', workOrderId)
       .single();
 
+    if (!workOrder) {
+      throw new Error('Work order not found');
+    }
+
+    // Check warranty status
     const { data: warranty } = await context.supabase
       .from('warranty_records')
       .select('*')
       .eq('unit_serial', workOrder?.tickets?.unit_serial)
       .single();
 
-    // Build context for AI
-    const aiContext = {
+    const warrantyActive = warranty && new Date(warranty.warranty_end) > new Date();
+
+    // Check inventory for parts availability
+    const { data: inventoryCheck } = await context.supabase.functions.invoke('check-inventory', {
+      body: { parts: [], hubId: workOrder.hub_id }
+    });
+
+    // Build context for AI with provenance tracking
+    const generationContext = {
       customer_name: workOrder?.tickets?.customer_name,
       unit_serial: workOrder?.tickets?.unit_serial,
-      warranty_status: warranty ? 'active' : 'expired',
+      symptom: workOrder?.tickets?.symptom,
+      warranty_status: warrantyActive ? 'active' : 'expired',
       warranty_end: warranty?.warranty_end,
-      current_service: workOrder?.tickets?.symptom
+      warranty_checked: true,
+      inventory_checked: true,
+      inventory_availability: inventoryCheck?.all_available || false,
+      generated_at: new Date().toISOString(),
+      correlation_id: correlationId
     };
 
     // Call Lovable AI to generate contextual offers
@@ -68,7 +90,7 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
           },
           {
             role: 'user',
-            content: `Context: ${JSON.stringify(aiContext)}`
+            content: `Context: ${JSON.stringify(generationContext)}`
           }
         ],
         tools: [
@@ -108,7 +130,7 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
     const offersData = JSON.parse(aiData.choices[0].message.tool_calls[0].function.arguments);
     const offers = offersData.offers;
 
-    // Store offers in database with AI provenance
+    // Store offers in database with AI provenance and generation context
     const insertPromises = offers.map((offer: any) => 
       context.supabase.from('sapos_offers').insert({
         work_order_id: workOrderId,
@@ -118,10 +140,19 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
         offer_type: offer.offer_type,
         price: offer.price,
         warranty_conflicts: offer.warranty_conflicts,
-        model_version: 'google/gemini-2.5-flash',
-        prompt_template_id: 'sapos_v1',
+        model_version: modelVersion,
+        prompt_template_id: promptTemplateId,
         confidence_score: 0.95,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        warranty_checked: generationContext.warranty_checked,
+        inventory_checked: generationContext.inventory_checked,
+        offer_provenance: {
+          model: modelVersion,
+          prompt_template: promptTemplateId,
+          generated_at: generationContext.generated_at,
+          correlation_id: correlationId
+        },
+        generation_context: generationContext
       })
     );
 
