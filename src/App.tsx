@@ -16,6 +16,7 @@ import Inventory from "./pages/Inventory";
 import Warranty from "./pages/Warranty";
 import Penalties from "./pages/Penalties";
 import PhotoCapturePage from "./pages/PhotoCapturePage";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
                             <Route path="/fraud" element={<div className="text-center py-12 text-muted-foreground">Fraud Detection module - Coming soon</div>} />
                             <Route path="/anomaly" element={<div className="text-center py-12 text-muted-foreground">Anomaly Detection module - Coming soon</div>} />
                             <Route path="/observability" element={<div className="text-center py-12 text-muted-foreground">Observability module - Coming soon</div>} />
+                            <Route path="/settings" element={<Settings />} />
                             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                             <Route path="*" element={<NotFound />} />
                           </Routes>

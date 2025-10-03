@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,48 +7,75 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Tickets() {
   const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    unitSerial: '',
+    customer: '',
+    siteAddress: '',
+    symptom: '',
+  });
 
-  const tickets = [
-    {
-      id: "TKT-2024-001",
-      unitSerial: "HVAC-12345-XYZ",
-      customer: "Acme Corporation",
-      symptom: "Unit not cooling properly",
-      status: "open",
-      sla: "4 hours remaining",
-      created: "2 hours ago",
-    },
-    {
-      id: "TKT-2024-002",
-      unitSerial: "ELEC-67890-ABC",
-      customer: "TechCorp Industries",
-      symptom: "Electrical panel tripping",
-      status: "assigned",
-      sla: "2 hours remaining",
-      created: "4 hours ago",
-    },
-    {
-      id: "TKT-2024-003",
-      unitSerial: "PLMB-11111-DEF",
-      customer: "BuildCo LLC",
-      symptom: "Water leak in main line",
-      status: "completed",
-      sla: "Completed",
-      created: "6 hours ago",
-    },
-  ];
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
-  const handleCreateTicket = (e: React.FormEvent) => {
+  const fetchTickets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTickets(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Error loading tickets',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Ticket created",
-      description: "A new work order will be generated after pre-check validation",
-    });
-    setShowCreateForm(false);
+    
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .insert({
+          unit_serial: formData.unitSerial,
+          customer_name: formData.customer,
+          site_address: formData.siteAddress,
+          symptom: formData.symptom,
+          status: 'open',
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Ticket created",
+        description: "A new work order will be generated after pre-check validation",
+      });
+
+      setShowCreateForm(false);
+      setFormData({ unitSerial: '', customer: '', siteAddress: '', symptom: '' });
+      fetchTickets();
+    } catch (error: any) {
+      toast({
+        title: 'Error creating ticket',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -101,16 +128,33 @@ export default function Tickets() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="unitSerial">Unit Serial Number *</Label>
-                  <Input id="unitSerial" placeholder="e.g., HVAC-12345-XYZ" required />
+                  <Input 
+                    id="unitSerial" 
+                    placeholder="e.g., HVAC-12345-XYZ" 
+                    value={formData.unitSerial}
+                    onChange={(e) => setFormData({ ...formData, unitSerial: e.target.value })}
+                    required 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="customer">Customer *</Label>
-                  <Input id="customer" placeholder="Company name" required />
+                  <Input 
+                    id="customer" 
+                    placeholder="Company name" 
+                    value={formData.customer}
+                    onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
+                    required 
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="siteAddress">Site Address</Label>
-                <Input id="siteAddress" placeholder="Installation location" />
+                <Input 
+                  id="siteAddress" 
+                  placeholder="Installation location" 
+                  value={formData.siteAddress}
+                  onChange={(e) => setFormData({ ...formData, siteAddress: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="symptom">Symptom Description *</Label>
@@ -118,6 +162,8 @@ export default function Tickets() {
                   id="symptom"
                   placeholder="Describe the issue..."
                   rows={3}
+                  value={formData.symptom}
+                  onChange={(e) => setFormData({ ...formData, symptom: e.target.value })}
                   required
                 />
               </div>
@@ -146,40 +192,41 @@ export default function Tickets() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {tickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{ticket.id}</span>
-                    <Badge variant="outline" className={getStatusColor(ticket.status)}>
-                      {getStatusIcon(ticket.status)}
-                      <span className="ml-1">{ticket.status}</span>
-                    </Badge>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading tickets...</div>
+          ) : tickets.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No tickets found</div>
+          ) : (
+            <div className="space-y-3">
+              {tickets.map((ticket) => (
+                <div
+                    key={ticket.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">TKT-{ticket.id.slice(0, 8)}</span>
+                        <Badge variant="outline" className={getStatusColor(ticket.status)}>
+                          {getStatusIcon(ticket.status)}
+                          <span className="ml-1">{ticket.status}</span>
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-foreground">{ticket.symptom}</p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>Unit: {ticket.unit_serial}</span>
+                        <span>•</span>
+                        <span>{ticket.customer_name || 'N/A'}</span>
+                        <span>•</span>
+                        <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      View Details
+                    </Button>
                   </div>
-                  <p className="text-sm text-foreground">{ticket.symptom}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>Unit: {ticket.unitSerial}</span>
-                    <span>•</span>
-                    <span>{ticket.customer}</span>
-                    <span>•</span>
-                    <span>{ticket.created}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-sm font-medium ${ticket.status === "completed" ? "text-success" : "text-warning"}`}>
-                    {ticket.sla}
-                  </div>
-                  <Button variant="ghost" size="sm" className="mt-2">
-                    View Details
-                  </Button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
         </CardContent>
       </Card>
 

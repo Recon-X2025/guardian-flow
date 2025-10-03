@@ -1,59 +1,97 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
-  const stats = [
+  const [stats, setStats] = useState({
+    activeWorkOrders: 0,
+    pendingTickets: 0,
+    partsInStock: 0,
+    totalRevenue: 0,
+  });
+  const [recentWorkOrders, setRecentWorkOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch work orders count
+      const { count: woCount } = await supabase
+        .from('work_orders')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['in_progress', 'assigned']);
+
+      // Fetch tickets count
+      const { count: ticketCount } = await supabase
+        .from('tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'open');
+
+      // Fetch inventory items count
+      const { data: inventoryData } = await supabase
+        .from('inventory_items')
+        .select('id, stock_levels(qty_available, qty_reserved)');
+
+      const totalParts = inventoryData?.reduce((sum, item) => {
+        const stock = item.stock_levels?.reduce((s: number, level: any) => 
+          s + (level.qty_available - level.qty_reserved), 0) || 0;
+        return sum + stock;
+      }, 0) || 0;
+
+      // Fetch recent work orders with details
+      const { data: workOrders } = await supabase
+        .from('work_orders')
+        .select(`
+          *,
+          ticket:tickets(unit_serial),
+          technician:profiles(full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      setStats({
+        activeWorkOrders: woCount || 0,
+        pendingTickets: ticketCount || 0,
+        partsInStock: totalParts,
+        totalRevenue: 0, // TODO: Calculate from invoices when implemented
+      });
+
+      setRecentWorkOrders(workOrders || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statCards = [
     {
       title: "Active Work Orders",
-      value: "24",
-      change: "+12%",
+      value: stats.activeWorkOrders.toString(),
       icon: Wrench,
       color: "text-primary",
     },
     {
       title: "Pending Tickets",
-      value: "8",
-      change: "-5%",
+      value: stats.pendingTickets.toString(),
       icon: Clock,
       color: "text-warning",
     },
     {
       title: "Parts in Stock",
-      value: "1,247",
-      change: "+8%",
+      value: stats.partsInStock.toLocaleString(),
       icon: Package,
       color: "text-success",
     },
     {
       title: "Revenue (MTD)",
-      value: "$127.5K",
-      change: "+23%",
+      value: "$0.00",
       icon: DollarSign,
       color: "text-accent",
-    },
-  ];
-
-  const recentActivity = [
-    {
-      id: "WO-2024-001",
-      title: "HVAC Unit Repair",
-      status: "In Progress",
-      tech: "John Smith",
-      time: "2 hours ago",
-    },
-    {
-      id: "WO-2024-002",
-      title: "Electrical Panel Replacement",
-      status: "Awaiting Photos",
-      tech: "Sarah Johnson",
-      time: "4 hours ago",
-    },
-    {
-      id: "WO-2024-003",
-      title: "Plumbing Maintenance",
-      status: "Completed",
-      tech: "Mike Davis",
-      time: "6 hours ago",
     },
   ];
 
@@ -65,7 +103,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
+        {statCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
@@ -73,12 +111,6 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className={stat.change.startsWith("+") ? "text-success" : "text-destructive"}>
-                  {stat.change}
-                </span>{" "}
-                from last month
-              </p>
             </CardContent>
           </Card>
         ))}
@@ -91,35 +123,41 @@ export default function Dashboard() {
             <CardDescription>Latest field service activities</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
+            {loading ? (
+              <div className="text-center py-4 text-muted-foreground">Loading...</div>
+            ) : recentWorkOrders.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">No recent work orders</div>
+            ) : (
+              <div className="space-y-4">
+                {recentWorkOrders.map((wo) => (
                 <div
-                  key={activity.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold">{activity.id}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          activity.status === "Completed"
-                            ? "bg-success/10 text-success"
-                            : activity.status === "In Progress"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-warning/10 text-warning"
-                        }`}
-                      >
-                        {activity.status}
-                      </span>
+                    key={wo.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold">{wo.wo_number || 'Draft'}</span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            wo.status === "completed"
+                              ? "bg-success/10 text-success"
+                              : wo.status === "in_progress"
+                              ? "bg-primary/10 text-primary"
+                              : "bg-warning/10 text-warning"
+                          }`}
+                        >
+                          {wo.status?.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground">Unit: {wo.ticket?.unit_serial || 'N/A'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {wo.technician?.full_name || 'Unassigned'} • {new Date(wo.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-sm text-foreground">{activity.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.tech} • {activity.time}
-                    </p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

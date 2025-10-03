@@ -24,6 +24,7 @@ import {
   Home,
   Sparkles,
   Eye,
+  Settings,
 } from "lucide-react";
 import {
   Sidebar,
@@ -74,6 +75,10 @@ const analyticsModules = [
   { title: "Fraud Detection", url: "/fraud", icon: ShieldAlert },
   { title: "Anomaly Detection", url: "/anomaly", icon: Activity },
   { title: "Observability", url: "/observability", icon: Eye },
+];
+
+const settingsModules = [
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -196,6 +201,31 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {analyticsModules.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className={({ isActive }) =>
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "hover:bg-sidebar-accent/50"
+                      }
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsModules.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink

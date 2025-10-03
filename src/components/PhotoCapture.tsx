@@ -3,6 +3,7 @@ import { Camera, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type PhotoRole = "context_wide" | "pre_closeup" | "serial" | "replacement_part";
 
@@ -123,8 +124,6 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
         const photoFile = files[role];
         if (!photoFile.file || !photoFile.hash) continue;
 
-        // In production, this would call the backend API
-        // For now, we'll simulate the upload
         imageEntries.push({
           id: `photo_${Date.now()}_${role}`,
           role,
@@ -135,25 +134,27 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
         });
       }
 
-      // Simulate validation API call
-      const validationResult = {
-        photos_validated: true,
-        woId: workOrderId || "demo",
-        stage,
-        images: imageEntries,
-        validated_at: new Date().toISOString(),
-      };
+      // Call the validate-photos edge function
+      const { data, error } = await supabase.functions.invoke('validate-photos', {
+        body: {
+          woId: workOrderId || 'demo',
+          stage,
+          images: imageEntries,
+        },
+      });
+
+      if (error) throw error;
 
       toast({
         title: "Photos validated",
         description: "All required photos have been captured and validated successfully",
       });
 
-      onComplete?.(validationResult);
-    } catch (error) {
+      onComplete?.(data);
+    } catch (error: any) {
       toast({
         title: "Upload failed",
-        description: "Failed to upload photos. Please try again.",
+        description: error.message || "Failed to upload photos. Please try again.",
         variant: "destructive",
       });
     } finally {
