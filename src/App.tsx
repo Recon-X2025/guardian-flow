@@ -36,6 +36,7 @@ import Analytics from "./pages/Analytics";
 import Observability from "./pages/Observability";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Assistant from "./pages/Assistant";
+import ModelOrchestration from "./pages/ModelOrchestration";
 
 const queryClient = new QueryClient();
 
@@ -170,7 +171,7 @@ const App = () => (
                                 } />
                                 <Route path="/models" element={
                                   <RoleGuard permissions={["mlops.view"]} showError={true}>
-                                    <Analytics />
+                                    <ModelOrchestration />
                                   </RoleGuard>
                                 } />
                                 <Route path="/prompts" element={

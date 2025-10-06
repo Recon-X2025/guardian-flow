@@ -30,7 +30,8 @@ export default function WorkOrders() {
         .select(`
           *,
           ticket:tickets(*),
-          technician:profiles(full_name)
+          technician:profiles(full_name),
+          sapos_offers(id, title, price, status, offer_type)
         `)
         .order('created_at', { ascending: false})
         .limit(20);
@@ -188,6 +189,31 @@ export default function WorkOrders() {
                         {new Date(wo.created_at).toLocaleDateString()}
                       </div>
                     </div>
+
+                    {wo.sapos_offers && wo.sapos_offers.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Auto-Generated Offers:</span>
+                        </div>
+                        <div className="space-y-1">
+                          {wo.sapos_offers.slice(0, 3).map((offer: any) => (
+                            <div key={offer.id} className="text-xs flex items-center justify-between py-1 px-2 bg-muted/30 rounded">
+                              <span className="truncate flex-1">{offer.title}</span>
+                              <span className="font-medium ml-2">${Number(offer.price).toFixed(2)}</span>
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                {offer.offer_type}
+                              </Badge>
+                            </div>
+                          ))}
+                          {wo.sapos_offers.length > 3 && (
+                            <p className="text-xs text-muted-foreground pl-2">
+                              +{wo.sapos_offers.length - 3} more offers
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button 

@@ -145,6 +145,22 @@ Deno.serve(async (req) => {
 
     console.log(`[${correlationId}] Work order released as ${repairType} repair`);
 
+    // Automatically trigger SaPOS offer generation
+    console.log(`[${correlationId}] Triggering automatic SaPOS generation...`);
+    try {
+      const { error: saposError } = await context.supabase.functions.invoke('generate-sapos-offers', {
+        body: { workOrderId }
+      });
+      
+      if (saposError) {
+        console.error(`[${correlationId}] SaPOS generation failed (non-blocking):`, saposError);
+      } else {
+        console.log(`[${correlationId}] SaPOS offers generated automatically`);
+      }
+    } catch (error) {
+      console.error(`[${correlationId}] SaPOS generation error (non-blocking):`, error);
+    }
+
     // Log audit event
     await logAuditEvent(context.supabase, {
       userId: context.user.id,
@@ -174,7 +190,8 @@ Deno.serve(async (req) => {
         status: 'released',
         released_at: new Date().toISOString(),
         override_used: !!overrideToken,
-        correlation_id: correlationId
+        correlation_id: correlationId,
+        sapos_auto_generated: true
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
