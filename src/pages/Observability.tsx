@@ -241,13 +241,14 @@ export default function Observability() {
                 </ul>
               </div>
             </div>
-            <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
+            <div className="flex items-start gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+              <CheckCircle2 className="h-5 w-5 text-primary mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium">Implementation Required</p>
+                <p className="font-medium text-foreground">Current Implementation</p>
                 <p className="text-xs text-muted-foreground">
-                  The observability stack requires external infrastructure. See{' '}
-                  <code className="px-1 py-0.5 rounded bg-card">docs/INFRASTRUCTURE_REQUIREMENTS.md</code> for setup instructions.
+                  This page provides audit logs, system metrics, and correlation ID tracking using Lovable Cloud infrastructure. 
+                  For production-scale monitoring with Prometheus, Grafana, and Jaeger, see{' '}
+                  <code className="px-1 py-0.5 rounded bg-card">docs/INFRASTRUCTURE_REQUIREMENTS.md</code>.
                 </p>
               </div>
             </div>
