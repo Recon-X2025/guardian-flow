@@ -11,7 +11,8 @@ export default function Dashboard() {
     activeWorkOrders: 0,
     pendingTickets: 0,
     partsInStock: 0,
-    totalRevenue: 0,
+    saposRevenue: 0,
+    totalPayables: 0,
     completedWOs: 0,
     pendingValidation: 0,
     totalWOs: 0,
@@ -55,13 +56,21 @@ export default function Dashboard() {
         return sum + stock;
       }, 0) || 0;
 
-      // Fetch invoices for revenue
+      // Fetch SaPOS offers for revenue
+      const { data: saposOffers } = await supabase
+        .from('sapos_offers')
+        .select('price')
+        .eq('status', 'accepted');
+
+      const saposRevenue = saposOffers?.reduce((sum, offer) => sum + Number(offer.price), 0) || 0;
+
+      // Fetch invoices for payables
       const { data: invoices } = await supabase
         .from('invoices')
-        .select('total_amount')
-        .eq('status', 'paid');
+        .select('total_amount, status')
+        .in('status', ['sent', 'overdue']);
 
-      const revenue = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
+      const totalPayables = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
 
       // Fetch recent work orders with details
       const { data: workOrders } = await supabase
@@ -78,7 +87,8 @@ export default function Dashboard() {
         activeWorkOrders: activeWOs,
         pendingTickets: ticketCount || 0,
         partsInStock: totalParts,
-        totalRevenue: revenue,
+        saposRevenue,
+        totalPayables,
         completedWOs,
         pendingValidation: pendingWOs,
         totalWOs: totalWOCount || 0,
@@ -139,10 +149,17 @@ export default function Dashboard() {
       color: "text-success",
     },
     {
-      title: "Revenue (Total)",
-      value: formatCurrency(stats.totalRevenue, false),
-      icon: DollarSign,
+      title: "Revenue (SaPOS)",
+      value: formatCurrency(stats.saposRevenue, false),
+      icon: TrendingUp,
       color: "text-accent",
+    },
+    {
+      title: "Finance & Settlements",
+      value: formatCurrency(stats.totalPayables, false),
+      subtitle: "Total payables",
+      icon: DollarSign,
+      color: "text-orange-500",
     },
   ];
 
@@ -153,7 +170,7 @@ export default function Dashboard() {
         <p className="text-muted-foreground">Welcome to ReconX AI Field Service Platform</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
