@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useCurrency } from '@/hooks/useCurrency';
+import { toast } from "sonner";
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
@@ -128,6 +130,28 @@ export default function Dashboard() {
     }
   };
 
+  const downloadProductSpecs = async () => {
+    try {
+      const response = await fetch('/docs/PRODUCT_SPECIFICATIONS.md');
+      const content = await response.text();
+      
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'ReconX_Product_Specifications.md';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Product Specifications downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading specs:', error);
+      toast.error('Failed to download Product Specifications');
+    }
+  };
+
   const statCards = [
     {
       title: "Total Work Orders",
@@ -165,9 +189,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to ReconX AI Field Service Platform</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to ReconX AI Field Service Platform</p>
+        </div>
+        <Button onClick={downloadProductSpecs} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Download Product Specs
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
