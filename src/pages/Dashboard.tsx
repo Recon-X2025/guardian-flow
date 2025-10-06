@@ -14,6 +14,7 @@ export default function Dashboard() {
     totalRevenue: 0,
     completedWOs: 0,
     pendingValidation: 0,
+    totalWOs: 0,
   });
   const [recentWorkOrders, setRecentWorkOrders] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -80,6 +81,7 @@ export default function Dashboard() {
         totalRevenue: revenue,
         completedWOs,
         pendingValidation: pendingWOs,
+        totalWOs: totalWOCount || 0,
       });
 
       setRecentWorkOrders(workOrders || []);
@@ -118,8 +120,9 @@ export default function Dashboard() {
 
   const statCards = [
     {
-      title: "Active Work Orders",
-      value: stats.activeWorkOrders.toString(),
+      title: "Total Work Orders",
+      value: stats.totalWOs.toLocaleString(),
+      subtitle: `${stats.activeWorkOrders} active`,
       icon: Wrench,
       color: "text-primary",
     },
@@ -159,6 +162,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
+              {(stat as any).subtitle && (
+                <p className="text-xs text-muted-foreground mt-1">{(stat as any).subtitle}</p>
+              )}
             </CardContent>
           </Card>
         ))}

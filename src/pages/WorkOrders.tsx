@@ -33,22 +33,27 @@ export default function WorkOrders() {
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
   const [kbDialogOpen, setKbDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  // Pagination & Filters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const pageSize = 20;
 
   useEffect(() => {
     fetchWorkOrders();
-  }, []);
+  }, [currentPage, statusFilter]);
 
   const fetchWorkOrders = async () => {
     try {
-      // First get the total count
-      const { count } = await supabase
+      setLoading(true);
+      
+      // Build query with status filter
+      let countQuery = supabase
         .from('work_orders')
         .select('*', { count: 'exact', head: true });
-
-      console.log('Total work orders in DB:', count);
-
-      // Then fetch the data with increased limit
-      const { data, error } = await supabase
+      
+      let dataQuery = supabase
         .from('work_orders')
         .select(`
           *,
@@ -56,11 +61,30 @@ export default function WorkOrders() {
           technician:profiles(full_name),
           sapos_offers(id, title, price, status, offer_type)
         `)
-        .order('created_at', { ascending: false})
-        .limit(100);
+        .order('created_at', { ascending: false});
+
+      // Apply status filter if selected
+      if (statusFilter) {
+        countQuery = countQuery.eq('status', statusFilter as any);
+        dataQuery = dataQuery.eq('status', statusFilter as any);
+      }
+
+      // Get total count
+      const { count, error: countError } = await countQuery;
+      if (countError) throw countError;
+      
+      setTotalCount(count || 0);
+      console.log('Total work orders:', count, 'Filter:', statusFilter || 'none');
+
+      // Fetch paginated data
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, error } = await dataQuery
+        .range(from, to);
 
       if (error) throw error;
-      console.log('Fetched work orders:', data?.length, 'Total in DB:', count);
+      console.log(`Page ${currentPage}: Fetched ${data?.length} of ${count} total`);
       setWorkOrders(data || []);
 
       // Auto-generate SaPOS offers for released/in_progress WOs lacking offers (max 3 per load)
@@ -145,10 +169,17 @@ export default function WorkOrders() {
     }
   };
 
-  const totalWO = workOrders.length;
+  // Calculate stats from current page
   const pendingValidation = workOrders.filter(wo => wo.status === 'pending_validation').length;
   const inProgress = workOrders.filter(wo => wo.status === 'in_progress').length;
   const completed = workOrders.filter(wo => wo.status === 'completed').length;
+  
+  const totalPages = Math.ceil(totalCount / pageSize);
+  
+  const handleStatusFilter = (status: string | null) => {
+    setStatusFilter(status);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
 
   return (
     <div className="space-y-6">
@@ -172,7 +203,10 @@ export default function WorkOrders() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalWO}</div>
+            <div className="text-2xl font-bold">{totalCount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statusFilter ? `Filtered by: ${statusFilter}` : 'All work orders'}
+            </p>
           </CardContent>
         </Card>
 
@@ -209,14 +243,60 @@ export default function WorkOrders() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Active Work Orders</CardTitle>
-          <CardDescription>Work orders with precheck gating enabled</CardDescription>
-          <div className="flex items-center gap-2 mt-4">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search work orders..."
-              className="max-w-sm"
-            />
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <CardTitle>Active Work Orders</CardTitle>
+              <CardDescription>
+                Showing {workOrders.length} of {totalCount.toLocaleString()} work orders 
+                (Page {currentPage} of {totalPages})
+              </CardDescription>
+            </div>
+          </div>
+          
+          {/* Status Filter Buttons */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            <Button
+              variant={statusFilter === null ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter(null)}
+            >
+              All ({totalCount.toLocaleString()})
+            </Button>
+            <Button
+              variant={statusFilter === 'draft' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('draft')}
+            >
+              Draft
+            </Button>
+            <Button
+              variant={statusFilter === 'pending_validation' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('pending_validation')}
+            >
+              Pending Validation
+            </Button>
+            <Button
+              variant={statusFilter === 'released' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('released')}
+            >
+              Released
+            </Button>
+            <Button
+              variant={statusFilter === 'in_progress' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('in_progress')}
+            >
+              In Progress
+            </Button>
+            <Button
+              variant={statusFilter === 'completed' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => handleStatusFilter('completed')}
+            >
+              Completed
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -383,6 +463,85 @@ export default function WorkOrders() {
               </p>
             )}
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount.toLocaleString()} results
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="px-2">...</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  Last
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
