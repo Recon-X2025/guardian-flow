@@ -27,6 +27,7 @@ export default function WorkOrders() {
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [selectedWOData, setSelectedWOData] = useState<any>(null);
   const [generateSOOpen, setGenerateSOOpen] = useState(false);
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function WorkOrders() {
         .from('work_orders')
         .select(`
           *,
-          ticket:tickets(*),
+          ticket:tickets(*, customer_id),
           technician:profiles(full_name),
           sapos_offers(id, title, price, status, offer_type)
         `)
@@ -51,6 +52,7 @@ export default function WorkOrders() {
         .limit(20);
 
       if (error) throw error;
+      console.log('Fetched work orders:', data);
       setWorkOrders(data || []);
     } catch (error: any) {
       toast({
@@ -296,10 +298,21 @@ export default function WorkOrders() {
                       variant="outline" 
                       size="sm"
                       onClick={() => {
+                        console.log('SaPOS button clicked for WO:', wo.id, 'Status:', wo.status);
+                        if (wo.status === 'draft' || wo.status === 'pending_validation') {
+                          toast({
+                            title: 'Work order not ready',
+                            description: 'Please release the work order first before generating SaPOS offers',
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+                        const customerId = wo.ticket?.customer_id;
+                        console.log('Customer ID:', customerId);
                         setSelectedWO(wo.id);
+                        setSelectedCustomerId(customerId || null);
                         setSaposDialogOpen(true);
                       }}
-                      disabled={wo.status !== 'in_progress'}
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
                       SaPOS
@@ -308,10 +321,18 @@ export default function WorkOrders() {
                       variant="outline" 
                       size="sm"
                       onClick={() => {
+                        console.log('Generate SO button clicked for WO:', wo.id, 'Status:', wo.status);
+                        if (wo.status === 'draft' || wo.status === 'pending_validation') {
+                          toast({
+                            title: 'Work order not ready',
+                            description: 'Please release the work order first before generating Service Order',
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
                         setSelectedWO(wo.id);
                         setGenerateSOOpen(true);
                       }}
-                      disabled={wo.status !== 'in_progress'}
                     >
                       <FileText className="h-4 w-4 mr-1" />
                       Generate SO
@@ -336,6 +357,7 @@ export default function WorkOrders() {
             open={saposDialogOpen}
             onOpenChange={setSaposDialogOpen}
             workOrderId={selectedWO}
+            customerId={selectedCustomerId || undefined}
           />
           <GenerateServiceOrderDialog
             open={generateSOOpen}

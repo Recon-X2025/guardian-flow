@@ -22,13 +22,19 @@ export function GenerateSaPOSDialog({ open, onOpenChange, workOrderId, customerI
   const [offers, setOffers] = useState<any[]>([]);
 
   const generateOffers = async () => {
+    console.log('Generating SaPOS offers for:', { workOrderId, customerId });
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-sapos-offers', {
         body: { workOrderId, customerId }
       });
 
-      if (error) throw error;
+      console.log('SaPOS generation response:', { data, error });
+
+      if (error) {
+        console.error('SaPOS generation error:', error);
+        throw error;
+      }
 
       setOffers(data.offers || []);
 
@@ -37,9 +43,10 @@ export function GenerateSaPOSDialog({ open, onOpenChange, workOrderId, customerI
         description: `${data.offers?.length || 0} contextual offers created`,
       });
     } catch (error: any) {
+      console.error('SaPOS generation failed:', error);
       toast({
         title: 'Generation failed',
-        description: error.message,
+        description: error.message || 'Failed to generate SaPOS offers. Check console for details.',
         variant: 'destructive',
       });
     } finally {

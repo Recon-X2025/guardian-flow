@@ -18,13 +18,19 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
   const [serviceOrder, setServiceOrder] = useState<any>(null);
 
   const generateSO = async () => {
+    console.log('Generating Service Order for:', workOrderId);
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-service-order', {
         body: { workOrderId, templateId: null }
       });
 
-      if (error) throw error;
+      console.log('SO generation response:', { data, error });
+
+      if (error) {
+        console.error('SO generation error:', error);
+        throw error;
+      }
 
       setServiceOrder(data.serviceOrder);
 
@@ -44,9 +50,10 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
 
       onSuccess();
     } catch (error: any) {
+      console.error('SO generation failed:', error);
       toast({
         title: 'Generation failed',
-        description: error.message,
+        description: error.message || 'Failed to generate Service Order. Check console for details.',
         variant: 'destructive',
       });
     } finally {
