@@ -1,0 +1,26 @@
+[
+  {
+    "name": "admin",
+    "username": "admin@test.local",
+    "password": "Admin@123",
+    "role": "Admin"
+  },
+  {
+    "name": "doctor",
+    "username": "doctor@test.local",
+    "password": "Doc@123",
+    "role": "Doctor"
+  },
+  {
+    "name": "clinic",
+    "username": "clinic@test.local",
+    "password": "Clinic@123",
+    "role": "Clinic"
+  },
+  {
+    "name": "ops",
+    "username": "ops@test.local",
+    "password": "Ops@123",
+    "role": "Ops"
+  }
+]
