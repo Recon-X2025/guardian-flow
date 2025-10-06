@@ -8,11 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Loader2, FileText, Send, Plus, DollarSign, Clock, CheckCircle2, Search } from "lucide-react";
 
 type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'expired';
 
 export default function Quotes() {
+  const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [quotes, setQuotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -23,7 +26,6 @@ export default function Quotes() {
     valid_until: '',
     status: 'draft' as QuoteStatus
   });
-  const { toast } = useToast();
 
   const fetchQuotes = async () => {
     setLoading(true);
@@ -211,7 +213,7 @@ export default function Quotes() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
           </CardContent>
         </Card>
       </div>
@@ -243,7 +245,7 @@ export default function Quotes() {
                     <Badge className={getStatusColor(quote.status)}>{quote.status}</Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>Amount: ${Number(quote.total_amount).toFixed(2)}</span>
+                    <span>Amount: {formatCurrency(Number(quote.total_amount))}</span>
                     {quote.valid_until && (
                       <span>Valid Until: {new Date(quote.valid_until).toLocaleDateString()}</span>
                     )}

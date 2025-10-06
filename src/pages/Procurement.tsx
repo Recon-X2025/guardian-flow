@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { ShoppingCart, Package, AlertTriangle, TrendingUp, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function Procurement() {
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [items, setItems] = useState<any[]>([]);
   const [stockLevels, setStockLevels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function Procurement() {
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
           </CardContent>
         </Card>
 

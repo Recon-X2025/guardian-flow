@@ -6,10 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrency } from '@/hooks/useCurrency';
 import { AddInventoryItemDialog } from '@/components/AddInventoryItemDialog';
 
 export default function Inventory() {
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -95,7 +97,7 @@ export default function Inventory() {
             <CardTitle className="text-sm font-medium">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -158,7 +160,7 @@ export default function Inventory() {
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>Stock: {totalStock}</span>
                         <span>•</span>
-                        <span>Price: ${item.unit_price?.toFixed(2) || '0.00'}</span>
+                        <span>Price: {formatCurrency(item.unit_price || 0)}</span>
                         <span>•</span>
                         <span>Lead Time: {item.lead_time_days || 0} days</span>
                       </div>

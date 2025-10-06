@@ -185,7 +185,7 @@ export default function Finance() {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
-                <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>

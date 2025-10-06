@@ -32,6 +32,24 @@ const CURRENCY_MAP: Record<string, { code: string; symbol: string }> = {
   'MX': { code: 'MXN', symbol: 'Mex$' },
 };
 
+// Fallback exchange rates (approximate, updated manually as needed)
+const FALLBACK_RATES: ExchangeRates = {
+  USD: 1,
+  GBP: 0.79,
+  EUR: 0.92,
+  INR: 83.12,
+  JPY: 149.50,
+  CNY: 7.24,
+  AUD: 1.52,
+  CAD: 1.36,
+  SGD: 1.34,
+  AED: 3.67,
+  SAR: 3.75,
+  ZAR: 18.20,
+  BRL: 4.97,
+  MXN: 17.08,
+};
+
 export function useCurrency() {
   const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo>({
     code: 'USD',
@@ -39,7 +57,7 @@ export function useCurrency() {
     country: 'US',
   });
   const [loading, setLoading] = useState(true);
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({});
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(FALLBACK_RATES);
   const [ratesLoading, setRatesLoading] = useState(false);
 
   useEffect(() => {
@@ -96,14 +114,22 @@ export function useCurrency() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.warn('Exchange rate API error, using fallback rates:', error);
+        setExchangeRates(FALLBACK_RATES);
+        return;
+      }
+      
       if (data?.rates) {
+        console.log('Exchange rates loaded:', data.rates);
         setExchangeRates(data.rates);
+      } else {
+        console.warn('No rates in response, using fallback rates');
+        setExchangeRates(FALLBACK_RATES);
       }
     } catch (error) {
-      console.error('Error fetching exchange rates:', error);
-      // Fallback to 1:1 if API fails
-      setExchangeRates({ USD: 1 });
+      console.error('Error fetching exchange rates, using fallback rates:', error);
+      setExchangeRates(FALLBACK_RATES);
     } finally {
       setRatesLoading(false);
     }
@@ -112,14 +138,17 @@ export function useCurrency() {
   const convertAmount = (amountInUSD: number, targetCurrency?: string): number => {
     const target = targetCurrency || currencyInfo.code;
     
-    // If converting to USD or no rates available, return original
-    if (target === 'USD' || !exchangeRates[target]) {
+    // If converting to USD, return original
+    if (target === 'USD') {
       return amountInUSD;
     }
 
-    // Convert from USD to target currency
-    const rate = exchangeRates[target];
-    return amountInUSD * rate;
+    // Get rate, fallback to hardcoded rates if not available
+    const rate = exchangeRates[target] || FALLBACK_RATES[target] || 1;
+    const converted = amountInUSD * rate;
+    
+    console.log(`Converting ${amountInUSD} USD to ${target}: ${converted} (rate: ${rate})`);
+    return converted;
   };
 
   const formatCurrency = (
@@ -128,16 +157,25 @@ export function useCurrency() {
     targetCurrency?: string
   ): string => {
     const target = targetCurrency || currencyInfo.code;
-    const symbol = targetCurrency 
-      ? Object.values(CURRENCY_MAP).find(c => c.code === targetCurrency)?.symbol || '$'
-      : currencyInfo.symbol;
+    
+    // Find symbol for target currency
+    let symbol = '$';
+    if (targetCurrency) {
+      const currencyEntry = Object.entries(CURRENCY_MAP).find(([_, curr]) => curr.code === targetCurrency);
+      symbol = currencyEntry ? currencyEntry[1].symbol : '$';
+    } else {
+      symbol = currencyInfo.symbol;
+    }
 
     const convertedAmount = convertAmount(amountInUSD, target);
     const formattedAmount = Number(convertedAmount).toFixed(2);
     
-    return showSymbol 
+    const formatted = showSymbol 
       ? `${symbol}${formattedAmount}`
       : formattedAmount;
+      
+    console.log(`Formatted ${amountInUSD} USD as ${formatted} (${target})`);
+    return formatted;
   };
 
   const updateCurrency = async (country: string) => {
@@ -162,6 +200,9 @@ export function useCurrency() {
         symbol: newCurrency.symbol,
         country: country,
       });
+
+      // Refresh exchange rates after currency change
+      await fetchExchangeRates();
 
       return { success: true };
     } catch (error: any) {
