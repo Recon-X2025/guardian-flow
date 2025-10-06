@@ -1162,6 +1162,8 @@ export type Database = {
           created_at: string | null
           hub_id: string | null
           id: string
+          part_notes: string | null
+          part_status: Database["public"]["Enums"]["part_status"] | null
           parts_reserved: boolean | null
           released_at: string | null
           repair_type: string | null
@@ -1179,6 +1181,8 @@ export type Database = {
           created_at?: string | null
           hub_id?: string | null
           id?: string
+          part_notes?: string | null
+          part_status?: Database["public"]["Enums"]["part_status"] | null
           parts_reserved?: boolean | null
           released_at?: string | null
           repair_type?: string | null
@@ -1196,6 +1200,8 @@ export type Database = {
           created_at?: string | null
           hub_id?: string | null
           id?: string
+          part_notes?: string | null
+          part_status?: Database["public"]["Enums"]["part_status"] | null
           parts_reserved?: boolean | null
           released_at?: string | null
           repair_type?: string | null
@@ -1304,6 +1310,15 @@ export type Database = {
         | "overdue"
         | "cancelled"
         | "on_hold"
+      part_status:
+        | "not_required"
+        | "reserved"
+        | "issued"
+        | "received"
+        | "consumed"
+        | "unutilized"
+        | "buffer_consumption"
+        | "buffer_consumed_replacement_requested"
       photo_role: "context_wide" | "pre_closeup" | "serial" | "replacement_part"
       precheck_status: "pending" | "passed" | "failed" | "overridden"
       quote_status: "draft" | "sent" | "accepted" | "declined" | "expired"
@@ -1488,6 +1503,16 @@ export const Constants = {
         "overdue",
         "cancelled",
         "on_hold",
+      ],
+      part_status: [
+        "not_required",
+        "reserved",
+        "issued",
+        "received",
+        "consumed",
+        "unutilized",
+        "buffer_consumption",
+        "buffer_consumed_replacement_requested",
       ],
       photo_role: ["context_wide", "pre_closeup", "serial", "replacement_part"],
       precheck_status: ["pending", "passed", "failed", "overridden"],

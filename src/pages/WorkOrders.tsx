@@ -3,12 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
 import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
+import { EditWorkOrderDialog } from '@/components/EditWorkOrderDialog';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -28,6 +29,7 @@ export default function WorkOrders() {
   const [generateSOOpen, setGenerateSOOpen] = useState(false);
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
   const [kbDialogOpen, setKbDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkOrders();
@@ -74,6 +76,38 @@ export default function WorkOrders() {
       case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'pending_validation': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPartStatusLabel = (partStatus: string) => {
+    const labels: Record<string, string> = {
+      'not_required': 'No Parts',
+      'reserved': 'Parts Reserved',
+      'issued': 'Parts Issued',
+      'received': 'Parts Received',
+      'consumed': 'Parts Consumed',
+      'unutilized': 'Parts Unutilized',
+      'buffer_consumption': 'From Buffer Stock',
+      'buffer_consumed_replacement_requested': 'Buffer Used - Replacement Requested',
+    };
+    return labels[partStatus] || partStatus;
+  };
+
+  const getPartStatusColor = (partStatus: string) => {
+    switch (partStatus) {
+      case 'consumed':
+      case 'buffer_consumed_replacement_requested':
+        return 'bg-green-100 text-green-800';
+      case 'issued':
+      case 'received':
+        return 'bg-blue-100 text-blue-800';
+      case 'reserved':
+      case 'buffer_consumption':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'unutilized':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -172,10 +206,10 @@ export default function WorkOrders() {
                           Warranty OK
                         </Badge>
                       )}
-                      {wo.parts_reserved && (
-                        <Badge variant="outline" className="text-xs">
+                      {wo.part_status && wo.part_status !== 'not_required' && (
+                        <Badge className={getPartStatusColor(wo.part_status)} variant="outline">
                           <Package className="h-3 w-3 mr-1" />
-                          Parts Reserved
+                          {getPartStatusLabel(wo.part_status)}
                         </Badge>
                       )}
                       {wo.repair_type && (
@@ -199,6 +233,13 @@ export default function WorkOrders() {
                         {new Date(wo.created_at).toLocaleDateString()}
                       </div>
                     </div>
+
+                    {wo.part_notes && (
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Part Notes:</p>
+                        <p className="text-sm">{wo.part_notes}</p>
+                      </div>
+                    )}
 
                     {wo.sapos_offers && wo.sapos_offers.length > 0 && (
                       <div className="mt-3 pt-3 border-t">
@@ -226,6 +267,17 @@ export default function WorkOrders() {
                     )}
                   </div>
                   <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWOData(wo);
+                        setEditDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -303,6 +355,15 @@ export default function WorkOrders() {
             </DialogContent>
           </Dialog>
         </>
+      )}
+
+      {selectedWOData && (
+        <EditWorkOrderDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          workOrder={selectedWOData}
+          onSuccess={fetchWorkOrders}
+        />
       )}
     </div>
   );
