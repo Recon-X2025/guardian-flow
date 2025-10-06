@@ -32,7 +32,16 @@ export default function Tickets() {
     try {
       const { data, error } = await supabase
         .from('tickets')
-        .select('*')
+        .select(`
+          *,
+          work_orders!inner(
+            id,
+            wo_number,
+            status,
+            part_status,
+            completed_at
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -46,6 +55,12 @@ export default function Tickets() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const isTicketOverdue = (ticket: any) => {
+    if (!ticket.work_orders || ticket.work_orders.length === 0) return false;
+    const workOrder = ticket.work_orders[0];
+    return workOrder.status === 'completed' && ticket.status !== 'completed';
   };
 
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -184,10 +199,10 @@ export default function Tickets() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Active Tickets</CardTitle>
-              <CardDescription>All service requests in the system</CardDescription>
-            </div>
+          <div>
+            <CardTitle>Active Tickets</CardTitle>
+            <CardDescription>Tickets with work orders or under parts validation</CardDescription>
+          </div>
             <div className="relative w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search tickets..." className="pl-8" />
@@ -201,10 +216,16 @@ export default function Tickets() {
             <div className="text-center py-8 text-muted-foreground">No tickets found</div>
           ) : (
             <div className="space-y-3">
-              {tickets.map((ticket) => (
-                <div
+              {tickets.map((ticket) => {
+                const workOrder = ticket.work_orders?.[0];
+                const isOverdue = isTicketOverdue(ticket);
+                
+                return (
+                  <div
                     key={ticket.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
+                      isOverdue ? 'border-destructive bg-destructive/5' : ''
+                    }`}
                   >
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
@@ -213,6 +234,22 @@ export default function Tickets() {
                           {getStatusIcon(ticket.status)}
                           <span className="ml-1">{ticket.status}</span>
                         </Badge>
+                        {workOrder && (
+                          <Badge variant="outline" className="bg-muted">
+                            WO: {workOrder.wo_number}
+                          </Badge>
+                        )}
+                        {isOverdue && (
+                          <Badge variant="destructive" className="animate-pulse">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Needs Closure
+                          </Badge>
+                        )}
+                        {workOrder?.part_status === 'reserved' && (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+                            Parts Validation
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-foreground">{ticket.symptom}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -221,27 +258,22 @@ export default function Tickets() {
                         <span>{ticket.customer_name || 'N/A'}</span>
                         <span>•</span>
                         <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
+                        {workOrder && (
+                          <>
+                            <span>•</span>
+                            <span className="font-medium">WO Status: {workOrder.status}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedTicket(ticket.id);
-                          setWoDialogOpen(true);
-                        }}
-                        disabled={ticket.status !== 'open'}
-                      >
-                        <Briefcase className="h-4 w-4 mr-1" />
-                        Create WO
-                      </Button>
                       <Button variant="ghost" size="sm">
                         View Details
                       </Button>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
         </CardContent>
