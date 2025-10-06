@@ -155,9 +155,9 @@ export default function Dashboard() {
       color: "text-accent",
     },
     {
-      title: "Finance & Settlements",
+      title: "Total Payables",
       value: formatCurrency(stats.totalPayables, false),
-      subtitle: "Total payables",
+      subtitle: "Finance & Settlements",
       icon: DollarSign,
       color: "text-orange-500",
     },
