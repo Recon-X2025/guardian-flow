@@ -28,7 +28,47 @@ export default function Payments() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      // If no data, use mock data
+      if (!data || data.length === 0) {
+        const mockPendingInvoices = [
+          {
+            id: 'mock-pay-1',
+            invoice_number: 'INV-2025-002',
+            status: 'sent',
+            total_amount: 1200.00,
+            created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1235', ticket: { customer_name: 'TechStart Inc', unit_serial: 'TS-123789' } }
+          },
+          {
+            id: 'mock-pay-2',
+            invoice_number: 'INV-2025-003',
+            status: 'overdue',
+            total_amount: 552.50,
+            created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1236', ticket: { customer_name: 'Global Services LLC', unit_serial: 'GS-456123' } }
+          },
+          {
+            id: 'mock-pay-3',
+            invoice_number: 'INV-2025-006',
+            status: 'sent',
+            total_amount: 780.00,
+            created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1239', ticket: { customer_name: 'Premier Industries', unit_serial: 'PI-159753' } }
+          },
+          {
+            id: 'mock-pay-4',
+            invoice_number: 'INV-2025-007',
+            status: 'draft',
+            total_amount: 925.00,
+            created_at: new Date().toISOString(),
+            work_order: { wo_number: 'WO-1240', ticket: { customer_name: 'Advanced Tech Co', unit_serial: 'AT-357159' } }
+          }
+        ];
+        setInvoices(mockPendingInvoices);
+      } else {
+        setInvoices(data);
+      }
     } catch (error: any) {
       toast({
         title: 'Error loading payments',

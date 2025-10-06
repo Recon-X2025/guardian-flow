@@ -27,7 +27,66 @@ export default function Invoicing() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      // If no data, use mock data
+      if (!data || data.length === 0) {
+        const mockInvoices = [
+          {
+            id: 'mock-1',
+            invoice_number: 'INV-2025-001',
+            status: 'paid',
+            subtotal: 850.00,
+            penalties: 42.50,
+            total_amount: 807.50,
+            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1234', ticket: { customer_name: 'Acme Corp', unit_serial: 'AC-789456' } }
+          },
+          {
+            id: 'mock-2',
+            invoice_number: 'INV-2025-002',
+            status: 'sent',
+            subtotal: 1200.00,
+            penalties: 0,
+            total_amount: 1200.00,
+            created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1235', ticket: { customer_name: 'TechStart Inc', unit_serial: 'TS-123789' } }
+          },
+          {
+            id: 'mock-3',
+            invoice_number: 'INV-2025-003',
+            status: 'overdue',
+            subtotal: 650.00,
+            penalties: 97.50,
+            total_amount: 552.50,
+            hold_reason: 'Pending fraud investigation',
+            created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1236', ticket: { customer_name: 'Global Services LLC', unit_serial: 'GS-456123' } }
+          },
+          {
+            id: 'mock-4',
+            invoice_number: 'INV-2025-004',
+            status: 'draft',
+            subtotal: 425.00,
+            penalties: 0,
+            total_amount: 425.00,
+            created_at: new Date().toISOString(),
+            work_order: { wo_number: 'WO-1237', ticket: { customer_name: 'Metro Repair', unit_serial: 'MR-987654' } }
+          },
+          {
+            id: 'mock-5',
+            invoice_number: 'INV-2025-005',
+            status: 'paid',
+            subtotal: 1500.00,
+            penalties: 0,
+            total_amount: 1500.00,
+            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            work_order: { wo_number: 'WO-1238', ticket: { customer_name: 'Elite Solutions', unit_serial: 'ES-741852' } }
+          }
+        ];
+        setInvoices(mockInvoices);
+      } else {
+        setInvoices(data);
+      }
     } catch (error: any) {
       toast({
         title: 'Error loading invoices',

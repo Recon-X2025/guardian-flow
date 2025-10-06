@@ -7,12 +7,15 @@ import { Search, AlertTriangle, DollarSign, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AddPenaltyRuleDialog } from '@/components/AddPenaltyRuleDialog';
+import { PenaltyDetailsDialog } from '@/components/PenaltyDetailsDialog';
 
 export default function Penalties() {
   const { toast } = useToast();
   const [penalties, setPenalties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedPenalty, setSelectedPenalty] = useState<any>(null);
 
   useEffect(() => {
     fetchPenalties();
@@ -168,7 +171,14 @@ export default function Penalties() {
                       <span>Method: {penalty.calculation_method}</span>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedPenalty(penalty);
+                      setDetailsDialogOpen(true);
+                    }}
+                  >
                     View Details
                   </Button>
                 </div>
@@ -246,6 +256,12 @@ export default function Penalties() {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onSuccess={fetchPenalties}
+      />
+
+      <PenaltyDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        penalty={selectedPenalty}
       />
     </div>
   );
