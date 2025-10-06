@@ -9,6 +9,7 @@ import { Plus, Search, Clock, CheckCircle2, AlertCircle, Briefcase, Timer } from
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateWorkOrderDialog } from "@/components/CreateWorkOrderDialog";
+import { TicketDetailsDialog } from "@/components/TicketDetailsDialog";
 import { differenceInDays } from "date-fns";
 
 export default function Tickets() {
@@ -18,6 +19,8 @@ export default function Tickets() {
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [woDialogOpen, setWoDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedTicketForDetails, setSelectedTicketForDetails] = useState<any>(null);
   const [formData, setFormData] = useState({
     unitSerial: '',
     customer: '',
@@ -294,7 +297,14 @@ export default function Tickets() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTicketForDetails(ticket);
+                          setDetailsDialogOpen(true);
+                        }}
+                      >
                         View Details
                       </Button>
                     </div>
@@ -314,6 +324,12 @@ export default function Tickets() {
           onSuccess={fetchTickets}
         />
       )}
+
+      <TicketDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        ticket={selectedTicketForDetails}
+      />
 
       <Card className="bg-muted/30">
         <CardHeader>
