@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, CheckCircle2, AlertCircle, Briefcase } from "lucide-react";
+import { Plus, Search, Clock, CheckCircle2, AlertCircle, Briefcase, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateWorkOrderDialog } from "@/components/CreateWorkOrderDialog";
+import { differenceInDays } from "date-fns";
 
 export default function Tickets() {
   const { toast } = useToast();
@@ -60,7 +61,18 @@ export default function Tickets() {
   const isTicketOverdue = (ticket: any) => {
     if (!ticket.work_orders || ticket.work_orders.length === 0) return false;
     const workOrder = ticket.work_orders[0];
-    return workOrder.status === 'completed' && ticket.status !== 'completed';
+    if (workOrder.status !== 'completed' || !workOrder.completed_at || ticket.status === 'completed') {
+      return false;
+    }
+    const daysSinceCompletion = differenceInDays(new Date(), new Date(workOrder.completed_at));
+    return daysSinceCompletion >= 7;
+  };
+
+  const getDaysOverdue = (ticket: any) => {
+    if (!ticket.work_orders || ticket.work_orders.length === 0) return 0;
+    const workOrder = ticket.work_orders[0];
+    if (!workOrder.completed_at || ticket.status === 'completed') return 0;
+    return differenceInDays(new Date(), new Date(workOrder.completed_at));
   };
 
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -219,6 +231,7 @@ export default function Tickets() {
               {tickets.map((ticket) => {
                 const workOrder = ticket.work_orders?.[0];
                 const isOverdue = isTicketOverdue(ticket);
+                const daysOverdue = getDaysOverdue(ticket);
                 
                 return (
                   <div
@@ -228,7 +241,7 @@ export default function Tickets() {
                     }`}
                   >
                     <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold">TKT-{ticket.id.slice(0, 8)}</span>
                         <Badge variant="outline" className={getStatusColor(ticket.status)}>
                           {getStatusIcon(ticket.status)}
@@ -242,7 +255,13 @@ export default function Tickets() {
                         {isOverdue && (
                           <Badge variant="destructive" className="animate-pulse">
                             <AlertCircle className="h-3 w-3 mr-1" />
-                            Needs Closure
+                            Overdue {daysOverdue} Days
+                          </Badge>
+                        )}
+                        {workOrder?.completed_at && ticket.status !== 'completed' && !isOverdue && (
+                          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+                            <Timer className="h-3 w-3 mr-1" />
+                            {daysOverdue} of 7 days
                           </Badge>
                         )}
                         {workOrder?.part_status === 'reserved' && (
@@ -262,6 +281,14 @@ export default function Tickets() {
                           <>
                             <span>•</span>
                             <span className="font-medium">WO Status: {workOrder.status}</span>
+                            {workOrder.completed_at && (
+                              <>
+                                <span>•</span>
+                                <span className={isOverdue ? 'text-destructive font-medium' : ''}>
+                                  WO Closed: {new Date(workOrder.completed_at).toLocaleDateString()}
+                                </span>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
