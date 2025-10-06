@@ -1,5 +1,8 @@
 project_id = "blvrfzymeerefsdwqhoh"
 
+[functions.create-demo-workorders]
+verify_jwt = false
+
 [functions.check-inventory]
 verify_jwt = true
 

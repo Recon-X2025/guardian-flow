@@ -10,6 +10,7 @@ import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDia
 import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
 import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
 import { EditWorkOrderDialog } from '@/components/EditWorkOrderDialog';
+import { CreateDemoDataButton } from '@/components/CreateDemoDataButton';
 import { useNavigate } from 'react-router-dom';
 import { useCurrency } from '@/hooks/useCurrency';
 import {
@@ -190,10 +191,13 @@ export default function WorkOrders() {
             Manage field service work orders with precheck gating
           </p>
         </div>
-        <Button onClick={() => navigate('/tickets')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Work Order
-        </Button>
+        <div className="flex gap-2">
+          <CreateDemoDataButton onSuccess={fetchWorkOrders} />
+          <Button onClick={() => navigate('/tickets')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Work Order
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
