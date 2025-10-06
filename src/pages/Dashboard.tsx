@@ -27,9 +27,11 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       // Fetch all work orders for comprehensive analysis
-      const { data: allWorkOrders } = await supabase
+      const { data: allWorkOrders, count: totalWOCount } = await supabase
         .from('work_orders')
-        .select('*, created_at, status');
+        .select('*, created_at, status', { count: 'exact' });
+
+      console.log('Dashboard: Total WOs in DB:', totalWOCount, 'Fetched:', allWorkOrders?.length);
 
       const activeWOs = allWorkOrders?.filter(wo => ['in_progress', 'assigned'].includes(wo.status || '')).length || 0;
       const completedWOs = allWorkOrders?.filter(wo => wo.status === 'completed').length || 0;

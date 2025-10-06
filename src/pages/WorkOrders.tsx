@@ -40,6 +40,14 @@ export default function WorkOrders() {
 
   const fetchWorkOrders = async () => {
     try {
+      // First get the total count
+      const { count } = await supabase
+        .from('work_orders')
+        .select('*', { count: 'exact', head: true });
+
+      console.log('Total work orders in DB:', count);
+
+      // Then fetch the data with increased limit
       const { data, error } = await supabase
         .from('work_orders')
         .select(`
@@ -49,10 +57,10 @@ export default function WorkOrders() {
           sapos_offers(id, title, price, status, offer_type)
         `)
         .order('created_at', { ascending: false})
-        .limit(20);
+        .limit(100);
 
       if (error) throw error;
-      console.log('Fetched work orders:', data);
+      console.log('Fetched work orders:', data?.length, 'Total in DB:', count);
       setWorkOrders(data || []);
 
       // Auto-generate SaPOS offers for released/in_progress WOs lacking offers (max 3 per load)
