@@ -38,6 +38,7 @@ import KnowledgeBase from "./pages/KnowledgeBase";
 import Assistant from "./pages/Assistant";
 import ModelOrchestration from "./pages/ModelOrchestration";
 import HelpTraining from "./pages/HelpTraining";
+import AnomalyDetection from "./pages/AnomalyDetection";
 
 const queryClient = new QueryClient();
 
@@ -187,7 +188,7 @@ const App = () => (
                                 } />
                                 <Route path="/anomaly" element={
                                   <RoleGuard permissions={["fraud.view"]} showError={true}>
-                                    <Analytics />
+                                    <AnomalyDetection />
                                   </RoleGuard>
                                 } />
                                 <Route path="/observability" element={
