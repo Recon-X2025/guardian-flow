@@ -3,12 +3,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
+import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
 import { useNavigate } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function WorkOrders() {
   const { toast } = useToast();
@@ -16,8 +24,10 @@ export default function WorkOrders() {
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
+  const [selectedWOData, setSelectedWOData] = useState<any>(null);
   const [generateSOOpen, setGenerateSOOpen] = useState(false);
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
+  const [kbDialogOpen, setKbDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkOrders();
@@ -221,6 +231,18 @@ export default function WorkOrders() {
                       size="sm"
                       onClick={() => {
                         setSelectedWO(wo.id);
+                        setSelectedWOData(wo);
+                        setKbDialogOpen(true);
+                      }}
+                    >
+                      <BookOpen className="h-4 w-4 mr-1" />
+                      KB Guides
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedWO(wo.id);
                         setSaposDialogOpen(true);
                       }}
                       disabled={wo.status !== 'in_progress'}
@@ -267,6 +289,19 @@ export default function WorkOrders() {
             workOrderId={selectedWO}
             onSuccess={fetchWorkOrders}
           />
+          <Dialog open={kbDialogOpen} onOpenChange={setKbDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Knowledge Base Articles</DialogTitle>
+                <DialogDescription>
+                  Recommended technical guides for this issue
+                </DialogDescription>
+              </DialogHeader>
+              {selectedWOData?.ticket?.symptom && (
+                <KBArticleSuggestions symptom={selectedWOData.ticket.symptom} />
+              )}
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>
