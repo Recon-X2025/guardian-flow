@@ -3,21 +3,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, UserPlus, Search, Trash2 } from 'lucide-react';
+import { Shield, UserPlus, Search, Trash2, Globe, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppRole, useRBAC } from '@/contexts/RBACContext';
+import { useCurrency } from '@/hooks/useCurrency';
+
+const COUNTRIES = [
+  { code: 'US', name: 'United States', currency: 'USD' },
+  { code: 'GB', name: 'United Kingdom', currency: 'GBP' },
+  { code: 'EU', name: 'European Union', currency: 'EUR' },
+  { code: 'IN', name: 'India', currency: 'INR' },
+  { code: 'JP', name: 'Japan', currency: 'JPY' },
+  { code: 'CN', name: 'China', currency: 'CNY' },
+  { code: 'AU', name: 'Australia', currency: 'AUD' },
+  { code: 'CA', name: 'Canada', currency: 'CAD' },
+  { code: 'SG', name: 'Singapore', currency: 'SGD' },
+  { code: 'AE', name: 'United Arab Emirates', currency: 'AED' },
+  { code: 'SA', name: 'Saudi Arabia', currency: 'SAR' },
+  { code: 'ZA', name: 'South Africa', currency: 'ZAR' },
+  { code: 'BR', name: 'Brazil', currency: 'BRL' },
+  { code: 'MX', name: 'Mexico', currency: 'MXN' },
+];
 
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const rbac = useRBAC();
+  const { currencyInfo, updateCurrency } = useCurrency();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<AppRole>('customer');
+  const [selectedCountry, setSelectedCountry] = useState<string>(currencyInfo.country);
 
   useEffect(() => {
     fetchProfiles();
@@ -139,6 +160,63 @@ export default function Settings() {
     }
   };
 
+  const handleCountryChange = async () => {
+    const result = await updateCurrency(selectedCountry);
+    if (result?.success) {
+      toast({
+        title: 'Preferences updated',
+        description: `Currency set to ${COUNTRIES.find(c => c.code === selectedCountry)?.currency}`,
+      });
+    } else {
+      toast({
+        title: 'Update failed',
+        description: result?.error || 'Failed to update preferences',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const personalSettingsSection = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Personal Preferences
+        </CardTitle>
+        <CardDescription>Configure your regional and currency settings</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="country">Country / Region</Label>
+          <div className="flex gap-2">
+            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <SelectTrigger id="country" className="flex-1">
+                <SelectValue placeholder="Select country..." />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRIES.map(country => (
+                  <SelectItem key={country.code} value={country.code}>
+                    {country.name} ({country.currency})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleCountryChange}>
+              Save
+            </Button>
+          </div>
+        </div>
+        <div className="pt-3 border-t">
+          <div className="text-sm text-muted-foreground">
+            <p><strong>Current Settings:</strong></p>
+            <p>Country: {COUNTRIES.find(c => c.code === currencyInfo.country)?.name || currencyInfo.country}</p>
+            <p>Currency: {currencyInfo.code} ({currencyInfo.symbol})</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (!rbac.isAdmin) {
     return (
       <div className="space-y-6">
@@ -146,11 +224,7 @@ export default function Settings() {
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">User settings and preferences</p>
         </div>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-muted-foreground">Admin access required to manage user roles.</p>
-          </CardContent>
-        </Card>
+        {personalSettingsSection}
       </div>
     );
   }
@@ -161,6 +235,8 @@ export default function Settings() {
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground">Manage user roles and permissions</p>
       </div>
+
+      {personalSettingsSection}
 
       <Card className="bg-primary/5 border-primary/20">
         <CardHeader>

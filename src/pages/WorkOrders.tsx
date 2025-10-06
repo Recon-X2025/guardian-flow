@@ -11,6 +11,7 @@ import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
 import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
 import { EditWorkOrderDialog } from '@/components/EditWorkOrderDialog';
 import { useNavigate } from 'react-router-dom';
+import { useCurrency } from '@/hooks/useCurrency';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ import {
 export default function WorkOrders() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
@@ -227,7 +229,7 @@ export default function WorkOrders() {
                         <span className="font-medium">Technician:</span> {wo.technician?.full_name || 'Unassigned'}
                       </div>
                       <div>
-                        <span className="font-medium">Cost:</span> ${Number(wo.cost_to_customer || 0).toFixed(2)}
+                        <span className="font-medium">Cost:</span> {formatCurrency(Number(wo.cost_to_customer || 0))}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(wo.created_at).toLocaleDateString()}
@@ -251,7 +253,7 @@ export default function WorkOrders() {
                           {wo.sapos_offers.slice(0, 3).map((offer: any) => (
                             <div key={offer.id} className="text-xs flex items-center justify-between py-1 px-2 bg-muted/30 rounded">
                               <span className="truncate flex-1">{offer.title}</span>
-                              <span className="font-medium ml-2">${Number(offer.price).toFixed(2)}</span>
+                              <span className="font-medium ml-2">{formatCurrency(Number(offer.price))}</span>
                               <Badge variant="outline" className="ml-2 text-xs">
                                 {offer.offer_type}
                               </Badge>

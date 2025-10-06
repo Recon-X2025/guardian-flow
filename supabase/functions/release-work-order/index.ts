@@ -148,8 +148,18 @@ Deno.serve(async (req) => {
     // Automatically trigger SaPOS offer generation
     console.log(`[${correlationId}] Triggering automatic SaPOS generation...`);
     try {
+      // Fetch customer_id from ticket
+      const { data: ticket } = await context.supabase
+        .from('tickets')
+        .select('customer_id')
+        .eq('id', workOrder.ticket_id)
+        .single();
+
       const { error: saposError } = await context.supabase.functions.invoke('generate-sapos-offers', {
-        body: { workOrderId }
+        body: { 
+          workOrderId,
+          customerId: ticket?.customer_id 
+        }
       });
       
       if (saposError) {

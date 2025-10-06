@@ -3,8 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function Dashboard() {
+  const { formatCurrency } = useCurrency();
   const [stats, setStats] = useState({
     activeWorkOrders: 0,
     pendingTickets: 0,
@@ -133,7 +135,7 @@ export default function Dashboard() {
     },
     {
       title: "Revenue (Total)",
-      value: `$${stats.totalRevenue.toLocaleString()}`,
+      value: formatCurrency(stats.totalRevenue, false),
       icon: DollarSign,
       color: "text-accent",
     },

@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Sparkles, DollarSign, Shield, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface GenerateSaPOSDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface GenerateSaPOSDialogProps {
 
 export function GenerateSaPOSDialog({ open, onOpenChange, workOrderId, customerId }: GenerateSaPOSDialogProps) {
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [offers, setOffers] = useState<any[]>([]);
 
@@ -107,7 +109,7 @@ export function GenerateSaPOSDialog({ open, onOpenChange, workOrderId, customerI
                       <h3 className="font-semibold">{offer.title}</h3>
                     </div>
                     <div className="text-right">
-                      <div className="text-xl font-bold text-primary">${offer.price}</div>
+                      <div className="text-xl font-bold text-primary">{formatCurrency(offer.price)}</div>
                       <Badge variant="outline" className="mt-1">{offer.offer_type.replace('_', ' ')}</Badge>
                     </div>
                   </div>

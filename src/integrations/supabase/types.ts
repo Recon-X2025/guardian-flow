@@ -585,7 +585,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          country: string | null
           created_at: string | null
+          currency: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -596,7 +598,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          country?: string | null
           created_at?: string | null
+          currency?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -607,7 +611,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          country?: string | null
           created_at?: string | null
+          currency?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -1237,6 +1243,10 @@ export type Database = {
     Functions: {
       generate_wo_number: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_currency_symbol: {
+        Args: { currency_code: string }
         Returns: string
       }
       get_user_tenant_id: {
