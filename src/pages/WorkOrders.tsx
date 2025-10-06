@@ -54,6 +54,28 @@ export default function WorkOrders() {
       if (error) throw error;
       console.log('Fetched work orders:', data);
       setWorkOrders(data || []);
+
+      // Auto-generate SaPOS offers for released/in_progress WOs lacking offers (max 3 per load)
+      try {
+        const targets = (data || [])
+          .filter((wo: any) => (wo.status === 'released' || wo.status === 'in_progress') && (!wo.sapos_offers || wo.sapos_offers.length === 0))
+          .slice(0, 3);
+        targets.forEach(async (wo: any) => {
+          const customerId = wo.ticket?.customer_id;
+          try {
+            console.log('Auto-generating SaPOS for WO:', wo.id);
+            await supabase.functions.invoke('generate-sapos-offers', {
+              body: { workOrderId: wo.id, customerId }
+            });
+            // Refresh this WO row to show offers soon after
+            fetchWorkOrders();
+          } catch (e) {
+            console.error('Auto SaPOS generation failed for WO', wo.id, e);
+          }
+        });
+      } catch (e) {
+        console.error('Auto SaPOS batch error', e);
+      }
     } catch (error: any) {
       toast({
         title: "Error loading work orders",
@@ -193,6 +215,7 @@ export default function WorkOrders() {
           <div className="space-y-4">
             {workOrders.map((wo) => {
               const StatusIcon = getStatusIcon(wo.status);
+              const isCompleted = wo.status === 'completed';
               return (
                 <div
                   key={wo.id}
@@ -297,6 +320,8 @@ export default function WorkOrders() {
                     <Button 
                       variant="outline" 
                       size="sm"
+                      disabled={isCompleted}
+                      title={isCompleted ? 'Disabled for completed work orders' : undefined}
                       onClick={() => {
                         console.log('SaPOS button clicked for WO:', wo.id, 'Status:', wo.status);
                         if (wo.status === 'draft' || wo.status === 'pending_validation') {
@@ -320,6 +345,8 @@ export default function WorkOrders() {
                     <Button 
                       variant="outline" 
                       size="sm"
+                      disabled={isCompleted}
+                      title={isCompleted ? 'Disabled for completed work orders' : undefined}
                       onClick={() => {
                         console.log('Generate SO button clicked for WO:', wo.id, 'Status:', wo.status);
                         if (wo.status === 'draft' || wo.status === 'pending_validation') {

@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
   try {
     const authResult = await validateAuth(req, {
-      requiredPermissions: ['service_orders.generate'],
+      requireAuth: true,
     });
 
     if (!authResult.success) {

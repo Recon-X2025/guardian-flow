@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const authResult = await validateAuth(req, {
-      requiredPermissions: ['sapos.generate'],
+      requireAuth: true,
     });
 
     if (!authResult.success) {
@@ -144,15 +144,15 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
         prompt_template_id: promptTemplateId,
         confidence_score: 0.95,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        warranty_checked: generationContext.warranty_checked,
-        inventory_checked: generationContext.inventory_checked,
-        offer_provenance: {
-          model: modelVersion,
-          prompt_template: promptTemplateId,
-          generated_at: generationContext.generated_at,
-          correlation_id: correlationId
-        },
-        generation_context: generationContext
+        metadata: {
+          generation_context: generationContext,
+          offer_provenance: {
+            model: modelVersion,
+            prompt_template: promptTemplateId,
+            generated_at: generationContext.generated_at,
+            correlation_id: correlationId
+          }
+        }
       })
     );
 
