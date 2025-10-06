@@ -25,9 +25,9 @@ export default function Scheduler() {
           .order('created_at', { ascending: false })
           .limit(20),
         supabase
-          .from('user_roles')
-          .select('profiles(id, full_name, email)')
-          .eq('role', 'technician')
+          .from('profiles')
+          .select('id, full_name, email, user_roles!inner(role)')
+          .eq('user_roles.role', 'technician')
           .limit(50)
       ]);
 
@@ -35,11 +35,7 @@ export default function Scheduler() {
       if (techData.error) throw techData.error;
 
       setWorkOrders(woData.data || []);
-      // Extract profiles from user_roles join
-      const techProfiles = (techData.data || [])
-        .map((ur: any) => ur.profiles)
-        .filter(Boolean);
-      setTechnicians(techProfiles);
+      setTechnicians(techData.data || []);
     } catch (error: any) {
       toast({
         title: "Error loading data",
