@@ -49,7 +49,7 @@ export default function Warranty() {
 
     try {
       const response = await supabase.functions.invoke('check-warranty', {
-        body: { unitSerial: searchSerial, parts: ['HVAC-MOTOR-001', 'HVAC-FILTER-001'] }
+        body: { unitSerial: searchSerial, parts: ['PC-PSU-550W', 'PR-TONER-BK', 'PC-FAN-120MM'] }
       });
 
       if (response.error) throw response.error;
