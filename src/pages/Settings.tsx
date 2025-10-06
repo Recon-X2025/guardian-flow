@@ -33,7 +33,7 @@ export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const rbac = useRBAC();
-  const { currencyInfo, updateCurrency } = useCurrency();
+  const { currencyInfo, updateCurrency, exchangeRates, ratesLoading, refreshRates } = useCurrency();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<string>('');
@@ -206,12 +206,35 @@ export default function Settings() {
             </Button>
           </div>
         </div>
-        <div className="pt-3 border-t">
+        <div className="pt-3 border-t space-y-3">
           <div className="text-sm text-muted-foreground">
             <p><strong>Current Settings:</strong></p>
             <p>Country: {COUNTRIES.find(c => c.code === currencyInfo.country)?.name || currencyInfo.country}</p>
             <p>Currency: {currencyInfo.code} ({currencyInfo.symbol})</p>
           </div>
+          {currencyInfo.code !== 'USD' && exchangeRates[currencyInfo.code] && (
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <p className="font-semibold">Live Exchange Rate</p>
+                  <p className="text-muted-foreground">
+                    1 USD = {exchangeRates[currencyInfo.code]?.toFixed(4)} {currencyInfo.code}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All amounts are stored in USD and converted in real-time
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={refreshRates}
+                  disabled={ratesLoading}
+                >
+                  {ratesLoading ? 'Refreshing...' : 'Refresh Rate'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

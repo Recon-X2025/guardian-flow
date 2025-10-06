@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Loader2, DollarSign, TrendingDown, Receipt, AlertTriangle, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -12,6 +13,7 @@ export default function Finance() {
   const [revenueChart, setRevenueChart] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
 
   const fetchData = async () => {
     setLoading(true);
@@ -122,7 +124,7 @@ export default function Finance() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
             <p className="text-xs text-muted-foreground mt-1">Paid invoices</p>
           </CardContent>
         </Card>
@@ -133,7 +135,7 @@ export default function Finance() {
             <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">${totalPenalties.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalPenalties)}</div>
           </CardContent>
         </Card>
 
@@ -217,11 +219,11 @@ export default function Finance() {
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-sm text-muted-foreground">
                     <span>WO: {invoice.work_orders?.wo_number || 'N/A'}</span>
-                    <span>Subtotal: ${Number(invoice.subtotal).toFixed(2)}</span>
-                    <span>Penalties: -${Number(invoice.penalties).toFixed(2)}</span>
+                    <span>Subtotal: {formatCurrency(Number(invoice.subtotal))}</span>
+                    <span>Penalties: -{formatCurrency(Number(invoice.penalties))}</span>
                   </div>
                   <div className="mt-1 text-sm font-semibold">
-                    Total: ${Number(invoice.total_amount).toFixed(2)}
+                    Total: {formatCurrency(Number(invoice.total_amount))}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -261,7 +263,7 @@ export default function Finance() {
                   <p className="text-sm text-muted-foreground mb-2">{penalty.reason}</p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>WO: {penalty.work_orders?.wo_number || 'N/A'}</span>
-                    <span>Amount: ${Number(penalty.amount).toFixed(2)}</span>
+                    <span>Amount: {formatCurrency(Number(penalty.amount))}</span>
                     {penalty.resolved_at && (
                       <span>Resolved: {new Date(penalty.resolved_at).toLocaleDateString()}</span>
                     )}

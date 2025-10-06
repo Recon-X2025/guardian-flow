@@ -7,6 +7,10 @@ export type CurrencyInfo = {
   country: string;
 };
 
+export type ExchangeRates = {
+  [key: string]: number;
+};
+
 const CURRENCY_MAP: Record<string, { code: string; symbol: string }> = {
   'US': { code: 'USD', symbol: '$' },
   'GB': { code: 'GBP', symbol: '£' },
@@ -35,10 +39,20 @@ export function useCurrency() {
     country: 'US',
   });
   const [loading, setLoading] = useState(true);
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({});
+  const [ratesLoading, setRatesLoading] = useState(false);
 
   useEffect(() => {
     fetchUserCurrency();
+    fetchExchangeRates();
   }, []);
+
+  useEffect(() => {
+    // Refresh rates when currency changes
+    if (currencyInfo.code !== 'USD') {
+      fetchExchangeRates();
+    }
+  }, [currencyInfo.code]);
 
   const fetchUserCurrency = async () => {
     try {
@@ -72,10 +86,57 @@ export function useCurrency() {
     }
   };
 
-  const formatCurrency = (amount: number, showSymbol = true): string => {
-    const formattedAmount = Number(amount).toFixed(2);
+  const fetchExchangeRates = async () => {
+    setRatesLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-exchange-rates', {
+        body: { 
+          baseCurrency: 'USD',
+          targetCurrencies: Object.values(CURRENCY_MAP).map(c => c.code)
+        }
+      });
+
+      if (error) throw error;
+      if (data?.rates) {
+        setExchangeRates(data.rates);
+      }
+    } catch (error) {
+      console.error('Error fetching exchange rates:', error);
+      // Fallback to 1:1 if API fails
+      setExchangeRates({ USD: 1 });
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  const convertAmount = (amountInUSD: number, targetCurrency?: string): number => {
+    const target = targetCurrency || currencyInfo.code;
+    
+    // If converting to USD or no rates available, return original
+    if (target === 'USD' || !exchangeRates[target]) {
+      return amountInUSD;
+    }
+
+    // Convert from USD to target currency
+    const rate = exchangeRates[target];
+    return amountInUSD * rate;
+  };
+
+  const formatCurrency = (
+    amountInUSD: number, 
+    showSymbol = true, 
+    targetCurrency?: string
+  ): string => {
+    const target = targetCurrency || currencyInfo.code;
+    const symbol = targetCurrency 
+      ? Object.values(CURRENCY_MAP).find(c => c.code === targetCurrency)?.symbol || '$'
+      : currencyInfo.symbol;
+
+    const convertedAmount = convertAmount(amountInUSD, target);
+    const formattedAmount = Number(convertedAmount).toFixed(2);
+    
     return showSymbol 
-      ? `${currencyInfo.symbol}${formattedAmount}`
+      ? `${symbol}${formattedAmount}`
       : formattedAmount;
   };
 
@@ -112,7 +173,11 @@ export function useCurrency() {
   return {
     currencyInfo,
     loading,
+    ratesLoading,
+    exchangeRates,
     formatCurrency,
+    convertAmount,
     updateCurrency,
+    refreshRates: fetchExchangeRates,
   };
 }

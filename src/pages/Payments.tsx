@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Search, CreditCard, TrendingUp, AlertCircle, DollarSign, CheckCircle2, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function Payments() {
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -110,7 +112,7 @@ export default function Payments() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalPending.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalPending)}</div>
             <p className="text-xs text-muted-foreground">{invoices.length} invoices</p>
           </CardContent>
         </Card>
@@ -176,7 +178,7 @@ export default function Payments() {
                         <span className="font-medium">Customer:</span> {invoice.work_order?.ticket?.customer_name || 'N/A'}
                       </div>
                       <div>
-                        <span className="font-medium">Amount:</span> <span className="font-bold text-foreground">${Number(invoice.total_amount).toFixed(2)}</span>
+                        <span className="font-medium">Amount:</span> <span className="font-bold text-foreground">{formatCurrency(Number(invoice.total_amount))}</span>
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">

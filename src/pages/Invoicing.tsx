@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export default function Invoicing() {
   const { toast } = useToast();
+  const { formatCurrency } = useCurrency();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,7 +151,7 @@ export default function Invoicing() {
             <CheckCircle2 className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalPaid.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalPaid)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -158,7 +160,7 @@ export default function Invoicing() {
             <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalPending.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalPending)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -167,7 +169,7 @@ export default function Invoicing() {
             <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalOverdue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalOverdue)}</div>
           </CardContent>
         </Card>
       </div>
@@ -206,7 +208,7 @@ export default function Invoicing() {
                       </Badge>
                       {invoice.penalties && Number(invoice.penalties) > 0 && (
                         <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                          Penalties: ${Number(invoice.penalties).toFixed(2)}
+                          Penalties: {formatCurrency(Number(invoice.penalties))}
                         </Badge>
                       )}
                     </div>
@@ -218,10 +220,10 @@ export default function Invoicing() {
                         <span className="font-medium">Unit:</span> {invoice.work_order?.ticket?.unit_serial || 'N/A'}
                       </div>
                       <div>
-                        <span className="font-medium">Subtotal:</span> ${Number(invoice.subtotal || 0).toFixed(2)}
+                        <span className="font-medium">Subtotal:</span> {formatCurrency(Number(invoice.subtotal || 0))}
                       </div>
                       <div>
-                        <span className="font-medium">Total:</span> <span className="font-bold text-foreground">${Number(invoice.total_amount).toFixed(2)}</span>
+                        <span className="font-medium">Total:</span> <span className="font-bold text-foreground">{formatCurrency(Number(invoice.total_amount))}</span>
                       </div>
                     </div>
                     {invoice.hold_reason && (
