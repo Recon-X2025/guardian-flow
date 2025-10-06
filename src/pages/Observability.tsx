@@ -6,10 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Activity, Search, AlertTriangle, CheckCircle2, Clock, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { FullTracesDialog } from '@/components/FullTracesDialog';
 
 export default function Observability() {
   const { toast } = useToast();
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [showFullTraces, setShowFullTraces] = useState(false);
   const [systemMetrics, setSystemMetrics] = useState({
     totalEvents: 0,
     criticalAlerts: 0,
@@ -75,7 +77,7 @@ export default function Observability() {
           <h1 className="text-3xl font-bold text-foreground">Observability</h1>
           <p className="text-muted-foreground">System health monitoring and audit trail</p>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => setShowFullTraces(true)}>
           <Eye className="mr-2 h-4 w-4" />
           View Full Traces
         </Button>
@@ -255,6 +257,12 @@ export default function Observability() {
           </div>
         </CardContent>
       </Card>
+
+      <FullTracesDialog
+        open={showFullTraces}
+        onOpenChange={setShowFullTraces}
+        logs={auditLogs}
+      />
     </div>
   );
 }
