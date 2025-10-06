@@ -37,6 +37,7 @@ import Observability from "./pages/Observability";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Assistant from "./pages/Assistant";
 import ModelOrchestration from "./pages/ModelOrchestration";
+import HelpTraining from "./pages/HelpTraining";
 
 const queryClient = new QueryClient();
 
@@ -194,6 +195,7 @@ const App = () => (
                                     <Observability />
                                   </RoleGuard>
                                 } />
+                                <Route path="/help" element={<HelpTraining />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -25,6 +25,7 @@ import {
   Sparkles,
   Eye,
   Settings,
+  GraduationCap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -106,6 +107,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "System",
     items: [
+      { title: "Help & Training", url: "/help", icon: GraduationCap },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
   },
@@ -115,8 +117,8 @@ export function AppSidebar() {
   const { hasAnyPermission, isAdmin, loading } = useRBAC();
 
   const canAccessItem = (item: MenuItem): boolean => {
-    // Dashboard and Settings are accessible to all authenticated users
-    if (item.url === "/" || item.url === "/settings") {
+    // Dashboard, Settings, and Help & Training are accessible to all authenticated users
+    if (item.url === "/" || item.url === "/settings" || item.url === "/help") {
       return true;
     }
 
