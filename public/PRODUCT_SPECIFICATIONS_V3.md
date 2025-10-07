@@ -1,12 +1,42 @@
 # ReconX Guardian Flow v3.0 - Agentic AI Implementation
 
-**Version:** 3.0  
+**Version:** 5.0 - Global Intelligence (Upgrade from 3.0)  
 **Date:** October 2025  
-**Status:** Production Ready
+**Status:** Production Ready  
+**Latest Update:** Hierarchical Forecasting System Added
+
+> **📘 New in v5.0**: See [PRODUCT_SPECIFICATIONS_V5.md](./PRODUCT_SPECIFICATIONS_V5.md) for complete hierarchical forecasting documentation.
 
 ---
 
-## Agentic AI Architecture
+## Quick Navigation
+
+- **📊 Full v5.0 Specs**: [PRODUCT_SPECIFICATIONS_V5.md](./PRODUCT_SPECIFICATIONS_V5.md)
+- **🏗️ v3.0 Agentic Architecture**: (This document - continues below)
+- **📈 Forecast Cron Setup**: [../docs/FORECAST_CRON_SETUP.md](../docs/FORECAST_CRON_SETUP.md)
+- **✅ v5 Implementation**: [../docs/V5_IMPLEMENTATION_COMPLETE.md](../docs/V5_IMPLEMENTATION_COMPLETE.md)
+
+---
+
+## v5.0 Highlights (New Features)
+
+### 🌍 Hierarchical Forecasting
+- **7-Level Geography**: Country → Region → State → District → City → Hub → Pin Code
+- **Product-Level Intelligence**: Independent forecasts per product line
+- **Bottom-Up Reconciliation**: MinT algorithm ensures consistency
+- **Agent Integration**: Every decision informed by localized forecasts
+- **85%+ Accuracy**: Validated forecasting at all hierarchy levels
+
+### 🚀 Key Capabilities
+- Predict demand, capacity, and revenue 30 days ahead
+- Drill down from country strategy to pin-code execution
+- Auto-reconcile forecasts every 30 minutes
+- Agents consume forecast_context automatically
+- Cron-scheduled daily generation at 3 AM
+
+---
+
+## Agentic AI Architecture (v3.0 Base)
 
 ### Overview
 

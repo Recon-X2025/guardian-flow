@@ -7,10 +7,11 @@ const ProductSpecs = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">ReconX Guardian Flow v3.0</h1>
+        <h1 className="text-3xl font-bold">ReconX Guardian Flow v5.0</h1>
         <p className="text-muted-foreground mt-1">
-          Complete Product Specifications & Agentic AI Architecture
+          Global Intelligence Platform with Hierarchical Forecasting
         </p>
+        <Badge className="mt-2" variant="default">v5.0 - October 2025</Badge>
       </div>
 
       <Card className="bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border-primary/20">
@@ -18,15 +19,31 @@ const ProductSpecs = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Bot className="h-6 w-6" />
-              Production Status
+              v5.0 Global Intelligence Status
             </CardTitle>
             <Badge variant="default" className="text-lg px-4 py-1">
-              v3.0 Live
+              v5.0 Live
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-sm">Forecast Accuracy</p>
+                <p className="text-2xl font-bold">85%+</p>
+                <p className="text-xs text-muted-foreground">All hierarchy levels</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-sm">Geography Levels</p>
+                <p className="text-2xl font-bold">7</p>
+                <p className="text-xs text-muted-foreground">Country to Pin Code</p>
+              </div>
+            </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
@@ -39,16 +56,8 @@ const ProductSpecs = () => {
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-sm">Scale Capacity</p>
-                <p className="text-2xl font-bold">1M+</p>
-                <p className="text-xs text-muted-foreground">Work orders per day</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-sm">Fraud Accuracy</p>
-                <p className="text-2xl font-bold">94%</p>
-                <p className="text-xs text-muted-foreground">Target: ≥90%</p>
+                <p className="text-2xl font-bold">10M+</p>
+                <p className="text-xs text-muted-foreground">Forecast points/day</p>
               </div>
             </div>
           </div>

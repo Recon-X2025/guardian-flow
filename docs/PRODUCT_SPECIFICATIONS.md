@@ -1,9 +1,22 @@
 # ReconX Guardian Flow - Product Specifications Document
 
-**Version:** 1.0  
-**Date:** January 2025  
+**Version:** 5.0 - Global Intelligence  
+**Date:** October 2025  
 **Status:** Production Ready  
 **Document Type:** Product Specifications & Technical Architecture
+
+> **🆕 Latest Version**: This document covers ReconX v5.0 with hierarchical forecasting. For v3.0 agentic features, see [v3.0 specs](../public/PRODUCT_SPECIFICATIONS_V3.md). For detailed v5.0 forecasting, see [v5.0 specs](../public/PRODUCT_SPECIFICATIONS_V5.md).
+
+---
+
+## Version History
+
+| Version | Date | Key Features |
+|---------|------|--------------|
+| **v5.0** | Oct 2025 | Hierarchical forecasting (7 geo levels), product intelligence, MinT reconciliation |
+| **v3.0** | Oct 2025 | Agentic AI with 5 specialized agents, policy-as-code, auto-detection |
+| **v2.0** | Sep 2025 | Multi-tenant RBAC, fraud detection, automated prechecks |
+| **v1.0** | Jan 2025 | Core work order management, SaPOS, invoicing |
 
 ---
 
