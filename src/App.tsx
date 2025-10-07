@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Tickets from "./pages/Tickets";
 import WorkOrders from "./pages/WorkOrders";
+import PendingValidation from "./pages/PendingValidation";
 import Inventory from "./pages/Inventory";
 import Warranty from "./pages/Warranty";
 import Penalties from "./pages/Penalties";
@@ -89,6 +90,11 @@ const App = () => (
                                 <Route path="/work-orders" element={
                                   <RoleGuard permissions={["wo.read"]} showError={true}>
                                     <WorkOrders />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/pending-validation" element={
+                                  <RoleGuard permissions={["wo.read"]} showError={true}>
+                                    <PendingValidation />
                                   </RoleGuard>
                                 } />
                                 <Route path="/inventory" element={

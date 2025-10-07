@@ -67,6 +67,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "Operations",
     items: [
+      { title: "Pending Validation", url: "/pending-validation", icon: AlertTriangle, permissions: ["wo.read"] },
       { title: "Scheduler", url: "/scheduler", icon: Calendar, permissions: ["wo.assign"] },
       { title: "Dispatch", url: "/dispatch", icon: MapPin, permissions: ["wo.assign"] },
       { title: "Inventory", url: "/inventory", icon: Package, permissions: ["inventory.view"] },

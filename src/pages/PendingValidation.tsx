@@ -34,7 +34,7 @@ export default function PendingValidation() {
           technician:profiles(full_name),
           work_order_prechecks(*)
         `)
-        .in('status', ['pending_validation', 'ready_to_release'])
+        .in('status', ['pending_validation', 'draft'])
         .order('created_at', { ascending: false });
 
       if (woError) throw woError;
@@ -148,7 +148,7 @@ export default function PendingValidation() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CardTitle>{wo.wo_number || 'Draft'}</CardTitle>
-                    <Badge variant={wo.status === 'ready_to_release' ? 'default' : 'secondary'}>
+                    <Badge variant={wo.status === 'pending_validation' ? 'default' : 'secondary'}>
                       {wo.status?.replace('_', ' ')}
                     </Badge>
                     {canRelease && (
