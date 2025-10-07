@@ -1308,6 +1308,36 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          created_at: string | null
+          id: string
+          name: string
+          sku: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          sku?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          sku?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           country: string | null
@@ -1915,16 +1945,24 @@ export type Database = {
       }
       work_orders: {
         Row: {
+          city: string | null
           completed_at: string | null
           cost_to_customer: number | null
+          country: string | null
           created_at: string | null
+          district: string | null
           hub_id: string | null
           id: string
           part_notes: string | null
           part_status: Database["public"]["Enums"]["part_status"] | null
+          partner_hub: string | null
           parts_reserved: boolean | null
+          pin_code: string | null
+          product_id: string | null
+          region: string | null
           released_at: string | null
           repair_type: string | null
+          state: string | null
           status: Database["public"]["Enums"]["work_order_status"] | null
           technician_id: string | null
           ticket_id: string | null
@@ -1934,16 +1972,24 @@ export type Database = {
           wo_number: string | null
         }
         Insert: {
+          city?: string | null
           completed_at?: string | null
           cost_to_customer?: number | null
+          country?: string | null
           created_at?: string | null
+          district?: string | null
           hub_id?: string | null
           id?: string
           part_notes?: string | null
           part_status?: Database["public"]["Enums"]["part_status"] | null
+          partner_hub?: string | null
           parts_reserved?: boolean | null
+          pin_code?: string | null
+          product_id?: string | null
+          region?: string | null
           released_at?: string | null
           repair_type?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["work_order_status"] | null
           technician_id?: string | null
           ticket_id?: string | null
@@ -1953,16 +1999,24 @@ export type Database = {
           wo_number?: string | null
         }
         Update: {
+          city?: string | null
           completed_at?: string | null
           cost_to_customer?: number | null
+          country?: string | null
           created_at?: string | null
+          district?: string | null
           hub_id?: string | null
           id?: string
           part_notes?: string | null
           part_status?: Database["public"]["Enums"]["part_status"] | null
+          partner_hub?: string | null
           parts_reserved?: boolean | null
+          pin_code?: string | null
+          product_id?: string | null
+          region?: string | null
           released_at?: string | null
           repair_type?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["work_order_status"] | null
           technician_id?: string | null
           ticket_id?: string | null
