@@ -1,14 +1,15 @@
 # ReconX Guardian Flow - Product Specifications Document
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Date:** January 2025  
-**Status:** Production Ready  
-**Document Type:** Product Specifications & Technical Architecture
+**Status:** Production Ready + Roadmap  
+**Document Type:** Complete Product Specifications, Technical Architecture & Evolution Roadmap
 
 ---
 
 ## Table of Contents
 
+### Part I: Current System (v1.0)
 1. [Executive Summary](#executive-summary)
 2. [Product Overview](#product-overview)
 3. [System Architecture](#system-architecture)
@@ -19,6 +20,24 @@
 8. [Integration Points](#integration-points)
 9. [Data Model](#data-model)
 10. [API Reference](#api-reference)
+
+### Part II: Evolution Roadmap (v2.0)
+11. [Platform & Architecture Evolution](#platform--architecture-evolution)
+12. [Tenant & RBAC Evolution](#tenant--rbac-evolution)
+13. [AI & Intelligence Layer](#ai--intelligence-layer)
+14. [Data & Integration Fabric](#data--integration-fabric)
+15. [Analytics & Observability](#analytics--observability-evolution)
+16. [Automation & Workflow](#automation--workflow-evolution)
+17. [Security & Compliance Evolution](#security--compliance-evolution)
+18. [UX & User Experience](#ux--user-experience)
+19. [Performance & Test Automation](#performance--test-automation)
+20. [Release & Lifecycle Governance](#release--lifecycle-governance)
+
+### Part III: Agentic AI System (v2.5)
+21. [Agentic AI Architecture](#agentic-ai-architecture)
+22. [Agent Types & Capabilities](#agent-types--capabilities)
+23. [Agent Safety & Governance](#agent-safety--governance)
+24. [Success Metrics & KPIs](#success-metrics--kpis)
 
 ---
 
@@ -1605,9 +1624,1411 @@ work_orders (1) ──< (many) sapos_offers
 - **Cascade**: Multi-tier inventory check (partner → warehouse → supplier)
 - **Override**: Manual approval to bypass failed prechecks
 
-### Version History
+---
 
-- **v1.0** (January 2025): Initial production release
+## PART II: EVOLUTION ROADMAP (V2.0)
+
+---
+
+## Platform & Architecture Evolution
+
+### 11.1 Micro-Frontend Architecture
+
+**Objective**: Transform monolithic React application into modular, independently deployable micro-frontends.
+
+**Architecture Components:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Shell Application (Core)                     │
+│                                                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │   Router     │  │    Auth      │  │   Layout     │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+        ┌───────────────────┴──────────────────┐
+        │                                       │
+┌───────▼───────┐                   ┌──────────▼──────────┐
+│ @reconx/      │                   │  @reconx/           │
+│ tickets       │                   │  work-orders        │
+└───────────────┘                   └─────────────────────┘
+        │                                       │
+┌───────▼───────┐                   ┌──────────▼──────────┐
+│ @reconx/      │                   │  @reconx/           │
+│ finance       │                   │  fraud              │
+└───────────────┘                   └─────────────────────┘
+        │                                       │
+┌───────▼───────┐                   ┌──────────▼──────────┐
+│ @reconx/      │                   │  @reconx/           │
+│ sapos         │                   │  inventory          │
+└───────────────┘                   └─────────────────────┘
+```
+
+**Module Structure:**
+- Each module as scoped NPM package (`@reconx/<module>`)
+- Independent build and deployment pipelines
+- Shared component library (`@reconx/ui`)
+- Shared utilities library (`@reconx/utils`)
+- Type definitions package (`@reconx/types`)
+
+**Benefits:**
+- Independent team ownership per module
+- Faster build and deployment times
+- Reduced blast radius for changes
+- Technology flexibility per module
+- Better code organization and maintenance
+
+---
+
+### 11.2 GraphQL Gateway
+
+**Objective**: Unified data access layer over Supabase with optimized queries and caching.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Client Applications                      │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            │ GraphQL Queries/Mutations
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│                     GraphQL Gateway                          │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              Schema Stitching                        │   │
+│  │  • Tickets Schema                                    │   │
+│  │  • Work Orders Schema                                │   │
+│  │  • Finance Schema                                    │   │
+│  │  • Fraud Schema                                      │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              Query Optimization                      │   │
+│  │  • DataLoader for batch requests                     │   │
+│  │  • Response caching (Redis)                          │   │
+│  │  • Query complexity analysis                         │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              Authorization Layer                     │   │
+│  │  • JWT validation                                    │   │
+│  │  • RBAC enforcement                                  │   │
+│  │  • Tenant isolation                                  │   │
+│  └─────────────────────────────────────────────────────┘   │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            │ Supabase Client SDK
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│                     Supabase Backend                         │
+│  • PostgreSQL Database                                       │
+│  • Row-Level Security                                        │
+│  • Realtime Subscriptions                                    │
+└───────────────────────────────────────────────────────────────┘
+```
+
+**Key Features:**
+- **Unified Schema**: Single GraphQL schema across all modules
+- **DataLoader Integration**: Batch and cache database requests
+- **Subscription Support**: Real-time updates via GraphQL subscriptions
+- **Query Complexity Limits**: Prevent abuse with complexity scoring
+- **Field-Level Authorization**: Permission checks at resolver level
+
+**Example Schema:**
+
+```graphql
+type WorkOrder {
+  id: ID!
+  woNumber: String!
+  status: WorkOrderStatus!
+  technician: User
+  ticket: Ticket
+  precheck: Precheck
+  saposOffers: [SaPOSOffer!]!
+  invoice: Invoice
+  fraudAlerts: [FraudAlert!]!
+  photos: [Attachment!]!
+}
+
+type Query {
+  workOrders(
+    filter: WorkOrderFilter
+    sort: WorkOrderSort
+    pagination: Pagination
+  ): WorkOrderConnection!
+  
+  workOrder(id: ID!): WorkOrder
+}
+
+type Mutation {
+  createWorkOrder(input: CreateWorkOrderInput!): WorkOrder!
+  updateWorkOrder(id: ID!, input: UpdateWorkOrderInput!): WorkOrder!
+  releaseWorkOrder(id: ID!): WorkOrder!
+}
+
+type Subscription {
+  workOrderUpdated(id: ID!): WorkOrder!
+  workOrdersUpdated(tenantId: ID!): WorkOrder!
+}
+```
+
+---
+
+### 11.3 Edge Function Namespaces
+
+**Objective**: Organize edge functions into logical namespaces with shared middleware.
+
+**Namespace Structure:**
+
+```
+supabase/functions/
+├── _shared/
+│   ├── auth.ts           # Authentication middleware
+│   ├── rbac.ts           # Authorization helpers
+│   ├── validation.ts     # Input validation
+│   ├── audit.ts          # Audit logging
+│   └── errors.ts         # Error handling
+│
+├── finance/
+│   ├── calculate-invoice/
+│   ├── apply-penalties/
+│   ├── process-payment/
+│   └── generate-statement/
+│
+├── fraud/
+│   ├── detect-anomaly/
+│   ├── investigate-alert/
+│   ├── submit-feedback/
+│   └── train-model/
+│
+├── inventory/
+│   ├── check-availability/
+│   ├── reserve-parts/
+│   ├── cascade-check/
+│   └── reorder-trigger/
+│
+├── workflow/
+│   ├── precheck-orchestrator/
+│   ├── release-work-order/
+│   ├── complete-work-order/
+│   └── override-workflow/
+│
+└── ai/
+    ├── generate-sapos/
+    ├── validate-photos/
+    ├── suggest-articles/
+    └── chat-assistant/
+```
+
+**Shared Middleware Pattern:**
+
+```typescript
+// supabase/functions/_shared/middleware.ts
+import { validateAuth } from './auth.ts';
+import { checkPermission } from './rbac.ts';
+import { logAudit } from './audit.ts';
+
+export async function withMiddleware(
+  req: Request,
+  handler: (context: AuthContext) => Promise<Response>,
+  options: {
+    requireAuth?: boolean;
+    requiredPermissions?: string[];
+    auditAction?: string;
+  }
+): Promise<Response> {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Validate authentication
+    const authResult = await validateAuth(req, {
+      requireAuth: options.requireAuth,
+      requiredPermissions: options.requiredPermissions,
+    });
+
+    if (!authResult.success) {
+      return new Response(JSON.stringify(authResult.error), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Execute handler
+    const response = await handler(authResult.context);
+
+    // Log audit event if specified
+    if (options.auditAction) {
+      await logAudit(authResult.context, {
+        action: options.auditAction,
+        resourceType: 'edge_function',
+      });
+    }
+
+    return response;
+  } catch (error: any) {
+    console.error('Middleware error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+```
+
+**Usage Example:**
+
+```typescript
+// supabase/functions/finance/calculate-invoice/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { withMiddleware } from "../../_shared/middleware.ts";
+
+serve(async (req) => {
+  return withMiddleware(
+    req,
+    async (context) => {
+      const { work_order_id } = await req.json();
+      
+      // Calculate invoice logic
+      const invoice = await calculateInvoice(context.supabase, work_order_id);
+      
+      return new Response(JSON.stringify({ invoice }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+    {
+      requireAuth: true,
+      requiredPermissions: ['invoice:create'],
+      auditAction: 'calculate_invoice',
+    }
+  );
+});
+```
+
+---
+
+### 11.4 Job Queue Orchestration
+
+**Objective**: Handle heavy AI tasks, batch processing, and scheduled jobs asynchronously.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Job Producers                            │
+│  • Work order completion                                     │
+│  • Fraud detection triggers                                  │
+│  • Scheduled reports                                         │
+│  • Batch invoice generation                                  │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            │ Enqueue Job
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│                     Job Queue (PostgreSQL)                   │
+│                                                               │
+│  Table: job_queue                                            │
+│  - id: UUID                                                  │
+│  - job_type: string                                          │
+│  - payload: JSONB                                            │
+│  - status: enum (pending, processing, completed, failed)     │
+│  - priority: int                                             │
+│  - scheduled_at: timestamp                                   │
+│  - started_at: timestamp                                     │
+│  - completed_at: timestamp                                   │
+│  - retry_count: int                                          │
+│  - error: text                                               │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            │ Poll for Jobs
+                            │
+┌───────────────────────────▼─────────────────────────────────┐
+│                     Job Workers                              │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  Worker Pool (Edge Functions)                        │   │
+│  │  • AI inference workers                              │   │
+│  │  • Report generation workers                         │   │
+│  │  • Batch processing workers                          │   │
+│  │  • Cleanup workers                                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │  Job Processing Logic                                │   │
+│  │  • Retry with exponential backoff                    │   │
+│  │  • Dead letter queue for failed jobs                 │   │
+│  │  • Progress tracking                                 │   │
+│  │  • Result storage                                    │   │
+│  └─────────────────────────────────────────────────────┘   │
+└───────────────────────────────────────────────────────────────┘
+```
+
+**Job Types:**
+
+1. **AI Inference Jobs**
+   - SaPOS generation (can take 30-60 seconds)
+   - Fraud detection analysis
+   - Photo validation with AI
+   - KB article suggestions
+
+2. **Batch Processing Jobs**
+   - Invoice generation for 1000+ work orders
+   - Penalty calculations
+   - Report generation
+   - Data exports
+
+3. **Scheduled Jobs**
+   - Daily SLA breach checks
+   - Weekly financial reports
+   - Monthly data retention cleanup
+   - Exchange rate updates
+
+4. **Webhook Jobs**
+   - External API notifications
+   - Integration synchronization
+   - Payment gateway callbacks
+
+**Job Queue Schema:**
+
+```sql
+CREATE TABLE job_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_type TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'retrying')),
+  priority INT NOT NULL DEFAULT 5,
+  scheduled_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  started_at TIMESTAMP WITH TIME ZONE,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  retry_count INT NOT NULL DEFAULT 0,
+  max_retries INT NOT NULL DEFAULT 3,
+  error TEXT,
+  result JSONB,
+  tenant_id UUID,
+  created_by UUID,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_job_queue_status ON job_queue(status);
+CREATE INDEX idx_job_queue_scheduled ON job_queue(scheduled_at) WHERE status = 'pending';
+CREATE INDEX idx_job_queue_tenant ON job_queue(tenant_id);
+```
+
+**Worker Implementation:**
+
+```typescript
+// supabase/functions/job-worker/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from '@supabase/supabase-js';
+
+const JOB_HANDLERS = {
+  'generate_sapos': handleGenerateSaPOS,
+  'detect_fraud': handleDetectFraud,
+  'generate_report': handleGenerateReport,
+  'batch_invoice': handleBatchInvoice,
+};
+
+serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+
+  // Fetch next pending job
+  const { data: job, error } = await supabase
+    .from('job_queue')
+    .select('*')
+    .eq('status', 'pending')
+    .lte('scheduled_at', new Date().toISOString())
+    .order('priority', { ascending: false })
+    .order('scheduled_at', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error || !job) {
+    return new Response(JSON.stringify({ message: 'No jobs available' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Mark job as processing
+  await supabase
+    .from('job_queue')
+    .update({ status: 'processing', started_at: new Date().toISOString() })
+    .eq('id', job.id);
+
+  try {
+    // Execute job handler
+    const handler = JOB_HANDLERS[job.job_type];
+    if (!handler) {
+      throw new Error(`Unknown job type: ${job.job_type}`);
+    }
+
+    const result = await handler(supabase, job.payload);
+
+    // Mark job as completed
+    await supabase
+      .from('job_queue')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        result: result,
+      })
+      .eq('id', job.id);
+
+    return new Response(JSON.stringify({ success: true, jobId: job.id }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error: any) {
+    console.error('Job execution error:', error);
+
+    // Handle retry logic
+    if (job.retry_count < job.max_retries) {
+      await supabase
+        .from('job_queue')
+        .update({
+          status: 'retrying',
+          retry_count: job.retry_count + 1,
+          error: error.message,
+          scheduled_at: new Date(Date.now() + Math.pow(2, job.retry_count) * 60000).toISOString(), // Exponential backoff
+        })
+        .eq('id', job.id);
+    } else {
+      await supabase
+        .from('job_queue')
+        .update({
+          status: 'failed',
+          error: error.message,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', job.id);
+    }
+
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+---
+
+### 11.5 Multi-Region Deployment
+
+**Objective**: Enable data locality and compliance with regional data residency requirements.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Global Load Balancer                       │
+│            (Route based on tenant_region)                    │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+        ┌───────────────────┼──────────────────┐
+        │                   │                   │
+┌───────▼────────┐  ┌──────▼───────┐  ┌───────▼────────┐
+│   US Region    │  │  EU Region   │  │  APAC Region   │
+│                │  │              │  │                │
+│  • Database    │  │  • Database  │  │  • Database    │
+│  • Storage     │  │  • Storage   │  │  • Storage     │
+│  • Functions   │  │  • Functions │  │  • Functions   │
+└────────────────┘  └──────────────┘  └────────────────┘
+```
+
+**Tenant Region Metadata:**
+
+```sql
+ALTER TABLE tenants ADD COLUMN region TEXT NOT NULL DEFAULT 'us-east-1';
+ALTER TABLE tenants ADD COLUMN data_residency_requirements JSONB;
+
+CREATE INDEX idx_tenants_region ON tenants(region);
+```
+
+**Region-Aware Routing:**
+
+```typescript
+// Route requests based on tenant region
+export async function routeToRegion(tenantId: string): Promise<string> {
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('region')
+    .eq('id', tenantId)
+    .single();
+
+  const REGION_ENDPOINTS = {
+    'us-east-1': 'https://us.reconx.example.com',
+    'eu-west-1': 'https://eu.reconx.example.com',
+    'ap-southeast-1': 'https://apac.reconx.example.com',
+  };
+
+  return REGION_ENDPOINTS[tenant.region] || REGION_ENDPOINTS['us-east-1'];
+}
+```
+
+**Data Replication Strategy:**
+- **Tenant Data**: Stored only in tenant's designated region
+- **Global Reference Data**: Replicated across all regions (penalty rules, templates)
+- **Audit Logs**: Replicated to central audit database for compliance
+
+---
+
+## Tenant & RBAC Evolution
+
+### 12.1 Centralized Permissions Registry
+
+**Objective**: Replace static RBAC JSON with dynamic, inheritance-capable permissions system.
+
+**Database Schema:**
+
+```sql
+-- Permissions registry
+CREATE TABLE permissions_registry (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL,
+  description TEXT,
+  inherits_from UUID REFERENCES permissions_registry(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- Role permission overrides per tenant
+CREATE TABLE tenant_role_overrides (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  role app_role NOT NULL,
+  permission_id UUID NOT NULL REFERENCES permissions_registry(id),
+  granted BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  UNIQUE(tenant_id, role, permission_id)
+);
+
+-- Permission groups for easier management
+CREATE TABLE permission_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  tenant_id UUID REFERENCES tenants(id),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE permission_group_members (
+  group_id UUID NOT NULL REFERENCES permission_groups(id),
+  permission_id UUID NOT NULL REFERENCES permissions_registry(id),
+  PRIMARY KEY (group_id, permission_id)
+);
+```
+
+**Permission Inheritance:**
+
+```typescript
+// Example: Dispatcher inherits all technician permissions + additional ones
+{
+  name: "work_order:update",
+  category: "work_orders",
+  description: "Update work order details",
+  inherits_from: "work_order:read"
+}
+```
+
+**Tenant Override Example:**
+
+```typescript
+// Tenant A wants to restrict dispatchers from releasing work orders
+await supabase
+  .from('tenant_role_overrides')
+  .insert({
+    tenant_id: 'tenant-a-uuid',
+    role: 'dispatcher_coordinator',
+    permission_id: 'work_order:release',
+    granted: false
+  });
+```
+
+---
+
+### 12.2 Tenant Configuration Console
+
+**Objective**: Visual, no-code configuration interface for tenant admins.
+
+**Console Components:**
+
+#### 12.2.1 Role & Permission Builder
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Role & Permission Builder                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌─────────────────┐  ┌─────────────────┐                  │
+│  │ Roles           │  │ Permissions     │                  │
+│  ├─────────────────┤  ├─────────────────┤                  │
+│  │ ☑ Dispatcher    │  │ Work Orders     │                  │
+│  │ ☐ Technician    │  │ ☑ create        │                  │
+│  │ ☐ Finance Ops   │  │ ☑ read          │                  │
+│  │ ☐ Fraud Inv     │  │ ☑ update        │                  │
+│  │ ☐ Partner Admin │  │ ☑ release       │                  │
+│  └─────────────────┘  │ ☐ delete        │                  │
+│                       │                  │                  │
+│                       │ Finance          │                  │
+│                       │ ☐ invoice:create │                  │
+│                       │ ☐ invoice:approve│                  │
+│                       │ ☐ payment:process│                  │
+│                       └─────────────────┘                  │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Permission Inheritance Tree                          │   │
+│  │  dispatcher_coordinator                              │   │
+│  │   ├─ Inherits from: technician                       │   │
+│  │   ├─ Additional permissions:                         │   │
+│  │   │   • work_order:create                            │   │
+│  │   │   • work_order:assign                            │   │
+│  │   │   • override:request                             │   │
+│  │   └─ Overrides:                                      │   │
+│  │       • work_order:delete (denied)                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  [Save Configuration]  [Preview Changes]  [Reset Defaults]  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Drag-and-drop permission assignment
+- Visual inheritance tree
+- Permission conflict detection
+- Bulk role updates
+- Export/import role configurations
+
+#### 12.2.2 Penalty Rule Designer
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Penalty Rule Designer                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  Rule Name: [SLA Violation - 24 Hours        ]              │
+│                                                               │
+│  Trigger Condition:                                          │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ When: [Work Order Completed          ▼]              │   │
+│  │ If:   [Completion Time                ▼]              │   │
+│  │       [is greater than               ▼]              │   │
+│  │       [SLA + 24 hours                 ]              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Penalty Calculation:                                        │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Type:   ⦿ Fixed Amount  ○ Percentage  ○ Formula     │   │
+│  │ Amount: [50.00          ] USD                        │   │
+│  │                                                       │   │
+│  │ Apply to: ☑ Invoice  ☐ Technician  ☐ Partner        │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Advanced Options:                                           │
+│  ☑ Auto-apply penalty                                        │
+│  ☑ Allow dispute                                             │
+│  ☑ Require MFA for override                                 │
+│  ☐ Send notification to customer                            │
+│                                                               │
+│  Severity: ⦿ Low  ○ Medium  ○ High  ○ Critical              │
+│                                                               │
+│  [Save Rule]  [Test Rule]  [Delete]  [Duplicate]           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Visual Formula Builder:**
+- Drag-and-drop condition blocks
+- Real-time preview with sample data
+- Validation and syntax checking
+- Template library for common rules
+
+#### 12.2.3 SLA Definition Tool
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               SLA Definition Tool                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  SLA Name: [Critical HVAC Repair                    ]       │
+│                                                               │
+│  Service Type: [HVAC           ▼]                           │
+│  Priority:     [Critical       ▼]                           │
+│                                                               │
+│  Timeline:                                                   │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Initial Response:    [2      ] hours                 │   │
+│  │ On-Site Arrival:     [4      ] hours                 │   │
+│  │ Work Completion:     [24     ] hours                 │   │
+│  │ Follow-up:           [48     ] hours                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Business Hours:                                             │
+│  ☑ 24/7 Service  ☐ Business Hours Only                      │
+│                                                               │
+│  Escalation Rules:                                           │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ If response not made within [2] hours:               │   │
+│  │   → Notify [Dispatcher Manager      ▼]              │   │
+│  │                                                       │   │
+│  │ If work not completed within [24] hours:             │   │
+│  │   → Apply penalty [SLA-24HR        ▼]               │   │
+│  │   → Notify [Tenant Admin           ▼]               │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  [Save SLA]  [Activate]  [Deactivate]  [Clone]             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 12.2.4 Invoice/Quote Template Manager
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│           Invoice/Quote Template Manager                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐│
+│  │ Standard       │  │ EU VAT         │  │ Custom Partner ││
+│  │ Invoice        │  │ Invoice        │  │ Quote          ││
+│  │                │  │                │  │                ││
+│  │ [Edit] [Copy]  │  │ [Edit] [Copy]  │  │ [Edit] [Copy]  ││
+│  └────────────────┘  └────────────────┘  └────────────────┘│
+│                                                               │
+│  Template Editor:                                            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Template Name: [Standard Invoice               ]     │   │
+│  │                                                       │   │
+│  │ Logo: [Upload]  [invoice_logo.png] [Remove]         │   │
+│  │                                                       │   │
+│  │ Header:                                              │   │
+│  │ ┌────────────────────────────────────────────────┐  │   │
+│  │ │ {{company_name}}                                │  │   │
+│  │ │ {{company_address}}                             │  │   │
+│  │ │ Invoice #: {{invoice_number}}                   │  │   │
+│  │ │ Date: {{invoice_date}}                          │  │   │
+│  │ └────────────────────────────────────────────────┘  │   │
+│  │                                                       │   │
+│  │ Line Items:                                          │   │
+│  │ ┌────────────────────────────────────────────────┐  │   │
+│  │ │ {{#each line_items}}                            │  │   │
+│  │ │   {{description}} - {{quantity}} x {{price}}    │  │   │
+│  │ │ {{/each}}                                       │  │   │
+│  │ └────────────────────────────────────────────────┘  │   │
+│  │                                                       │   │
+│  │ Available Variables:                                 │   │
+│  │ • {{work_order_number}}                             │   │
+│  │ • {{customer_name}}                                 │   │
+│  │ • {{technician_name}}                               │   │
+│  │ • {{completion_date}}                               │   │
+│  │ • {{total_amount}}                                  │   │
+│  │ • {{penalties}}                                     │   │
+│  │ • {{currency}}                                      │   │
+│  │                                                       │   │
+│  │ [Preview]  [Save]  [Set as Default]                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 12.3 Tenant Cloning
+
+**Objective**: Rapid onboarding by duplicating successful tenant configurations.
+
+**Cloning Wizard:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Tenant Cloning Wizard                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│ Step 1: Select Source Tenant                                 │
+│ ┌─────────────────────────────────────────────────────┐     │
+│ │ Source Tenant: [Acme Corp - US           ▼]         │     │
+│ │                                                       │     │
+│ │ Configuration Preview:                                │     │
+│ │ • 5 roles configured                                  │     │
+│ │ • 42 permissions assigned                             │     │
+│ │ • 8 penalty rules                                     │     │
+│ │ • 3 SLA definitions                                   │     │
+│ │ • 2 invoice templates                                 │     │
+│ │ • 1 service order template                            │     │
+│ └─────────────────────────────────────────────────────┘     │
+│                                                               │
+│ Step 2: Select Components to Clone                           │
+│ ☑ Role & Permission Configuration                            │
+│ ☑ Penalty Rules                                              │
+│ ☑ SLA Definitions                                            │
+│ ☑ Invoice/Quote Templates                                    │
+│ ☑ Service Order Templates                                    │
+│ ☐ User Accounts (create sample users)                       │
+│ ☐ Sample Work Orders                                         │
+│                                                               │
+│ Step 3: New Tenant Details                                   │
+│ Name:   [New Corp                            ]              │
+│ Region: [US East                      ▼]                    │
+│ Slug:   [newcorp                             ]              │
+│                                                               │
+│ Modifications:                                               │
+│ ☑ Update company branding in templates                       │
+│ ☑ Adjust penalty amounts for local currency                 │
+│ ☐ Customize SLA timelines                                   │
+│                                                               │
+│ [< Previous]  [Clone Tenant]  [Cancel]                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Cloning API:**
+
+```typescript
+// Edge function: clone-tenant
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+serve(async (req) => {
+  const { source_tenant_id, new_tenant_config, clone_options } = await req.json();
+
+  // Create new tenant
+  const { data: newTenant } = await supabase
+    .from('tenants')
+    .insert(new_tenant_config)
+    .select()
+    .single();
+
+  // Clone configurations based on options
+  if (clone_options.roles_permissions) {
+    await cloneRolesAndPermissions(source_tenant_id, newTenant.id);
+  }
+
+  if (clone_options.penalty_rules) {
+    await clonePenaltyRules(source_tenant_id, newTenant.id);
+  }
+
+  if (clone_options.sla_definitions) {
+    await cloneSLADefinitions(source_tenant_id, newTenant.id);
+  }
+
+  if (clone_options.templates) {
+    await cloneTemplates(source_tenant_id, newTenant.id);
+  }
+
+  return new Response(JSON.stringify({ tenant: newTenant }), {
+    status: 201,
+    headers: { 'Content-Type': 'application/json' },
+  });
+});
+```
+
+---
+
+## AI & Intelligence Layer
+
+### 13.1 Model Selector Engine
+
+**Objective**: Dynamic model selection based on task requirements, cost, and performance.
+
+**Model Registry:**
+
+```sql
+CREATE TABLE ai_model_registry (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider TEXT NOT NULL, -- 'google', 'openai', 'anthropic'
+  model_name TEXT NOT NULL,
+  model_version TEXT NOT NULL,
+  capabilities JSONB NOT NULL, -- ['text_generation', 'image_analysis', 'structured_output']
+  context_window INT NOT NULL,
+  cost_per_1k_tokens DECIMAL NOT NULL,
+  avg_latency_ms INT,
+  accuracy_score DECIMAL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- Model performance tracking
+CREATE TABLE ai_model_performance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  model_id UUID NOT NULL REFERENCES ai_model_registry(id),
+  task_type TEXT NOT NULL,
+  tenant_id UUID REFERENCES tenants(id),
+  latency_ms INT NOT NULL,
+  tokens_used INT NOT NULL,
+  cost DECIMAL NOT NULL,
+  success BOOLEAN NOT NULL,
+  feedback_score DECIMAL, -- User feedback 0-1
+  timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+```
+
+**Model Selection Logic:**
+
+```typescript
+interface ModelSelectionCriteria {
+  taskType: 'text_generation' | 'image_analysis' | 'structured_output' | 'classification';
+  maxLatency?: number; // ms
+  maxCost?: number; // USD
+  minAccuracy?: number; // 0-1
+  requireCapabilities?: string[];
+  preferredProvider?: string;
+}
+
+export async function selectOptimalModel(
+  criteria: ModelSelectionCriteria
+): Promise<AIModel> {
+  // Query model registry
+  let query = supabase
+    .from('ai_model_registry')
+    .select('*')
+    .eq('active', true)
+    .contains('capabilities', [criteria.taskType]);
+
+  // Apply filters
+  if (criteria.maxLatency) {
+    query = query.lte('avg_latency_ms', criteria.maxLatency);
+  }
+
+  if (criteria.maxCost) {
+    query = query.lte('cost_per_1k_tokens', criteria.maxCost);
+  }
+
+  if (criteria.minAccuracy) {
+    query = query.gte('accuracy_score', criteria.minAccuracy);
+  }
+
+  if (criteria.preferredProvider) {
+    query = query.eq('provider', criteria.preferredProvider);
+  }
+
+  const { data: models } = await query;
+
+  // Score models based on criteria
+  const scoredModels = models.map(model => ({
+    model,
+    score: calculateModelScore(model, criteria)
+  }));
+
+  // Return highest scoring model
+  scoredModels.sort((a, b) => b.score - a.score);
+  return scoredModels[0].model;
+}
+
+function calculateModelScore(model: AIModel, criteria: ModelSelectionCriteria): number {
+  let score = 0;
+
+  // Latency score (lower is better)
+  if (criteria.maxLatency) {
+    score += (1 - model.avg_latency_ms / criteria.maxLatency) * 30;
+  }
+
+  // Cost score (lower is better)
+  if (criteria.maxCost) {
+    score += (1 - model.cost_per_1k_tokens / criteria.maxCost) * 30;
+  }
+
+  // Accuracy score (higher is better)
+  if (criteria.minAccuracy) {
+    score += (model.accuracy_score / criteria.minAccuracy) * 40;
+  }
+
+  return score;
+}
+```
+
+**Usage Example:**
+
+```typescript
+// Generate SaPOS offers with optimal model selection
+const model = await selectOptimalModel({
+  taskType: 'structured_output',
+  maxLatency: 5000, // 5 seconds
+  maxCost: 0.05, // $0.05 per 1k tokens
+  minAccuracy: 0.85,
+  preferredProvider: 'google'
+});
+
+// Use selected model
+const offers = await generateSaPOSOffers(workOrderId, model);
+```
+
+---
+
+### 13.2 Streaming Inference with Context Memory
+
+**Objective**: Real-time AI responses with conversation history and user context.
+
+**Context Memory Schema:**
+
+```sql
+CREATE TABLE ai_conversation_context (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id),
+  session_id UUID NOT NULL,
+  conversation_history JSONB NOT NULL DEFAULT '[]', -- Array of messages
+  context_metadata JSONB, -- User preferences, tenant config, etc.
+  last_activity TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_ai_context_user_session ON ai_conversation_context(user_id, session_id);
+CREATE INDEX idx_ai_context_last_activity ON ai_conversation_context(last_activity);
+```
+
+**Streaming Implementation:**
+
+```typescript
+// Edge function: ai-chat-stream
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+serve(async (req) => {
+  const { message, session_id } = await req.json();
+  const user_id = req.headers.get('X-User-Id');
+
+  // Retrieve conversation context
+  const { data: context } = await supabase
+    .from('ai_conversation_context')
+    .select('*')
+    .eq('user_id', user_id)
+    .eq('session_id', session_id)
+    .single();
+
+  // Build context-aware prompt
+  const conversationHistory = context?.conversation_history || [];
+  const systemPrompt = buildSystemPrompt(context?.context_metadata);
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...conversationHistory,
+    { role: 'user', content: message }
+  ];
+
+  // Stream AI response
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: messages,
+      stream: true
+    })
+  });
+
+  // Update conversation history
+  conversationHistory.push({ role: 'user', content: message });
+
+  // Stream response and collect full response
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullResponse = '';
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        controller.enqueue(value);
+
+        // Extract content from SSE
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const data = JSON.parse(line.slice(6));
+              const content = data.choices?.[0]?.delta?.content;
+              if (content) fullResponse += content;
+            } catch (e) {
+              // Ignore parsing errors
+            }
+          }
+        }
+      }
+
+      // Save full response to context
+      conversationHistory.push({ role: 'assistant', content: fullResponse });
+      await supabase
+        .from('ai_conversation_context')
+        .upsert({
+          user_id,
+          session_id,
+          conversation_history: conversationHistory,
+          last_activity: new Date().toISOString()
+        });
+
+      controller.close();
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    }
+  });
+});
+
+function buildSystemPrompt(metadata: any): string {
+  const userRole = metadata?.user_role || 'user';
+  const tenantConfig = metadata?.tenant_config || {};
+
+  return `You are an AI assistant for ReconX Guardian Flow, a field service management platform.
+    
+Current user role: ${userRole}
+Tenant: ${tenantConfig.tenant_name}
+
+You have access to:
+- Work order data
+- Ticket information
+- Inventory levels
+- Financial records
+- Fraud alerts
+
+Provide helpful, accurate, and role-appropriate responses. When suggesting actions, consider the user's permissions and current context.`;
+}
+```
+
+---
+
+### 13.3 AI Assistant Expansion
+
+**Objective**: Integrate AI assistant across all modules with role-aware prompts and inline actions.
+
+**Module-Specific AI Prompts:**
+
+#### Work Orders Module
+```typescript
+const WORK_ORDER_ASSISTANT_PROMPTS = {
+  technician: `You're assisting a field technician with work order execution.
+    
+Focus on:
+- Troubleshooting steps
+- Parts identification
+- Safety procedures
+- Photo capture requirements
+- Completion checklist
+
+Available actions:
+- Mark work order complete
+- Upload photos
+- Request parts
+- Report issues`,
+
+  dispatcher: `You're assisting a dispatcher with work order management.
+    
+Focus on:
+- Work order assignment optimization
+- Technician availability
+- Priority management
+- Precheck validation
+- SLA compliance
+
+Available actions:
+- Assign technician
+- Update priority
+- Request override
+- Generate SaPOS`,
+};
+```
+
+#### Fraud Investigation Module
+```typescript
+const FRAUD_ASSISTANT_PROMPTS = {
+  fraud_investigator: `You're assisting a fraud investigator with anomaly analysis.
+    
+Focus on:
+- Pattern recognition in work orders
+- Cost anomaly analysis
+- Photo authenticity verification
+- Technician behavior patterns
+- Evidence collection
+
+Available actions:
+- View full trace
+- Submit feedback
+- Flag additional work orders
+- Generate report`,
+};
+```
+
+**Inline Actions:**
+
+```tsx
+// AI Assistant with inline actions
+const AIAssistantInline = ({ context }: { context: string }) => {
+  const [response, setResponse] = useState('');
+  const [suggestedActions, setSuggestedActions] = useState<Action[]>([]);
+
+  const handleAIResponse = async (message: string) => {
+    const stream = await fetch('/functions/v1/ai-chat-stream', {
+      method: 'POST',
+      body: JSON.stringify({ message, context }),
+    });
+
+    // Parse response for action suggestions
+    const fullResponse = await processStream(stream);
+    setResponse(fullResponse);
+
+    // Extract action suggestions from response
+    const actions = extractActions(fullResponse);
+    setSuggestedActions(actions);
+  };
+
+  return (
+    <div className="ai-assistant-inline">
+      <div className="response">{response}</div>
+      
+      {suggestedActions.length > 0 && (
+        <div className="suggested-actions">
+          <h4>Suggested Actions:</h4>
+          {suggestedActions.map(action => (
+            <Button
+              key={action.id}
+              onClick={() => executeAction(action)}
+              variant="outline"
+            >
+              {action.icon} {action.label}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+**Example Action Suggestions:**
+
+```typescript
+// AI response with action suggestions
+{
+  text: "Based on the work order details, I recommend:\n\n1. Check warranty coverage before proceeding\n2. Reserve parts from inventory\n3. Assign to technician with HVAC certification\n\nWould you like me to perform any of these actions?",
+  
+  actions: [
+    {
+      id: 'check_warranty',
+      label: 'Check Warranty',
+      icon: '🛡️',
+      endpoint: '/functions/v1/check-warranty',
+      params: { work_order_id: 'wo-123' }
+    },
+    {
+      id: 'reserve_parts',
+      label: 'Reserve Parts',
+      icon: '📦',
+      endpoint: '/functions/v1/reserve-parts',
+      params: { work_order_id: 'wo-123' }
+    },
+    {
+      id: 'assign_technician',
+      label: 'Assign Technician',
+      icon: '👷',
+      endpoint: '/functions/v1/assign-technician',
+      params: { work_order_id: 'wo-123', skill_required: 'HVAC' }
+    }
+  ]
+}
+```
+
+---
+
+### 13.4 Model Telemetry Dashboard
+
+**Objective**: Monitor AI model performance, cost, and accuracy in real-time.
+
+**Dashboard Components:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               AI Model Telemetry Dashboard                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                               │
+│  Overview (Last 24 Hours)                                    │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
+│  │ Total      │  │ Avg        │  │ Total      │           │
+│  │ Requests   │  │ Latency    │  │ Cost       │           │
+│  │ 45,234     │  │ 1.2s       │  │ $234.56    │           │
+│  └────────────┘  └────────────┘  └────────────┘           │
+│                                                               │
+│  Model Performance Comparison                                │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Model              Requests  Latency  Cost   Accuracy│   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ Gemini 2.5 Pro     12,450    2.1s    $89.23   94%   │   │
+│  │ Gemini 2.5 Flash   28,900    0.8s    $98.45   91%   │   │
+│  │ GPT-5              3,120     3.5s    $45.67   96%   │   │
+│  │ GPT-5 Mini         764       1.9s    $1.21    89%   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Latency Distribution                                        │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │     ▁▃▅▇█▇▅▃▁                                        │   │
+│  │ 50  ─────█─────                                       │   │
+│  │ 40  ────███────                                       │   │
+│  │ 30  ───█████───                                       │   │
+│  │ 20  ──███████──                                       │   │
+│  │ 10  ─█████████─                                       │   │
+│  │  0  ███████████                                       │   │
+│  │     0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0s        │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Cost Trend (Last 7 Days)                                   │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ $250                                            ●     │   │
+│  │ $200                                        ●         │   │
+│  │ $150                                    ●             │   │
+│  │ $100                                ●                 │   │
+│  │  $50                            ●                     │   │
+│  │   $0  ─●────●────●────●────────────────────────────  │   │
+│  │      Mon  Tue  Wed  Thu  Fri  Sat  Sun              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Task Type Breakdown                                         │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ SaPOS Generation:      58% ██████████████████       │   │
+│  │ Photo Validation:      22% ████████                 │   │
+│  │ Fraud Detection:       12% ████                     │   │
+│  │ KB Suggestions:         5% ██                       │   │
+│  │ Chat Assistant:         3% █                        │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  Accuracy by Task Type                                       │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Task               Model Used      Accuracy  Count   │   │
+│  ├─────────────────────────────────────────────────────┤   │
+│  │ SaPOS Gen          Gemini Pro      94%      12,450  │   │
+│  │ Photo Val          GPT-5           96%       3,120  │   │
+│  │ Fraud Detect       Gemini Flash    91%       5,678  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                               │
+│  [Export Report]  [Configure Alerts]  [Model Settings]      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Alert Configuration:**
+- Latency exceeds threshold
+- Cost exceeds daily budget
+- Accuracy drops below target
+- Error rate spikes
+- Model unavailability
 
 ---
 
