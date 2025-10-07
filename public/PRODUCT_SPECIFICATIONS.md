@@ -1,7 +1,7 @@
 # ReconX Guardian Flow - Product Specifications Document
 
 **Version:** 3.0  
-**Date:** January 2025  
+**Date:** October 2025  
 **Status:** Production Ready - Adaptive Agentic Platform  
 **Document Type:** Complete Product Specifications, Technical Architecture & Agentic AI System
 
@@ -10,6 +10,7 @@
 ## Table of Contents
 
 ### Part I: Current System (v1.0)
+
 1. [Executive Summary](#executive-summary)
 2. [Product Overview](#product-overview)
 3. [System Architecture](#system-architecture)
@@ -22,6 +23,7 @@
 10. [API Reference](#api-reference)
 
 ### Part II: Evolution Roadmap (v2.0)
+
 11. [Platform & Architecture Evolution](#platform--architecture-evolution)
 12. [Tenant & RBAC Evolution](#tenant--rbac-evolution)
 13. [AI & Intelligence Layer](#ai--intelligence-layer)
@@ -34,6 +36,7 @@
 20. [Release & Lifecycle Governance](#release--lifecycle-governance)
 
 ### Part III: Agentic AI System (v3.0 - IMPLEMENTED)
+
 21. [Agentic AI Architecture](#agentic-ai-architecture)
 22. [Agent Types & Capabilities](#agent-types--capabilities)
 23. [Agent Cognitive Loop](#agent-cognitive-loop)
@@ -166,6 +169,7 @@ ReconX Guardian Flow streamlines field service operations across distributed tec
 4. **UI Level**: Components filter data by current user's tenant_id
 
 **Example RLS Policy:**
+
 ```sql
 CREATE POLICY "Users can only see their tenant's work orders"
 ON work_orders
@@ -180,9 +184,10 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 ### 1. Dashboard Module
 
 **Route:** `/`  
-**Permissions:** All authenticated users  
+**Permissions:** All authenticated users
 
 **Capabilities:**
+
 - Real-time KPI metrics (open tickets, active work orders, fraud alerts)
 - Role-specific widgets and action items
 - Recent activity feed with audit trail
@@ -190,6 +195,7 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 - Multi-currency financial summaries
 
 **Key Features:**
+
 - Tenant-scoped analytics
 - Personalized notifications
 - Performance metrics visualization
@@ -203,6 +209,7 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 **Permissions:** `ticket:read`, `ticket:create`, `ticket:update`
 
 **Capabilities:**
+
 - Create customer service tickets with detailed issue descriptions
 - Attach photos and documentation
 - Assign priority levels (low, medium, high, critical)
@@ -211,6 +218,7 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 - Customer information management
 
 **Key Features:**
+
 - Search and filter by status, priority, customer
 - Bulk operations for ticket management
 - Automated notification on status changes
@@ -218,6 +226,7 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 - SLA tracking
 
 **Data Fields:**
+
 - Customer name, contact info, location
 - Issue description and category
 - Priority and urgency flags
@@ -233,6 +242,7 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 **Permissions:** `work_order:read`, `work_order:create`, `work_order:update`, `work_order:release`
 
 **Capabilities:**
+
 - Create work orders from tickets or standalone
 - Automated precheck orchestration (inventory, warranty, photos)
 - Work order status workflow (draft → pending_precheck → ready_to_release → released → in_progress → completed → invoiced)
@@ -242,6 +252,7 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 - Override request workflow for precheck failures
 
 **Key Features:**
+
 - **Zero-Touch Precheck System**: Automatically validates inventory, warranty, and photos on creation
 - **Automated Release**: Work orders auto-release when all prechecks pass
 - **Photo Validation**: AI-powered validation against required stages
@@ -249,13 +260,15 @@ USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
 - **Audit Trail**: Complete history of status changes and user actions
 
 **Precheck Validations:**
+
 1. **Inventory Check**: Validates part availability through cascade logic
 2. **Warranty Check**: Confirms coverage for customer/device
 3. **Photo Validation**: Ensures required photos uploaded at each stage
 
 **Work Order States:**
+
 ```
-draft → pending_precheck → ready_to_release → released → 
+draft → pending_precheck → ready_to_release → released →
 in_progress → completed → invoiced → paid
 ```
 
@@ -285,6 +298,7 @@ Inventory  Warranty
 ```
 
 **Components:**
+
 - `precheck-orchestrator` Edge Function
 - `check-inventory` Edge Function
 - `check-warranty` Edge Function
@@ -292,6 +306,7 @@ Inventory  Warranty
 - Database-generated `can_release` column
 
 **Precheck Results:**
+
 - ✅ **Pass**: Work order automatically released
 - ❌ **Fail**: Work order held, override request available
 - ⏳ **Pending**: Awaiting photo uploads or data
@@ -304,6 +319,7 @@ Inventory  Warranty
 **Permissions:** `service_order:create`, `service_order:read`
 
 **Capabilities:**
+
 - Upload and manage SO templates
 - Generate service orders from work orders
 - Apply templates with variable substitution
@@ -311,6 +327,7 @@ Inventory  Warranty
 - Digital signature capture
 
 **Key Features:**
+
 - Template variable replacement (customer name, work order details, parts list)
 - Multi-format support (PDF, DOCX)
 - Automated generation on work order completion
@@ -325,6 +342,7 @@ Inventory  Warranty
 **Permissions:** `sapos:read`, `sapos:approve`
 
 **Capabilities:**
+
 - **AI-Powered Service Recommendations**: Generate intelligent service and parts suggestions using Google Gemini or OpenAI
 - Provenance tracking from generation to approval
 - Multi-offer comparison and selection
@@ -332,17 +350,20 @@ Inventory  Warranty
 - Integration with inventory system
 
 **AI Models Used:**
+
 - Google Gemini 2.5 Pro (primary)
 - OpenAI GPT-5 (fallback)
 
 **SaPOS Workflow:**
+
 ```
-Work Order → Generate SaPOS Offers → AI Analysis → 
-Offer Ranking → Dispatcher Review → Approval → 
+Work Order → Generate SaPOS Offers → AI Analysis →
+Offer Ranking → Dispatcher Review → Approval →
 Apply to Work Order → Inventory Reservation
 ```
 
 **Key Features:**
+
 - Provenance metadata (model used, timestamp, user)
 - Cost-benefit analysis per offer
 - Inventory availability integration
@@ -357,6 +378,7 @@ Apply to Work Order → Inventory Reservation
 **Permissions:** `fraud:investigate`
 
 **Capabilities:**
+
 - Real-time anomaly detection dashboard
 - AI-powered fraud scoring
 - Investigator feedback loop
@@ -364,6 +386,7 @@ Apply to Work Order → Inventory Reservation
 - Pattern recognition and flagging
 
 **Fraud Detection Mechanisms:**
+
 1. **Behavioral Anomalies**: Unusual technician patterns
 2. **Financial Anomalies**: Cost outliers and overcharges
 3. **Time Anomalies**: Inconsistent work durations
@@ -371,13 +394,15 @@ Apply to Work Order → Inventory Reservation
 5. **Geographic Anomalies**: Location inconsistencies
 
 **Investigation Workflow:**
+
 ```
-Alert Generated → Investigator Assigned → 
-Evidence Collection → Feedback Submission → 
+Alert Generated → Investigator Assigned →
+Evidence Collection → Feedback Submission →
 Model Retraining → Resolution Action
 ```
 
 **Feedback Types:**
+
 - Confirmed fraud
 - False positive
 - Needs more investigation
@@ -391,6 +416,7 @@ Model Retraining → Resolution Action
 **Permissions:** `finance:read`, `invoice:create`
 
 **Capabilities:**
+
 - Automated invoice generation from completed work orders
 - Penalty calculation and application
 - Multi-currency support (USD, EUR, GBP, INR)
@@ -399,6 +425,7 @@ Model Retraining → Resolution Action
 - Dispute management
 
 **Key Features:**
+
 - **Automated Invoicing**: Invoices auto-generated on work order completion
 - **Penalty Engine**: Rule-based penalties for SLA violations, quality issues
 - **Currency Conversion**: Real-time rates via Exchange Rate API
@@ -406,9 +433,10 @@ Model Retraining → Resolution Action
 - **Payment Gateway Integration**: Ready for Stripe/PayPal
 
 **Invoice Lifecycle:**
+
 ```
-Work Order Completed → Invoice Generated → 
-Penalties Applied → Sent to Customer → 
+Work Order Completed → Invoice Generated →
+Penalties Applied → Sent to Customer →
 Payment Received → Reconciled → Closed
 ```
 
@@ -417,6 +445,7 @@ Payment Received → Reconciled → Closed
 ### 9. Penalty Engine
 
 **Capabilities:**
+
 - Rule-based penalty calculation
 - Configurable penalty rules per tenant
 - Automatic application on invoice generation
@@ -424,6 +453,7 @@ Payment Received → Reconciled → Closed
 - Audit trail for all penalty actions
 
 **Penalty Types:**
+
 1. **SLA Violations**: Late completion penalties
 2. **Quality Issues**: Rework or customer complaints
 3. **Photo Compliance**: Missing or invalid photos
@@ -431,6 +461,7 @@ Payment Received → Reconciled → Closed
 5. **Inventory Discrepancies**: Missing or damaged parts
 
 **Penalty Rule Configuration:**
+
 ```typescript
 {
   rule_type: "sla_violation",
@@ -449,6 +480,7 @@ Payment Received → Reconciled → Closed
 **Permissions:** `inventory:read`, `inventory:create`, `inventory:update`
 
 **Capabilities:**
+
 - Part catalog management
 - Stock level tracking
 - Reservation system for work orders
@@ -457,6 +489,7 @@ Payment Received → Reconciled → Closed
 - Multi-location inventory
 
 **Key Features:**
+
 - Real-time availability checks
 - Automated reorder alerts
 - Part usage analytics
@@ -464,8 +497,9 @@ Payment Received → Reconciled → Closed
 - Vendor management
 
 **Cascade Check Logic:**
+
 ```
-Check Partner Stock → If insufficient, check Warehouse → 
+Check Partner Stock → If insufficient, check Warehouse →
 If insufficient, check Supplier → Return availability status
 ```
 
@@ -477,6 +511,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `warranty:read`, `warranty:create`
 
 **Capabilities:**
+
 - Warranty registration and tracking
 - Coverage verification for work orders
 - Expiration date management
@@ -484,6 +519,7 @@ If insufficient, check Supplier → Return availability status
 - Integration with manufacturer systems
 
 **Key Features:**
+
 - Automated warranty lookups during precheck
 - Coverage rules engine
 - Multi-tier warranty support (manufacturer, extended, service contract)
@@ -498,6 +534,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `dispatch:read`, `dispatch:assign`
 
 **Capabilities:**
+
 - Technician availability calendar
 - Work order assignment with skill matching
 - Route optimization
@@ -505,6 +542,7 @@ If insufficient, check Supplier → Return availability status
 - Capacity planning
 
 **Key Features:**
+
 - Drag-and-drop scheduling
 - Technician skill profiles
 - Geographic zone assignment
@@ -519,6 +557,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `quote:create`, `quote:read`, `quote:approve`
 
 **Capabilities:**
+
 - Create customer quotes with itemized pricing
 - Multi-currency quote generation
 - Approval workflow
@@ -526,6 +565,7 @@ If insufficient, check Supplier → Return availability status
 - Quote versioning and revisions
 
 **Key Features:**
+
 - Template-based quote generation
 - Discount and promotion application
 - Validity period tracking
@@ -540,6 +580,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `invoice:read`, `invoice:create`, `invoice:send`
 
 **Capabilities:**
+
 - Automated invoice generation from completed work orders
 - Manual invoice creation
 - Line item management (labor, parts, penalties)
@@ -549,6 +590,7 @@ If insufficient, check Supplier → Return availability status
 - Invoice PDF generation
 
 **Key Features:**
+
 - Bulk invoice processing
 - Recurring invoice support
 - Payment reminders
@@ -563,6 +605,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `payment:read`, `payment:process`
 
 **Capabilities:**
+
 - Payment recording and reconciliation
 - Multiple payment methods (credit card, bank transfer, cash)
 - Payment plans and installments
@@ -570,6 +613,7 @@ If insufficient, check Supplier → Return availability status
 - Payment gateway integration (Stripe ready)
 
 **Key Features:**
+
 - Automated payment matching to invoices
 - Partial payment support
 - Payment history tracking
@@ -584,6 +628,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `analytics:read`
 
 **Capabilities:**
+
 - Operational KPIs and metrics
 - Financial performance dashboards
 - Technician performance analytics
@@ -592,6 +637,7 @@ If insufficient, check Supplier → Return availability status
 - Data export (CSV, PDF)
 
 **Key Metrics:**
+
 - Work order completion rates
 - Average resolution time
 - Revenue per technician
@@ -607,6 +653,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `sys_admin`
 
 **Capabilities:**
+
 - AI model configuration and management
 - Model performance monitoring
 - A/B testing for model selection
@@ -614,6 +661,7 @@ If insufficient, check Supplier → Return availability status
 - Model version control
 
 **Supported Models:**
+
 - Google Gemini 2.5 Pro, Flash, Flash-Lite
 - OpenAI GPT-5, GPT-5 Mini, GPT-5 Nano
 
@@ -625,6 +673,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `sys_admin`
 
 **Capabilities:**
+
 - Request tracing across edge functions
 - Performance monitoring
 - Error tracking and alerting
@@ -632,6 +681,7 @@ If insufficient, check Supplier → Return availability status
 - System health dashboards
 
 **Key Features:**
+
 - Distributed tracing for work order lifecycle
 - Full trace details with timestamps
 - Edge function performance metrics
@@ -646,6 +696,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `kb:read`, `kb:create`
 
 **Capabilities:**
+
 - Technical documentation repository
 - Troubleshooting guides
 - AI-powered article suggestions
@@ -653,6 +704,7 @@ If insufficient, check Supplier → Return availability status
 - Version control for articles
 
 **Key Features:**
+
 - Context-aware article recommendations during work orders
 - Rich text editing with media support
 - Tag-based organization
@@ -667,6 +719,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** All authenticated users
 
 **Capabilities:**
+
 - Interactive training modules
 - Video tutorials
 - Role-based training paths
@@ -681,6 +734,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `tenant_admin`, `sys_admin`
 
 **Capabilities:**
+
 - Tenant configuration management
 - User role assignment (RBAC)
 - System preferences
@@ -689,6 +743,7 @@ If insufficient, check Supplier → Return availability status
 - Currency and localization settings
 
 **Key Features:**
+
 - Bulk user import
 - Role hierarchy visualization
 - Audit log access
@@ -703,6 +758,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** `technician`
 
 **Capabilities:**
+
 - Mobile-optimized photo capture
 - Stage-based photo requirements
 - GPS tagging and metadata
@@ -710,12 +766,14 @@ If insufficient, check Supplier → Return availability status
 - AI-powered photo validation
 
 **Photo Stages:**
+
 - Pre-service (before work begins)
 - During service (work in progress)
 - Post-service (completed work)
 - Parts validation (damaged/replaced parts)
 
 **Validation Checks:**
+
 - Minimum resolution requirements
 - Proper lighting and focus
 - Required elements present in frame
@@ -730,6 +788,7 @@ If insufficient, check Supplier → Return availability status
 **Permissions:** All authenticated users
 
 **Capabilities:**
+
 - Natural language queries for work orders, tickets, inventory
 - Contextual help and guidance
 - Quick data lookups
@@ -747,7 +806,7 @@ graph TD
     B --> C[Dispatcher Reviews]
     C --> D[Convert to Work Order]
     D --> E[Automated Precheck Runs]
-    
+
     E --> F{Precheck Pass?}
     F -->|Yes| G[Work Order Auto-Released]
     F -->|No| H[Override Request]
@@ -755,14 +814,14 @@ graph TD
     I -->|Approved| G
     I -->|Denied| J[Resolve Blockers]
     J --> E
-    
+
     G --> K[Assign to Technician]
     K --> L[Technician Accepts]
     L --> M[Upload Pre-Service Photos]
     M --> N[Perform Work]
     N --> O[Upload Post-Service Photos]
     O --> P[Mark Complete]
-    
+
     P --> Q[Generate Service Order]
     P --> R[Auto-Generate Invoice]
     R --> S[Calculate Penalties]
@@ -770,7 +829,7 @@ graph TD
     T --> U[Payment Received]
     U --> V[Reconcile Payment]
     V --> W[Settle with Partner]
-    
+
     P --> X[Fraud Check]
     X --> Y{Anomaly Detected?}
     Y -->|Yes| Z[Fraud Investigation]
@@ -787,6 +846,7 @@ graph TD
 **Duration:** 5-15 minutes
 
 **Steps:**
+
 1. Customer support creates ticket with issue description
 2. Ticket assigned priority and category
 3. Dispatcher reviews open tickets
@@ -797,6 +857,7 @@ graph TD
 8. Precheck orchestrator automatically triggered
 
 **System Actions:**
+
 - Link work order to source ticket
 - Update ticket status to "assigned"
 - Create precheck record
@@ -810,8 +871,9 @@ graph TD
 **Duration:** 30-60 seconds
 
 **Steps:**
+
 1. **Trigger**: Work order creation or manual precheck request
-2. **Inventory Check**: 
+2. **Inventory Check**:
    - Query partner inventory for required parts
    - If insufficient, cascade to warehouse
    - If insufficient, cascade to supplier
@@ -836,6 +898,7 @@ graph TD
    - Log audit event
 
 **Override Workflow** (if precheck fails):
+
 1. Dispatcher clicks "Request Override"
 2. System creates override request with reason
 3. Manager receives notification
@@ -852,6 +915,7 @@ graph TD
 **Duration:** 2-3 minutes
 
 **Steps:**
+
 1. Dispatcher opens work order and clicks "Generate SaPOS Offers"
 2. System gathers context:
    - Work order details (device, issue description)
@@ -878,6 +942,7 @@ graph TD
 9. Parts automatically reserved in inventory
 
 **Provenance Tracking:**
+
 ```json
 {
   "offer_id": "uuid",
@@ -899,6 +964,7 @@ graph TD
 **Duration:** 1-2 minutes per stage
 
 **Steps:**
+
 1. Technician navigates to work order photo capture screen
 2. System displays required photo stages for current work order status
 3. Technician captures photo using device camera
@@ -919,6 +985,7 @@ graph TD
 8. If all required photos uploaded and validated, `can_release` recalculated
 
 **Required Photo Stages:**
+
 - **Pre-Service**: Device condition before work, serial number visible
 - **During Service**: Open device, repair in progress
 - **Post-Service**: Completed repair, device functional
@@ -932,6 +999,7 @@ graph TD
 **Duration:** Ongoing + 30-60 minutes investigation
 
 **Automated Detection:**
+
 1. Work order completed and submitted
 2. Fraud detection engine analyzes:
    - Cost vs. historical average
@@ -945,6 +1013,7 @@ graph TD
    - Work order flagged for review
 
 **Investigation Steps:**
+
 1. Investigator opens fraud investigation dashboard
 2. Reviews flagged work order details
 3. Analyzes full trace (all actions, timestamps, users)
@@ -963,6 +1032,7 @@ graph TD
    - Escalation to management
 
 **Feedback Loop:**
+
 - Investigator feedback used to retrain fraud detection model
 - Model learns from false positives and true positives
 - Continuous improvement of detection accuracy
@@ -975,6 +1045,7 @@ graph TD
 **Duration:** Auto-generated + payment cycles
 
 **Invoice Generation:**
+
 1. **Trigger**: Work order status changed to `completed`
 2. System auto-generates invoice:
    - Work order details as line items
@@ -990,6 +1061,7 @@ graph TD
 7. Invoice aging tracking begins
 
 **Payment Processing:**
+
 1. Customer makes payment (online, bank transfer, check)
 2. Finance team records payment in system
 3. System matches payment to invoice
@@ -999,6 +1071,7 @@ graph TD
 7. Partner settlement initiated
 
 **Penalty Application:**
+
 1. Penalty engine evaluates completed work order
 2. Checks against penalty rules:
    - SLA violations (late completion)
@@ -1017,6 +1090,7 @@ graph TD
 **Duration:** 30-60 seconds
 
 **Protected Actions:**
+
 - Override request approval
 - Penalty override
 - User role assignment
@@ -1024,6 +1098,7 @@ graph TD
 - Financial transaction approval
 
 **MFA Flow:**
+
 1. User attempts protected action
 2. System checks if MFA required for user role
 3. If required, MFA dialog displayed
@@ -1043,12 +1118,14 @@ graph TD
 ### Defense-in-Depth Strategy
 
 **Layer 1: Network Security**
+
 - HTTPS/TLS 1.3 for all connections
 - CORS policies restricting origins
 - Rate limiting on API endpoints
 - DDoS protection via Supabase infrastructure
 
 **Layer 2: Authentication**
+
 - Email/password authentication via Supabase Auth
 - JWT-based session management
 - Automatic session refresh
@@ -1056,6 +1133,7 @@ graph TD
 - Account lockout after failed attempts
 
 **Layer 3: Authorization (RBAC)**
+
 - Role hierarchy with inheritance
 - Permission-based access control
 - Route-level protection
@@ -1063,6 +1141,7 @@ graph TD
 - API-level authorization
 
 **Layer 4: Data Protection**
+
 - Row-Level Security (RLS) on all tables
 - Tenant isolation via RLS policies
 - Encrypted data at rest (AES-256)
@@ -1070,6 +1149,7 @@ graph TD
 - Audit logging for all sensitive operations
 
 **Layer 5: Application Security**
+
 - Input validation on all forms
 - SQL injection prevention via parameterized queries
 - XSS prevention via React's built-in escaping
@@ -1077,6 +1157,7 @@ graph TD
 - Content Security Policy (CSP) headers
 
 **Layer 6: Multi-Factor Authentication (MFA)**
+
 - Time-based one-time passwords (TOTP)
 - Email-based verification codes
 - Required for high-risk operations
@@ -1143,37 +1224,38 @@ sys_admin (System Administrator)
 
 **Role Definitions:**
 
-| Role | Description | Key Permissions |
-|------|-------------|-----------------|
-| `sys_admin` | Full system access | All permissions, multi-tenant access |
-| `tenant_admin` | Organization admin | All permissions within tenant |
-| `dispatcher_coordinator` | Work order management | Create/assign work orders, approve overrides |
-| `fraud_investigator` | Fraud detection | View fraud alerts, submit feedback |
-| `finance_ops` | Financial operations | Create invoices, process payments |
-| `partner_admin` | Partner organization | Manage partner users, view partner work orders |
-| `technician` | Field service | View assigned work orders, upload photos |
+| Role                     | Description           | Key Permissions                                |
+| ------------------------ | --------------------- | ---------------------------------------------- |
+| `sys_admin`              | Full system access    | All permissions, multi-tenant access           |
+| `tenant_admin`           | Organization admin    | All permissions within tenant                  |
+| `dispatcher_coordinator` | Work order management | Create/assign work orders, approve overrides   |
+| `fraud_investigator`     | Fraud detection       | View fraud alerts, submit feedback             |
+| `finance_ops`            | Financial operations  | Create invoices, process payments              |
+| `partner_admin`          | Partner organization  | Manage partner users, view partner work orders |
+| `technician`             | Field service         | View assigned work orders, upload photos       |
 
 **Permission Matrix:**
 
-| Module | sys_admin | tenant_admin | dispatcher | fraud_inv | finance | partner | tech |
-|--------|-----------|--------------|------------|-----------|---------|---------|------|
-| Dashboard | ✅ All | ✅ Tenant | ✅ Own | ✅ Own | ✅ Own | ✅ Own | ✅ Own |
-| Tickets | ✅ All | ✅ CRUD | ✅ CRUD | ❌ | ❌ | ✅ Read | ✅ Read |
-| Work Orders | ✅ All | ✅ CRUD | ✅ CRUD | ✅ Read | ✅ Read | ✅ Read | ✅ Own |
-| Precheck | ✅ All | ✅ CRUD | ✅ CRUD | ❌ | ❌ | ❌ | ❌ |
-| SaPOS | ✅ All | ✅ CRUD | ✅ CRUD | ❌ | ❌ | ❌ | ❌ |
-| Fraud | ✅ All | ✅ Read | ❌ | ✅ CRUD | ❌ | ❌ | ❌ |
-| Finance | ✅ All | ✅ CRUD | ✅ Read | ❌ | ✅ CRUD | ✅ Read | ❌ |
-| Invoices | ✅ All | ✅ CRUD | ✅ Read | ❌ | ✅ CRUD | ✅ Read | ❌ |
-| Inventory | ✅ All | ✅ CRUD | ✅ CRUD | ❌ | ✅ Read | ✅ Read | ✅ Read |
-| Analytics | ✅ All | ✅ Tenant | ✅ Own | ✅ Own | ✅ Own | ✅ Own | ❌ |
-| Settings | ✅ All | ✅ Tenant | ❌ | ❌ | ❌ | ✅ Partner | ❌ |
+| Module      | sys_admin | tenant_admin | dispatcher | fraud_inv | finance | partner    | tech    |
+| ----------- | --------- | ------------ | ---------- | --------- | ------- | ---------- | ------- |
+| Dashboard   | ✅ All    | ✅ Tenant    | ✅ Own     | ✅ Own    | ✅ Own  | ✅ Own     | ✅ Own  |
+| Tickets     | ✅ All    | ✅ CRUD      | ✅ CRUD    | ❌        | ❌      | ✅ Read    | ✅ Read |
+| Work Orders | ✅ All    | ✅ CRUD      | ✅ CRUD    | ✅ Read   | ✅ Read | ✅ Read    | ✅ Own  |
+| Precheck    | ✅ All    | ✅ CRUD      | ✅ CRUD    | ❌        | ❌      | ❌         | ❌      |
+| SaPOS       | ✅ All    | ✅ CRUD      | ✅ CRUD    | ❌        | ❌      | ❌         | ❌      |
+| Fraud       | ✅ All    | ✅ Read      | ❌         | ✅ CRUD   | ❌      | ❌         | ❌      |
+| Finance     | ✅ All    | ✅ CRUD      | ✅ Read    | ❌        | ✅ CRUD | ✅ Read    | ❌      |
+| Invoices    | ✅ All    | ✅ CRUD      | ✅ Read    | ❌        | ✅ CRUD | ✅ Read    | ❌      |
+| Inventory   | ✅ All    | ✅ CRUD      | ✅ CRUD    | ❌        | ✅ Read | ✅ Read    | ✅ Read |
+| Analytics   | ✅ All    | ✅ Tenant    | ✅ Own     | ✅ Own    | ✅ Own  | ✅ Own     | ❌      |
+| Settings    | ✅ All    | ✅ Tenant    | ❌         | ❌        | ❌      | ✅ Partner | ❌      |
 
 ---
 
 ### Audit Logging
 
 **Logged Events:**
+
 - User authentication (login, logout, MFA)
 - Work order lifecycle changes
 - Precheck executions and results
@@ -1186,6 +1268,7 @@ sys_admin (System Administrator)
 - Critical data modifications
 
 **Audit Log Schema:**
+
 ```typescript
 {
   id: UUID,
@@ -1210,6 +1293,7 @@ sys_admin (System Administrator)
 ### Frontend
 
 **Core Technologies:**
+
 - **React 18.3.1**: UI library
 - **TypeScript 5.x**: Type-safe development
 - **Vite 5.x**: Build tool and dev server
@@ -1218,6 +1302,7 @@ sys_admin (System Administrator)
 - **Tailwind CSS 3.x**: Utility-first styling
 
 **UI Component Library:**
+
 - **Radix UI**: Accessible, unstyled components
 - **shadcn/ui**: Pre-styled component collection
 - **Lucide React**: Icon library
@@ -1225,10 +1310,12 @@ sys_admin (System Administrator)
 - **Sonner**: Toast notifications
 
 **Form Management:**
+
 - **React Hook Form 7.x**: Form state and validation
 - **Zod 3.x**: Schema validation
 
 **State Management:**
+
 - Context API for auth and RBAC
 - TanStack Query for server state
 - Local state via React hooks
@@ -1238,19 +1325,23 @@ sys_admin (System Administrator)
 ### Backend
 
 **Database:**
+
 - **PostgreSQL 15+**: Primary database
 - **Supabase**: Backend-as-a-Service
 - **PostGIS**: Geospatial extensions
 
 **Authentication:**
+
 - **Supabase Auth**: User management and JWT
 - **Row-Level Security (RLS)**: Data isolation
 
 **Edge Functions:**
+
 - **Deno Runtime**: Serverless execution environment
 - **TypeScript**: Type-safe function development
 
 **Storage:**
+
 - **Supabase Storage**: File uploads and management
 - S3-compatible buckets
 
@@ -1259,6 +1350,7 @@ sys_admin (System Administrator)
 ### AI Integration
 
 **Models:**
+
 - **Google Gemini 2.5 Pro**: Primary AI model for SaPOS and fraud detection
 - **Google Gemini 2.5 Flash**: Balanced performance model
 - **Google Gemini 2.5 Flash-Lite**: Fast, cost-effective model
@@ -1267,6 +1359,7 @@ sys_admin (System Administrator)
 - **OpenAI GPT-5 Nano**: High-volume, simple tasks
 
 **Use Cases:**
+
 - Service and parts recommendations (SaPOS)
 - Fraud detection and anomaly scoring
 - Photo validation and analysis
@@ -1278,15 +1371,18 @@ sys_admin (System Administrator)
 ### External Integrations
 
 **Exchange Rate API:**
+
 - Real-time currency conversion
 - Multi-currency support
 
 **Email Service:**
+
 - Transactional emails via Supabase
 - MFA code delivery
 - Invoice delivery
 
 **Future Integrations:**
+
 - **Stripe**: Payment processing
 - **Twilio**: SMS notifications
 - **Google Maps**: Route optimization
@@ -1297,10 +1393,12 @@ sys_admin (System Administrator)
 ### Testing
 
 **E2E Testing:**
+
 - **Playwright**: Browser automation and testing
 - Test suites for RBAC, tenant isolation, workflows
 
 **Test Coverage:**
+
 - RBAC enforcement
 - Route protection
 - API authorization
@@ -1312,16 +1410,19 @@ sys_admin (System Administrator)
 ### Deployment & Operations
 
 **Hosting:**
+
 - **Frontend**: Lovable Cloud (static hosting)
 - **Backend**: Supabase Cloud
 - **Edge Functions**: Supabase Edge Runtime
 
 **CI/CD:**
+
 - Automated deployment on git push
 - Database migration on deployment
 - Edge function hot reload
 
 **Monitoring:**
+
 - Supabase Analytics for database queries
 - Edge function logs and metrics
 - Custom observability dashboard
@@ -1350,6 +1451,7 @@ Tickets → Work Orders → Precheck → Service Orders → Invoices
 ```
 
 **Event-Driven Architecture:**
+
 - Work order status changes trigger downstream processes
 - Database triggers for automated actions
 - Webhook support for external systems
@@ -1359,12 +1461,14 @@ Tickets → Work Orders → Precheck → Service Orders → Invoices
 ### External API Integrations
 
 **Exchange Rate API:**
+
 - **Endpoint**: `https://api.exchangerate-api.com/v4/latest/{base_currency}`
 - **Purpose**: Real-time currency conversion
 - **Usage**: Invoice generation, payment processing
 - **Rate Limit**: 1000 requests/month (free tier)
 
 **AI Model APIs:**
+
 - **Google AI Studio**: Gemini model access
 - **OpenAI API**: GPT model access
 - **Authentication**: API keys stored in Supabase secrets
@@ -1376,66 +1480,81 @@ Tickets → Work Orders → Precheck → Service Orders → Invoices
 ### Core Tables
 
 **1. profiles**
+
 - User profile information
 - Links to auth.users (via user_id)
 - Stores tenant_id for multi-tenant isolation
 - Fields: id, user_id, tenant_id, full_name, email, phone, avatar_url
 
 **2. tenants**
+
 - Organization/tenant records
 - Settings and configuration
 - Fields: id, name, settings, created_at, updated_at
 
 **3. user_roles**
+
 - Role assignments for users
 - Links: user_id → profiles, granted_by → profiles
 - Fields: id, user_id, role, granted_by, granted_at
 
 **4. tickets**
+
 - Customer service tickets
 - Fields: id, tenant_id, customer_name, customer_email, issue_description, priority, status, created_at
 
 **5. work_orders**
+
 - Field service work orders
 - Fields: id, tenant_id, ticket_id, assigned_technician_id, status, estimated_cost, actual_cost, created_at, updated_at
 
 **6. work_order_prechecks**
+
 - Precheck validation results
 - Fields: id, work_order_id, inventory_status, warranty_status, photo_status, can_release (generated), last_checked_at
 
 **7. precheck_overrides**
+
 - Override requests and approvals
 - Fields: id, work_order_id, requested_by, approved_by, reason, status, requested_at, decided_at
 
 **8. inventory_items**
+
 - Parts and inventory catalog
 - Fields: id, tenant_id, part_number, name, quantity, unit_price, location
 
 **9. warranty_records**
+
 - Customer warranty information
 - Fields: id, tenant_id, customer_id, device_serial, coverage_type, start_date, end_date
 
 **10. fraud_alerts**
+
 - Fraud detection alerts
 - Fields: id, work_order_id, alert_type, severity, anomaly_score, status, created_at
 
 **11. fraud_feedback**
+
 - Investigator feedback for model training
 - Fields: id, fraud_alert_id, investigator_id, feedback_type, notes, submitted_at
 
 **12. invoices**
+
 - Customer invoices
 - Fields: id, tenant_id, work_order_id, total_amount, currency, status, issued_at, due_at, paid_at
 
 **13. penalties**
+
 - Penalty records and rules
 - Fields: id, work_order_id, penalty_type, amount, reason, applied_at
 
 **14. sapos_offers**
+
 - AI-generated service recommendations
 - Fields: id, work_order_id, model_used, offer_data, confidence_score, selected, generated_at
 
 **15. audit_logs**
+
 - System audit trail
 - Fields: id, event_type, user_id, tenant_id, resource_type, resource_id, action, before_state, after_state, timestamp
 
@@ -1464,6 +1583,7 @@ work_orders (1) ──< (many) sapos_offers
 ### Edge Functions
 
 **1. precheck-orchestrator**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Orchestrate all precheck validations
@@ -1471,6 +1591,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ inventory_status, warranty_status, photo_status, can_release }`
 
 **2. check-inventory**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Validate inventory availability via cascade
@@ -1478,6 +1599,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ available: boolean, quantity: number }`
 
 **3. check-warranty**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Verify warranty coverage
@@ -1485,6 +1607,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ covered: boolean, warranty_id: UUID }`
 
 **4. validate-photos**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Validate uploaded photos
@@ -1492,6 +1615,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ valid: boolean, missing_stages: string[] }`
 
 **5. generate-sapos-offers**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Generate AI-powered service recommendations
@@ -1499,6 +1623,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ offers: SaPOSOffers[] }`
 
 **6. generate-service-order**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Generate service order document
@@ -1506,6 +1631,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ service_order_url: string }`
 
 **7. calculate-penalties**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Calculate penalties for work order
@@ -1513,6 +1639,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ penalties: Penalty[] }`
 
 **8. complete-work-order**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Mark work order complete and trigger invoice
@@ -1520,6 +1647,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ invoice_id: UUID }`
 
 **9. request-mfa**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Request MFA code for protected action
@@ -1527,6 +1655,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ code_sent: boolean }`
 
 **10. verify-mfa**
+
 - **Method**: POST
 - **Auth**: Required
 - **Purpose**: Verify MFA code
@@ -1534,6 +1663,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ valid: boolean }`
 
 **11. create-override-request**
+
 - **Method**: POST
 - **Auth**: Required (dispatcher_coordinator)
 - **Purpose**: Request precheck override
@@ -1541,6 +1671,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ override_request_id: UUID }`
 
 **12. approve-override-request**
+
 - **Method**: POST
 - **Auth**: Required (tenant_admin)
 - **Purpose**: Approve precheck override
@@ -1548,6 +1679,7 @@ work_orders (1) ──< (many) sapos_offers
 - **Output**: `{ approved: boolean }`
 
 **13. get-exchange-rates**
+
 - **Method**: GET
 - **Auth**: Required
 - **Purpose**: Get current exchange rates
@@ -1584,6 +1716,7 @@ work_orders (1) ──< (many) sapos_offers
 ## Performance Metrics
 
 **Target KPIs:**
+
 - Page load time: < 2 seconds
 - API response time: < 500ms (p95)
 - Work order creation: < 10 seconds end-to-end
@@ -1593,6 +1726,7 @@ work_orders (1) ──< (many) sapos_offers
 - Invoice generation: < 2 seconds
 
 **Scalability:**
+
 - Supports 10,000+ concurrent users
 - 1M+ work orders per tenant
 - 100GB+ photo storage per tenant
@@ -1603,17 +1737,20 @@ work_orders (1) ──< (many) sapos_offers
 ## Support & Resources
 
 **Documentation:**
+
 - Product Documentation: `/docs/PRODUCT_DOCUMENTATION.md`
 - Implementation Guide: `/docs/IMPLEMENTATION_COMPLETE.md`
 - Testing Guide: `/docs/TESTING_GUIDE.md`
 - RBAC Reference: `/docs/RBAC_TENANT_ISOLATION.md`
 
 **Training:**
+
 - Help & Training module in-app
 - Video tutorials (coming soon)
 - Role-based training paths
 
 **Support Channels:**
+
 - In-app help tickets
 - Email: support@reconx.example.com
 - Slack: #reconx-support (internal)
@@ -1675,6 +1812,7 @@ work_orders (1) ──< (many) sapos_offers
 ```
 
 **Module Structure:**
+
 - Each module as scoped NPM package (`@reconx/<module>`)
 - Independent build and deployment pipelines
 - Shared component library (`@reconx/ui`)
@@ -1682,6 +1820,7 @@ work_orders (1) ──< (many) sapos_offers
 - Type definitions package (`@reconx/types`)
 
 **Benefits:**
+
 - Independent team ownership per module
 - Faster build and deployment times
 - Reduced blast radius for changes
@@ -1740,6 +1879,7 @@ work_orders (1) ──< (many) sapos_offers
 ```
 
 **Key Features:**
+
 - **Unified Schema**: Single GraphQL schema across all modules
 - **DataLoader Integration**: Batch and cache database requests
 - **Subscription Support**: Real-time updates via GraphQL subscriptions
@@ -1768,7 +1908,7 @@ type Query {
     sort: WorkOrderSort
     pagination: Pagination
   ): WorkOrderConnection!
-  
+
   workOrder(id: ID!): WorkOrder
 }
 
@@ -1909,10 +2049,10 @@ serve(async (req) => {
     req,
     async (context) => {
       const { work_order_id } = await req.json();
-      
+
       // Calculate invoice logic
       const invoice = await calculateInvoice(context.supabase, work_order_id);
-      
+
       return new Response(JSON.stringify({ invoice }), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -2192,6 +2332,7 @@ export async function routeToRegion(tenantId: string): Promise<string> {
 ```
 
 **Data Replication Strategy:**
+
 - **Tenant Data**: Stored only in tenant's designated region
 - **Global Reference Data**: Replicated across all regions (penalty rules, templates)
 - **Audit Logs**: Replicated to central audit database for compliance
@@ -2319,6 +2460,7 @@ await supabase
 ```
 
 **Features:**
+
 - Drag-and-drop permission assignment
 - Visual inheritance tree
 - Permission conflict detection
@@ -2363,6 +2505,7 @@ await supabase
 ```
 
 **Visual Formula Builder:**
+
 - Drag-and-drop condition blocks
 - Real-time preview with sample data
 - Validation and syntax checking
@@ -2800,7 +2943,7 @@ function buildSystemPrompt(metadata: any): string {
   const tenantConfig = metadata?.tenant_config || {};
 
   return `You are an AI assistant for ReconX Guardian Flow, a field service management platform.
-    
+
 Current user role: ${userRole}
 Tenant: ${tenantConfig.tenant_name}
 
@@ -2824,10 +2967,11 @@ Provide helpful, accurate, and role-appropriate responses. When suggesting actio
 **Module-Specific AI Prompts:**
 
 #### Work Orders Module
+
 ```typescript
 const WORK_ORDER_ASSISTANT_PROMPTS = {
   technician: `You're assisting a field technician with work order execution.
-    
+
 Focus on:
 - Troubleshooting steps
 - Parts identification
@@ -2842,7 +2986,7 @@ Available actions:
 - Report issues`,
 
   dispatcher: `You're assisting a dispatcher with work order management.
-    
+
 Focus on:
 - Work order assignment optimization
 - Technician availability
@@ -2859,10 +3003,11 @@ Available actions:
 ```
 
 #### Fraud Investigation Module
+
 ```typescript
 const FRAUD_ASSISTANT_PROMPTS = {
   fraud_investigator: `You're assisting a fraud investigator with anomaly analysis.
-    
+
 Focus on:
 - Pattern recognition in work orders
 - Cost anomaly analysis
@@ -2904,7 +3049,7 @@ const AIAssistantInline = ({ context }: { context: string }) => {
   return (
     <div className="ai-assistant-inline">
       <div className="response">{response}</div>
-      
+
       {suggestedActions.length > 0 && (
         <div className="suggested-actions">
           <h4>Suggested Actions:</h4>
@@ -2930,7 +3075,7 @@ const AIAssistantInline = ({ context }: { context: string }) => {
 // AI response with action suggestions
 {
   text: "Based on the work order details, I recommend:\n\n1. Check warranty coverage before proceeding\n2. Reserve parts from inventory\n3. Assign to technician with HVAC certification\n\nWould you like me to perform any of these actions?",
-  
+
   actions: [
     {
       id: 'check_warranty',
@@ -3033,6 +3178,7 @@ const AIAssistantInline = ({ context }: { context: string }) => {
 ```
 
 **Alert Configuration:**
+
 - Latency exceeds threshold
 - Cost exceeds daily budget
 - Accuracy drops below target
@@ -3066,6 +3212,7 @@ ReconX Guardian Flow v3.0 features a **fully implemented autonomous AI agent sys
 ### 📚 Complete v3.0 Documentation
 
 For detailed v3.0 implementation documentation including:
+
 - Agent cognitive loop architecture
 - Policy-as-Code examples
 - Workflow orchestration patterns
