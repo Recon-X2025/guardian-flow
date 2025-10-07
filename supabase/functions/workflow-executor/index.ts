@@ -12,6 +12,7 @@ interface WorkflowNode {
   tool?: string;
   action?: string;
   conditions?: any;
+  compensation?: string; // Rollback action if this node fails
 }
 
 interface WorkflowEdge {
@@ -159,18 +160,36 @@ async function executeWorkflow(
           }
         });
 
-        // Execute node
+        // Execute node with compensation on failure
         let nodeResult;
-        if (targetNode.type === 'tool') {
-          nodeResult = await executeTool(supabase, targetNode.tool!, state, traceId);
-        } else if (targetNode.type === 'decision') {
-          nodeResult = evaluateDecision(targetNode.conditions, results);
-        } else if (targetNode.type === 'action') {
-          nodeResult = await executeAction(supabase, targetNode.action!, state);
-        }
+        try {
+          if (targetNode.type === 'tool') {
+            nodeResult = await executeTool(supabase, targetNode.tool!, state, traceId);
+          } else if (targetNode.type === 'decision') {
+            nodeResult = evaluateDecision(targetNode.conditions, results);
+          } else if (targetNode.type === 'action') {
+            nodeResult = await executeAction(supabase, targetNode.action!, state);
+          }
 
-        results[targetNode.id] = nodeResult;
-        Object.assign(state, nodeResult || {});
+          results[targetNode.id] = nodeResult;
+          Object.assign(state, nodeResult || {});
+        } catch (nodeError) {
+          console.error(`Node ${targetNode.id} execution failed:`, nodeError);
+          
+          // Execute compensation if defined
+          if (targetNode.compensation) {
+            console.log(`Executing compensation for node ${targetNode.id}: ${targetNode.compensation}`);
+            try {
+              await executeTool(supabase, targetNode.compensation, state, traceId);
+              console.log(`Compensation successful for node ${targetNode.id}`);
+            } catch (compError) {
+              console.error(`Compensation failed for node ${targetNode.id}:`, compError);
+            }
+          }
+          
+          // Re-throw to trigger workflow failure
+          throw nodeError;
+        }
 
         // Update trace span
         const spanEnd = Date.now();

@@ -20,6 +20,7 @@ serve(async (req) => {
     // Auto-detect database capabilities
     let dbMode = 'RESTRICTED_DB';
     let vectorEnabled = false;
+    let triggerSupport = false;
 
     try {
       const { data } = await supabase.rpc('sql', {
@@ -29,24 +30,35 @@ serve(async (req) => {
       if (data && data.length > 0) {
         dbMode = 'SUPABASE_FULL';
         vectorEnabled = true;
+        triggerSupport = true;
       }
     } catch (e) {
-      console.log('pgvector not available, using RESTRICTED_DB mode');
+      console.log('pgvector not available, using RESTRICTED_DB mode with external vector store');
     }
 
-    // Update system config
+    // Update system config with caching headers
     await supabase.from('system_config').upsert([
       { config_key: 'db_mode', config_value: JSON.stringify(dbMode) },
-      { config_key: 'vector_enabled', config_value: JSON.stringify(vectorEnabled) }
+      { config_key: 'vector_enabled', config_value: JSON.stringify(vectorEnabled) },
+      { config_key: 'trigger_support', config_value: JSON.stringify(triggerSupport) },
+      { config_key: 'detection_timestamp', config_value: JSON.stringify(new Date().toISOString()) }
     ], { onConflict: 'config_key' });
 
     return new Response(
       JSON.stringify({
         db_mode: dbMode,
         vector_enabled: vectorEnabled,
+        trigger_support: triggerSupport,
+        cache_ttl: 300,
         timestamp: new Date().toISOString()
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=300'
+        } 
+      }
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

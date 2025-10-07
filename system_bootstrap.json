@@ -1,0 +1,22 @@
+{
+  "version": "3.0",
+  "db_mode": "auto",
+  "agent_enabled": true,
+  "policy_engine": "active",
+  "workflow_graph_mode": "declarative",
+  "tracing_enabled": true,
+  "external_vector_store": "auto",
+  "runtime": {
+    "max_concurrent_agent_loops": 1,
+    "event_loop_timeout_seconds": 20,
+    "edge_cache_ttl_seconds": 300,
+    "agent_queue_enabled": true,
+    "policy_recursion_limit": 5,
+    "correlation_id_enabled": true
+  },
+  "fallback": {
+    "vector_store_provider": "pinecone",
+    "event_relay_mode": true,
+    "trigger_emulation": true
+  }
+}

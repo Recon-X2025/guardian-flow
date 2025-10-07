@@ -88,6 +88,96 @@ export type Database = {
           },
         ]
       }
+      agent_queue: {
+        Row: {
+          action_type: string
+          agent_id: string
+          completed_at: string | null
+          correlation_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          max_retries: number | null
+          payload: Json
+          priority: number | null
+          retry_count: number | null
+          scheduled_at: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          action_type: string
+          agent_id: string
+          completed_at?: string | null
+          correlation_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          payload: Json
+          priority?: number | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          action_type?: string
+          agent_id?: string
+          completed_at?: string | null
+          correlation_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          payload?: Json
+          priority?: number | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      agent_trace_logs: {
+        Row: {
+          agent_id: string
+          correlation_id: string
+          created_at: string | null
+          duration_ms: number | null
+          error: string | null
+          id: string
+          input: Json | null
+          output: Json | null
+          status: string
+          step: string
+        }
+        Insert: {
+          agent_id: string
+          correlation_id: string
+          created_at?: string | null
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          status: string
+          step: string
+        }
+        Update: {
+          agent_id?: string
+          correlation_id?: string
+          created_at?: string | null
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          input?: Json | null
+          output?: Json | null
+          status?: string
+          step?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           bucket_url: string | null
@@ -500,6 +590,7 @@ export type Database = {
           model_name: string
           provider: string
           success_rate: number | null
+          target_sla_ms: number | null
           task_types: string[] | null
           updated_at: string | null
           usage_count: number | null
@@ -517,6 +608,7 @@ export type Database = {
           model_name: string
           provider: string
           success_rate?: number | null
+          target_sla_ms?: number | null
           task_types?: string[] | null
           updated_at?: string | null
           usage_count?: number | null
@@ -534,6 +626,7 @@ export type Database = {
           model_name?: string
           provider?: string
           success_rate?: number | null
+          target_sla_ms?: number | null
           task_types?: string[] | null
           updated_at?: string | null
           usage_count?: number | null
@@ -1583,6 +1676,7 @@ export type Database = {
       workflow_definitions: {
         Row: {
           active: boolean | null
+          compensation_graph: Json | null
           created_at: string | null
           description: string | null
           graph: Json
@@ -1600,6 +1694,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          compensation_graph?: Json | null
           created_at?: string | null
           description?: string | null
           graph: Json
@@ -1617,6 +1712,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          compensation_graph?: Json | null
           created_at?: string | null
           description?: string | null
           graph?: Json

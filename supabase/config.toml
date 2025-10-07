@@ -36,6 +36,9 @@ verify_jwt = true
 [functions.policy-enforcer]
 verify_jwt = false
 
+[functions.agent-processor]
+verify_jwt = false
+
 [functions.assign-role]
 verify_jwt = true
 

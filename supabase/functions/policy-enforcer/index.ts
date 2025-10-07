@@ -124,7 +124,12 @@ serve(async (req) => {
   }
 });
 
-function evaluatePolicy(policy: any, context: any): { matches: boolean; reason?: string } {
+function evaluatePolicy(policy: any, context: any, depth = 0): { matches: boolean; reason?: string } {
+  // Prevent infinite recursion
+  const MAX_RECURSION_DEPTH = 5;
+  if (depth > MAX_RECURSION_DEPTH) {
+    throw new Error(`Policy recursion limit exceeded (max ${MAX_RECURSION_DEPTH})`);
+  }
   const conditions = policy.conditions as any;
   
   if (!conditions || !conditions.rules) {
