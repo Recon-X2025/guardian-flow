@@ -25,11 +25,30 @@ serve(async () => {
         .eq('id', task.id);
 
       try {
+        // Fetch hierarchical forecast context if available
+        let forecastContext = null;
+        if (task.payload?.geography_key && task.payload?.product_id) {
+          const { data: forecast } = await supabase
+            .from('forecast_outputs')
+            .select('*')
+            .eq('geography_key', task.payload.geography_key)
+            .eq('product_id', task.payload.product_id)
+            .eq('forecast_type', 'volume')
+            .gte('target_date', new Date().toISOString().split('T')[0])
+            .order('target_date')
+            .limit(7);
+          
+          forecastContext = forecast;
+        }
+
         await supabase.functions.invoke('agent-runtime', {
           body: {
             agent_id: task.agent_id,
             action: task.action_type,
-            parameters: task.payload
+            parameters: {
+              ...task.payload,
+              forecast_context: forecastContext
+            }
           }
         });
 

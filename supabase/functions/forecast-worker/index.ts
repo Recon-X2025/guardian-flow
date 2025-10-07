@@ -19,7 +19,6 @@ serve(async (req) => {
 
     console.log('Forecast worker: processing queued jobs');
 
-    // Fetch pending jobs (limit to prevent timeout)
     const { data: jobs, error: fetchError } = await supabase
       .from('forecast_queue')
       .select('*')
@@ -27,9 +26,7 @@ serve(async (req) => {
       .order('created_at', { ascending: true })
       .limit(5);
 
-    if (fetchError) {
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
     if (!jobs || jobs.length === 0) {
       return new Response(
@@ -41,17 +38,14 @@ serve(async (req) => {
     const results = [];
     for (const job of jobs) {
       try {
-        // Mark as processing
         await supabase
           .from('forecast_queue')
           .update({ status: 'processing', started_at: new Date().toISOString() })
           .eq('id', job.id);
 
-        // Process the job
-        const result = await processJob(supabase, job);
+        await processJob(supabase, job);
         results.push({ jobId: job.id, success: true });
 
-        // Mark as completed
         await supabase
           .from('forecast_queue')
           .update({ status: 'completed', finished_at: new Date().toISOString() })
@@ -61,7 +55,6 @@ serve(async (req) => {
         console.error(`Job ${job.id} failed:`, error);
         results.push({ jobId: job.id, success: false, error: String(error) });
 
-        // Mark as failed
         await supabase
           .from('forecast_queue')
           .update({
@@ -92,122 +85,149 @@ serve(async (req) => {
 });
 
 async function processJob(supabase: any, job: any) {
-  const { forecast_type, days_ahead = 30 } = job.payload;
-  const tenant_id = job.tenant_id;
+  console.log('Processing hierarchical forecast job:', job.id);
 
-  // Fetch active model
+  const { product_id, geography_level, correlation_id } = job.payload;
+
   const { data: model } = await supabase
     .from('forecast_models')
     .select('*')
-    .eq('model_type', forecast_type)
+    .eq('model_type', 'hierarchical')
+    .eq('hierarchy_level', geography_level)
     .eq('active', true)
     .maybeSingle();
 
   if (!model) {
-    console.warn('No active model, using fallback');
-    return { fallback: true };
+    console.log('No active model found for level:', geography_level);
+    return;
   }
 
-  // Fetch historical data
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - 12);
+  const { data: geoKeys } = await supabase
+    .from('geography_hierarchy')
+    .select('geography_key, country, region, state, district, city, partner_hub, pin_code')
+    .not(geography_level, 'is', null);
 
-  let historicalData: Array<{ date: string; value: number }> = [];
+  const forecastOutputs = [];
 
-  try {
-    switch (forecast_type) {
-      case 'engineer_shrinkage':
-        historicalData = await fetchEngineerAvailability(supabase, tenant_id, startDate, endDate);
-        break;
-      case 'repair_volume':
-        historicalData = await fetchRepairVolume(supabase, tenant_id, startDate, endDate);
-        break;
-      case 'spend_revenue':
-        historicalData = await fetchFinancials(supabase, tenant_id, startDate, endDate);
-        break;
+  for (const geo of geoKeys || []) {
+    let historicalData;
+    
+    if (geography_level === 'pin_code') {
+      historicalData = await fetchDataByPinCode(supabase, job.tenant_id, product_id, geo.pin_code);
+    } else if (geography_level === 'partner_hub') {
+      historicalData = await fetchDataByHub(supabase, job.tenant_id, product_id, geo.partner_hub);
+    } else if (geography_level === 'city') {
+      historicalData = await fetchDataByCity(supabase, job.tenant_id, product_id, geo.city);
+    } else {
+      historicalData = await fetchDataByLevel(supabase, job.tenant_id, product_id, geography_level, geo[geography_level]);
     }
-  } catch (e) {
-    console.error('Error fetching historical data:', e);
-    historicalData = [];
+
+    if (!historicalData || historicalData.length < 14) {
+      console.log(`Insufficient data for ${geography_level}: ${geo.geography_key}`);
+      continue;
+    }
+
+    const forecast = generateSimpleForecast(historicalData, 30);
+
+    for (const point of forecast) {
+      forecastOutputs.push({
+        tenant_id: job.tenant_id,
+        product_id,
+        country: geo.country,
+        region: geo.region,
+        state: geo.state,
+        district: geo.district,
+        city: geo.city,
+        partner_hub: geo.partner_hub,
+        pin_code: geo.pin_code,
+        geography_level,
+        geography_key: geo.geography_key,
+        forecast_type: 'volume',
+        target_date: point.date,
+        value: point.value,
+        lower_bound: point.lower,
+        upper_bound: point.upper,
+        confidence_lower: point.lower,
+        confidence_upper: point.upper,
+        model_id: model.id,
+        metadata: { correlation_id }
+      });
+    }
   }
 
-  // Generate forecast
-  const forecast = generateSimpleForecast(historicalData, days_ahead, model);
+  if (forecastOutputs.length > 0) {
+    const { error: insertError } = await supabase
+      .from('forecast_outputs')
+      .insert(forecastOutputs);
 
-  // Store outputs
-  const outputs = forecast.map(point => ({
-    model_id: model.id,
-    forecast_type,
-    target_date: point.date,
-    value: point.value,
-    lower_bound: point.lower,
-    upper_bound: point.upper,
-    tenant_id,
-    metadata: {
-      algorithm: model.algorithm,
-      job_id: job.id,
-      trace_id: job.trace_id,
-      generated_at: new Date().toISOString()
-    }
-  }));
-
-  await supabase.from('forecast_outputs').insert(outputs);
-
-  return { points: forecast.length };
+    if (insertError) throw insertError;
+    console.log(`Inserted ${forecastOutputs.length} forecast points for ${geography_level}`);
+  }
 }
 
-async function fetchEngineerAvailability(supabase: any, tenant_id: string, startDate: Date, endDate: Date) {
+async function fetchDataByPinCode(supabase: any, tenant_id: string, product_id: string, pin_code: string) {
   const { data } = await supabase
     .from('work_orders')
-    .select('created_at, technician_id')
-    .gte('created_at', startDate.toISOString())
-    .lte('created_at', endDate.toISOString());
-
-  const dailyCount: Record<string, number> = {};
-  data?.forEach((wo: any) => {
-    const date = new Date(wo.created_at).toISOString().split('T')[0];
-    dailyCount[date] = (dailyCount[date] || 0) + 1;
-  });
-
-  return Object.entries(dailyCount).map(([date, count]) => ({ date, value: count }));
+    .select('created_at')
+    .eq('tenant_id', tenant_id)
+    .eq('product_id', product_id)
+    .eq('pin_code', pin_code)
+    .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+    .order('created_at');
+  
+  return aggregateByDay(data);
 }
 
-async function fetchRepairVolume(supabase: any, tenant_id: string, startDate: Date, endDate: Date) {
+async function fetchDataByHub(supabase: any, tenant_id: string, product_id: string, hub: string) {
   const { data } = await supabase
     .from('work_orders')
-    .select('created_at, status')
-    .gte('created_at', startDate.toISOString())
-    .lte('created_at', endDate.toISOString());
-
-  const dailyCount: Record<string, number> = {};
-  data?.forEach((wo: any) => {
-    const date = new Date(wo.created_at).toISOString().split('T')[0];
-    dailyCount[date] = (dailyCount[date] || 0) + 1;
-  });
-
-  return Object.entries(dailyCount).map(([date, count]) => ({ date, value: count }));
+    .select('created_at')
+    .eq('tenant_id', tenant_id)
+    .eq('product_id', product_id)
+    .eq('partner_hub', hub)
+    .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+    .order('created_at');
+  
+  return aggregateByDay(data);
 }
 
-async function fetchFinancials(supabase: any, tenant_id: string, startDate: Date, endDate: Date) {
+async function fetchDataByCity(supabase: any, tenant_id: string, product_id: string, city: string) {
   const { data } = await supabase
-    .from('invoices')
-    .select('created_at, total_amount')
-    .gte('created_at', startDate.toISOString())
-    .lte('created_at', endDate.toISOString());
-
-  const dailySum: Record<string, number> = {};
-  data?.forEach((inv: any) => {
-    const date = new Date(inv.created_at).toISOString().split('T')[0];
-    dailySum[date] = (dailySum[date] || 0) + Number(inv.total_amount);
-  });
-
-  return Object.entries(dailySum).map(([date, value]) => ({ date, value }));
+    .from('work_orders')
+    .select('created_at')
+    .eq('tenant_id', tenant_id)
+    .eq('product_id', product_id)
+    .eq('city', city)
+    .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+    .order('created_at');
+  
+  return aggregateByDay(data);
 }
 
-function generateSimpleForecast(historical: any[], daysAhead: number, model: any) {
+async function fetchDataByLevel(supabase: any, tenant_id: string, product_id: string, level: string, value: string) {
+  const { data } = await supabase
+    .from('work_orders')
+    .select('created_at')
+    .eq('tenant_id', tenant_id)
+    .eq('product_id', product_id)
+    .eq(level, value)
+    .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+    .order('created_at');
+  
+  return aggregateByDay(data);
+}
+
+function aggregateByDay(data: any[]) {
+  const daily = new Map();
+  for (const row of data || []) {
+    const date = row.created_at.split('T')[0];
+    daily.set(date, (daily.get(date) || 0) + 1);
+  }
+  return Array.from(daily.entries()).map(([date, count]) => ({ date, value: count }));
+}
+
+function generateSimpleForecast(historical: any[], daysAhead: number) {
   if (historical.length === 0) {
-    // Return naive forecast based on global average
     const avg = 100;
     const forecast = [];
     const startDate = new Date();

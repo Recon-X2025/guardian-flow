@@ -1,200 +1,149 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, TrendingDown, Users, Wrench, DollarSign, Cloud, Calendar, RefreshCw } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { TrendingUp, DollarSign, Package, AlertCircle } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function ForecastCenter() {
-  const [forecasts, setForecasts] = useState<any>({
-    engineer_shrinkage: [],
-    repair_volume: [],
-    spend_revenue: []
-  });
-  const [models, setModels] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [externalFeeds, setExternalFeeds] = useState<any>({ weather: null, events: null, economic: null });
-  const [bootstrapped, setBootstrapped] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  
+  // Hierarchy filters
+  const [countries, setCountries] = useState<any[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedHub, setSelectedHub] = useState('');
+  const [selectedPinCode, setSelectedPinCode] = useState('');
+  
+  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState({
+    volume: 0,
+    revenue: 0,
+    spend: 0,
+    confidence: 0
+  });
 
   useEffect(() => {
-    ensureActiveModels();
-    loadExternalData();
+    loadGeography();
   }, []);
 
+  useEffect(() => {
+    if (selectedCountry || selectedCity || selectedHub) {
+      loadForecasts();
+    }
+  }, [selectedCountry, selectedRegion, selectedState, selectedCity, selectedHub, selectedPinCode]);
+
+  const loadGeography = async () => {
+    const { data } = await supabase
+      .from('geography_hierarchy')
+      .select('*')
+      .order('country');
+    
+    if (data) {
+      const uniqueCountries = [...new Set(data.map(g => g.country))];
+      setCountries(uniqueCountries.map(c => ({ name: c })));
+    }
+  };
+
   const loadForecasts = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('forecast_outputs')
         .select('*')
+        .eq('forecast_type', 'volume')
         .gte('target_date', new Date().toISOString().split('T')[0])
-        .order('target_date', { ascending: true })
-        .limit(90);
+        .lte('target_date', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .order('target_date');
 
-      if (error) throw error;
-
-      const grouped = {
-        engineer_shrinkage: data?.filter(f => f.forecast_type === 'engineer_shrinkage') || [],
-        repair_volume: data?.filter(f => f.forecast_type === 'repair_volume') || [],
-        spend_revenue: data?.filter(f => f.forecast_type === 'spend_revenue') || []
-      };
-
-      setForecasts(grouped);
-    } catch (error: any) {
-      console.error('Error loading forecasts:', error);
-    }
-  };
-
-  const loadModels = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('forecast_models')
-        .select('*')
-        .eq('active', true);
-
-      if (error) throw error;
-      setModels(data || []);
-    } catch (error: any) {
-      console.error('Error loading models:', error);
-    }
-  };
-
-  const loadExternalData = async () => {
-    try {
-      const [weatherRes, eventsRes, economicRes] = await Promise.all([
-        supabase
-          .from('external_data_feeds')
-          .select('*')
-          .eq('feed_type', 'weather')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('external_data_feeds')
-          .select('*')
-          .eq('feed_type', 'events')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('external_data_feeds')
-          .select('*')
-          .eq('feed_type', 'economic')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
-
-      setExternalFeeds({
-        weather: weatherRes.data || null,
-        events: eventsRes.data || null,
-        economic: economicRes.data || null,
-      });
-    } catch (error: any) {
-      console.error('Error loading external data:', error);
-    }
-  };
-
-  const ensureActiveModels = async () => {
-    if (bootstrapped) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ensure-forecast-models', { body: {} });
-      if (error) throw error;
-      toast({ title: 'Forecast Initialized', description: 'Active models and baseline forecasts ensured.' });
-      await loadModels();
-      await loadForecasts();
-    } catch (error: any) {
-      toast({ title: 'Initialization Error', description: error.message || 'Failed to initialize forecasts', variant: 'destructive' });
-    } finally {
-      setBootstrapped(true);
-      setLoading(false);
-    }
-  };
-  
-  const generateForecast = async (type: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('forecast-engine', {
-        body: { forecast_type: type, days_ahead: 30 }
-      });
-
-      if (error) throw error;
-
-      // Handle async job acceptance (202) or sync completion (200)
-      if (data?.status === 'accepted') {
-        toast({
-          title: "Forecast Job Queued",
-          description: `Job ${data.jobId} is processing. Results will appear shortly.`,
-        });
-        
-        // Poll for completion after 5 seconds
-        setTimeout(() => loadForecasts(), 5000);
-      } else if (data?.success) {
-        toast({
-          title: "Forecast Generated",
-          description: `Successfully generated ${type} forecast`,
-        });
-      } else if (data?.fallback) {
-        toast({
-          title: "Fallback Used",
-          description: data.message || "Using heuristic forecast",
-          variant: "default"
-        });
+      if (selectedPinCode) {
+        query = query.eq('geography_level', 'pin_code').eq('pin_code', selectedPinCode);
+      } else if (selectedHub) {
+        query = query.eq('geography_level', 'partner_hub').eq('partner_hub', selectedHub);
+      } else if (selectedCity) {
+        query = query.eq('geography_level', 'city').eq('city', selectedCity);
+      } else if (selectedState) {
+        query = query.eq('geography_level', 'state').eq('state', selectedState);
+      } else if (selectedRegion) {
+        query = query.eq('geography_level', 'region').eq('region', selectedRegion);
+      } else if (selectedCountry) {
+        query = query.eq('geography_level', 'country').eq('country', selectedCountry);
       }
 
-      await loadForecasts();
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setForecastData(data.map(d => ({
+          date: d.target_date,
+          predicted: Number(d.value),
+          lower: Number(d.lower_bound),
+          upper: Number(d.upper_bound)
+        })));
+
+        const avgVolume = data.reduce((sum, d) => sum + Number(d.value), 0) / data.length;
+        const avgConfidence = data.reduce((sum, d) => {
+          const conf = d.confidence_upper && d.confidence_lower 
+            ? 1 - (Math.abs(Number(d.confidence_upper) - Number(d.confidence_lower)) / (2 * Number(d.value)))
+            : 0.85;
+          return sum + conf;
+        }, 0) / data.length;
+
+        setMetrics({
+          volume: Math.round(avgVolume),
+          revenue: Math.round(avgVolume * 150),
+          spend: Math.round(avgVolume * 85),
+          confidence: Math.round(avgConfidence * 100)
+        });
+      } else {
+        setForecastData([]);
+        setMetrics({ volume: 0, revenue: 0, spend: 0, confidence: 0 });
+      }
     } catch (error: any) {
       toast({
-        title: "Forecast Error",
-        description: error.message || "Failed to generate forecast",
-        variant: "destructive"
+        variant: 'destructive',
+        title: 'Error loading forecasts',
+        description: error.message
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const syncExternalData = async (feedType: string) => {
+  const generateForecasts = async () => {
+    setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('external-data-sync', {
-        body: { feed_type: feedType, region: 'US' }
+      const { data, error } = await supabase.functions.invoke('generate-forecast', {
+        body: {
+          tenant_id: (await supabase.auth.getUser()).data.user?.id,
+          geography_levels: ['country', 'region', 'state', 'city', 'partner_hub', 'pin_code']
+        }
       });
 
       if (error) throw error;
 
       toast({
-        title: "Data Synced",
-        description: `${feedType} data updated successfully`
+        title: 'Forecast Generation Started',
+        description: `${data.jobs?.length || 0} forecast jobs enqueued. Results will appear shortly.`
       });
 
-      await loadExternalData();
+      setTimeout(loadForecasts, 5000);
     } catch (error: any) {
       toast({
-        title: "Sync Error",
-        description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
+        title: 'Error generating forecasts',
+        description: error.message
       });
+    } finally {
+      setGenerating(false);
     }
-  };
-
-  const formatChartData = (data: any[]) => {
-    return data.map(d => ({
-      date: new Date(d.target_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: Number(d.value),
-      lower: Number(d.confidence_lower || d.value * 0.8),
-      upper: Number(d.confidence_upper || d.value * 1.2)
-    }));
-  };
-
-  const calculateTrend = (data: any[]) => {
-    if (data.length < 2) return 0;
-    const first = Number(data[0].value);
-    const last = Number(data[data.length - 1].value);
-    return ((last - first) / first * 100).toFixed(1);
   };
 
   return (
@@ -202,291 +151,161 @@ export default function ForecastCenter() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Forecast Center</h1>
-          <p className="text-muted-foreground">
-            AI-powered predictive analytics for operations, finance, and resources
-          </p>
+          <p className="text-muted-foreground">Hierarchical demand & capacity forecasting</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={ensureActiveModels} disabled={loading}>
-            Initialize
-          </Button>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
+        <Button onClick={generateForecasts} disabled={generating}>
+          {generating ? 'Generating...' : 'Generate Forecasts'}
+        </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Models</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{models.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Forecasting engines running
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Engineer Availability</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {forecasts.engineer_shrinkage[0]?.value || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Badge variant={Number(calculateTrend(forecasts.engineer_shrinkage)) > 0 ? "default" : "destructive"}>
-                {calculateTrend(forecasts.engineer_shrinkage)}%
-              </Badge>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Repair Volume</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {forecasts.repair_volume[0]?.value || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Badge variant={Number(calculateTrend(forecasts.repair_volume)) > 0 ? "destructive" : "default"}>
-                {calculateTrend(forecasts.repair_volume)}%
-              </Badge>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue Forecast</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${(forecasts.spend_revenue[0]?.value || 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <Badge variant={Number(calculateTrend(forecasts.spend_revenue)) > 0 ? "default" : "destructive"}>
-                {calculateTrend(forecasts.spend_revenue)}%
-              </Badge>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Forecasts Tabs */}
-      <Tabs defaultValue="volume" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="volume">Repair Volume</TabsTrigger>
-          <TabsTrigger value="engineers">Engineer Capacity</TabsTrigger>
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="external">External Data</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="volume" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Repair Volume Forecast</CardTitle>
-                  <CardDescription>30-day prediction with confidence intervals</CardDescription>
-                </div>
-                <Button onClick={() => generateForecast('repair_volume')} disabled={loading}>
-                  Generate Forecast
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {forecasts.repair_volume.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={formatChartData(forecasts.repair_volume)}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area type="monotone" dataKey="lower" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.2} name="Lower Bound" />
-                    <Area type="monotone" dataKey="value" stackId="2" stroke="#82ca9d" fill="#82ca9d" name="Forecast" />
-                    <Area type="monotone" dataKey="upper" stackId="3" stroke="#ffc658" fill="#ffc658" fillOpacity={0.2} name="Upper Bound" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  No forecast data available. Click "Generate Forecast" to create predictions.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="engineers" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Engineer Availability Forecast</CardTitle>
-                  <CardDescription>Predicted staffing levels and shrinkage</CardDescription>
-                </div>
-                <Button onClick={() => generateForecast('engineer_shrinkage')} disabled={loading}>
-                  Generate Forecast
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {forecasts.engineer_shrinkage.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart data={formatChartData(forecasts.engineer_shrinkage)}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#8884d8" name="Available Engineers" />
-                    <Line type="monotone" dataKey="lower" stroke="#ff7c7c" strokeDasharray="5 5" name="Minimum" />
-                    <Line type="monotone" dataKey="upper" stroke="#82ca9d" strokeDasharray="5 5" name="Maximum" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  No forecast data available. Click "Generate Forecast" to create predictions.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="financial" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Spend & Revenue Forecast</CardTitle>
-                  <CardDescription>Financial projections and cash flow</CardDescription>
-                </div>
-                <Button onClick={() => generateForecast('spend_revenue')} disabled={loading}>
-                  Generate Forecast
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {forecasts.spend_revenue.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={formatChartData(forecasts.spend_revenue)}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-                    <Legend />
-                    <Area type="monotone" dataKey="value" stroke="#82ca9d" fill="#82ca9d" name="Revenue" />
-                    <Area type="monotone" dataKey="lower" stroke="#ff7c7c" fill="#ff7c7c" fillOpacity={0.3} name="Conservative" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  No forecast data available. Click "Generate Forecast" to create predictions.
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="external" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Cloud className="h-5 w-5" />
-                  Weather Data
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={() => syncExternalData('weather')} className="w-full">
-                  Sync Weather
-                </Button>
-                {externalFeeds.weather && (
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    Last updated: {new Date(externalFeeds.weather.created_at).toLocaleString()}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Public Events
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={() => syncExternalData('events')} className="w-full">
-                  Sync Events
-                </Button>
-                {externalFeeds.events && (
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    Last updated: {new Date(externalFeeds.events.created_at).toLocaleString()}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Economic Data
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={() => syncExternalData('economic')} className="w-full">
-                  Sync Indicators
-                </Button>
-                {externalFeeds.economic && (
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    Last updated: {new Date(externalFeeds.economic.created_at).toLocaleString()}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Model Registry */}
+      {/* Hierarchy Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Active Forecast Models</CardTitle>
-          <CardDescription>ML models powering the prediction engine</CardDescription>
+          <CardTitle>Geography Hierarchy</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {models.map(model => (
-              <div key={model.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h4 className="font-semibold">{model.model_name}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {model.algorithm} • {model.frequency} • Accuracy: {model.accuracy_score || 'N/A'}%
-                  </p>
-                </div>
-                <Badge>{model.model_type}</Badge>
-              </div>
-            ))}
-            {models.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No active models configured
-              </div>
-            )}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <SelectTrigger>
+                <SelectValue placeholder="Country" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map(c => (
+                  <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedRegion} onValueChange={setSelectedRegion} disabled={!selectedCountry}>
+              <SelectTrigger>
+                <SelectValue placeholder="Region" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="north">North</SelectItem>
+                <SelectItem value="south">South</SelectItem>
+                <SelectItem value="east">East</SelectItem>
+                <SelectItem value="west">West</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedState} onValueChange={setSelectedState} disabled={!selectedRegion}>
+              <SelectTrigger>
+                <SelectValue placeholder="State" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="state1">State 1</SelectItem>
+                <SelectItem value="state2">State 2</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCity} onValueChange={setSelectedCity} disabled={!selectedState}>
+              <SelectTrigger>
+                <SelectValue placeholder="City" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="city1">City 1</SelectItem>
+                <SelectItem value="city2">City 2</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedHub} onValueChange={setSelectedHub} disabled={!selectedCity}>
+              <SelectTrigger>
+                <SelectValue placeholder="Hub" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hub1">Hub 1</SelectItem>
+                <SelectItem value="hub2">Hub 2</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedPinCode} onValueChange={setSelectedPinCode} disabled={!selectedHub}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pin Code" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="110001">110001</SelectItem>
+                <SelectItem value="110002">110002</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Forecasted Volume</p>
+                <p className="text-2xl font-bold">{metrics.volume}</p>
+              </div>
+              <Package className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Expected Revenue</p>
+                <p className="text-2xl font-bold">${metrics.revenue.toLocaleString()}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Projected Spend</p>
+                <p className="text-2xl font-bold">${metrics.spend.toLocaleString()}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Confidence</p>
+                <p className="text-2xl font-bold">{metrics.confidence}%</p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Forecast Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>30-Day Forecast</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {forecastData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={forecastData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="predicted" stroke="#8884d8" name="Predicted" />
+                <Line type="monotone" dataKey="lower" stroke="#82ca9d" strokeDasharray="5 5" name="Lower Bound" />
+                <Line type="monotone" dataKey="upper" stroke="#ffc658" strokeDasharray="5 5" name="Upper Bound" />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+              {loading ? 'Loading forecasts...' : 'No forecast data available. Select a geography or generate forecasts.'}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
