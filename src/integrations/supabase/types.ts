@@ -468,6 +468,7 @@ export type Database = {
           created_at: string | null
           features: Json
           frequency: string
+          hierarchy_level: string | null
           hyperparams: Json | null
           id: string
           last_trained_at: string | null
@@ -476,6 +477,7 @@ export type Database = {
           model_name: string
           model_type: string
           model_version: number | null
+          product_scope: string | null
           training_data_range: Json | null
           updated_at: string | null
         }
@@ -488,6 +490,7 @@ export type Database = {
           created_at?: string | null
           features?: Json
           frequency: string
+          hierarchy_level?: string | null
           hyperparams?: Json | null
           id?: string
           last_trained_at?: string | null
@@ -496,6 +499,7 @@ export type Database = {
           model_name: string
           model_type: string
           model_version?: number | null
+          product_scope?: string | null
           training_data_range?: Json | null
           updated_at?: string | null
         }
@@ -508,6 +512,7 @@ export type Database = {
           created_at?: string | null
           features?: Json
           frequency?: string
+          hierarchy_level?: string | null
           hyperparams?: Json | null
           id?: string
           last_trained_at?: string | null
@@ -516,6 +521,7 @@ export type Database = {
           model_name?: string
           model_type?: string
           model_version?: number | null
+          product_scope?: string | null
           training_data_range?: Json | null
           updated_at?: string | null
         }
@@ -524,14 +530,24 @@ export type Database = {
       forecast_outputs: {
         Row: {
           attributes: Json | null
+          city: string | null
           confidence_lower: number | null
           confidence_upper: number | null
+          country: string | null
           created_at: string | null
+          district: string | null
           forecast_type: string
+          geography_key: string | null
+          geography_level: string | null
           id: string
           lower_bound: number | null
           metadata: Json | null
           model_id: string | null
+          partner_hub: string | null
+          pin_code: string | null
+          product_id: string | null
+          region: string | null
+          state: string | null
           target_date: string
           tenant_id: string | null
           upper_bound: number | null
@@ -539,14 +555,24 @@ export type Database = {
         }
         Insert: {
           attributes?: Json | null
+          city?: string | null
           confidence_lower?: number | null
           confidence_upper?: number | null
+          country?: string | null
           created_at?: string | null
+          district?: string | null
           forecast_type: string
+          geography_key?: string | null
+          geography_level?: string | null
           id?: string
           lower_bound?: number | null
           metadata?: Json | null
           model_id?: string | null
+          partner_hub?: string | null
+          pin_code?: string | null
+          product_id?: string | null
+          region?: string | null
+          state?: string | null
           target_date: string
           tenant_id?: string | null
           upper_bound?: number | null
@@ -554,14 +580,24 @@ export type Database = {
         }
         Update: {
           attributes?: Json | null
+          city?: string | null
           confidence_lower?: number | null
           confidence_upper?: number | null
+          country?: string | null
           created_at?: string | null
+          district?: string | null
           forecast_type?: string
+          geography_key?: string | null
+          geography_level?: string | null
           id?: string
           lower_bound?: number | null
           metadata?: Json | null
           model_id?: string | null
+          partner_hub?: string | null
+          pin_code?: string | null
+          product_id?: string | null
+          region?: string | null
+          state?: string | null
           target_date?: string
           tenant_id?: string | null
           upper_bound?: number | null
@@ -676,6 +712,48 @@ export type Database = {
           resource_id?: string
           resource_type?: string
           severity?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      geography_hierarchy: {
+        Row: {
+          city: string | null
+          country: string
+          created_at: string | null
+          district: string | null
+          geography_key: string | null
+          id: string
+          partner_hub: string | null
+          pin_code: string | null
+          region: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          country: string
+          created_at?: string | null
+          district?: string | null
+          geography_key?: string | null
+          id?: string
+          partner_hub?: string | null
+          pin_code?: string | null
+          region?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string
+          created_at?: string | null
+          district?: string | null
+          geography_key?: string | null
+          id?: string
+          partner_hub?: string | null
+          pin_code?: string | null
+          region?: string | null
+          state?: string | null
           updated_at?: string | null
         }
         Relationships: []
