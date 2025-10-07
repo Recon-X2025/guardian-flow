@@ -40,6 +40,7 @@ import ModelOrchestration from "./pages/ModelOrchestration";
 import HelpTraining from "./pages/HelpTraining";
 import AnomalyDetection from "./pages/AnomalyDetection";
 import AgentDashboard from "./pages/AgentDashboard";
+import ProductSpecs from "./pages/ProductSpecs";
 
 const queryClient = new QueryClient();
 
@@ -202,6 +203,7 @@ const App = () => (
                                     <AgentDashboard />
                                   </RoleGuard>
                                 } />
+                                <Route path="/product-specs" element={<ProductSpecs />} />
                                 <Route path="/help" element={<HelpTraining />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />
