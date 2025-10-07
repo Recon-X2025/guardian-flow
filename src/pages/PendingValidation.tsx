@@ -25,7 +25,7 @@ export default function PendingValidation() {
     try {
       setLoading(true);
       
-      // Load pending work orders
+      // Load pending work orders (including recently released ones for visibility)
       const { data: wos, error: woError } = await supabase
         .from('work_orders')
         .select(`
@@ -34,8 +34,9 @@ export default function PendingValidation() {
           technician:profiles(full_name),
           work_order_prechecks(*)
         `)
-        .in('status', ['pending_validation', 'draft'])
-        .order('created_at', { ascending: false });
+        .in('status', ['pending_validation', 'draft', 'assigned'])
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (woError) throw woError;
       setWorkOrders(wos || []);
@@ -141,6 +142,7 @@ export default function PendingValidation() {
         {workOrders.map((wo) => {
           const precheck = wo.work_order_prechecks?.[0];
           const canRelease = precheck?.can_release;
+          const isReleased = wo.status === 'assigned';
           
           return (
             <Card key={wo.id}>
@@ -148,18 +150,24 @@ export default function PendingValidation() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CardTitle>{wo.wo_number || 'Draft'}</CardTitle>
-                    <Badge variant={wo.status === 'pending_validation' ? 'default' : 'secondary'}>
+                    <Badge variant={wo.status === 'pending_validation' ? 'default' : wo.status === 'assigned' ? 'outline' : 'secondary'}>
                       {wo.status?.replace('_', ' ')}
                     </Badge>
-                    {canRelease && (
+                    {canRelease && !isReleased && (
                       <Badge variant="outline" className="text-green-600">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Ready
                       </Badge>
                     )}
+                    {isReleased && agentEnabled && (
+                      <Badge variant="outline" className="text-purple-600">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Auto-Released
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex gap-2">
-                    {!precheck && (
+                    {!precheck && !isReleased && (
                       <Button 
                         size="sm"
                         variant="outline"
@@ -172,13 +180,15 @@ export default function PendingValidation() {
                         Run Precheck
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      disabled={!canRelease}
-                      onClick={() => releaseToField(wo.id)}
-                    >
-                      Release to Field
-                    </Button>
+                    {!isReleased && (
+                      <Button
+                        size="sm"
+                        disabled={!canRelease}
+                        onClick={() => releaseToField(wo.id)}
+                      >
+                        Release to Field
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -216,6 +226,12 @@ export default function PendingValidation() {
                       )}
                       <span>Warranty: {precheck.warranty_status}</span>
                     </div>
+                  </div>
+                )}
+                
+                {isReleased && wo.released_at && (
+                  <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
+                    Released: {new Date(wo.released_at).toLocaleString()}
                   </div>
                 )}
               </CardContent>

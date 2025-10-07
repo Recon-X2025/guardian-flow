@@ -130,6 +130,34 @@ Deno.serve(async (req) => {
 
     console.log(`[${correlationId}] Precheck complete. Can release: ${results.can_release}`);
 
+    // Check if agent auto-release is enabled and WO can be released
+    if (results.can_release) {
+      const { data: toggle } = await context.supabase
+        .from('feature_toggles')
+        .select('enabled')
+        .eq('feature_key', 'agent_ops_autonomous')
+        .single();
+
+      if (toggle?.enabled) {
+        console.log(`[${correlationId}] Agent auto-release enabled, releasing work order`);
+        
+        const { error: releaseError } = await context.supabase
+          .from('work_orders')
+          .update({ 
+            status: 'assigned',
+            released_at: new Date().toISOString()
+          })
+          .eq('id', workOrderId);
+
+        if (!releaseError) {
+          results.auto_released = true;
+          console.log(`[${correlationId}] Work order auto-released successfully`);
+        } else {
+          console.error(`[${correlationId}] Auto-release failed:`, releaseError);
+        }
+      }
+    }
+
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

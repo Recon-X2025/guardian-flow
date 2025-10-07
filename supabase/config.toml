@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.validate-photos]
 verify_jwt = true
 
+[functions.ops-agent-processor]
+verify_jwt = false
+
 [functions.precheck-orchestrator]
 verify_jwt = true
 
@@ -91,4 +94,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.agent-worker]
+verify_jwt = false
+
+[functions.generate-forecast]
+verify_jwt = true
+
+[functions.forecast-status]
+verify_jwt = true
+
+[functions.reconcile-forecast]
 verify_jwt = false
