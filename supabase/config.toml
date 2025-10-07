@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.ensure-forecast-models]
 verify_jwt = false
+
+[functions.agent-worker]
+verify_jwt = false
