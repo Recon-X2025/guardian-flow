@@ -41,8 +41,7 @@ Deno.serve(async (req) => {
       .upsert({
         work_order_id: workOrderId,
         inventory_status: 'pending',
-        warranty_status: 'pending',
-        photo_status: 'pending'
+        warranty_status: 'pending'
       }, { onConflict: 'work_order_id' })
       .select()
       .single();
@@ -53,7 +52,6 @@ Deno.serve(async (req) => {
       correlation_id: correlationId,
       inventory: null,
       warranty: null,
-      photos: null,
       can_release: false
     };
 
@@ -107,36 +105,7 @@ Deno.serve(async (req) => {
         .eq('id', precheck.id);
     }
 
-    // STEP 3: Photo Validation Check
-    console.log(`[${correlationId}] Checking photo validations...`);
-    const { data: photoValidations } = await context.supabase
-      .from('photo_validations')
-      .select('*')
-      .eq('work_order_id', workOrderId)
-      .order('created_at', { ascending: false })
-      .limit(3);
-
-    const requiredStages = ['replacement', 'post_repair', 'pickup'];
-    const validatedStages = (photoValidations || [])
-      .filter(pv => pv.photos_validated && !pv.anomaly_detected)
-      .map(pv => pv.stage);
-
-    const allPhotosValid = requiredStages.every(stage => validatedStages.includes(stage));
-
-    results.photos = {
-      validated_stages: validatedStages,
-      required_stages: requiredStages,
-      all_valid: allPhotosValid
-    };
-
-    await context.supabase.from('work_order_prechecks')
-      .update({
-        photo_status: allPhotosValid ? 'passed' : 'failed',
-        photo_result: results.photos
-      })
-      .eq('id', precheck.id);
-
-    // Final check
+    // Final check (photo validation happens during engineer workflow)
     const { data: finalPrecheck } = await context.supabase
       .from('work_order_prechecks')
       .select('can_release')

@@ -199,7 +199,7 @@ export default function PendingValidation() {
                 </div>
                 
                 {precheck && (
-                  <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4 text-sm">
+                  <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2">
                       {precheck.inventory_status === 'passed' ? (
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -215,14 +215,6 @@ export default function PendingValidation() {
                         <AlertCircle className="h-4 w-4 text-orange-600" />
                       )}
                       <span>Warranty: {precheck.warranty_status}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {precheck.photo_status === 'passed' ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-orange-600" />
-                      )}
-                      <span>Photos: {precheck.photo_status}</span>
                     </div>
                   </div>
                 )}

@@ -86,7 +86,6 @@ export function TriggerPrecheckDialog({ open, onOpenChange, workOrderId, onSucce
             <ul className="space-y-2 text-sm">
               <li>✓ Inventory cascade (hub → OEM → partner → buffer)</li>
               <li>✓ Warranty coverage verification</li>
-              <li>✓ Photo validation (4 required photos)</li>
               <li>✓ Customer cost calculation</li>
             </ul>
             <Button onClick={runPrecheck} disabled={loading} className="w-full">
@@ -113,11 +112,6 @@ export function TriggerPrecheckDialog({ open, onOpenChange, workOrderId, onSucce
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <span className="font-medium">Warranty Check</span>
               {getStatusBadge(results.warranty?.covered)}
-            </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <span className="font-medium">Photo Validation</span>
-              {getStatusBadge(results.photos?.all_valid)}
             </div>
 
             <div className={`p-4 border-2 rounded-lg ${results.can_release ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
