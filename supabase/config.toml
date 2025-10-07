@@ -77,3 +77,9 @@ verify_jwt = true
 
 [functions.auth-me]
 verify_jwt = true
+
+[functions.forecast-engine]
+verify_jwt = true
+
+[functions.external-data-sync]
+verify_jwt = false

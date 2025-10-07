@@ -341,6 +341,33 @@ export type Database = {
         }
         Relationships: []
       }
+      external_data_feeds: {
+        Row: {
+          created_at: string | null
+          data: Json
+          feed_date: string
+          feed_type: string
+          id: string
+          region: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data: Json
+          feed_date: string
+          feed_type: string
+          id?: string
+          region?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          feed_date?: string
+          feed_type?: string
+          id?: string
+          region?: string | null
+        }
+        Relationships: []
+      }
       feature_toggles: {
         Row: {
           created_at: string | null
@@ -382,6 +409,153 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      forecast_history: {
+        Row: {
+          actual_value: number | null
+          created_at: string | null
+          error_pct: number | null
+          forecast_date: string
+          id: string
+          model_id: string | null
+          predicted_value: number
+          tenant_id: string | null
+        }
+        Insert: {
+          actual_value?: number | null
+          created_at?: string | null
+          error_pct?: number | null
+          forecast_date: string
+          id?: string
+          model_id?: string | null
+          predicted_value: number
+          tenant_id?: string | null
+        }
+        Update: {
+          actual_value?: number | null
+          created_at?: string | null
+          error_pct?: number | null
+          forecast_date?: string
+          id?: string
+          model_id?: string | null
+          predicted_value?: number
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_history_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "forecast_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forecast_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forecast_models: {
+        Row: {
+          accuracy_score: number | null
+          active: boolean | null
+          algorithm: string
+          config: Json | null
+          created_at: string | null
+          features: Json
+          frequency: string
+          id: string
+          last_trained_at: string | null
+          model_name: string
+          model_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          active?: boolean | null
+          algorithm: string
+          config?: Json | null
+          created_at?: string | null
+          features?: Json
+          frequency: string
+          id?: string
+          last_trained_at?: string | null
+          model_name: string
+          model_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          active?: boolean | null
+          algorithm?: string
+          config?: Json | null
+          created_at?: string | null
+          features?: Json
+          frequency?: string
+          id?: string
+          last_trained_at?: string | null
+          model_name?: string
+          model_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      forecast_outputs: {
+        Row: {
+          confidence_lower: number | null
+          confidence_upper: number | null
+          created_at: string | null
+          forecast_type: string
+          id: string
+          metadata: Json | null
+          model_id: string | null
+          target_date: string
+          tenant_id: string | null
+          value: number
+        }
+        Insert: {
+          confidence_lower?: number | null
+          confidence_upper?: number | null
+          created_at?: string | null
+          forecast_type: string
+          id?: string
+          metadata?: Json | null
+          model_id?: string | null
+          target_date: string
+          tenant_id?: string | null
+          value: number
+        }
+        Update: {
+          confidence_lower?: number | null
+          confidence_upper?: number | null
+          created_at?: string | null
+          forecast_type?: string
+          id?: string
+          metadata?: Json | null
+          model_id?: string | null
+          target_date?: string
+          tenant_id?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forecast_outputs_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "forecast_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forecast_outputs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fraud_alerts: {
         Row: {

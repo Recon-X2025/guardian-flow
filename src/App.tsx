@@ -42,6 +42,7 @@ import AnomalyDetection from "./pages/AnomalyDetection";
 import AgentDashboard from "./pages/AgentDashboard";
 import RAGEngine from "./pages/RAGEngine";
 import Prompts from "./pages/Prompts";
+import ForecastCenter from "./pages/ForecastCenter";
 import ProductSpecs from "./pages/ProductSpecs";
 
 const queryClient = new QueryClient();
@@ -188,6 +189,11 @@ const App = () => (
                                 <Route path="/analytics" element={
                                   <RoleGuard permissions={["audit.read"]} showError={true}>
                                     <Analytics />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/forecast" element={
+                                  <RoleGuard permissions={["audit.read"]} showError={true}>
+                                    <ForecastCenter />
                                   </RoleGuard>
                                 } />
                                 <Route path="/anomaly" element={
