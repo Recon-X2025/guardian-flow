@@ -4,13 +4,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { TrendingUp, DollarSign, Package, AlertCircle } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { TrendingUp, DollarSign, Package, AlertCircle, Database, Activity, RefreshCw } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Badge } from '@/components/ui/badge';
 
 export default function ForecastCenter() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [systemMetrics, setSystemMetrics] = useState<any>(null);
   
   // Hierarchy filters
   const [countries, setCountries] = useState<any[]>([]);
@@ -39,6 +42,7 @@ export default function ForecastCenter() {
 
   useEffect(() => {
     loadGeography();
+    loadSystemMetrics();
   }, []);
 
   const FALLBACK = {
@@ -291,10 +295,39 @@ export default function ForecastCenter() {
     }
   };
 
+  const seedIndiaData = async () => {
+    setSeeding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seed-india-data', {
+        body: {
+          tenant_id: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'India Data Seeded',
+        description: `${data.total_records} work orders created across ${data.geography_coverage.states} states`
+      });
+
+      await loadSystemMetrics();
+      await loadGeography();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error seeding data',
+        description: error.message
+      });
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const generateForecasts = async () => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-forecast', {
+      const { data, error } = await supabase.functions.invoke('run-forecast-now', {
         body: {
           tenant_id: (await supabase.auth.getUser()).data.user?.id,
           geography_levels: ['country', 'region', 'state', 'city', 'partner_hub', 'pin_code']
@@ -305,10 +338,13 @@ export default function ForecastCenter() {
 
       toast({
         title: 'Forecast Generation Started',
-        description: `${data.jobs?.length || 0} forecast jobs enqueued. Results will appear shortly.`
+        description: `${data.jobs?.length || 0} forecast jobs enqueued. Processing...`
       });
 
-      setTimeout(loadForecasts, 5000);
+      setTimeout(() => {
+        loadForecasts();
+        loadSystemMetrics();
+      }, 5000);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -320,17 +356,98 @@ export default function ForecastCenter() {
     }
   };
 
+  const loadSystemMetrics = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-forecast-metrics', {
+        body: {
+          tenant_id: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) throw error;
+      setSystemMetrics(data);
+    } catch (error: any) {
+      console.error('Error loading metrics:', error);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Forecast Center</h1>
-          <p className="text-muted-foreground">Hierarchical demand & capacity forecasting</p>
+          <p className="text-muted-foreground">India Forecasting Intelligence System</p>
         </div>
-        <Button onClick={generateForecasts} disabled={generating}>
-          {generating ? 'Generating...' : 'Generate Forecasts'}
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={seedIndiaData} disabled={seeding} variant="outline">
+            <Database className="mr-2 h-4 w-4" />
+            {seeding ? 'Seeding...' : 'Seed India Data'}
+          </Button>
+          <Button onClick={generateForecasts} disabled={generating}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            {generating ? 'Generating...' : 'Generate Forecasts'}
+          </Button>
+        </div>
       </div>
+
+      {/* System Status */}
+      {systemMetrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              System Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Data Seeded</p>
+                <Badge variant={systemMetrics.system_status.data_seeded ? 'default' : 'secondary'}>
+                  {systemMetrics.system_status.data_seeded ? 'Yes' : 'No'}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Models Trained</p>
+                <Badge variant={systemMetrics.system_status.models_trained ? 'default' : 'secondary'}>
+                  {systemMetrics.models.total} models
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Forecasts Generated</p>
+                <Badge variant={systemMetrics.system_status.forecasts_generated ? 'default' : 'secondary'}>
+                  {systemMetrics.forecasts.total} points
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Avg Model Accuracy</p>
+                <Badge variant="outline">
+                  {systemMetrics.models.average_accuracy}%
+                </Badge>
+              </div>
+            </div>
+            {systemMetrics.seed_info && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium mb-2">Seeded Data Coverage</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Records:</span> {systemMetrics.seed_info.total_records.toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Period:</span> {systemMetrics.seed_info.months_covered} months
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">States:</span> {systemMetrics.seed_info.geography_coverage.states}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Hubs:</span> {systemMetrics.seed_info.geography_coverage.hubs}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hierarchy Filters */}
       <Card>

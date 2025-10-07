@@ -1550,6 +1550,62 @@ export type Database = {
           },
         ]
       }
+      seed_info: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          geography_coverage: Json
+          id: string
+          metadata: Json | null
+          months_covered: number
+          product_splits: Json
+          seed_type: string
+          start_date: string
+          status: string
+          tenant_id: string | null
+          total_records: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          geography_coverage: Json
+          id?: string
+          metadata?: Json | null
+          months_covered: number
+          product_splits: Json
+          seed_type: string
+          start_date: string
+          status?: string
+          tenant_id?: string | null
+          total_records: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          geography_coverage?: Json
+          id?: string
+          metadata?: Json | null
+          months_covered?: number
+          product_splits?: Json
+          seed_type?: string
+          start_date?: string
+          status?: string
+          tenant_id?: string | null
+          total_records?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seed_info_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_order_templates: {
         Row: {
           active: boolean | null
