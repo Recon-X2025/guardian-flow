@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.external-data-sync]
 verify_jwt = false
+
+[functions.ensure-forecast-models]
+verify_jwt = false

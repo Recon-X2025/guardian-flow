@@ -17,11 +17,11 @@ export default function ForecastCenter() {
   const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [externalData, setExternalData] = useState<any>(null);
+  const [bootstrapped, setBootstrapped] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadForecasts();
-    loadModels();
+    ensureActiveModels();
     loadExternalData();
   }, []);
 
@@ -78,6 +78,23 @@ export default function ForecastCenter() {
     }
   };
 
+  const ensureActiveModels = async () => {
+    if (bootstrapped) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ensure-forecast-models', { body: {} });
+      if (error) throw error;
+      toast({ title: 'Forecast Initialized', description: 'Active models and baseline forecasts ensured.' });
+      await loadModels();
+      await loadForecasts();
+    } catch (error: any) {
+      toast({ title: 'Initialization Error', description: error.message || 'Failed to initialize forecasts', variant: 'destructive' });
+    } finally {
+      setBootstrapped(true);
+      setLoading(false);
+    }
+  };
+  
   const generateForecast = async (type: string) => {
     setLoading(true);
     try {
@@ -169,10 +186,15 @@ export default function ForecastCenter() {
             AI-powered predictive analytics for operations, finance, and resources
           </p>
         </div>
-        <Button onClick={() => window.location.reload()} variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={ensureActiveModels} disabled={loading}>
+            Initialize
+          </Button>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
