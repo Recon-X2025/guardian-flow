@@ -40,6 +40,8 @@ import ModelOrchestration from "./pages/ModelOrchestration";
 import HelpTraining from "./pages/HelpTraining";
 import AnomalyDetection from "./pages/AnomalyDetection";
 import AgentDashboard from "./pages/AgentDashboard";
+import RAGEngine from "./pages/RAGEngine";
+import Prompts from "./pages/Prompts";
 import ProductSpecs from "./pages/ProductSpecs";
 
 const queryClient = new QueryClient();
@@ -165,7 +167,7 @@ const App = () => (
                                 } />
                                 <Route path="/rag" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <KnowledgeBase />
+                                    <RAGEngine />
                                   </RoleGuard>
                                 } />
                                 <Route path="/assistant" element={
@@ -180,7 +182,7 @@ const App = () => (
                                 } />
                                 <Route path="/prompts" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <Assistant />
+                                    <Prompts />
                                   </RoleGuard>
                                 } />
                                 <Route path="/analytics" element={
