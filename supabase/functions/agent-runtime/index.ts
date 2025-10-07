@@ -86,30 +86,97 @@ serve(async (req) => {
   }
 });
 
+async function checkPolicies(
+  supabase: any,
+  context: AgentContext,
+  action: string,
+  traceId: string
+): Promise<{ allowed: boolean; require_mfa: boolean; reason: string }> {
+  try {
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/policy-enforcer`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        agent_id: context.agent_id,
+        action_type: action,
+        context: context.current_state
+      })
+    });
+
+    if (!response.ok) {
+      console.error('Policy check failed:', response.statusText);
+      return { allowed: true, require_mfa: false, reason: 'Policy check failed, defaulting to allow' };
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Policy check error:', error);
+    return { allowed: true, require_mfa: false, reason: 'Policy check error, defaulting to allow' };
+  }
+}
+
 async function executeCognitiveLoop(
   supabase: any,
   context: AgentContext,
   action: string
 ): Promise<any> {
   const correlationId = crypto.randomUUID();
+  const traceId = crypto.randomUUID();
   const startTime = Date.now();
 
   console.log('Starting cognitive loop:', { agent_id: context.agent_id, action, correlationId });
 
+  // Create root trace span
+  await supabase.from('observability_traces').insert({
+    trace_id: traceId,
+    span_id: crypto.randomUUID(),
+    operation_name: 'agent_cognitive_loop',
+    agent_id: context.agent_id,
+    service_name: 'agent-runtime',
+    start_time: new Date(startTime).toISOString(),
+    attributes: {
+      action: action,
+      correlation_id: correlationId
+    }
+  });
+
   try {
+    // Step 0: Policy Check
+    const policyCheck = await checkPolicies(supabase, context, action, traceId);
+    if (!policyCheck.allowed) {
+      return {
+        success: false,
+        reason: 'Policy denied',
+        policy_result: policyCheck
+      };
+    }
+
     // Step 1: Observe - Gather current system state
     const observations = await observe(supabase, context);
     console.log('Observations:', observations);
 
-    // Step 2: Plan - Use AI to determine actions
-    const actionPlan = await planActions(supabase, context, observations, action);
+    // Step 2: Plan - Use AI to determine actions (with model selection)
+    const actionPlan = await planActions(supabase, context, observations, action, traceId);
     console.log('Plan:', actionPlan);
 
-    // Step 3: Execute - Run planned actions
-    const results = await execute(supabase, context, actionPlan, correlationId);
+    // Step 3: Check if MFA required
+    if (policyCheck.require_mfa) {
+      return {
+        success: false,
+        requires_mfa: true,
+        reason: policyCheck.reason,
+        pending_plan: actionPlan
+      };
+    }
+
+    // Step 4: Execute - Run planned actions
+    const results = await execute(supabase, context, actionPlan, correlationId, traceId);
     console.log('Execution results:', results);
 
-    // Step 4: Reflect - Update memory with learnings
+    // Step 5: Reflect - Update memory with learnings
     await reflect(supabase, context, observations, actionPlan, results);
 
     const executionTime = Date.now() - startTime;
@@ -126,15 +193,41 @@ async function executeCognitiveLoop(
       correlation_id: correlationId
     });
 
+    // Complete trace
+    await supabase.from('observability_traces')
+      .update({
+        end_time: new Date().toISOString(),
+        duration_ms: executionTime,
+        status: 'ok'
+      })
+      .eq('trace_id', traceId);
+
+    // Log event
+    await supabase.from('events_log').insert({
+      event_id: `agent_${Date.now()}`,
+      event_type: 'agent_action_completed',
+      entity_type: 'agent',
+      agent_id: context.agent_id,
+      payload: {
+        action: action,
+        success: true,
+        execution_time_ms: executionTime
+      },
+      correlation_id: correlationId,
+      trace_id: traceId
+    });
+
     return {
       success: true,
       plan: actionPlan,
       results: results,
       execution_time_ms: executionTime,
-      correlation_id: correlationId
+      correlation_id: correlationId,
+      trace_id: traceId
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Cognitive loop error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     
     // Log failed action
     await supabase.from('agent_actions').insert({
@@ -142,7 +235,7 @@ async function executeCognitiveLoop(
       action_type: action,
       input_data: context.current_state,
       status: 'failed',
-      error_message: error.message,
+      error_message: message,
       correlation_id: correlationId,
       execution_time_ms: Date.now() - startTime
     });
@@ -201,7 +294,8 @@ async function planActions(
   supabase: any,
   context: AgentContext,
   observations: any,
-  action: string
+  action: string,
+  traceId: string
 ): Promise<any> {
   // Use AI model to create action plan
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -324,7 +418,8 @@ async function execute(
   supabase: any,
   context: AgentContext,
   plan: any,
-  correlationId: string
+  correlationId: string,
+  traceId: string
 ): Promise<any> {
   const results = [];
 

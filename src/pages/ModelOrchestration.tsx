@@ -1,217 +1,369 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Bot, Sparkles, Zap, Brain, CheckCircle2, Activity } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Database, Cpu, Workflow, Shield, Activity, TrendingUp, Zap, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-export default function ModelOrchestration() {
-  const models = [
-    {
-      name: 'SaPOS Offer Generator',
-      provider: 'Lovable AI',
-      model: 'google/gemini-2.5-flash',
-      status: 'active',
-      description: 'Generates spare parts or service offers based on work order context',
-      avgLatency: '1.2s',
-      successRate: '98.5%',
-      dailyCalls: 245,
-    },
-    {
-      name: 'Photo Validation CV',
-      provider: 'External GPU',
-      model: 'TruFor Tamper Detection',
-      status: 'active',
-      description: 'Computer vision model for photo authenticity verification',
-      avgLatency: '2.8s',
-      successRate: '99.2%',
-      dailyCalls: 892,
-    },
-    {
-      name: 'Fraud Detection',
-      provider: 'Lovable AI',
-      model: 'google/gemini-2.5-pro',
-      status: 'active',
-      description: 'Analyzes patterns to detect potential fraudulent activities',
-      avgLatency: '1.8s',
-      successRate: '96.7%',
-      dailyCalls: 124,
-    },
-    {
-      name: 'Knowledge Base RAG',
-      provider: 'Lovable AI',
-      model: 'google/gemini-2.5-flash',
-      status: 'active',
-      description: 'Retrieval-augmented generation for technical documentation',
-      avgLatency: '1.5s',
-      successRate: '97.3%',
-      dailyCalls: 567,
-    },
-    {
-      name: 'Assistant Chatbot',
-      provider: 'Lovable AI',
-      model: 'google/gemini-2.5-flash',
-      status: 'active',
-      description: 'Conversational AI for user assistance and support',
-      avgLatency: '0.9s',
-      successRate: '99.1%',
-      dailyCalls: 1340,
-    },
-  ];
+const ModelOrchestration = () => {
+  const [systemConfig, setSystemConfig] = useState<any>({});
+  const [models, setModels] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [policies, setPolicies] = useState<any[]>([]);
+  const [features, setFeatures] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  const getStatusBadge = (status: string) => {
-    if (status === 'active') {
-      return (
-        <Badge className="bg-green-100 text-green-800">
-          <CheckCircle2 className="h-3 w-3 mr-1" />
-          Active
-        </Badge>
-      );
+  useEffect(() => {
+    loadSystemStatus();
+  }, []);
+
+  const loadSystemStatus = async () => {
+    try {
+      const [configRes, modelsRes, workflowsRes, policiesRes, featuresRes] = await Promise.all([
+        (supabase as any).from('system_config').select('*'),
+        (supabase as any).from('model_registry').select('*').eq('active', true),
+        (supabase as any).from('workflow_definitions').select('*').eq('active', true),
+        (supabase as any).from('policy_registry').select('*').eq('active', true),
+        (supabase as any).from('feature_toggles').select('*')
+      ]);
+
+      if (configRes.data) {
+        const config = configRes.data.reduce((acc: any, item: any) => {
+          try {
+            acc[item.config_key] = JSON.parse(item.config_value);
+          } catch {
+            acc[item.config_key] = item.config_value;
+          }
+          return acc;
+        }, {});
+        setSystemConfig(config);
+      }
+      setModels((modelsRes.data || []) as any[]);
+      setWorkflows((workflowsRes.data || []) as any[]);
+      setPolicies((policiesRes.data || []) as any[]);
+      setFeatures((featuresRes.data || []) as any[]);
+    } catch (error: any) {
+      toast({
+        title: "Error loading system status",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    return <Badge variant="outline">Inactive</Badge>;
   };
 
+  const detectSystem = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('system-detect', {});
+      if (error) throw error;
+      
+      toast({
+        title: "System Detection Complete",
+        description: `Database mode: ${data.db_mode}`,
+      });
+      
+      loadSystemStatus();
+    } catch (error: any) {
+      toast({
+        title: "Detection failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleFeature = async (featureKey: string, currentEnabled: boolean) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('feature_toggles')
+        .update({ enabled: !currentEnabled })
+        .eq('feature_key', featureKey);
+
+      if (error) throw error;
+
+      toast({
+        title: "Feature Updated",
+        description: `Feature ${currentEnabled ? 'disabled' : 'enabled'} successfully`,
+      });
+
+      loadSystemStatus();
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Model Orchestration</h1>
-        <p className="text-muted-foreground">
-          AI model configuration and performance monitoring
-        </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Recon-X v3.0 Platform Orchestration</h1>
+          <p className="text-muted-foreground mt-1">
+            Adaptive AI platform with auto-detection and policy-driven governance
+          </p>
+        </div>
+        <Button onClick={detectSystem}>
+          <Activity className="h-4 w-4 mr-2" />
+          Detect System
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Models</CardTitle>
-            <Bot className="h-4 w-4 text-primary" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Database Mode</CardTitle>
+            <Database className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{models.filter(m => m.status === 'active').length}</div>
-            <p className="text-xs text-muted-foreground">Production ready</p>
+            <Badge variant={systemConfig.db_mode === 'SUPABASE_FULL' ? 'default' : 'secondary'}>
+              {systemConfig.db_mode || 'RESTRICTED_DB'}
+            </Badge>
+            <p className="text-xs text-muted-foreground mt-2">
+              Vector: {systemConfig.vector_enabled ? 'Enabled' : 'Disabled'}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Daily Calls</CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">AI Models</CardTitle>
+            <Cpu className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {models.reduce((sum, m) => sum + m.dailyCalls, 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Across all models</p>
+            <div className="text-2xl font-bold">{models.length}</div>
+            <p className="text-xs text-muted-foreground">Active models</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Latency</CardTitle>
-            <Zap className="h-4 w-4 text-yellow-500" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Workflows</CardTitle>
+            <Workflow className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1.4s</div>
-            <p className="text-xs text-muted-foreground">p95 response time</p>
+            <div className="text-2xl font-bold">{workflows.length}</div>
+            <p className="text-xs text-muted-foreground">Autonomous flows</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-success" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Policies</CardTitle>
+            <Shield className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">98.1%</div>
-            <p className="text-xs text-muted-foreground">Overall reliability</p>
+            <div className="text-2xl font-bold">{policies.length}</div>
+            <p className="text-xs text-muted-foreground">Governance rules</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Deployed Models</CardTitle>
-          <CardDescription>AI models currently in production</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {models.map((model, idx) => (
-              <div
-                key={idx}
-                className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Brain className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{model.name}</h3>
-                      <p className="text-sm text-muted-foreground">{model.description}</p>
-                    </div>
-                  </div>
-                  {getStatusBadge(model.status)}
-                </div>
+      <Tabs defaultValue="models" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="models">AI Models</TabsTrigger>
+          <TabsTrigger value="workflows">Workflows</TabsTrigger>
+          <TabsTrigger value="policies">Policies</TabsTrigger>
+          <TabsTrigger value="features">Features</TabsTrigger>
+        </TabsList>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Provider</p>
-                    <p className="font-medium">{model.provider}</p>
+        <TabsContent value="models" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Model Registry</CardTitle>
+              <CardDescription>AI models available for agent selection</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Provider</TableHead>
+                    <TableHead>Capabilities</TableHead>
+                    <TableHead>Usage</TableHead>
+                    <TableHead>Avg Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {models.map((model) => (
+                    <TableRow key={model.id}>
+                      <TableCell className="font-medium">{model.model_name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{model.provider}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {model.capabilities?.slice(0, 3).map((cap: string, idx: number) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {cap}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>{model.usage_count || 0}</TableCell>
+                      <TableCell>${model.avg_cost_per_1k_tokens || 0}/1K</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="workflows" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Workflow Definitions</CardTitle>
+              <CardDescription>Declarative workflow graphs for autonomous execution</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {workflows.map((workflow) => (
+                  <div key={workflow.id} className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold">{workflow.name}</h4>
+                        <p className="text-sm text-muted-foreground">{workflow.description}</p>
+                      </div>
+                      <Badge>{workflow.version}</Badge>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      {workflow.trigger_events?.map((event: string, idx: number) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          {event}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Model</p>
-                    <p className="font-medium text-xs">{model.model}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Avg Latency</p>
-                    <p className="font-medium">{model.avgLatency}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Success Rate</p>
-                    <p className="font-medium text-green-600">{model.successRate}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Daily Calls</p>
-                    <p className="font-medium">{model.dailyCalls.toLocaleString()}</p>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="policies" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Policy Registry</CardTitle>
+              <CardDescription>Policy-as-Code governance rules</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Policy</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Priority</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {policies.map((policy) => (
+                    <TableRow key={policy.id}>
+                      <TableCell className="font-medium">{policy.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{policy.category}</Badge>
+                      </TableCell>
+                      <TableCell>{policy.policy_type}</TableCell>
+                      <TableCell>{policy.priority}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="features" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Feature Toggles</CardTitle>
+              <CardDescription>Control agent capabilities and rollouts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {features.map((feature) => (
+                  <div key={feature.id} className="p-4 border rounded-lg flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{feature.name}</h4>
+                      <p className="text-sm text-muted-foreground">{feature.description}</p>
+                      <div className="flex gap-2 mt-2">
+                        <Badge variant={feature.enabled ? 'default' : 'secondary'}>
+                          {feature.enabled ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                        <Badge variant="outline">{feature.rollout_percentage}% rollout</Badge>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={feature.enabled ? 'destructive' : 'default'}
+                      onClick={() => toggleFeature(feature.feature_key, feature.enabled)}
+                    >
+                      {feature.enabled ? 'Disable' : 'Enable'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Card className="bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            Lovable AI Integration
+            <Zap className="h-5 w-5" />
+            v3.0 Adaptive Architecture
           </CardTitle>
-          <CardDescription>Seamless AI capabilities without API key management</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-sm">Pre-configured Authentication</p>
+                <p className="font-medium text-sm">Auto-Detection</p>
                 <p className="text-xs text-muted-foreground">
-                  LOVABLE_API_KEY automatically provisioned - no manual setup required
+                  Automatically adapts to SUPABASE_FULL or RESTRICTED_DB mode
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-sm">Free Gemini Usage Period</p>
+                <p className="font-medium text-sm">Policy-Driven</p>
                 <p className="text-xs text-muted-foreground">
-                  All Gemini models are free until Oct 6, 2025 - unlimited usage for development
+                  All agent actions governed by policy-as-code enforcement
                 </p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-sm">Model Selection</p>
+                <p className="font-medium text-sm">Full Observability</p>
                 <p className="text-xs text-muted-foreground">
-                  Choose from google/gemini-2.5-pro, flash, flash-lite, or OpenAI GPT-5 models
+                  OpenTelemetry-style tracing for every agent decision
                 </p>
               </div>
             </div>
@@ -220,4 +372,6 @@ export default function ModelOrchestration() {
       </Card>
     </div>
   );
-}
+};
+
+export default ModelOrchestration;

@@ -30,6 +30,12 @@ verify_jwt = true
 [functions.system-detect]
 verify_jwt = false
 
+[functions.workflow-executor]
+verify_jwt = true
+
+[functions.policy-enforcer]
+verify_jwt = false
+
 [functions.assign-role]
 verify_jwt = true
 
