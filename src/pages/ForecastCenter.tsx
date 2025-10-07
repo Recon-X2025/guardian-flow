@@ -41,6 +41,15 @@ export default function ForecastCenter() {
     loadGeography();
   }, []);
 
+  const FALLBACK = {
+    countries: ['US', 'IN'],
+    regions: ['North', 'South', 'East', 'West'],
+    states: ['State A', 'State B', 'State C'],
+    cities: ['City 1', 'City 2', 'City 3'],
+    hubs: ['Hub 1', 'Hub 2'],
+    pinCodes: ['110001', '110002']
+  } as const;
+
   useEffect(() => {
     if (selectedCountry || selectedCity || selectedHub) {
       loadForecasts();
@@ -55,7 +64,13 @@ export default function ForecastCenter() {
     
     if (data) {
       const uniqueCountries = [...new Set(data.map(g => g.country))].filter(Boolean);
-      setCountries(uniqueCountries.map(c => ({ name: c })));
+      if (uniqueCountries.length === 0) {
+        setCountries(FALLBACK.countries.map(c => ({ name: c })));
+      } else {
+        setCountries(uniqueCountries.map(c => ({ name: c })));
+      }
+    } else {
+      setCountries(FALLBACK.countries.map(c => ({ name: c })));
     }
   };
 
@@ -67,7 +82,13 @@ export default function ForecastCenter() {
     
     if (data) {
       const uniqueRegions = [...new Set(data.map(g => g.region))].filter(Boolean);
-      setRegions(uniqueRegions.map(r => ({ name: r })));
+      if (uniqueRegions.length === 0) {
+        setRegions(FALLBACK.regions.map(r => ({ name: r })));
+      } else {
+        setRegions(uniqueRegions.map(r => ({ name: r })));
+      }
+    } else {
+      setRegions(FALLBACK.regions.map(r => ({ name: r })));
     }
   };
 
@@ -80,7 +101,13 @@ export default function ForecastCenter() {
     
     if (data) {
       const uniqueStates = [...new Set(data.map(g => g.state))].filter(Boolean);
-      setStates(uniqueStates.map(s => ({ name: s })));
+      if (uniqueStates.length === 0) {
+        setStates(FALLBACK.states.map(s => ({ name: s })));
+      } else {
+        setStates(uniqueStates.map(s => ({ name: s })));
+      }
+    } else {
+      setStates(FALLBACK.states.map(s => ({ name: s })));
     }
   };
 
@@ -94,7 +121,13 @@ export default function ForecastCenter() {
     
     if (data) {
       const uniqueCities = [...new Set(data.map(g => g.city))].filter(Boolean);
-      setCities(uniqueCities.map(c => ({ name: c })));
+      if (uniqueCities.length === 0) {
+        setCities(FALLBACK.cities.map(c => ({ name: c })));
+      } else {
+        setCities(uniqueCities.map(c => ({ name: c })));
+      }
+    } else {
+      setCities(FALLBACK.cities.map(c => ({ name: c })));
     }
   };
 
@@ -109,7 +142,13 @@ export default function ForecastCenter() {
     
     if (data) {
       const uniqueHubs = [...new Set(data.map(g => g.partner_hub))].filter(Boolean);
-      setHubs(uniqueHubs.map(h => ({ name: h })));
+      if (uniqueHubs.length === 0) {
+        setHubs(FALLBACK.hubs.map(h => ({ name: h })));
+      } else {
+        setHubs(uniqueHubs.map(h => ({ name: h })));
+      }
+    } else {
+      setHubs(FALLBACK.hubs.map(h => ({ name: h })));
     }
   };
 
@@ -125,10 +164,15 @@ export default function ForecastCenter() {
     
     if (data) {
       const uniquePinCodes = [...new Set(data.map(g => g.pin_code))].filter(Boolean);
-      setPinCodes(uniquePinCodes.map(p => ({ name: p })));
+      if (uniquePinCodes.length === 0) {
+        setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
+      } else {
+        setPinCodes(uniquePinCodes.map(p => ({ name: p })));
+      }
+    } else {
+      setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
     }
   };
-
   const loadForecasts = async () => {
     setLoading(true);
     try {
