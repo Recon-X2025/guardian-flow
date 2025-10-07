@@ -49,15 +49,15 @@ const AgentDashboard = () => {
 
   const loadAgents = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('agent_registry')
         .select('*')
-        .order('created_at', { ascending: true }) as { data: Agent[] | null; error: any };
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setAgents(data || []);
+      setAgents((data || []) as Agent[]);
       if (data && data.length > 0) {
-        setSelectedAgent(data[0]);
+        setSelectedAgent(data[0] as Agent);
         loadAgentStatus(data[0].agent_id);
       }
     } catch (error: any) {

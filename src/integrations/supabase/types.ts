@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_memory_pointers: {
+        Row: {
+          access_count: number | null
+          agent_id: string
+          created_at: string | null
+          expires_at: string | null
+          external_id: string | null
+          id: string
+          importance_score: number | null
+          last_accessed_at: string | null
+          memory_type: string
+          summary: string | null
+        }
+        Insert: {
+          access_count?: number | null
+          agent_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          importance_score?: number | null
+          last_accessed_at?: string | null
+          memory_type: string
+          summary?: string | null
+        }
+        Update: {
+          access_count?: number | null
+          agent_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          importance_score?: number | null
+          last_accessed_at?: string | null
+          memory_type?: string
+          summary?: string | null
+        }
+        Relationships: []
+      }
+      agent_policy_bindings: {
+        Row: {
+          active: boolean | null
+          agent_id: string
+          created_at: string | null
+          id: string
+          policy_id: string
+          priority: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          policy_id: string
+          priority?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          policy_id?: string
+          priority?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_policy_bindings_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policy_registry"
+            referencedColumns: ["policy_id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           bucket_url: string | null
@@ -128,6 +202,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      events_log: {
+        Row: {
+          agent_id: string | null
+          correlation_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          payload: Json
+          tenant_id: string | null
+          trace_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          payload: Json
+          tenant_id?: string | null
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          payload?: Json
+          tenant_id?: string | null
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_toggles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          enabled: boolean | null
+          feature_key: string
+          id: string
+          metadata: Json | null
+          name: string
+          rollout_percentage: number | null
+          tenant_allowlist: string[] | null
+          tenant_blocklist: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          feature_key: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          rollout_percentage?: number | null
+          tenant_allowlist?: string[] | null
+          tenant_blocklist?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          feature_key?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          rollout_percentage?: number | null
+          tenant_allowlist?: string[] | null
+          tenant_blocklist?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       fraud_alerts: {
         Row: {
@@ -319,6 +483,114 @@ export type Database = {
           token_hash?: string
           used_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      model_registry: {
+        Row: {
+          accuracy_score: number | null
+          active: boolean | null
+          avg_cost_per_1k_tokens: number | null
+          avg_latency_ms: number | null
+          capabilities: string[] | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          model_id: string
+          model_name: string
+          provider: string
+          success_rate: number | null
+          task_types: string[] | null
+          updated_at: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          active?: boolean | null
+          avg_cost_per_1k_tokens?: number | null
+          avg_latency_ms?: number | null
+          capabilities?: string[] | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          model_id: string
+          model_name: string
+          provider: string
+          success_rate?: number | null
+          task_types?: string[] | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          active?: boolean | null
+          avg_cost_per_1k_tokens?: number | null
+          avg_latency_ms?: number | null
+          capabilities?: string[] | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          model_id?: string
+          model_name?: string
+          provider?: string
+          success_rate?: number | null
+          task_types?: string[] | null
+          updated_at?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      observability_traces: {
+        Row: {
+          agent_id: string | null
+          attributes: Json | null
+          created_at: string | null
+          duration_ms: number | null
+          end_time: string | null
+          error_message: string | null
+          events: Json | null
+          id: string
+          operation_name: string
+          parent_span_id: string | null
+          service_name: string | null
+          span_id: string
+          start_time: string
+          status: string | null
+          trace_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          attributes?: Json | null
+          created_at?: string | null
+          duration_ms?: number | null
+          end_time?: string | null
+          error_message?: string | null
+          events?: Json | null
+          id?: string
+          operation_name: string
+          parent_span_id?: string | null
+          service_name?: string | null
+          span_id: string
+          start_time: string
+          status?: string | null
+          trace_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          attributes?: Json | null
+          created_at?: string | null
+          duration_ms?: number | null
+          end_time?: string | null
+          error_message?: string | null
+          events?: Json | null
+          id?: string
+          operation_name?: string
+          parent_span_id?: string | null
+          service_name?: string | null
+          span_id?: string
+          start_time?: string
+          status?: string | null
+          trace_id?: string
         }
         Relationships: []
       }
@@ -582,6 +854,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      policy_registry: {
+        Row: {
+          actions: Json
+          active: boolean | null
+          category: string
+          conditions: Json
+          created_at: string | null
+          id: string
+          name: string
+          policy_id: string
+          policy_type: string
+          priority: number | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actions: Json
+          active?: boolean | null
+          category: string
+          conditions: Json
+          created_at?: string | null
+          id?: string
+          name: string
+          policy_id: string
+          policy_type: string
+          priority?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actions?: Json
+          active?: boolean | null
+          category?: string
+          conditions?: Json
+          created_at?: string | null
+          id?: string
+          name?: string
+          policy_id?: string
+          policy_type?: string
+          priority?: number | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -925,6 +1242,33 @@ export type Database = {
           },
         ]
       }
+      system_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string | null
+          description: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value: Json
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           active: boolean | null
@@ -1233,6 +1577,122 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_definitions: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string | null
+          graph: Json
+          id: string
+          input_schema: Json | null
+          name: string
+          output_schema: Json | null
+          retry_policy: Json | null
+          tenant_id: string | null
+          timeout_seconds: number | null
+          trigger_events: string[] | null
+          updated_at: string | null
+          version: number | null
+          workflow_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          graph: Json
+          id?: string
+          input_schema?: Json | null
+          name: string
+          output_schema?: Json | null
+          retry_policy?: Json | null
+          tenant_id?: string | null
+          timeout_seconds?: number | null
+          trigger_events?: string[] | null
+          updated_at?: string | null
+          version?: number | null
+          workflow_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          graph?: Json
+          id?: string
+          input_schema?: Json | null
+          name?: string
+          output_schema?: Json | null
+          retry_policy?: Json | null
+          tenant_id?: string | null
+          timeout_seconds?: number | null
+          trigger_events?: string[] | null
+          updated_at?: string | null
+          version?: number | null
+          workflow_id?: string
+        }
+        Relationships: []
+      }
+      workflow_runtime: {
+        Row: {
+          agent_id: string | null
+          completed_at: string | null
+          correlation_id: string | null
+          created_at: string | null
+          current_node: string | null
+          error_message: string | null
+          execution_id: string
+          id: string
+          input_data: Json | null
+          output_data: Json | null
+          retry_count: number | null
+          started_at: string | null
+          state: Json | null
+          status: string | null
+          workflow_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          current_node?: string | null
+          error_message?: string | null
+          execution_id: string
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          state?: Json | null
+          status?: string | null
+          workflow_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          completed_at?: string | null
+          correlation_id?: string | null
+          created_at?: string | null
+          current_node?: string | null
+          error_message?: string | null
+          execution_id?: string
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          retry_count?: number | null
+          started_at?: string | null
+          state?: Json | null
+          status?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runtime_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["workflow_id"]
           },
         ]
       }

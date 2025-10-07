@@ -27,6 +27,9 @@ verify_jwt = true
 [functions.verify-mfa]
 verify_jwt = true
 
+[functions.system-detect]
+verify_jwt = false
+
 [functions.assign-role]
 verify_jwt = true
 
