@@ -198,6 +198,10 @@ export default function ForecastCenter() {
         query = query.eq('geography_level', 'region').eq('region', selectedRegion);
       } else if (selectedCountry) {
         query = query.eq('geography_level', 'country').eq('country', selectedCountry);
+      } else {
+        // Default to country level when nothing is selected
+        const baseCountry = countries.length > 0 ? countries[0].name : 'US';
+        query = query.eq('geography_level', 'country').eq('country', baseCountry);
       }
 
       const { data, error } = await query;
