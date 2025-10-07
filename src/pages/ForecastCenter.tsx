@@ -16,7 +16,7 @@ export default function ForecastCenter() {
   });
   const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [externalData, setExternalData] = useState<any>(null);
+  const [externalFeeds, setExternalFeeds] = useState<any>({ weather: null, events: null, economic: null });
   const [bootstrapped, setBootstrapped] = useState(false);
   const { toast } = useToast();
 
@@ -64,15 +64,35 @@ export default function ForecastCenter() {
 
   const loadExternalData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('external_data_feeds')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const [weatherRes, eventsRes, economicRes] = await Promise.all([
+        supabase
+          .from('external_data_feeds')
+          .select('*')
+          .eq('feed_type', 'weather')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('external_data_feeds')
+          .select('*')
+          .eq('feed_type', 'events')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('external_data_feeds')
+          .select('*')
+          .eq('feed_type', 'economic')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setExternalData(data);
+      setExternalFeeds({
+        weather: weatherRes.data || null,
+        events: eventsRes.data || null,
+        economic: economicRes.data || null,
+      });
     } catch (error: any) {
       console.error('Error loading external data:', error);
     }
@@ -393,9 +413,9 @@ export default function ForecastCenter() {
                 <Button onClick={() => syncExternalData('weather')} className="w-full">
                   Sync Weather
                 </Button>
-                {externalData?.feed_type === 'weather' && (
+                {externalFeeds.weather && (
                   <div className="mt-4 text-sm text-muted-foreground">
-                    Last updated: {new Date(externalData.created_at).toLocaleString()}
+                    Last updated: {new Date(externalFeeds.weather.created_at).toLocaleString()}
                   </div>
                 )}
               </CardContent>
@@ -412,9 +432,9 @@ export default function ForecastCenter() {
                 <Button onClick={() => syncExternalData('events')} className="w-full">
                   Sync Events
                 </Button>
-                {externalData?.feed_type === 'events' && (
+                {externalFeeds.events && (
                   <div className="mt-4 text-sm text-muted-foreground">
-                    Last updated: {new Date(externalData.created_at).toLocaleString()}
+                    Last updated: {new Date(externalFeeds.events.created_at).toLocaleString()}
                   </div>
                 )}
               </CardContent>
@@ -431,9 +451,9 @@ export default function ForecastCenter() {
                 <Button onClick={() => syncExternalData('economic')} className="w-full">
                   Sync Indicators
                 </Button>
-                {externalData?.feed_type === 'economic' && (
+                {externalFeeds.economic && (
                   <div className="mt-4 text-sm text-muted-foreground">
-                    Last updated: {new Date(externalData.created_at).toLocaleString()}
+                    Last updated: {new Date(externalFeeds.economic.created_at).toLocaleString()}
                   </div>
                 )}
               </CardContent>
