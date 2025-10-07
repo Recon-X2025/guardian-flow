@@ -107,6 +107,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "System",
     items: [
+      { title: "Product Specs", url: "/product-specs", icon: FileText },
       { title: "Help & Training", url: "/help", icon: GraduationCap },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
@@ -117,8 +118,8 @@ export function AppSidebar() {
   const { hasAnyPermission, isAdmin, loading } = useRBAC();
 
   const canAccessItem = (item: MenuItem): boolean => {
-    // Dashboard, Settings, and Help & Training are accessible to all authenticated users
-    if (item.url === "/" || item.url === "/settings" || item.url === "/help") {
+    // Dashboard, Settings, Help & Training, and Product Specs are accessible to all authenticated users
+    if (item.url === "/" || item.url === "/settings" || item.url === "/help" || item.url === "/product-specs") {
       return true;
     }
 
