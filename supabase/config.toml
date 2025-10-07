@@ -56,3 +56,12 @@ verify_jwt = true
 
 [functions.calculate-penalties]
 verify_jwt = true
+
+[functions.agent-runtime]
+verify_jwt = true
+
+[functions.agent-orchestrator]
+verify_jwt = true
+
+[functions.auth-me]
+verify_jwt = true

@@ -39,6 +39,7 @@ import Assistant from "./pages/Assistant";
 import ModelOrchestration from "./pages/ModelOrchestration";
 import HelpTraining from "./pages/HelpTraining";
 import AnomalyDetection from "./pages/AnomalyDetection";
+import AgentDashboard from "./pages/AgentDashboard";
 
 const queryClient = new QueryClient();
 
@@ -194,6 +195,11 @@ const App = () => (
                                 <Route path="/observability" element={
                                   <RoleGuard permissions={["audit.read"]} showError={true}>
                                     <Observability />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/agent-dashboard" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <AgentDashboard />
                                   </RoleGuard>
                                 } />
                                 <Route path="/help" element={<HelpTraining />} />
