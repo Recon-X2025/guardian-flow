@@ -87,16 +87,33 @@ export default function ForecastCenter() {
 
       if (error) throw error;
 
-      toast({
-        title: "Forecast Generated",
-        description: `${type} forecast completed successfully`
-      });
+      // Handle async job acceptance (202) or sync completion (200)
+      if (data?.status === 'accepted') {
+        toast({
+          title: "Forecast Job Queued",
+          description: `Job ${data.jobId} is processing. Results will appear shortly.`,
+        });
+        
+        // Poll for completion after 5 seconds
+        setTimeout(() => loadForecasts(), 5000);
+      } else if (data?.success) {
+        toast({
+          title: "Forecast Generated",
+          description: `Successfully generated ${type} forecast`,
+        });
+      } else if (data?.fallback) {
+        toast({
+          title: "Fallback Used",
+          description: data.message || "Using heuristic forecast",
+          variant: "default"
+        });
+      }
 
       await loadForecasts();
     } catch (error: any) {
       toast({
         title: "Forecast Error",
-        description: error.message,
+        description: error.message || "Failed to generate forecast",
         variant: "destructive"
       });
     } finally {

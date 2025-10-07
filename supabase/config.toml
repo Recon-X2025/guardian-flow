@@ -81,5 +81,8 @@ verify_jwt = true
 [functions.forecast-engine]
 verify_jwt = true
 
+[functions.forecast-worker]
+verify_jwt = false
+
 [functions.external-data-sync]
 verify_jwt = false

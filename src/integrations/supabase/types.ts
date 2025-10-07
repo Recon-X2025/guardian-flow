@@ -463,81 +463,108 @@ export type Database = {
           accuracy_score: number | null
           active: boolean | null
           algorithm: string
+          artifact_uri: string | null
           config: Json | null
           created_at: string | null
           features: Json
           frequency: string
+          hyperparams: Json | null
           id: string
           last_trained_at: string | null
+          metrics: Json | null
+          model_key: string | null
           model_name: string
           model_type: string
+          model_version: number | null
+          training_data_range: Json | null
           updated_at: string | null
         }
         Insert: {
           accuracy_score?: number | null
           active?: boolean | null
           algorithm: string
+          artifact_uri?: string | null
           config?: Json | null
           created_at?: string | null
           features?: Json
           frequency: string
+          hyperparams?: Json | null
           id?: string
           last_trained_at?: string | null
+          metrics?: Json | null
+          model_key?: string | null
           model_name: string
           model_type: string
+          model_version?: number | null
+          training_data_range?: Json | null
           updated_at?: string | null
         }
         Update: {
           accuracy_score?: number | null
           active?: boolean | null
           algorithm?: string
+          artifact_uri?: string | null
           config?: Json | null
           created_at?: string | null
           features?: Json
           frequency?: string
+          hyperparams?: Json | null
           id?: string
           last_trained_at?: string | null
+          metrics?: Json | null
+          model_key?: string | null
           model_name?: string
           model_type?: string
+          model_version?: number | null
+          training_data_range?: Json | null
           updated_at?: string | null
         }
         Relationships: []
       }
       forecast_outputs: {
         Row: {
+          attributes: Json | null
           confidence_lower: number | null
           confidence_upper: number | null
           created_at: string | null
           forecast_type: string
           id: string
+          lower_bound: number | null
           metadata: Json | null
           model_id: string | null
           target_date: string
           tenant_id: string | null
+          upper_bound: number | null
           value: number
         }
         Insert: {
+          attributes?: Json | null
           confidence_lower?: number | null
           confidence_upper?: number | null
           created_at?: string | null
           forecast_type: string
           id?: string
+          lower_bound?: number | null
           metadata?: Json | null
           model_id?: string | null
           target_date: string
           tenant_id?: string | null
+          upper_bound?: number | null
           value: number
         }
         Update: {
+          attributes?: Json | null
           confidence_lower?: number | null
           confidence_upper?: number | null
           created_at?: string | null
           forecast_type?: string
           id?: string
+          lower_bound?: number | null
           metadata?: Json | null
           model_id?: string | null
           target_date?: string
           tenant_id?: string | null
+          upper_bound?: number | null
           value?: number
         }
         Relationships: [
@@ -556,6 +583,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      forecast_queue: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          payload: Json
+          started_at: string | null
+          status: string | null
+          tenant_id: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          payload: Json
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          payload?: Json
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          trace_id?: string | null
+        }
+        Relationships: []
       }
       fraud_alerts: {
         Row: {
