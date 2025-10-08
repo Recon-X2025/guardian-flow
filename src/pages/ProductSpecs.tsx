@@ -110,11 +110,11 @@ const ProductSpecs = () => {
                   Complete technical documentation including system architecture, modules, workflows, and API reference.
                 </p>
                 <a 
-                  href="/PRODUCT_SPECIFICATIONS.md" 
+                  href="/PRODUCT_SPECIFICATIONS_V5.md" 
                   target="_blank"
                   className="text-primary hover:underline text-sm font-medium"
                 >
-                  View Complete Specifications →
+                  View v5.0 Specifications →
                 </a>
               </CardContent>
             </Card>
@@ -131,11 +131,11 @@ const ProductSpecs = () => {
                   Detailed v3.0 agentic AI implementation including cognitive loop, policy enforcement, and observability.
                 </p>
                 <a 
-                  href="/PRODUCT_SPECIFICATIONS_V3.md" 
+                  href="/PRODUCT_SPECIFICATIONS_V5.md" 
                   target="_blank"
                   className="text-primary hover:underline text-sm font-medium"
                 >
-                  View v3.0 Documentation →
+                  View v5.0 Documentation →
                 </a>
               </CardContent>
             </Card>

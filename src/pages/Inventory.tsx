@@ -28,6 +28,8 @@ export default function Inventory() {
           *,
           stock_levels(*)
         `)
+        .not('description', 'ilike', '%HVAC%')
+        .not('sku', 'ilike', '%HVAC%')
         .order('description', { ascending: true });
 
       if (error) throw error;

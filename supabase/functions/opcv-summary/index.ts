@@ -101,6 +101,8 @@ serve(async (req) => {
     const { data: inventory } = await supabase
       .from('inventory_items')
       .select('sku, description')
+      .not('description', 'ilike', '%HVAC%')
+      .not('sku', 'ilike', '%HVAC%')
       .limit(5);
 
     const inventoryAlerts = inventory?.map(item => ({
