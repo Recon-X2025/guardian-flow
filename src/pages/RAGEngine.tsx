@@ -44,7 +44,7 @@ export default function RAGEngine() {
     setResults([
       {
         id: "chunk_001",
-        content: "The standard warranty period for HVAC units is 12 months from installation date. Extended warranties are available for premium customers.",
+        content: "The standard warranty period for PC and Print units is 12 months from installation date. Extended warranties are available for premium customers.",
         source: "warranty_policy.pdf",
         relevance: 0.94
       },

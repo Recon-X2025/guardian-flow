@@ -138,7 +138,7 @@ export function OperationalCommandView() {
               <div className="space-y-2">
                 {data.forecast_breaches.slice(0, 5).map((breach, idx) => (
                   <div key={idx} className="flex justify-between items-center p-2 rounded bg-muted/50">
-                    <span className="text-sm font-medium">{breach.geography_key}</span>
+                    <span className="text-sm font-medium">{breach.geography_key || `Zone ${idx + 1}`}</span>
                     <Badge variant="outline">{Math.round(breach.value)} WOs</Badge>
                   </div>
                 ))}

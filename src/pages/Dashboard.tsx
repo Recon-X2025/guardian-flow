@@ -223,45 +223,6 @@ export default function Dashboard() {
         <OperationalCommandView />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>System Alerts</CardTitle>
-            <CardDescription>Requires attention</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 p-3 border border-warning/20 bg-warning/5 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Low Stock Alert</p>
-                  <p className="text-xs text-muted-foreground">
-                    3 parts below minimum threshold
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 border border-primary/20 bg-primary/5 rounded-lg">
-                <Activity className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">SLA Risk</p>
-                  <p className="text-xs text-muted-foreground">
-                    2 work orders approaching deadline
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 p-3 border border-success/20 bg-success/5 rounded-lg">
-                <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">All Systems Operational</p>
-                  <p className="text-xs text-muted-foreground">
-                    No critical issues detected
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
