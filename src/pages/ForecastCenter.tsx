@@ -322,13 +322,15 @@ export default function ForecastCenter() {
 
       setSeedProgress({ 
         status: 'completed', 
-        message: `✅ Seeded ${data.total_records.toLocaleString()} work orders`,
+        message: data.total_records ? `✅ Seeded ${data.total_records.toLocaleString()} work orders` : `✅ ${data.message || 'Seeding started'}`,
         details: data
       });
 
       toast({
         title: 'India Data Seeded Successfully',
-        description: `${data.total_records.toLocaleString()} work orders created. ${data.forecast?.triggered ? 'Forecasts triggered.' : ''}`
+        description: data.total_records 
+          ? `${data.total_records.toLocaleString()} work orders created. ${data.forecast?.triggered ? 'Forecasts triggered.' : ''}`
+          : data.message || 'Background processing started'
       });
 
       await loadSystemMetrics();
@@ -451,12 +453,12 @@ export default function ForecastCenter() {
                     <div>Start: {seedProgress.details.start_date}</div>
                     <div>End: {seedProgress.details.end_date}</div>
                   </div>
-                  {seedProgress.details.validation && (
+                   {seedProgress.details?.validation && (
                     <div className="mt-2 p-2 bg-muted/50 rounded">
                       <div className="font-medium text-sm">Validation: {seedProgress.details.validation.status}</div>
                       {seedProgress.details.validation.product_distribution?.map((pd: any) => (
                         <div key={pd.category} className="text-xs">
-                          {pd.category}: {pd.count.toLocaleString()} ({pd.percentage}%)
+                          {pd.category}: {pd.count?.toLocaleString() || 0} ({pd.percentage || '0'}%)
                         </div>
                       ))}
                     </div>
@@ -514,16 +516,16 @@ export default function ForecastCenter() {
                 <p className="text-sm font-medium mb-2">Seeded Data Coverage</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Records:</span> {systemMetrics.seed_info.total_records.toLocaleString()}
+                    <span className="text-muted-foreground">Records:</span> {systemMetrics.seed_info.total_records?.toLocaleString() || '0'}
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Period:</span> {systemMetrics.seed_info.months_covered} months
+                    <span className="text-muted-foreground">Period:</span> {systemMetrics.seed_info.months_covered || 0} months
                   </div>
                   <div>
-                    <span className="text-muted-foreground">States:</span> {systemMetrics.seed_info.geography_coverage.states}
+                    <span className="text-muted-foreground">States:</span> {systemMetrics.seed_info.geography_coverage?.states || 0}
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Hubs:</span> {systemMetrics.seed_info.geography_coverage.hubs}
+                    <span className="text-muted-foreground">Hubs:</span> {systemMetrics.seed_info.geography_coverage?.hubs || 0}
                   </div>
                 </div>
               </div>
