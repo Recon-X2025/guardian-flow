@@ -1432,6 +1432,95 @@ export type Database = {
           },
         ]
       }
+      report_audit: {
+        Row: {
+          created_at: string | null
+          file_path: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          metadata: Json | null
+          report_type: string
+          rows_count: number | null
+          status: string
+          tenant_id: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_path?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          report_type: string
+          rows_count?: number | null
+          status: string
+          tenant_id?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_path?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          report_type?: string
+          rows_count?: number | null
+          status?: string
+          tenant_id?: string | null
+          trace_id?: string | null
+        }
+        Relationships: []
+      }
+      report_subscriptions: {
+        Row: {
+          active: boolean | null
+          cadence: string
+          config: Json | null
+          created_at: string | null
+          id: string
+          last_sent_at: string | null
+          report_type: string
+          tenant_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          cadence: string
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          last_sent_at?: string | null
+          report_type: string
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          cadence?: string
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          last_sent_at?: string | null
+          report_type?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       request_context: {
         Row: {
           correlation_id: string

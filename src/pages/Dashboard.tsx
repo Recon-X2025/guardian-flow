@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { OperationalCommandView } from "@/components/OperationalCommandView";
 import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -217,51 +218,12 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Work Orders</CardTitle>
-            <CardDescription>Latest field service activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-4 text-muted-foreground">Loading...</div>
-            ) : recentWorkOrders.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No recent work orders</div>
-            ) : (
-              <div className="space-y-4">
-                {recentWorkOrders.map((wo) => (
-                <div
-                    key={wo.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold">{wo.wo_number || 'Draft'}</span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            wo.status === "completed"
-                              ? "bg-success/10 text-success"
-                              : wo.status === "in_progress"
-                              ? "bg-primary/10 text-primary"
-                              : "bg-warning/10 text-warning"
-                          }`}
-                        >
-                          {wo.status?.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <p className="text-sm text-foreground">Unit: {wo.ticket?.unit_serial || 'N/A'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {wo.technician?.full_name || 'Unassigned'} • {new Date(wo.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Operational Command View */}
+      <div className="lg:col-span-2">
+        <OperationalCommandView />
+      </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>System Alerts</CardTitle>
