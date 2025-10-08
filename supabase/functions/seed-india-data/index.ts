@@ -45,9 +45,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { tenant_id } = await req.json();
+    const { tenant_id, job_id: requestJobId } = await req.json();
+    const job_id = requestJobId || crypto.randomUUID();
+    const trace_id = crypto.randomUUID();
     
-    console.log('Starting India data seeding...');
+    console.log(`Starting India data seeding... Job: ${job_id}, Trace: ${trace_id}`);
     
     // Calculate 12-month period ending last full month
     const now = new Date();
@@ -142,38 +144,127 @@ serve(async (req) => {
 
     console.log(`Generated ${totalRecords} work orders and ${geoData.length} geo entries`);
 
+    // Create seed queue entry
+    const { error: queueError } = await supabase
+      .from('seed_queue')
+      .insert({
+        job_id,
+        tenant_id,
+        seed_type: 'india_operational',
+        payload: { months: 12, expected_rows: totalRecords },
+        status: 'processing',
+        started_at: new Date().toISOString(),
+        trace_id
+      });
+
+    if (queueError) {
+      console.error('Queue creation error:', queueError);
+      throw queueError;
+    }
+
     // Insert geography data
     const { error: geoError } = await supabase
       .from('geography_hierarchy')
-      .upsert(geoData, { onConflict: 'geography_key' });
+      .upsert(geoData);
 
     if (geoError) {
       console.error('Geography insert error:', geoError);
+      await supabase.from('seed_queue').update({ 
+        status: 'failed', 
+        error_message: geoError.message,
+        completed_at: new Date().toISOString()
+      }).eq('job_id', job_id);
       throw geoError;
     }
 
-    // Insert work orders in batches (1000 at a time)
+    // Insert into staging first
     const batchSize = 1000;
     for (let i = 0; i < workOrders.length; i += batchSize) {
       const batch = workOrders.slice(i, i + batchSize);
-      const { error: woError } = await supabase
-        .from('work_orders')
+      const { error: stagingError } = await supabase
+        .from('staging_work_orders')
         .insert(batch);
       
-      if (woError) {
-        console.error('Work order insert error:', woError);
-        throw woError;
+      if (stagingError) {
+        console.error('Staging insert error:', stagingError);
+        await supabase.from('seed_queue').update({ 
+          status: 'failed', 
+          error_message: stagingError.message,
+          completed_at: new Date().toISOString()
+        }).eq('job_id', job_id);
+        throw stagingError;
       }
       
-      console.log(`Inserted batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(workOrders.length / batchSize)}`);
+      console.log(`Staged batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(workOrders.length / batchSize)}`);
     }
 
-    // Calculate product splits
-    const productCounts = PRODUCTS.map(p => ({
-      category: p.category,
-      count: workOrders.filter(wo => wo.product_category === p.category).length,
-      percentage: ((workOrders.filter(wo => wo.product_category === p.category).length / totalRecords) * 100).toFixed(1)
-    }));
+    // Validate staged data
+    console.log('Validating staged data...');
+    const { data: validationData, error: validationError } = await supabase
+      .from('staging_work_orders')
+      .select('product_category, created_at')
+      .eq('tenant_id', tenant_id);
+
+    if (validationError) throw validationError;
+
+    // Check product distribution
+    const productCounts = PRODUCTS.map(p => {
+      const actual = validationData?.filter((wo: any) => wo.product_category === p.category).length || 0;
+      return {
+        category: p.category,
+        expected: Math.floor(totalRecords * (p.weight / 100)),
+        actual,
+        count: actual,
+        percentage: ((actual / totalRecords) * 100).toFixed(1)
+      };
+    });
+
+    const validationPassed = productCounts.every(pc => {
+      const variance = Math.abs(pc.actual - pc.expected) / pc.expected;
+      return variance < 0.05; // 5% tolerance
+    });
+
+    if (!validationPassed) {
+      const errorMsg = `Product distribution validation failed: ${JSON.stringify(productCounts)}`;
+      console.error(errorMsg);
+      await supabase.from('seed_queue').update({ 
+        status: 'failed', 
+        error_message: errorMsg,
+        completed_at: new Date().toISOString()
+      }).eq('job_id', job_id);
+      throw new Error(errorMsg);
+    }
+
+    console.log('Validation passed. Merging to production...');
+
+    // Merge staging to production with conflict handling
+    const { error: mergeError } = await supabase
+      .from('work_orders')
+      .upsert(validationData?.map((row: any) => ({
+        ...row,
+        tenant_id,
+        wo_number: `WO-IND-${crypto.randomUUID().substring(0, 8)}`
+      })) || []);
+
+    if (mergeError) {
+      console.error('Merge error:', mergeError);
+      await supabase.from('seed_queue').update({ 
+        status: 'failed', 
+        error_message: mergeError.message,
+        completed_at: new Date().toISOString()
+      }).eq('job_id', job_id);
+      throw mergeError;
+    }
+
+    // Clean staging
+    await supabase.from('staging_work_orders').delete().eq('tenant_id', tenant_id);
+
+    // Update seed queue
+    await supabase.from('seed_queue').update({ 
+      status: 'completed',
+      rows_processed: totalRecords,
+      completed_at: new Date().toISOString()
+    }).eq('job_id', job_id);
 
     // Record seed info
     const { error: seedError } = await supabase
@@ -188,17 +279,43 @@ serve(async (req) => {
         product_splits: productCounts,
         geography_coverage: {
           states: INDIA_STATES.length,
-          hubs: geoData.length / 3, // Approx hubs
+          hubs: Math.floor(geoData.length / 6),
           pin_codes: geoData.length
         },
+        validation_status: 'passed',
+        validation_notes: { product_distribution: productCounts },
         status: 'completed'
       });
 
     if (seedError) throw seedError;
 
+    // Auto-trigger forecast generation
+    console.log('Triggering forecast generation...');
+    const forecastTrigger = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/run-forecast-now`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tenant_id,
+          geography_levels: ['country', 'region', 'state', 'partner_hub'],
+          trigger: 'seed_complete',
+          trace_id
+        })
+      }
+    );
+
+    const forecastResult = await forecastTrigger.json();
+    console.log('Forecast triggered:', forecastResult);
+
     return new Response(
       JSON.stringify({
         success: true,
+        job_id,
+        trace_id,
         total_records: totalRecords,
         months_covered: 12,
         start_date: startDate.toISOString().split('T')[0],
@@ -207,8 +324,16 @@ serve(async (req) => {
         geography_coverage: {
           states: INDIA_STATES.length,
           regions: Object.keys(REGIONS).length,
-          hubs: Math.floor(geoData.length / 3),
+          hubs: Math.floor(geoData.length / 6),
           pin_codes: geoData.length
+        },
+        validation: {
+          status: 'passed',
+          product_distribution: productCounts
+        },
+        forecast: {
+          triggered: forecastTrigger.ok,
+          job_ids: forecastResult.job_ids || []
         }
       }),
       {

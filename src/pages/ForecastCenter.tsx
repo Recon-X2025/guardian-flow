@@ -14,6 +14,8 @@ export default function ForecastCenter() {
   const [generating, setGenerating] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [systemMetrics, setSystemMetrics] = useState<any>(null);
+  const [isSeedingData, setIsSeedingData] = useState(false);
+  const [seedProgress, setSeedProgress] = useState<any>(null);
   
   // Hierarchy filters
   const [countries, setCountries] = useState<any[]>([]);
@@ -297,23 +299,43 @@ export default function ForecastCenter() {
 
   const seedIndiaData = async () => {
     setSeeding(true);
+    setIsSeedingData(true);
+    setSeedProgress({ status: 'starting', message: 'Initializing India data seed...' });
+    
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      setSeedProgress({ status: 'generating', message: 'Generating 12 months of synthetic data...' });
+
       const { data, error } = await supabase.functions.invoke('seed-india-data', {
-        body: {
-          tenant_id: (await supabase.auth.getUser()).data.user?.id
-        }
+        body: { tenant_id: profile?.tenant_id || user.id }
       });
 
       if (error) throw error;
 
+      setSeedProgress({ 
+        status: 'completed', 
+        message: `✅ Seeded ${data.total_records.toLocaleString()} work orders`,
+        details: data
+      });
+
       toast({
-        title: 'India Data Seeded',
-        description: `${data.total_records} work orders created across ${data.geography_coverage.states} states`
+        title: 'India Data Seeded Successfully',
+        description: `${data.total_records.toLocaleString()} work orders created. ${data.forecast?.triggered ? 'Forecasts triggered.' : ''}`
       });
 
       await loadSystemMetrics();
       await loadGeography();
     } catch (error: any) {
+      console.error('Seed error:', error);
+      setSeedProgress({ status: 'failed', message: error.message });
       toast({
         variant: 'destructive',
         title: 'Error seeding data',
@@ -321,6 +343,7 @@ export default function ForecastCenter() {
       });
     } finally {
       setSeeding(false);
+      setIsSeedingData(false);
     }
   };
 
@@ -379,16 +402,76 @@ export default function ForecastCenter() {
           <p className="text-muted-foreground">India Forecasting Intelligence System</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={seedIndiaData} disabled={seeding} variant="outline">
-            <Database className="mr-2 h-4 w-4" />
-            {seeding ? 'Seeding...' : 'Seed India Data'}
+          <Button onClick={seedIndiaData} disabled={seeding} variant="default" size="lg">
+            {seeding ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Seeding India Data...
+              </>
+            ) : (
+              <>
+                <Database className="mr-2 h-4 w-4" />
+                Run India Full Seed + Forecast
+              </>
+            )}
           </Button>
-          <Button onClick={generateForecasts} disabled={generating}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {generating ? 'Generating...' : 'Generate Forecasts'}
+          <Button onClick={generateForecasts} disabled={generating} variant="outline" size="lg">
+            {generating ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Regenerate Forecasts Only
+              </>
+            )}
           </Button>
         </div>
       </div>
+
+      {/* Seed Progress Alert */}
+      {seedProgress && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                {seedProgress.status === 'starting' && <RefreshCw className="h-5 w-5 animate-spin text-primary" />}
+                {seedProgress.status === 'generating' && <RefreshCw className="h-5 w-5 animate-spin text-primary" />}
+                {seedProgress.status === 'completed' && <Activity className="h-5 w-5 text-green-600" />}
+                {seedProgress.status === 'failed' && <AlertCircle className="h-5 w-5 text-destructive" />}
+                <p className="font-medium">{seedProgress.message}</p>
+              </div>
+              {seedProgress.details && (
+                <div className="pl-7 space-y-1 text-sm text-muted-foreground">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>Job ID: {seedProgress.details.job_id?.substring(0, 8)}...</div>
+                    <div>Months: {seedProgress.details.months_covered}</div>
+                    <div>Start: {seedProgress.details.start_date}</div>
+                    <div>End: {seedProgress.details.end_date}</div>
+                  </div>
+                  {seedProgress.details.validation && (
+                    <div className="mt-2 p-2 bg-muted/50 rounded">
+                      <div className="font-medium text-sm">Validation: {seedProgress.details.validation.status}</div>
+                      {seedProgress.details.validation.product_distribution?.map((pd: any) => (
+                        <div key={pd.category} className="text-xs">
+                          {pd.category}: {pd.count.toLocaleString()} ({pd.percentage}%)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {seedProgress.details.forecast?.triggered && (
+                    <div className="text-green-600 font-medium">
+                      ✅ Forecast generation triggered ({seedProgress.details.forecast.job_ids?.length || 0} jobs)
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* System Status */}
       {systemMetrics && (

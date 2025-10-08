@@ -1565,6 +1565,8 @@ export type Database = {
           tenant_id: string | null
           total_records: number
           updated_at: string | null
+          validation_notes: Json | null
+          validation_status: string | null
         }
         Insert: {
           created_at?: string | null
@@ -1580,6 +1582,8 @@ export type Database = {
           tenant_id?: string | null
           total_records: number
           updated_at?: string | null
+          validation_notes?: Json | null
+          validation_status?: string | null
         }
         Update: {
           created_at?: string | null
@@ -1595,6 +1599,8 @@ export type Database = {
           tenant_id?: string | null
           total_records?: number
           updated_at?: string | null
+          validation_notes?: Json | null
+          validation_status?: string | null
         }
         Relationships: [
           {
@@ -1605,6 +1611,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seed_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          job_id: string
+          payload: Json
+          rows_processed: number | null
+          seed_type: string
+          started_at: string | null
+          status: string | null
+          tenant_id: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          job_id?: string
+          payload?: Json
+          rows_processed?: number | null
+          seed_type: string
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          job_id?: string
+          payload?: Json
+          rows_processed?: number | null
+          seed_type?: string
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          trace_id?: string | null
+        }
+        Relationships: []
       }
       service_order_templates: {
         Row: {
@@ -1694,6 +1742,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staging_work_orders: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string | null
+          district: string | null
+          id: string
+          partner_hub: string | null
+          pin_code: string | null
+          product_category: string | null
+          region: string | null
+          state: string | null
+          status: string | null
+          tenant_id: string | null
+          updated_at: string | null
+          wo_number: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          district?: string | null
+          id?: string
+          partner_hub?: string | null
+          pin_code?: string | null
+          product_category?: string | null
+          region?: string | null
+          state?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          wo_number?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          district?: string | null
+          id?: string
+          partner_hub?: string | null
+          pin_code?: string | null
+          product_category?: string | null
+          region?: string | null
+          state?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          wo_number?: string | null
+        }
+        Relationships: []
       }
       stock_levels: {
         Row: {
