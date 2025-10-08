@@ -72,7 +72,7 @@ serve(async (req) => {
     console.log('[OPCV Summary] Fetching forecast data...');
     let forecastQuery = supabase
       .from('forecast_outputs')
-      .select('geography_key, value')
+      .select('geography_key, city, state, district, partner_hub, pin_code, value')
       .gte('target_date', new Date().toISOString().split('T')[0])
       .lte('target_date', new Date(Date.now() + 2*24*60*60*1000).toISOString().split('T')[0])
       .order('value', { ascending: false })
@@ -83,7 +83,11 @@ serve(async (req) => {
     }
 
     const { data: forecast } = await forecastQuery;
-    console.log(`[OPCV Summary] Found ${forecast?.length || 0} forecast entries`);
+    const forecastNormalized = (forecast || []).map((f: any) => ({
+      geography_key: f.geography_key || f.partner_hub || f.city || f.district || f.state || f.pin_code || 'Unknown',
+      value: f.value
+    }));
+    console.log(`[OPCV Summary] Found ${forecastNormalized.length} forecast entries`);
 
     // Query C: Top engineers (simplified - just count active WOs per technician)
     console.log('[OPCV Summary] Fetching engineer data...');
@@ -110,13 +114,13 @@ serve(async (req) => {
 
     // AI Summary
     const totalActive = stages.scheduled + stages.in_progress + stages.pending_parts + stages.pending_validation;
-    const aiSummary = `Operations snapshot: ${totalActive} active work orders (${stages.in_progress} in progress, ${stages.scheduled} scheduled). ${forecast?.length || 0} high-volume zones identified for next 48h. System operating normally.`;
+    const aiSummary = `Operations snapshot: ${totalActive} active work orders (${stages.in_progress} in progress, ${stages.scheduled} scheduled). ${forecastNormalized.length} high-volume zones identified for next 48h. System operating normally.`;
 
     const response = {
       trace_id,
       tenant_id,
       stages,
-      forecast_breaches: forecast || [],
+      forecast_breaches: forecastNormalized,
       top_engineers: topEngineers,
       inventory_alerts: inventoryAlerts,
       ai_summary: aiSummary,

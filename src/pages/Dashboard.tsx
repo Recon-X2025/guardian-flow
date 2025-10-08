@@ -133,7 +133,7 @@ export default function Dashboard() {
 
   const downloadProductSpecs = async () => {
     try {
-      const response = await fetch('/PRODUCT_SPECIFICATIONS.md');
+      const response = await fetch('/PRODUCT_SPECIFICATIONS_V5.md');
       const content = await response.text();
       
       const blob = new Blob([content], { type: 'text/markdown' });
