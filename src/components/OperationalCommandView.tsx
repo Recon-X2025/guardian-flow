@@ -34,14 +34,18 @@ export function OperationalCommandView() {
 
   const fetchOPCVData = async () => {
     try {
-      const { data: response, error } = await supabase.functions.invoke('opcv-summary', {
-        body: { tenant_id: null } // Will use user's tenant
-      });
+      console.log('[OPCV Client] Fetching data...');
+      const { data: response, error } = await supabase.functions.invoke('opcv-summary');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[OPCV Client] Invoke error:', error);
+        throw error;
+      }
+
+      console.log('[OPCV Client] Response received:', response);
       setData(response);
     } catch (error) {
-      console.error('Failed to fetch OPCV data:', error);
+      console.error('[OPCV Client] Failed to fetch OPCV data:', error);
     } finally {
       setLoading(false);
     }

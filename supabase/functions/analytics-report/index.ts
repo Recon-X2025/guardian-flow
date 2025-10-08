@@ -11,57 +11,111 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const trace_id = crypto.randomUUID();
+  console.log(`[Analytics Report] Request received trace_id=${trace_id}`);
+
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Verify environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[Analytics Report] Missing environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { report_type, tenant_id, start_date, end_date, format = 'json' } = await req.json();
-    const trace_id = crypto.randomUUID();
 
-    console.log(`[Analytics Report] trace_id=${trace_id} type=${report_type} tenant=${tenant_id}`);
+    console.log(`[Analytics Report] Processing trace_id=${trace_id} type=${report_type} tenant=${tenant_id}`);
 
     let data: any = null;
     let rows_count = 0;
 
+    // Validate inputs
+    if (!report_type) {
+      return new Response(
+        JSON.stringify({ error: 'report_type is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     switch (report_type) {
       case 'operational':
-        const { data: workOrders } = await supabase
+        console.log('[Analytics Report] Fetching operational data...');
+        let woQuery = supabase
           .from('work_orders')
-          .select('*')
-          .eq('tenant_id', tenant_id)
-          .gte('created_at', start_date)
-          .lte('created_at', end_date);
+          .select('*');
+        
+        if (tenant_id) woQuery = woQuery.eq('tenant_id', tenant_id);
+        if (start_date) woQuery = woQuery.gte('created_at', start_date);
+        if (end_date) woQuery = woQuery.lte('created_at', end_date);
+
+        const { data: workOrders, error: woError } = await woQuery;
+        
+        if (woError) {
+          console.error('[Analytics Report] Work orders error:', woError);
+          throw new Error(`Failed to fetch work orders: ${woError.message}`);
+        }
+
         data = workOrders;
         rows_count = workOrders?.length || 0;
         break;
 
       case 'forecast':
-        const { data: forecasts } = await supabase
+        console.log('[Analytics Report] Fetching forecast data...');
+        let fcQuery = supabase
           .from('forecast_outputs')
-          .select('*')
-          .eq('tenant_id', tenant_id)
-          .gte('target_date', start_date)
-          .lte('target_date', end_date);
+          .select('*');
+        
+        if (tenant_id) fcQuery = fcQuery.eq('tenant_id', tenant_id);
+        if (start_date) fcQuery = fcQuery.gte('target_date', start_date);
+        if (end_date) fcQuery = fcQuery.lte('target_date', end_date);
+
+        const { data: forecasts, error: fcError } = await fcQuery;
+        
+        if (fcError) {
+          console.error('[Analytics Report] Forecast error:', fcError);
+          throw new Error(`Failed to fetch forecasts: ${fcError.message}`);
+        }
+
         data = forecasts;
         rows_count = forecasts?.length || 0;
         break;
 
       case 'financial':
-        const { data: invoices } = await supabase
+        console.log('[Analytics Report] Fetching financial data...');
+        let invQuery = supabase
           .from('invoices')
-          .select('*')
-          .eq('tenant_id', tenant_id)
-          .gte('created_at', start_date)
-          .lte('created_at', end_date);
+          .select('*');
+        
+        if (tenant_id) invQuery = invQuery.eq('tenant_id', tenant_id);
+        if (start_date) invQuery = invQuery.gte('created_at', start_date);
+        if (end_date) invQuery = invQuery.lte('created_at', end_date);
+
+        const { data: invoices, error: invError } = await invQuery;
+        
+        if (invError) {
+          console.error('[Analytics Report] Invoices error:', invError);
+          throw new Error(`Failed to fetch invoices: ${invError.message}`);
+        }
+
         data = invoices;
         rows_count = invoices?.length || 0;
         break;
 
       default:
-        throw new Error(`Unknown report type: ${report_type}`);
+        return new Response(
+          JSON.stringify({ error: `Unknown report type: ${report_type}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
     }
+
+    console.log(`[Analytics Report] Fetched ${rows_count} rows`);
 
     // Log to audit table
     await supabase.from('report_audit').insert({
