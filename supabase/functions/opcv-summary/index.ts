@@ -101,8 +101,18 @@ serve(async (req) => {
     const { data: inventory } = await supabase
       .from('inventory_items')
       .select('sku, description')
+      .or(
+        'sku.ilike.PC-%,sku.ilike.PR-%,sku.ilike.PRN-%,sku.ilike.MFP-%,' +
+        'description.ilike.%printer%,description.ilike.%toner%,description.ilike.%ink%,' +
+        'description.ilike.%cartridge%,description.ilike.%drum%,description.ilike.%laser%,' +
+        'description.ilike.%desktop%,description.ilike.%laptop%,description.ilike.%monitor%'
+      )
       .not('description', 'ilike', '%HVAC%')
       .not('sku', 'ilike', '%HVAC%')
+      .not('sku', 'ilike', 'ELEC-%')
+      .not('sku', 'ilike', 'PLMB-%')
+      .not('sku', 'ilike', 'COMP-%')
+      .not('sku', 'ilike', 'REF-%')
       .limit(5);
 
     const inventoryAlerts = inventory?.map(item => ({
