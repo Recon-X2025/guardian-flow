@@ -80,8 +80,7 @@ serve(async (req) => {
               district: state,
               city: `${state} City ${hubIdx}`,
               partner_hub: partnerHub,
-              pin_code: pinCode,
-              geography_key: `IND-${region}-${state}-${partnerHub}-${pinCode}`
+              pin_code: pinCode
             });
 
             // Generate work orders for 12 months
