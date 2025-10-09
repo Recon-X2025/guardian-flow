@@ -1,73 +1,104 @@
-# Welcome to your Lovable project
+# ReconX Guardian Flow v6.0
 
-## Project info
+**Enterprise Field Service Intelligence Platform + PaaS**
 
-**URL**: https://lovable.dev/projects/2efe5f02-fc5d-43b7-b14c-326d0be0afee
+ReconX is an AI-powered field service management platform that combines work order orchestration, fraud detection, financial reconciliation, and hierarchical forecasting. Now with **Platform-as-a-Service (PaaS)** capabilities enabling external developers to build on top of ReconX.
 
-## How can I edit this code?
+## 🚀 v6.0 - PaaS Evolution
 
-There are several ways of editing your application.
+### New Capabilities
 
-**Use Lovable**
+**🔑 API Gateway & Security**
+- Multi-tenant API key management
+- Rate limiting (1000 calls/day default)
+- Request/response logging with correlation IDs
+- Secure internal service routing
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2efe5f02-fc5d-43b7-b14c-326d0be0afee) and start prompting.
+**🛠 Agent Service APIs**
+- `/api/agent/ops` - Work order orchestration
+- `/api/agent/fraud` - Fraud detection & validation
+- `/api/agent/finance` - Finance & billing operations
+- `/api/agent/forecast` - Hierarchical forecasting
 
-Changes made via Lovable will be committed automatically to this repo.
+**💼 Developer Console**
+- Self-service API key generation
+- Real-time usage analytics (30-day charts)
+- Billing summary with call counts
+- Key management (revoke, renew, view usage)
 
-**Use your preferred IDE**
+**📊 Platform Metrics**
+- System-wide observability (admin-only)
+- Success/error rate tracking
+- Endpoint performance monitoring
+- Top tenant usage analytics
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**🧪 Sandbox Environment**
+- 7-day trial tenants with demo data
+- Instant provisioning via public endpoint
+- 500 API calls/day for testing
+- Auto-expiry after trial period
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**💰 Usage-Based Billing**
+- Pay-per-call pricing (₹0.25 per request)
+- Daily reconciliation of API usage
+- Billing cycle tracking per tenant
 
-Follow these steps:
+## Core Features (v5.0)
+- **Hierarchical Forecasting**: 7-level geographic intelligence
+- **AI Agents**: Autonomous operations with GPT/Gemini integration
+- **Fraud Detection**: ML-powered anomaly detection
+- **Financial Management**: Automated penalties & invoicing
+- **Multi-Tenant Architecture**: Complete data isolation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Quick Start
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### For Developers
+1. Go to `/developer` to create a sandbox tenant
+2. Receive your `api_key` and `tenant_id`
+3. Make API calls to `/functions/v1/api-gateway`
+4. Monitor usage at `/developer-console`
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+**API Example**:
+```bash
+curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+  -H "x-api-key: YOUR_KEY" \
+  -H "x-tenant-id: YOUR_TENANT" \
+  -H "Content-Type: application/json" \
+  -d '{"service": "ops", "action": "list_work_orders", "data": {"limit": 10}}'
 ```
 
-**Edit a file directly in GitHub**
+## Tech Stack
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **AI**: Lovable AI Gateway (Gemini/GPT models)
+- **PaaS**: API Gateway + Multi-tenant billing
+- **Testing**: Playwright E2E
 
-**Use GitHub Codespaces**
+## Documentation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- **Product Specs**: `public/PRODUCT_SPECIFICATIONS_V5.md` (v6.0 updated)
+- **API Docs**: `public/API_DOCUMENTATION.md`
+- **Testing**: `docs/COMPLETE_TEST_GUIDE.md`
 
-## What technologies are used for this project?
+## Key Routes
 
-This project is built with:
+### End Users
+- `/` - Dashboard
+- `/tickets`, `/work-orders`, `/finance`, `/sapos`, `/forecast`, etc.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Developers
+- `/developer` - Public landing page
+- `/developer-console` - API management
+- `/platform-metrics` - System metrics (admin)
 
-## How can I deploy this project?
+## Security
 
-Simply open [Lovable](https://lovable.dev/projects/2efe5f02-fc5d-43b7-b14c-326d0be0afee) and click on Share -> Publish.
+- Row-Level Security (RLS) on all tables
+- API key authentication with rate limiting
+- Multi-Factor Auth (MFA) for sensitive operations
+- Complete audit logging
 
-## Can I connect a custom domain to my Lovable project?
+## License
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Proprietary - © 2025 ReconX

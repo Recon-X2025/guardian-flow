@@ -107,6 +107,13 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
+    label: "Developer",
+    items: [
+      { title: "Developer Console", url: "/developer-console", icon: Brain, permissions: ["admin.config"] },
+      { title: "Platform Metrics", url: "/platform-metrics", icon: Activity, roles: ["sys_admin"] },
+    ],
+  },
+  {
     label: "System",
     items: [
       { title: "Product Specs", url: "/product-specs", icon: FileText },

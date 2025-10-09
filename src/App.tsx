@@ -62,6 +62,7 @@ const App = () => (
             <RBACProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/developer" element={<DeveloperLanding />} />
                 <Route
                   path="*"
                   element={
@@ -221,6 +222,16 @@ const App = () => (
                                   </RoleGuard>
                                 } />
                                 <Route path="/product-specs" element={<ProductSpecs />} />
+                                <Route path="/developer-console" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <DeveloperConsole />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/platform-metrics" element={
+                                  <RoleGuard roles={["sys_admin"]} showError={true}>
+                                    <PlatformMetrics />
+                                  </RoleGuard>
+                                } />
                                 <Route path="/help" element={<HelpTraining />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />

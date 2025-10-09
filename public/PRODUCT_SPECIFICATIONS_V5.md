@@ -1,8 +1,58 @@
-# ReconX Guardian Flow v5.0 - Global Intelligence Platform
+# ReconX Guardian Flow v6.0 - Platform as a Service (PaaS)
 
-**Version:** 5.0 - Global Intelligence  
+**Version:** 6.0 - PaaS Evolution  
 **Date:** October 2025  
 **Status:** Production Ready  
+**Major Update:** Full PaaS Capabilities - API Gateway, Developer Console, Multi-Tenant Billing
+
+---
+
+## 🎉 What's New in v6.0 - PaaS Transformation
+
+ReconX v6.0 evolves from an internal intelligence platform to a **developer-ready Platform as a Service**. Now external developers, system integrators, and partners can build on top of ReconX using production-grade REST APIs.
+
+### PaaS Core Features
+
+**🔑 API Gateway & Security**
+- Multi-tenant API key management with rate limiting
+- Secure gateway validates all requests before routing
+- Request/response logging with correlation IDs
+- Daily usage limits per tenant (default: 1000 calls/day)
+
+**🚀 Agent Service APIs**
+- `/api/agent/ops` - Work order orchestration
+- `/api/agent/fraud` - Fraud detection & validation
+- `/api/agent/finance` - Finance & billing operations
+- `/api/agent/forecast` - Hierarchical forecasting
+
+**💼 Developer Console**
+- Self-service API key generation
+- Real-time usage analytics (30-day charts)
+- Billing summary with call counts
+- Key management (revoke, renew, view usage)
+
+**📊 Platform Metrics Dashboard**
+- System-wide observability (admin-only)
+- Success/error rate tracking
+- Endpoint performance monitoring
+- Top tenant usage analytics
+
+**🧪 Sandbox Environment**
+- 7-day trial tenants with pre-loaded demo data
+- Instant provisioning via public endpoint
+- 500 API calls/day limit for testing
+- Auto-expiry after trial period
+
+**💰 Usage-Based Billing**
+- Pay-per-call pricing (₹0.25 per successful request)
+- Daily reconciliation of API usage
+- Billing cycle tracking per tenant
+- Stripe integration ready (Phase 2)
+
+---
+
+## v5.0 - Global Intelligence (Previous Release)
+
 **Major Update:** Hierarchical Forecasting & Product-Level Intelligence
 
 ---
@@ -37,16 +87,577 @@ ReconX Guardian Flow v5.0 is a self-governing, forecast-driven field service AI 
 
 ## Table of Contents
 
-1. [v5.0 Architecture Overview](#v50-architecture-overview)
-2. [Hierarchical Forecasting Engine](#hierarchical-forecasting-engine)
-3. [Agent Integration with Forecasts](#agent-integration-with-forecasts)
-4. [Geographic Hierarchy Model](#geographic-hierarchy-model)
-5. [Product-Level Intelligence](#product-level-intelligence)
-6. [Forecast Reconciliation](#forecast-reconciliation)
-7. [Automation & Scheduling](#automation--scheduling)
-8. [Performance Specifications](#performance-specifications)
-9. [API Reference](#api-reference)
-10. [Migration from v3.0](#migration-from-v30)
+1. [v6.0 PaaS Architecture](#v60-paas-architecture)
+2. [API Gateway](#api-gateway)
+3. [Agent Service APIs](#agent-service-apis)
+4. [Developer Console](#developer-console)
+5. [Platform Metrics](#platform-metrics)
+6. [Sandbox Environment](#sandbox-environment)
+7. [Usage-Based Billing](#usage-based-billing)
+8. [Security & Access Control](#security--access-control)
+9. [v5.0 Architecture Overview](#v50-architecture-overview)
+10. [Hierarchical Forecasting Engine](#hierarchical-forecasting-engine)
+11. [Agent Integration with Forecasts](#agent-integration-with-forecasts)
+12. [Geographic Hierarchy Model](#geographic-hierarchy-model)
+13. [Product-Level Intelligence](#product-level-intelligence)
+14. [Forecast Reconciliation](#forecast-reconciliation)
+15. [Automation & Scheduling](#automation--scheduling)
+16. [Performance Specifications](#performance-specifications)
+17. [API Reference](#api-reference)
+18. [Migration Guide](#migration-guide)
+
+---
+
+## v6.0 PaaS Architecture
+
+### PaaS System Diagram
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                    External Developers/Partners                    │
+│  (System Integrators, Third-Party Apps, Partner Portals)          │
+└───────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼ HTTPS
+┌───────────────────────────────────────────────────────────────────┐
+│                         API Gateway                                │
+│  ┌─────────────────────────────────────────────────────────┐     │
+│  │  1. Validate x-api-key + x-tenant-id                    │     │
+│  │  2. Check rate limits (1000 calls/day default)          │     │
+│  │  3. Route to internal agent service                     │     │
+│  │  4. Log request/response with correlation ID            │     │
+│  │  5. Return 429 if rate limit exceeded                   │     │
+│  └─────────────────────────────────────────────────────────┘     │
+└───────────────────────────────────────────────────────────────────┘
+                                  │
+                    ┌─────────────┼─────────────┐
+                    ▼             ▼             ▼
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│   /ops API   │  /fraud API  │ /finance API │ /forecast API│
+│              │              │              │              │
+│ • create_wo  │ • validate   │ • penalties  │ • generate   │
+│ • list_wo    │ • detect     │ • invoices   │ • get        │
+│ • release    │ • score      │ • billing    │ • metrics    │
+│ • complete   │ • alerts     │ • summary    │ • status     │
+└──────────────┴──────────────┴──────────────┴──────────────┘
+                                  │
+                                  ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                      Core ReconX Platform                          │
+│  (Work Orders, Tickets, Forecasts, Fraud Detection, Finance)      │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### PaaS Technology Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **API Gateway** | Deno Edge Function | Request validation, routing, rate limiting |
+| **Agent APIs** | Deno Edge Functions (4 services) | Internal service endpoints |
+| **Auth** | API Key + Tenant ID | Multi-tenant access control |
+| **Billing** | PostgreSQL + Cron | Usage tracking & reconciliation |
+| **Developer UI** | React + TypeScript | Self-service console |
+| **Observability** | Correlation IDs + Logs | Full request tracing |
+
+---
+
+## API Gateway
+
+### Gateway Architecture
+
+The API Gateway is the single entry point for all external API requests. It handles:
+- **Authentication**: x-api-key + x-tenant-id header validation
+- **Authorization**: Tenant-level access control
+- **Rate Limiting**: Daily call limits per API key
+- **Routing**: Service-aware request forwarding
+- **Logging**: Complete request/response audit trail
+- **Metrics**: Response time and status code tracking
+
+### Request Flow
+
+```typescript
+External Request
+    │
+    ├─► 1. Extract x-api-key + x-tenant-id headers
+    │
+    ├─► 2. Validate API key (active, not expired)
+    │
+    ├─► 3. Check rate limit (count today's calls)
+    │       └─► If exceeded: return 429 + log overage
+    │
+    ├─► 4. Route to internal agent service
+    │       POST /functions/v1/agent-{service}-api
+    │       Headers: x-internal-secret (security)
+    │
+    ├─► 5. Log usage (tenant_id, endpoint, latency, status)
+    │
+    └─► 6. Return response with X-Correlation-ID
+```
+
+### Gateway Configuration
+
+**Endpoint**: `POST /functions/v1/api-gateway`
+
+**Headers**:
+```
+x-api-key: {API_KEY}
+x-tenant-id: {TENANT_UUID}
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{
+  "service": "ops|fraud|finance|forecast",
+  "action": "specific_action",
+  "data": { /* action parameters */ }
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": { /* action result */ },
+  "correlation_id": "uuid",
+  "response_time_ms": 150
+}
+```
+
+### Rate Limiting
+
+| Tier | Daily Limit | Overage Action |
+|------|-------------|----------------|
+| Sandbox | 500 calls/day | Block + log |
+| Standard | 1,000 calls/day | Block + log |
+| Premium | 5,000 calls/day | Block + log |
+| Enterprise | Custom | Negotiable |
+
+**Rate Limit Headers** (future):
+```
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 847
+X-RateLimit-Reset: 1698710400
+```
+
+---
+
+## Agent Service APIs
+
+### 1. Operations API (`/api/agent/ops`)
+
+Manage work order lifecycle and orchestration.
+
+**Available Actions**:
+
+#### `create_work_order`
+```json
+{
+  "service": "ops",
+  "action": "create_work_order",
+  "data": {
+    "customer_id": "uuid",
+    "technician_id": "uuid",
+    "issue_description": "Unit not powering on",
+    "priority": "high"
+  }
+}
+```
+
+#### `list_work_orders`
+```json
+{
+  "service": "ops",
+  "action": "list_work_orders",
+  "data": {
+    "status": "draft",
+    "priority": "high",
+    "limit": 50
+  }
+}
+```
+
+#### `release_work_order`
+```json
+{
+  "service": "ops",
+  "action": "release_work_order",
+  "work_order_id": "uuid"
+}
+```
+
+#### `run_precheck`
+```json
+{
+  "service": "ops",
+  "action": "run_precheck",
+  "work_order_id": "uuid"
+}
+```
+
+---
+
+### 2. Fraud Detection API (`/api/agent/fraud`)
+
+Detect anomalies and manage investigations.
+
+**Available Actions**:
+
+#### `validate_photos`
+```json
+{
+  "service": "fraud",
+  "action": "validate_photos",
+  "resource_id": "work_order_uuid",
+  "data": {
+    "stage": "before"
+  }
+}
+```
+
+#### `get_fraud_score`
+```json
+{
+  "service": "fraud",
+  "action": "get_fraud_score",
+  "resource_type": "work_order",
+  "resource_id": "uuid"
+}
+```
+Response includes `confidence_score` (0-1) and `risk_factors` array.
+
+#### `detect_anomaly`
+```json
+{
+  "service": "fraud",
+  "action": "detect_anomaly",
+  "resource_type": "work_order",
+  "resource_id": "uuid",
+  "data": {
+    "anomaly_type": "suspicious_pattern",
+    "description": "Multiple similar failures"
+  }
+}
+```
+
+---
+
+### 3. Finance API (`/api/agent/finance`)
+
+Handle penalties, invoices, and billing.
+
+**Available Actions**:
+
+#### `calculate_penalties`
+```json
+{
+  "service": "finance",
+  "action": "calculate_penalties",
+  "data": {
+    "work_order_id": "uuid"
+  }
+}
+```
+
+#### `get_billing_summary`
+```json
+{
+  "service": "finance",
+  "action": "get_billing_summary",
+  "data": {
+    "start_date": "2025-10-01",
+    "end_date": "2025-10-31"
+  }
+}
+```
+
+#### `generate_invoice`
+```json
+{
+  "service": "finance",
+  "action": "generate_invoice",
+  "data": {
+    "work_order_id": "uuid",
+    "customer_id": "uuid",
+    "subtotal": 1500.00,
+    "penalties": 200.00,
+    "total_amount": 1700.00
+  }
+}
+```
+
+---
+
+### 4. Forecast API (`/api/agent/forecast`)
+
+Access hierarchical demand forecasts.
+
+**Available Actions**:
+
+#### `get_forecasts`
+```json
+{
+  "service": "forecast",
+  "action": "get_forecasts",
+  "data": {
+    "geography_level": "city",
+    "geography_key": "San Jose",
+    "product_id": "uuid",
+    "from_date": "2025-10-09",
+    "to_date": "2025-10-16",
+    "limit": 100
+  }
+}
+```
+
+#### `get_forecast_metrics`
+```json
+{
+  "service": "forecast",
+  "action": "get_forecast_metrics",
+  "data": {
+    "geography_level": "region"
+  }
+}
+```
+
+---
+
+## Developer Console
+
+### Console Features
+
+**Route**: `/developer-console`  
+**Access**: Tenant admins only
+
+The Developer Console provides self-service API management:
+
+**1. API Key Management**
+- Generate new API keys (UUID-based)
+- View key details (status, expiry, rate limit)
+- Copy keys to clipboard
+- Revoke keys instantly
+- Track last usage timestamp
+
+**2. Usage Analytics**
+- 30-day call volume chart
+- Success vs error rate tracking
+- Endpoint-level breakdown
+- Real-time usage updates
+
+**3. Billing Summary**
+- Current cycle API call count
+- Amount due (₹0.25 per call)
+- Payment status
+- Billing period dates
+
+### API Key Structure
+
+```typescript
+{
+  id: uuid,
+  tenant_id: uuid,
+  api_key: "random-uuid",
+  name: "API Key - MM/DD/YYYY",
+  status: "active" | "revoked" | "expired",
+  rate_limit: 1000,
+  expiry_date: "2026-10-09T00:00:00Z",
+  created_at: timestamp,
+  last_used_at: timestamp
+}
+```
+
+---
+
+## Platform Metrics
+
+### Admin Dashboard
+
+**Route**: `/platform-metrics`  
+**Access**: `sys_admin` role only
+
+Real-time system-wide observability:
+
+**Overview Cards**:
+- Total API Calls (24h)
+- Success Rate (%)
+- Error Rate (%)
+- Active Tenants
+
+**Hourly Breakdown**:
+- Bar chart: Calls vs Errors per hour
+- Trend analysis for capacity planning
+
+**Endpoint Performance**:
+- Total calls per endpoint
+- Success/error counts
+- Average latency (ms)
+- Success rate %
+
+**Top Tenants**:
+- Ranking by usage
+- Call volume per tenant
+- Helps identify power users
+
+### Monitoring Alerts (Future)
+
+Webhook notifications for:
+- Error rate > 2% spike
+- Average latency > 500ms
+- Rate limit abuse patterns
+- Endpoint downtime
+
+---
+
+## Sandbox Environment
+
+### Instant Provisioning
+
+**Route**: `/developer` (public landing page)  
+**Endpoint**: `POST /functions/v1/create-sandbox-tenant`
+
+Create trial tenants in seconds:
+
+**Input**:
+```json
+{
+  "email": "developer@company.com",
+  "name": "John Doe"
+}
+```
+
+**Output**:
+```json
+{
+  "success": true,
+  "tenant_id": "uuid",
+  "api_key": "random-uuid",
+  "expires_at": "2025-10-16T00:00:00Z",
+  "message": "Sandbox environment created successfully"
+}
+```
+
+### Sandbox Features
+
+- **Duration**: 7 days
+- **Rate Limit**: 500 calls/day
+- **Demo Data**: 10 pre-loaded work orders
+- **Full Access**: All agent APIs available
+- **Auto-Cleanup**: Expires after 7 days
+
+### Demo Data Structure
+
+```typescript
+// Auto-created on sandbox provisioning
+{
+  work_orders: [
+    { wo_number: "WO-DEMO-1", status: "draft", priority: "low" },
+    { wo_number: "WO-DEMO-2", status: "pending_validation", priority: "medium" },
+    // ... 8 more
+  ]
+}
+```
+
+---
+
+## Usage-Based Billing
+
+### Pricing Model
+
+**Pay-Per-Call**: ₹0.25 per successful API request (status 2xx)
+
+**Free Tier**: First 1,000 calls/month included
+
+**Billing Cycle**: Calendar month (1st - end of month)
+
+### Usage Tracking
+
+Every API call is logged in `api_usage_logs`:
+```typescript
+{
+  tenant_id: uuid,
+  api_key_id: uuid,
+  endpoint: "/api/agent/ops",
+  method: "POST",
+  status_code: 200,
+  response_time: 150, // ms
+  timestamp: "2025-10-09T10:30:00Z",
+  correlation_id: uuid
+}
+```
+
+### Daily Reconciliation
+
+**Edge Function**: `billing-reconciler`  
+**Schedule**: Daily at 12:01 AM  
+**Process**:
+
+1. Count API calls per tenant per endpoint (last 24h)
+2. Calculate amount: `calls × ₹0.25`
+3. Update `billing_usage` table
+4. Trigger Stripe invoice API (Phase 2)
+
+**Billing Table Schema**:
+```typescript
+{
+  tenant_id: uuid,
+  endpoint: "/api/agent/forecast",
+  api_calls: 1247,
+  billing_cycle_start: "2025-10-01",
+  billing_cycle_end: "2025-10-31",
+  rate_per_call: 0.25,
+  amount_due: 311.75,
+  status: "pending" | "invoiced" | "paid"
+}
+```
+
+---
+
+## Security & Access Control
+
+### Authentication Layers
+
+**Layer 1: API Gateway**
+- Validates `x-api-key` + `x-tenant-id`
+- Checks key status (active, not expired)
+- Enforces rate limits
+
+**Layer 2: Internal Services**
+- Requires `x-internal-secret` header
+- Blocks direct external calls
+- Only gateway can invoke agent APIs
+
+**Layer 3: Database RLS**
+- Tenant isolation at row level
+- Permission-based table access
+- Audit logging for all mutations
+
+### Secret Management
+
+**Gateway Secret** (INTERNAL_API_SECRET):
+- Shared between gateway and agent services
+- Prevents direct external calls to agents
+- Rotated quarterly
+
+**API Keys**:
+- UUIDs stored hashed in database
+- Never logged in plaintext
+- Revocable instantly
+
+### Correlation ID Tracing
+
+Every request gets a unique `correlation_id`:
+- Passed through entire call chain
+- Logged at every layer
+- Enables end-to-end debugging
+
+**Example Flow**:
+```
+Request → Gateway (log with corr_id)
+       → Ops API (log with same corr_id)
+       → Database (log with same corr_id)
+       → Response (return corr_id in header)
+```
 
 ---
 
@@ -482,7 +1093,219 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/reconcile-forecast \
 
 ## API Reference
 
-### Edge Functions
+### v6.0 PaaS API Endpoints
+
+All PaaS APIs are accessed through the API Gateway. Authentication requires `x-api-key` and `x-tenant-id` headers.
+
+**Base URL**: `https://{PROJECT}.supabase.co/functions/v1/api-gateway`
+
+#### API Gateway Endpoint
+
+**POST** `/api-gateway`
+
+Main entry point for all agent service calls.
+
+**Headers**:
+```
+x-api-key: {YOUR_API_KEY}
+x-tenant-id: {YOUR_TENANT_UUID}
+Content-Type: application/json
+```
+
+**Request Body**:
+```json
+{
+  "service": "ops|fraud|finance|forecast",
+  "action": "action_name",
+  "data": { /* action-specific parameters */ }
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": { /* result */ },
+  "correlation_id": "uuid",
+  "response_time_ms": 123
+}
+```
+
+**Error Response**:
+```json
+{
+  "error": "Rate limit exceeded",
+  "correlation_id": "uuid",
+  "current_usage": 1247
+}
+```
+
+---
+
+#### Operations API Actions
+
+**Service**: `"ops"`
+
+**Actions**:
+- `create_work_order` - Create new work order
+- `get_work_order` - Get work order details
+- `update_work_order` - Update work order
+- `list_work_orders` - List with filters
+- `release_work_order` - Release to field
+- `complete_work_order` - Mark complete
+- `run_precheck` - Execute validation
+
+**Example - Create Work Order**:
+```bash
+curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+  -H "x-api-key: YOUR_KEY" \
+  -H "x-tenant-id: YOUR_TENANT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service": "ops",
+    "action": "create_work_order",
+    "data": {
+      "customer_id": "uuid",
+      "technician_id": "uuid",
+      "issue_description": "Unit not responding",
+      "priority": "high"
+    }
+  }'
+```
+
+---
+
+#### Fraud Detection API Actions
+
+**Service**: `"fraud"`
+
+**Actions**:
+- `validate_photos` - Validate photo compliance
+- `detect_anomaly` - Run anomaly detection
+- `get_fraud_alerts` - List fraud alerts
+- `update_investigation` - Update investigation status
+- `get_fraud_score` - Calculate fraud risk score
+
+**Example - Get Fraud Score**:
+```bash
+curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+  -H "x-api-key: YOUR_KEY" \
+  -H "x-tenant-id: YOUR_TENANT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service": "fraud",
+    "action": "get_fraud_score",
+    "resource_type": "work_order",
+    "resource_id": "uuid"
+  }'
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "confidence_score": 0.75,
+    "risk_factors": [
+      "Photo anomalies detected",
+      "Unusually fast completion"
+    ]
+  }
+}
+```
+
+---
+
+#### Finance API Actions
+
+**Service**: `"finance"`
+
+**Actions**:
+- `calculate_penalties` - Calculate work order penalties
+- `generate_invoice` - Create invoice
+- `get_invoices` - List invoices with filters
+- `get_penalties` - List penalty applications
+- `generate_sapos_offer` - Generate AI offers
+- `get_billing_summary` - Get period summary
+
+**Example - Get Billing Summary**:
+```bash
+curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+  -H "x-api-key: YOUR_KEY" \
+  -H "x-tenant-id: YOUR_TENANT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service": "finance",
+    "action": "get_billing_summary",
+    "data": {
+      "start_date": "2025-10-01",
+      "end_date": "2025-10-31"
+    }
+  }'
+```
+
+---
+
+#### Forecast API Actions
+
+**Service**: `"forecast"`
+
+**Actions**:
+- `generate_forecast` - Trigger forecast generation
+- `get_forecasts` - Query forecasts with filters
+- `get_forecast_metrics` - Get accuracy metrics
+- `get_forecast_status` - Check generation status
+- `reconcile_forecast` - Run reconciliation
+
+**Example - Get Forecasts**:
+```bash
+curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+  -H "x-api-key: YOUR_KEY" \
+  -H "x-tenant-id: YOUR_TENANT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service": "forecast",
+    "action": "get_forecasts",
+    "data": {
+      "geography_level": "city",
+      "geography_key": "San Jose",
+      "from_date": "2025-10-09",
+      "to_date": "2025-10-16",
+      "limit": 100
+    }
+  }'
+```
+
+---
+
+#### Sandbox Tenant Creation
+
+**POST** `/functions/v1/create-sandbox-tenant`
+
+Public endpoint for instant sandbox provisioning.
+
+**Request**:
+```json
+{
+  "email": "developer@company.com",
+  "name": "John Developer"
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "tenant_id": "uuid",
+  "api_key": "random-uuid",
+  "expires_at": "2025-10-16T00:00:00Z",
+  "message": "Sandbox environment created successfully"
+}
+```
+
+---
+
+### v5.0 Internal Edge Functions
 
 #### generate-forecast
 
