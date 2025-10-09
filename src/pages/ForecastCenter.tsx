@@ -183,10 +183,19 @@ export default function ForecastCenter() {
     setLoading(true);
     try {
       const days = forecastWindow === 'short' ? 30 : forecastWindow === 'mid' ? 90 : 365;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user?.id)
+        .maybeSingle();
+      const tenantId = profile?.tenant_id || user?.id;
       
       let query = supabase
         .from('forecast_outputs')
         .select('*')
+        .eq('tenant_id', tenantId)
         .eq('forecast_type', 'volume')
         .gte('target_date', new Date().toISOString().split('T')[0])
         .lte('target_date', new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
@@ -259,9 +268,18 @@ export default function ForecastCenter() {
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - 12);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user?.id)
+        .maybeSingle();
+      const tenantId = profile?.tenant_id || user?.id;
+
       let query = supabase
         .from('work_orders')
         .select('created_at')
+        .eq('tenant_id', tenantId)
         .gte('created_at', startDate.toISOString());
 
       if (selectedPinCode) {
@@ -352,9 +370,18 @@ export default function ForecastCenter() {
   const generateForecasts = async () => {
     setGenerating(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      const tenantId = profile?.tenant_id || user.id;
+
       const { data, error } = await supabase.functions.invoke('run-forecast-now', {
         body: {
-          tenant_id: (await supabase.auth.getUser()).data.user?.id,
+          tenant_id: tenantId,
           geography_levels: ['country', 'region', 'state', 'city', 'partner_hub', 'pin_code']
         }
       });

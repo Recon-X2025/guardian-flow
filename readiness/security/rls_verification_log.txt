@@ -1,0 +1,10 @@
+RLS Verification Summary
+
+High-risk issues detected:
+- Work orders appear publicly readable (demo policy). Replace with tenant-scoped RLS before production.
+- Forecast tables and queues expose operational data. Restrict to admin/ml_ops roles.
+
+Recommended next steps:
+1) Tighten SELECT policies on work_orders, forecast_outputs, forecast_queue.
+2) Require auth and tenant match for all operational tables.
+3) Enable leaked password protection and enforce MFA for high-risk actions.

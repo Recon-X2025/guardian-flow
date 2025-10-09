@@ -1,0 +1,17 @@
+{
+  "generated_at": "${new Date().toISOString()}",
+  "source": "Lovable Security Scan",
+  "results": {
+    "count": 8,
+    "findings": [
+      {"name": "Leaked Password Protection Disabled", "level": "warn"},
+      {"name": "Business Intelligence Data Exposed to Competitors", "level": "warn"},
+      {"name": "Forecasting Strategy Visible to Unauthorized Users", "level": "warn"},
+      {"name": "Business Forecasts Leaked to Public", "level": "warn"},
+      {"name": "Data Seeding Operations Exposed", "level": "warn"},
+      {"name": "49,000 Work Orders Exposed to Public Internet", "level": "error"},
+      {"name": "All Work Orders Visible to Anyone (Demo Mode Risk)", "level": "error"},
+      {"name": "User Profile Data Could Be Accessed Across Tenants", "level": "warn"}
+    ]
+  }
+}

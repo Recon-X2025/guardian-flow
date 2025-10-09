@@ -21,12 +21,22 @@ export function ForecastTab() {
       // Get forecast outputs for next 90 days
       const today = new Date().toISOString().split('T')[0];
       const future = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
+
+      // Resolve tenant for RLS-scoped reads
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user?.id)
+        .maybeSingle();
+      const tenantId = profile?.tenant_id || user?.id || null;
+
+      console.log('[ForecastTab] Querying forecasts from', today, 'to', future, 'tenant', tenantId);
       
-      console.log('[ForecastTab] Querying forecasts from', today, 'to', future);
-      
-      const { data: forecasts, error: forecastError } = await supabase
+      const { data: forecasts, error: forecastError } = await (supabase as any)
         .from('forecast_outputs')
         .select('target_date, value, forecast_type')
+        .eq('tenant_id', tenantId)
         .gte('target_date', today)
         .lte('target_date', future)
         .order('target_date');
@@ -44,6 +54,7 @@ export function ForecastTab() {
       const { data: actuals, error: actualsError } = await supabase
         .from('work_orders')
         .select('created_at')
+        .eq('tenant_id', tenantId)
         .gte('created_at', past90Days)
         .order('created_at');
 
