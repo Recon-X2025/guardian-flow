@@ -33,8 +33,8 @@ export function ForecastTab() {
 
       console.log('[ForecastTab] Querying forecasts from', today, 'to', future, 'tenant', tenantId);
 
-      let forecastQuery = supabase
-        .from('forecast_outputs')
+      const fTable = (supabase.from('forecast_outputs') as any);
+      let forecastQuery: any = fTable
         .select('target_date, value, forecast_type')
         .gte('target_date', today)
         .lte('target_date', future);
@@ -55,18 +55,10 @@ export function ForecastTab() {
       // Get actual work orders for comparison (past 90 days)
       const past90Days = new Date(Date.now() - 90*24*60*60*1000).toISOString();
       
-      const { data: actuals, error: actualsError } = tenantId
-        ? await supabase
-            .from('work_orders')
-            .select('created_at')
-            .eq('tenant_id', tenantId)
-            .gte('created_at', past90Days)
-            .order('created_at')
-        : await supabase
-            .from('work_orders')
-            .select('created_at')
-            .gte('created_at', past90Days)
-            .order('created_at');
+      const woTable = (supabase.from('work_orders') as any);
+      let actualsQuery: any = woTable.select('created_at').gte('created_at', past90Days);
+      if (tenantId) actualsQuery = actualsQuery.eq('tenant_id', tenantId);
+      const { data: actuals, error: actualsError } = await actualsQuery.order('created_at');
 
       if (actualsError) {
         console.error('[ForecastTab] Actuals query error:', actualsError);
