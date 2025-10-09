@@ -32,7 +32,7 @@ export function ForecastTab() {
       const tenantId = profile?.tenant_id || user?.id || null;
 
       console.log('[ForecastTab] Querying forecasts from', today, 'to', future, 'tenant', tenantId);
-      
+
       let forecastQuery = supabase
         .from('forecast_outputs')
         .select('target_date, value, forecast_type')
@@ -55,15 +55,18 @@ export function ForecastTab() {
       // Get actual work orders for comparison (past 90 days)
       const past90Days = new Date(Date.now() - 90*24*60*60*1000).toISOString();
       
-      let actualsQuery = supabase.from('work_orders').select('created_at');
-      
-      if (tenantId) {
-        actualsQuery = actualsQuery.eq('tenant_id', tenantId).gte('created_at', past90Days);
-      } else {
-        actualsQuery = actualsQuery.gte('created_at', past90Days);
-      }
-      
-      const { data: actuals, error: actualsError} = await actualsQuery.order('created_at');
+      const { data: actuals, error: actualsError } = tenantId
+        ? await supabase
+            .from('work_orders')
+            .select('created_at')
+            .eq('tenant_id', tenantId)
+            .gte('created_at', past90Days)
+            .order('created_at')
+        : await supabase
+            .from('work_orders')
+            .select('created_at')
+            .gte('created_at', past90Days)
+            .order('created_at');
 
       if (actualsError) {
         console.error('[ForecastTab] Actuals query error:', actualsError);
