@@ -98,8 +98,8 @@ async function processJob(supabase: any, job: any) {
     .maybeSingle();
 
   if (!model) {
-    console.log('No active model found for level:', geography_level);
-    return;
+    console.log('No active model found for level:', geography_level, '- proceeding with naive forecast');
+    // proceed with naive forecast when no active model is configured
   }
 
   const { data: geoKeys } = await supabase
@@ -127,7 +127,7 @@ async function processJob(supabase: any, job: any) {
       continue;
     }
 
-    const forecast = generateSimpleForecast(historicalData, 30);
+    const forecast = generateSimpleForecast(historicalData, 90);
 
     for (const point of forecast) {
       forecastOutputs.push({
@@ -149,7 +149,7 @@ async function processJob(supabase: any, job: any) {
         upper_bound: point.upper,
         confidence_lower: point.lower,
         confidence_upper: point.upper,
-        model_id: model.id,
+        model_id: model?.id ?? null,
         metadata: { correlation_id }
       });
     }
