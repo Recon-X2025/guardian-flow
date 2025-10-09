@@ -189,19 +189,19 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome to ReconX AI Field Service Platform</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Welcome to ReconX AI Field Service Platform</p>
         </div>
-        <Button onClick={downloadProductSpecs} variant="outline" className="gap-2">
+        <Button onClick={downloadProductSpecs} variant="outline" className="gap-2 w-full sm:w-auto">
           <Download className="h-4 w-4" />
-          Download Product Specs
+          <span className="sm:inline">Download Product Specs</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         {statCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -224,25 +224,25 @@ export default function Dashboard() {
       </div>
 
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Work Orders Trend</CardTitle>
-            <CardDescription>Last 7 days activity</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Work Orders Trend</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Last 7 days activity</CardDescription>
           </CardHeader>
           <CardContent>
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" className="text-xs" />
-                  <YAxis className="text-xs" />
+                  <XAxis dataKey="date" className="text-[10px] sm:text-xs" />
+                  <YAxis className="text-[10px] sm:text-xs" />
                   <Tooltip />
                   <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
                 No data available
               </div>
             )}
@@ -250,13 +250,13 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Status Distribution</CardTitle>
-            <CardDescription>Current work order breakdown</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Status Distribution</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Current work order breakdown</CardDescription>
           </CardHeader>
           <CardContent>
             {statusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
                 <PieChart>
                   <Pie
                     data={statusData}
@@ -264,7 +264,8 @@ export default function Dashboard() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    outerRadius={60}
+                    className="sm:outerRadius-80"
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -276,7 +277,7 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
                 No data available
               </div>
             )}
@@ -285,30 +286,30 @@ export default function Dashboard() {
       </div>
 
       <Card className="bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wrench className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
             Platform Features
           </CardTitle>
-          <CardDescription>87 integrated modules for complete field service management</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">87 integrated modules for complete field service management</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3">
-              <div className="text-2xl font-bold text-primary mb-1">87</div>
-              <div className="text-xs text-muted-foreground">Total Modules</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="text-center p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl font-bold text-primary mb-1">87</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Total Modules</div>
             </div>
-            <div className="text-center p-3">
-              <div className="text-2xl font-bold text-accent mb-1">24/7</div>
-              <div className="text-xs text-muted-foreground">AI Support</div>
+            <div className="text-center p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl font-bold text-accent mb-1">24/7</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">AI Support</div>
             </div>
-            <div className="text-center p-3">
-              <div className="text-2xl font-bold text-success mb-1">99.9%</div>
-              <div className="text-xs text-muted-foreground">Uptime</div>
+            <div className="text-center p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl font-bold text-success mb-1">99.9%</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Uptime</div>
             </div>
-            <div className="text-center p-3">
-              <div className="text-2xl font-bold text-warning mb-1">Real-time</div>
-              <div className="text-xs text-muted-foreground">Analytics</div>
+            <div className="text-center p-2 sm:p-3">
+              <div className="text-xl sm:text-2xl font-bold text-warning mb-1">Real-time</div>
+              <div className="text-[10px] sm:text-xs text-muted-foreground">Analytics</div>
             </div>
           </div>
         </CardContent>

@@ -67,11 +67,11 @@ const App = () => (
                         <div className="min-h-screen flex w-full">
                           <AppSidebar />
                           <div className="flex-1 flex flex-col">
-                            <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-10">
-                              <div className="flex items-center gap-4">
+                            <header className="h-12 sm:h-14 border-b border-border bg-card flex items-center justify-between px-3 sm:px-4 sticky top-0 z-10">
+                              <div className="flex items-center gap-2 sm:gap-4">
                                 <SidebarTrigger />
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-semibold">ReconX AI</span>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <span className="text-xs sm:text-sm font-semibold">ReconX AI</span>
                                   <span className="text-xs text-muted-foreground hidden md:inline">
                                     Enterprise Field Service Platform
                                   </span>
@@ -79,7 +79,7 @@ const App = () => (
                               </div>
                               <UserMenu />
                             </header>
-                            <main className="flex-1 p-6 bg-background">
+                            <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
                               <Routes>
                                 <Route path="/" element={<Dashboard />} />
                                 <Route path="/tickets" element={

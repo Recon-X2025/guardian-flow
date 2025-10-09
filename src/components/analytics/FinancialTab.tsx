@@ -103,30 +103,32 @@ export function FinancialTab() {
           {loading ? (
             <Skeleton className="h-64" />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-                    <TableCell>{new Date(invoice.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{formatCurrency(invoice.total_amount)}</TableCell>
-                    <TableCell>
-                      <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
-                        {invoice.status}
-                      </Badge>
-                    </TableCell>
+            <div className="table-responsive">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                      <TableCell>{new Date(invoice.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatCurrency(invoice.total_amount)}</TableCell>
+                      <TableCell>
+                        <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
+                          {invoice.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

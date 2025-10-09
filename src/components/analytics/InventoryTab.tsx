@@ -77,26 +77,28 @@ export function InventoryTab() {
           {loading ? (
             <Skeleton className="h-64" />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Lead Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {inventory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.sku}</TableCell>
-                    <TableCell>{item.description}</TableCell>
-                    <TableCell>{item.consumable ? 'Consumable' : 'Durable'}</TableCell>
-                    <TableCell>{item.lead_time_days} days</TableCell>
+            <div className="table-responsive">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Lead Time</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {inventory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.sku}</TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell>{item.consumable ? 'Consumable' : 'Durable'}</TableCell>
+                      <TableCell>{item.lead_time_days} days</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

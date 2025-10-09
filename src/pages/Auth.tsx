@@ -94,17 +94,17 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      <div className="w-full max-w-4xl space-y-6">
-        <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      <div className="w-full max-w-4xl space-y-4 sm:space-y-6">
+        <div className="max-w-md mx-auto space-y-4 sm:space-y-6">
           <div className="text-center space-y-2">
-            <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-                <Wrench className="h-8 w-8 text-white" />
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
+                <Wrench className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold">ReconX AI</h1>
-            <p className="text-muted-foreground">Enterprise Field Service Platform</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">ReconX AI</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">Enterprise Field Service Platform</p>
           </div>
 
         <Tabs defaultValue="login" className="w-full">

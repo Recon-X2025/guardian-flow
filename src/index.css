@@ -120,4 +120,24 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Touch-friendly interactive elements on mobile */
+  @media (max-width: 768px) {
+    button,
+    a,
+    [role="button"] {
+      min-height: 44px;
+    }
+  }
+}
+
+@layer utilities {
+  /* Responsive table wrapper for horizontal scrolling on mobile */
+  .table-responsive {
+    @apply overflow-x-auto -mx-3 sm:mx-0;
+  }
+  
+  .table-responsive table {
+    @apply min-w-full;
+  }
 }
