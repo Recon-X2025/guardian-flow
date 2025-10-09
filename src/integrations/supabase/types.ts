@@ -178,6 +178,114 @@ export type Database = {
         }
         Relationships: []
       }
+      api_overage_logs: {
+        Row: {
+          actual_usage: number
+          api_key_id: string | null
+          daily_limit: number
+          id: string
+          overage_count: number
+          tenant_id: string
+          timestamp: string | null
+        }
+        Insert: {
+          actual_usage: number
+          api_key_id?: string | null
+          daily_limit: number
+          id?: string
+          overage_count: number
+          tenant_id: string
+          timestamp?: string | null
+        }
+        Update: {
+          actual_usage?: number
+          api_key_id?: string | null
+          daily_limit?: number
+          id?: string
+          overage_count?: number
+          tenant_id?: string
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_overage_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_overage_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_usage_logs: {
+        Row: {
+          api_key_id: string | null
+          correlation_id: string | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          method: string
+          request_size: number | null
+          response_time: number | null
+          status_code: number
+          tenant_id: string
+          timestamp: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          correlation_id?: string | null
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          method: string
+          request_size?: number | null
+          response_time?: number | null
+          status_code: number
+          tenant_id: string
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          correlation_id?: string | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          method?: string
+          request_size?: number | null
+          response_time?: number | null
+          status_code?: number
+          tenant_id?: string
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_usage_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           bucket_url: string | null
@@ -286,6 +394,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_usage: {
+        Row: {
+          amount_due: number
+          api_calls: number
+          billing_cycle_end: string
+          billing_cycle_start: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          rate_per_call: number
+          status: string
+          stripe_invoice_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_due?: number
+          api_calls?: number
+          billing_cycle_end: string
+          billing_cycle_start: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          rate_per_call?: number
+          status?: string
+          stripe_invoice_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_due?: number
+          api_calls?: number
+          billing_cycle_end?: string
+          billing_cycle_start?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          rate_per_call?: number
+          status?: string
+          stripe_invoice_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_usage_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1574,6 +1735,44 @@ export type Database = {
           },
         ]
       }
+      sandbox_tenants: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sandbox_tenants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sapos_offers: {
         Row: {
           confidence_score: number | null
@@ -1950,6 +2149,56 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      tenant_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          created_by: string | null
+          expiry_date: string
+          id: string
+          last_used_at: string | null
+          name: string
+          rate_limit: number
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          rate_limit?: number
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          created_by?: string | null
+          expiry_date?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          rate_limit?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenants: {
         Row: {

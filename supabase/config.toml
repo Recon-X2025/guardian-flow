@@ -119,3 +119,24 @@ verify_jwt = true
 
 [functions.analytics-report]
 verify_jwt = true
+
+[functions.api-gateway]
+verify_jwt = false
+
+[functions.agent-ops-api]
+verify_jwt = false
+
+[functions.agent-fraud-api]
+verify_jwt = false
+
+[functions.agent-finance-api]
+verify_jwt = false
+
+[functions.agent-forecast-api]
+verify_jwt = false
+
+[functions.create-sandbox-tenant]
+verify_jwt = false
+
+[functions.billing-reconciler]
+verify_jwt = false
