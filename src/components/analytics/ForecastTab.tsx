@@ -18,9 +18,9 @@ export function ForecastTab() {
     try {
       console.log('[ForecastTab] Starting data fetch...');
       
-      // Get forecast outputs for next 30 days
+      // Get forecast outputs for next 90 days
       const today = new Date().toISOString().split('T')[0];
-      const future = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+      const future = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
       
       console.log('[ForecastTab] Querying forecasts from', today, 'to', future);
       
@@ -38,13 +38,13 @@ export function ForecastTab() {
 
       console.log('[ForecastTab] Fetched forecasts:', forecasts?.length || 0);
 
-      // Get actual work orders for comparison
-      const past30Days = new Date(Date.now() - 30*24*60*60*1000).toISOString();
+      // Get actual work orders for comparison (past 90 days)
+      const past90Days = new Date(Date.now() - 90*24*60*60*1000).toISOString();
       
       const { data: actuals, error: actualsError } = await supabase
         .from('work_orders')
         .select('created_at')
-        .gte('created_at', past30Days)
+        .gte('created_at', past90Days)
         .order('created_at');
 
       if (actualsError) {
@@ -116,8 +116,8 @@ export function ForecastTab() {
             <CardTitle className="text-sm font-medium">Forecast Horizon</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">30 Days</div>
-            <p className="text-xs text-muted-foreground">Next 6 months available</p>
+            <div className="text-2xl font-bold">90 Days</div>
+            <p className="text-xs text-muted-foreground">Next 3 months available</p>
           </CardContent>
         </Card>
 
@@ -129,7 +129,7 @@ export function ForecastTab() {
             <div className="text-2xl font-bold">
               {loading ? <Skeleton className="h-8 w-20" /> : metrics?.totalForecast || 0}
             </div>
-            <p className="text-xs text-muted-foreground">Work orders (next 30d)</p>
+            <p className="text-xs text-muted-foreground">Work orders (next 90d)</p>
           </CardContent>
         </Card>
 

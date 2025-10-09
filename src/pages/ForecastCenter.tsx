@@ -32,7 +32,7 @@ export default function ForecastCenter() {
   const [selectedHub, setSelectedHub] = useState('');
   const [selectedPinCode, setSelectedPinCode] = useState('');
   
-  const [forecastWindow, setForecastWindow] = useState<'short' | 'mid' | 'long'>('short');
+  const [forecastWindow, setForecastWindow] = useState<'short' | 'mid' | 'long'>('mid');
   const [forecastData, setForecastData] = useState<any[]>([]);
   const [actualsData, setActualsData] = useState<any[]>([]);
   const [metrics, setMetrics] = useState({
