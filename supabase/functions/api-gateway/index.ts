@@ -4,15 +4,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-tenant-id',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-interface ApiKeyValidation {
-  valid: boolean;
-  tenant_id?: string;
-  api_key_id?: string;
-  rate_limit?: number;
-  error?: string;
+interface GatewayRequestBody {
+  service?: 'ops' | 'fraud' | 'finance' | 'forecast';
+  action?: string;
+  data?: any;
 }
 
 serve(async (req) => {
@@ -25,23 +23,43 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const INTERNAL_API_SECRET = Deno.env.get('INTERNAL_API_SECRET')!;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Extract API key and tenant ID from headers
     const apiKey = req.headers.get('x-api-key');
     const tenantId = req.headers.get('x-tenant-id');
-    const endpoint = new URL(req.url).pathname;
     const method = req.method;
+
+    // Parse request body (support GET with query params)
+    let bodyText = '';
+    let bodyJson: GatewayRequestBody = {};
+
+    if (method !== 'GET') {
+      bodyText = await req.text();
+      if (bodyText) {
+        try { bodyJson = JSON.parse(bodyText); } catch { /* ignore parse errors */ }
+      }
+    } else {
+      const url = new URL(req.url);
+      const service = url.searchParams.get('service') as GatewayRequestBody['service'];
+      const action = url.searchParams.get('action') ?? undefined;
+      bodyJson = { service, action, data: {} };
+    }
+
+    // Validate basic inputs
+    if (!bodyJson.service) {
+      return jsonError(400, 'Missing service. Expected one of: ops, fraud, finance, forecast', correlationId);
+    }
 
     // Validate API key
     const validation = await validateApiKey(supabase, apiKey, tenantId);
-    
     if (!validation.valid) {
       await logUsage(supabase, {
         tenant_id: tenantId || null,
         api_key_id: null,
-        endpoint,
+        endpoint: `/api/agent/${bodyJson.service}`,
         method,
         status_code: 401,
         response_time: Date.now() - startTime,
@@ -50,23 +68,13 @@ serve(async (req) => {
         ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
         user_agent: req.headers.get('user-agent'),
       });
-
-      return new Response(
-        JSON.stringify({ 
-          error: validation.error,
-          correlation_id: correlationId 
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return jsonError(401, validation.error || 'Unauthorized', correlationId);
     }
 
     // Check rate limits
     const rateLimitCheck = await checkRateLimit(
-      supabase, 
-      validation.tenant_id!, 
+      supabase,
+      validation.tenant_id!,
       validation.api_key_id!,
       validation.rate_limit!
     );
@@ -75,7 +83,7 @@ serve(async (req) => {
       await logUsage(supabase, {
         tenant_id: validation.tenant_id!,
         api_key_id: validation.api_key_id!,
-        endpoint,
+        endpoint: `/api/agent/${bodyJson.service}`,
         method,
         status_code: 429,
         response_time: Date.now() - startTime,
@@ -85,7 +93,6 @@ serve(async (req) => {
         user_agent: req.headers.get('user-agent'),
       });
 
-      // Log overage
       await supabase.from('api_overage_logs').insert({
         tenant_id: validation.tenant_id,
         api_key_id: validation.api_key_id,
@@ -94,17 +101,9 @@ serve(async (req) => {
         overage_count: rateLimitCheck.current_usage - validation.rate_limit!,
       });
 
-      return new Response(
-        JSON.stringify({ 
-          error: 'Rate limit exceeded. Daily limit: ' + validation.rate_limit,
-          current_usage: rateLimitCheck.current_usage,
-          correlation_id: correlationId
-        }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      return jsonError(429, `Rate limit exceeded. Daily limit: ${validation.rate_limit}`, correlationId, {
+        current_usage: rateLimitCheck.current_usage,
+      });
     }
 
     // Update last_used_at for API key
@@ -113,33 +112,34 @@ serve(async (req) => {
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', validation.api_key_id);
 
-    // Forward request to appropriate agent endpoint
-    const targetEndpoint = endpoint.replace('/api/agent/', '');
-    const targetUrl = `${supabaseUrl}/functions/v1/agent-${targetEndpoint}-api`;
+    // Forward request to the correct internal function
+    const targetUrl = `${supabaseUrl}/functions/v1/agent-${bodyJson.service}-api`;
+    const forwardBody = method === 'GET' ? undefined : JSON.stringify({
+      action: bodyJson.action,
+      data: bodyJson.data,
+    });
 
-    const body = method !== 'GET' ? await req.text() : undefined;
-    
     const response = await fetch(targetUrl, {
-      method,
+      method: 'POST', // normalize to POST internally
       headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json',
         'x-tenant-id': validation.tenant_id!,
         'x-correlation-id': correlationId,
+        'x-internal-secret': INTERNAL_API_SECRET,
       },
-      body,
+      body: forwardBody,
     });
 
-    const responseText = await response.text();
+    const text = await response.text();
     const responseTime = Date.now() - startTime;
 
-    // Log successful API call
     await logUsage(supabase, {
       tenant_id: validation.tenant_id!,
       api_key_id: validation.api_key_id!,
-      endpoint,
+      endpoint: `/api/agent/${bodyJson.service}`,
       method,
-      request_size: body?.length || 0,
+      request_size: forwardBody?.length || 0,
       status_code: response.status,
       response_time: responseTime,
       correlation_id: correlationId,
@@ -147,10 +147,10 @@ serve(async (req) => {
       user_agent: req.headers.get('user-agent'),
     });
 
-    return new Response(responseText, {
+    return new Response(text, {
       status: response.status,
-      headers: { 
-        ...corsHeaders, 
+      headers: {
+        ...corsHeaders,
         'Content-Type': 'application/json',
         'X-Response-Time': `${responseTime}ms`,
         'X-Correlation-ID': correlationId,
@@ -159,29 +159,32 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('API Gateway error:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        correlation_id: correlationId
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return jsonError(500, error.message || 'Internal Server Error', correlationId);
   }
 });
 
+function jsonError(status: number, message: string, correlationId: string, extra: any = {}) {
+  return new Response(JSON.stringify({ error: message, correlation_id: correlationId, ...extra }), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+interface ApiKeyValidation {
+  valid: boolean;
+  tenant_id?: string;
+  api_key_id?: string;
+  rate_limit?: number;
+  error?: string;
+}
+
 async function validateApiKey(
-  supabase: any, 
-  apiKey: string | null, 
+  supabase: any,
+  apiKey: string | null,
   tenantId: string | null
 ): Promise<ApiKeyValidation> {
   if (!apiKey || !tenantId) {
-    return { 
-      valid: false, 
-      error: 'Missing API key or tenant ID' 
-    };
+    return { valid: false, error: 'Missing API key or tenant ID' };
   }
 
   const { data: keyData, error } = await supabase
@@ -191,75 +194,39 @@ async function validateApiKey(
     .eq('tenant_id', tenantId)
     .single();
 
-  if (error || !keyData) {
-    return { 
-      valid: false, 
-      error: 'Invalid API key' 
-    };
-  }
-
-  if (keyData.status !== 'active') {
-    return { 
-      valid: false, 
-      error: 'API key is not active' 
-    };
-  }
-
+  if (error || !keyData) return { valid: false, error: 'Invalid API key' };
+  if (keyData.status !== 'active') return { valid: false, error: 'API key is not active' };
   if (new Date(keyData.expiry_date) < new Date()) {
-    // Auto-expire the key
-    await supabase
-      .from('tenant_api_keys')
-      .update({ status: 'expired' })
-      .eq('id', keyData.id);
-
-    return { 
-      valid: false, 
-      error: 'API key has expired' 
-    };
+    await supabase.from('tenant_api_keys').update({ status: 'expired' }).eq('id', keyData.id);
+    return { valid: false, error: 'API key has expired' };
   }
 
-  return { 
-    valid: true, 
-    tenant_id: keyData.tenant_id,
-    api_key_id: keyData.id,
-    rate_limit: keyData.rate_limit,
-  };
+  return { valid: true, tenant_id: keyData.tenant_id, api_key_id: keyData.id, rate_limit: keyData.rate_limit };
 }
 
 async function checkRateLimit(
-  supabase: any, 
-  tenantId: string, 
+  supabase: any,
+  tenantId: string,
   apiKeyId: string,
   rateLimit: number
 ): Promise<{ allowed: boolean; current_usage: number }> {
   const today = new Date().toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
+  const { count, error } = await supabase
     .from('api_usage_logs')
-    .select('id', { count: 'exact' })
+    .select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
     .eq('api_key_id', apiKeyId)
     .gte('timestamp', `${today}T00:00:00`)
     .lte('timestamp', `${today}T23:59:59`);
-
   if (error) {
     console.error('Rate limit check error:', error);
-    return { allowed: true, current_usage: 0 }; // Fail open
+    return { allowed: true, current_usage: 0 };
   }
-
-  const currentUsage = data?.length || 0;
-  return { 
-    allowed: currentUsage < rateLimit, 
-    current_usage: currentUsage 
-  };
+  const currentUsage = count || 0;
+  return { allowed: currentUsage < rateLimit, current_usage: currentUsage };
 }
 
 async function logUsage(supabase: any, logData: any) {
-  const { error } = await supabase
-    .from('api_usage_logs')
-    .insert(logData);
-
-  if (error) {
-    console.error('Failed to log API usage:', error);
-  }
+  const { error } = await supabase.from('api_usage_logs').insert(logData);
+  if (error) console.error('Failed to log API usage:', error);
 }

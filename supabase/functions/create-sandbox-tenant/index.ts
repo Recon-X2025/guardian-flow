@@ -62,8 +62,12 @@ serve(async (req) => {
 
     if (sandboxError) throw sandboxError;
 
-    // Seed demo data
-    await seedDemoData(supabase, tenant.id);
+    // Seed demo data (non-fatal)
+    try {
+      await seedDemoData(supabase, tenant.id);
+    } catch (e) {
+      console.warn('[Sandbox] Seeding failed (non-fatal):', e);
+    }
 
     // Send welcome email (you can integrate with Resend here)
     console.log(`[Sandbox] Created for ${email}, API Key: ${apiKey}`);
