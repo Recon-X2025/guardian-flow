@@ -294,8 +294,8 @@ serve(async (req) => {
     console.log('Finalizing seed: running validation and triggering forecast...');
 
     const { data: allData, error: selErr } = await supabase
-      .from('work_orders')
-      .select('product_category')
+      .from('staging_work_orders')
+      .select('product_category, created_at')
       .eq('tenant_id', tenant_id)
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString());

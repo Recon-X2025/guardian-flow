@@ -169,7 +169,6 @@ async function fetchDataByPinCode(supabase: any, tenant_id: string, product_id: 
   const { data } = await supabase
     .from('work_orders')
     .select('created_at')
-    .eq('tenant_id', tenant_id)
     .eq('product_id', product_id)
     .eq('pin_code', pin_code)
     .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
@@ -182,7 +181,6 @@ async function fetchDataByHub(supabase: any, tenant_id: string, product_id: stri
   const { data } = await supabase
     .from('work_orders')
     .select('created_at')
-    .eq('tenant_id', tenant_id)
     .eq('product_id', product_id)
     .eq('partner_hub', hub)
     .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
@@ -195,7 +193,6 @@ async function fetchDataByCity(supabase: any, tenant_id: string, product_id: str
   const { data } = await supabase
     .from('work_orders')
     .select('created_at')
-    .eq('tenant_id', tenant_id)
     .eq('product_id', product_id)
     .eq('city', city)
     .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
@@ -208,7 +205,6 @@ async function fetchDataByLevel(supabase: any, tenant_id: string, product_id: st
   const { data } = await supabase
     .from('work_orders')
     .select('created_at')
-    .eq('tenant_id', tenant_id)
     .eq('product_id', product_id)
     .eq(level, value)
     .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
