@@ -58,7 +58,6 @@ const menuGroups: MenuGroup[] = [
     label: "Core",
     items: [
       { title: "Dashboard", url: "/", icon: Home },
-      { title: "Analytics", url: "/analytics", icon: Activity, permissions: ["audit.read"] },
       { title: "Tickets", url: "/tickets", icon: Clipboard, permissions: ["ticket.read"] },
       { title: "Work Orders", url: "/work-orders", icon: Wrench, permissions: ["wo.read"] },
       { title: "Photo Capture", url: "/photo-capture", icon: Camera, permissions: ["attachment.upload"] },
