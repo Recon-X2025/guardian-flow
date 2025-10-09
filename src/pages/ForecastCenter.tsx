@@ -276,11 +276,13 @@ export default function ForecastCenter() {
         .maybeSingle();
       const tenantId = profile?.tenant_id || user?.id;
 
-      let query = supabase
-        .from('work_orders')
-        .select('created_at')
-        .eq('tenant_id', tenantId)
-        .gte('created_at', startDate.toISOString());
+      let query = supabase.from('work_orders').select('created_at');
+      
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId).gte('created_at', startDate.toISOString());
+      } else {
+        query = query.gte('created_at', startDate.toISOString());
+      }
 
       if (selectedPinCode) {
         query = query.eq('pin_code', selectedPinCode);
