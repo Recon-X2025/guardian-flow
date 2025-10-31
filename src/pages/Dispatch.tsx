@@ -2,14 +2,18 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle, Navigation } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { GeoCheckInDialog } from '@/components/GeoCheckInDialog';
 
 export default function Dispatch() {
   const { toast } = useToast();
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [geoDialogOpen, setGeoDialogOpen] = useState(false);
+  const [selectedWOId, setSelectedWOId] = useState<string | null>(null);
+  const [checkMode, setCheckMode] = useState<'check-in' | 'check-out'>('check-in');
 
   useEffect(() => {
     fetchWorkOrders();
@@ -153,11 +157,46 @@ export default function Dispatch() {
                       </div>
                     )}
                   </div>
+                  {wo.check_in_at && (
+                    <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Checked in at {new Date(wo.check_in_at).toLocaleTimeString()}
+                    </div>
+                  )}
                   <div className="mt-3 flex gap-2">
+                    {!wo.check_in_at && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedWOId(wo.id);
+                          setCheckMode('check-in');
+                          setGeoDialogOpen(true);
+                        }}
+                      >
+                        <Navigation className="mr-1 h-3 w-3" />
+                        Check In
+                      </Button>
+                    )}
+                    {wo.check_in_at && !wo.check_out_at && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedWOId(wo.id);
+                          setCheckMode('check-out');
+                          setGeoDialogOpen(true);
+                        }}
+                      >
+                        <Navigation className="mr-1 h-3 w-3" />
+                        Check Out
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => updateStatus(wo.id, 'completed')}
+                      disabled={!wo.check_in_at}
                     >
                       Mark Complete
                     </Button>
@@ -224,6 +263,16 @@ export default function Dispatch() {
           </CardContent>
         </Card>
       </div>
+
+      {selectedWOId && (
+        <GeoCheckInDialog
+          open={geoDialogOpen}
+          onOpenChange={setGeoDialogOpen}
+          workOrderId={selectedWOId}
+          mode={checkMode}
+          onSuccess={fetchWorkOrders}
+        />
+      )}
     </div>
   );
 }

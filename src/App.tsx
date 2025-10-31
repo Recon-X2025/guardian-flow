@@ -48,6 +48,7 @@ import RAGEngine from "./pages/RAGEngine";
 import Prompts from "./pages/Prompts";
 import ForecastCenter from "./pages/ForecastCenter";
 import ProductSpecs from "./pages/ProductSpecs";
+import RouteOptimization from "./pages/RouteOptimization";
 
 const queryClient = new QueryClient();
 
@@ -115,13 +116,18 @@ const App = () => (
                                   <RoleGuard permissions={["wo.assign"]} showError={true}>
                                     <Scheduler />
                                   </RoleGuard>
-                                } />
-                                <Route path="/dispatch" element={
-                                  <RoleGuard permissions={["wo.assign"]} showError={true}>
-                                    <Dispatch />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/procurement" element={
+                                 } />
+                                 <Route path="/dispatch" element={
+                                   <RoleGuard permissions={["wo.assign"]} showError={true}>
+                                     <Dispatch />
+                                   </RoleGuard>
+                                 } />
+                                 <Route path="/route-optimization" element={
+                                   <RoleGuard permissions={["wo.assign"]} showError={true}>
+                                     <RouteOptimization />
+                                   </RoleGuard>
+                                 } />
+                                 <Route path="/procurement" element={
                                   <RoleGuard permissions={["inventory.procure"]} showError={true}>
                                     <Procurement />
                                   </RoleGuard>

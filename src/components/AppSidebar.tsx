@@ -26,6 +26,7 @@ import {
   Eye,
   Settings,
   GraduationCap,
+  Route,
 } from "lucide-react";
 import {
   Sidebar,
@@ -70,6 +71,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Pending Validation", url: "/pending-validation", icon: AlertTriangle, permissions: ["wo.read"] },
       { title: "Scheduler", url: "/scheduler", icon: Calendar, permissions: ["wo.assign"] },
       { title: "Dispatch", url: "/dispatch", icon: MapPin, permissions: ["wo.assign"] },
+      { title: "Route Optimization", url: "/route-optimization", icon: Route, permissions: ["wo.assign"] },
       { title: "Inventory", url: "/inventory", icon: Package, permissions: ["inventory.view"] },
       { title: "Procurement", url: "/procurement", icon: ShoppingCart, permissions: ["inventory.procure"] },
       { title: "Warranty & RMA", url: "/warranty", icon: Shield, permissions: ["warranty.view"] },

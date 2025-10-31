@@ -230,7 +230,7 @@ export type Database = {
           endpoint: string
           error_message: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           method: string
           request_size: number | null
           response_time: number | null
@@ -245,7 +245,7 @@ export type Database = {
           endpoint: string
           error_message?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           method: string
           request_size?: number | null
           response_time?: number | null
@@ -260,7 +260,7 @@ export type Database = {
           endpoint?: string
           error_message?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           method?: string
           request_size?: number | null
           response_time?: number | null
@@ -350,7 +350,7 @@ export type Database = {
           correlation_id: string | null
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           mfa_verified: boolean | null
           reason: string | null
           resource_id: string | null
@@ -366,7 +366,7 @@ export type Database = {
           correlation_id?: string | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           mfa_verified?: boolean | null
           reason?: string | null
           resource_id?: string | null
@@ -382,7 +382,7 @@ export type Database = {
           correlation_id?: string | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           mfa_verified?: boolean | null
           reason?: string | null
           resource_id?: string | null
@@ -1686,21 +1686,21 @@ export type Database = {
         Row: {
           correlation_id: string
           created_at: string | null
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
           correlation_id?: string
           created_at?: string | null
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
           correlation_id?: string
           created_at?: string | null
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -2236,7 +2236,7 @@ export type Database = {
           customer_id: string | null
           customer_name: string | null
           id: string
-          provisional_sla: unknown | null
+          provisional_sla: unknown
           site_address: string | null
           status: Database["public"]["Enums"]["ticket_status"] | null
           symptom: string
@@ -2249,7 +2249,7 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string | null
           id?: string
-          provisional_sla?: unknown | null
+          provisional_sla?: unknown
           site_address?: string | null
           status?: Database["public"]["Enums"]["ticket_status"] | null
           symptom: string
@@ -2262,7 +2262,7 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string | null
           id?: string
-          provisional_sla?: unknown | null
+          provisional_sla?: unknown
           site_address?: string | null
           status?: Database["public"]["Enums"]["ticket_status"] | null
           symptom?: string
@@ -2438,6 +2438,14 @@ export type Database = {
       }
       work_orders: {
         Row: {
+          check_in_address: string | null
+          check_in_at: string | null
+          check_in_latitude: number | null
+          check_in_longitude: number | null
+          check_out_address: string | null
+          check_out_at: string | null
+          check_out_latitude: number | null
+          check_out_longitude: number | null
           city: string | null
           completed_at: string | null
           cost_to_customer: number | null
@@ -2459,12 +2467,22 @@ export type Database = {
           status: Database["public"]["Enums"]["work_order_status"] | null
           technician_id: string | null
           ticket_id: string | null
+          travel_distance_km: number | null
+          travel_duration_minutes: number | null
           updated_at: string | null
           warranty_checked: boolean | null
           warranty_result: Json | null
           wo_number: string | null
         }
         Insert: {
+          check_in_address?: string | null
+          check_in_at?: string | null
+          check_in_latitude?: number | null
+          check_in_longitude?: number | null
+          check_out_address?: string | null
+          check_out_at?: string | null
+          check_out_latitude?: number | null
+          check_out_longitude?: number | null
           city?: string | null
           completed_at?: string | null
           cost_to_customer?: number | null
@@ -2486,12 +2504,22 @@ export type Database = {
           status?: Database["public"]["Enums"]["work_order_status"] | null
           technician_id?: string | null
           ticket_id?: string | null
+          travel_distance_km?: number | null
+          travel_duration_minutes?: number | null
           updated_at?: string | null
           warranty_checked?: boolean | null
           warranty_result?: Json | null
           wo_number?: string | null
         }
         Update: {
+          check_in_address?: string | null
+          check_in_at?: string | null
+          check_in_latitude?: number | null
+          check_in_longitude?: number | null
+          check_out_address?: string | null
+          check_out_at?: string | null
+          check_out_latitude?: number | null
+          check_out_longitude?: number | null
           city?: string | null
           completed_at?: string | null
           cost_to_customer?: number | null
@@ -2513,6 +2541,8 @@ export type Database = {
           status?: Database["public"]["Enums"]["work_order_status"] | null
           technician_id?: string | null
           ticket_id?: string | null
+          travel_distance_km?: number | null
+          travel_duration_minutes?: number | null
           updated_at?: string | null
           warranty_checked?: boolean | null
           warranty_result?: Json | null
@@ -2659,18 +2689,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_wo_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_currency_symbol: {
-        Args: { currency_code: string }
-        Returns: string
-      }
-      get_user_tenant_id: {
-        Args: { _user_id: string }
-        Returns: string
-      }
+      generate_wo_number: { Args: never; Returns: string }
+      get_currency_symbol: { Args: { currency_code: string }; Returns: string }
+      get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_any_permission: {
         Args: { _permissions: string[]; _user_id: string }
         Returns: boolean
@@ -2693,12 +2714,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      raise_insufficient_privileges: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      raise_insufficient_privileges: { Args: never; Returns: undefined }
       test_tenant_isolation: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           message: string
           passed: boolean
