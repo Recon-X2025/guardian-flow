@@ -7,7 +7,7 @@ const ProductSpecs = () => {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">ReconX Guardian Flow v5.0</h1>
+        <h1 className="text-3xl font-bold">Guardian Flow v5.0</h1>
         <p className="text-muted-foreground mt-1">
           Global Intelligence Platform with Hierarchical Forecasting
         </p>
@@ -80,8 +80,8 @@ const ProductSpecs = () => {
             </CardHeader>
             <CardContent className="prose prose-sm max-w-none">
               <p>
-                ReconX Guardian Flow v3.0 is an enterprise-grade, multi-tenant field service management platform 
-                powered by <strong>autonomous AI agents</strong> that orchestrate end-to-end work order lifecycle 
+                Guardian Flow v3.0 is an enterprise-grade, multi-tenant field service management platform 
+                powered by <strong>autonomous AI agents</strong> that orchestrate end-to-end work order lifecycle
                 from ticket creation through partner settlement.
               </p>
               

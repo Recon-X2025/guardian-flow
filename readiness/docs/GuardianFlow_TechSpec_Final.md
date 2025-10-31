@@ -1,4 +1,4 @@
-# ReconX Guardian Flow - Complete Technical Specifications
+# Guardian Flow - Complete Technical Specifications
 
 **Version:** 6.0 - Platform as a Service (PaaS)  
 **Date:** October 2025  
@@ -24,7 +24,7 @@
 
 ## Executive Summary
 
-ReconX Guardian Flow is an enterprise-grade, multi-tenant field service intelligence platform that has evolved through three major releases:
+Guardian Flow is an enterprise-grade, multi-tenant field service intelligence platform that has evolved through three major releases:
 
 - **v3.0 (Agentic AI)**: Autonomous agent system with cognitive loops
 - **v5.0 (Global Intelligence)**: Hierarchical forecasting across 7 geographic levels
@@ -534,7 +534,7 @@ can_release = true/false
 
 ## Conclusion
 
-ReconX Guardian Flow v6.0 represents the culmination of three major releases, delivering a comprehensive, AI-driven, forecast-informed, developer-ready platform for field service management at enterprise scale.
+Guardian Flow v6.0 represents the culmination of three major releases, delivering a comprehensive, AI-driven, forecast-informed, developer-ready platform for field service management at enterprise scale.
 
 **Key Achievements**:
 - ✅ Autonomous agentic operations with policy-as-code
@@ -549,4 +549,4 @@ ReconX Guardian Flow v6.0 represents the culmination of three major releases, de
 
 *Document Version: 1.0*  
 *Last Updated: October 2025*  
-*For technical support: support@reconx.ai*
+*For technical support: support@guardianflow.ai*

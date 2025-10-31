@@ -1,6 +1,6 @@
 # Environment Configuration Template
 
-**Purpose**: Template for setting up ReconX Guardian Flow environment variables  
+**Purpose**: Template for setting up Guardian Flow environment variables  
 **Target**: Buyer deployment team  
 **Format**: Environment variable definitions (non-secret values only)
 
@@ -69,7 +69,7 @@ STRIPE_SECRET_KEY_PROD=<stripe-prod-secret-key>
 
 ### Step 1: Access Lovable Project Settings
 
-1. Open your ReconX project in Lovable
+1. Open your Guardian Flow project in Lovable
 2. Click **Settings** (top-right)
 3. Navigate to **Secrets** tab
 
@@ -261,10 +261,10 @@ After configuration, verify:
 For environment configuration issues:
 - **Documentation**: [Lovable Docs](https://docs.lovable.dev/)
 - **Community**: [Lovable Discord](https://discord.gg/lovable)
-- **Email**: support@reconx.ai
+- **Email**: support@guardianflow.ai
 
 ---
 
 *Template Version: 1.0*  
 *Last Updated: October 2025*  
-*Compatible with: ReconX v6.0*
+*Compatible with: Guardian Flow v6.0*

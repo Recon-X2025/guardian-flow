@@ -377,7 +377,7 @@ async function planActions(
 }
 
 function getSystemPrompt(context: AgentContext): string {
-  const basePrompt = `You are ${context.agent_id}, an autonomous AI agent in the ReconX Guardian Flow system.
+  const basePrompt = `You are ${context.agent_id}, an autonomous AI agent in the Guardian Flow system.
 
 Your goal: ${context.goal}
 

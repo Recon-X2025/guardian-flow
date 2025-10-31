@@ -1,8 +1,8 @@
-# ReconX Guardian Flow v6.0
+# Guardian Flow v6.0
 
 **Enterprise Field Service Intelligence Platform + PaaS**
 
-ReconX is an AI-powered field service management platform that combines work order orchestration, fraud detection, financial reconciliation, and hierarchical forecasting. Now with **Platform-as-a-Service (PaaS)** capabilities enabling external developers to build on top of ReconX.
+Guardian Flow is an AI-powered field service management platform that combines work order orchestration, fraud detection, financial reconciliation, and hierarchical forecasting. Now with **Platform-as-a-Service (PaaS)** capabilities enabling external developers to build on top of Guardian Flow.
 
 ## 🚀 v6.0 - PaaS Evolution
 
@@ -101,4 +101,4 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 
 ## License
 
-Proprietary - © 2025 ReconX
+Proprietary - © 2025 Guardian Flow

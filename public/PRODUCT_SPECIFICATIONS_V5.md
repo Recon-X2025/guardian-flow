@@ -1,4 +1,4 @@
-# ReconX Guardian Flow v6.0 - Platform as a Service (PaaS)
+# Guardian Flow v6.0 - Platform as a Service (PaaS)
 
 **Version:** 6.0 - PaaS Evolution  
 **Date:** October 2025  
@@ -9,7 +9,7 @@
 
 ## 🎉 What's New in v6.0 - PaaS Transformation
 
-ReconX v6.0 evolves from an internal intelligence platform to a **developer-ready Platform as a Service**. Now external developers, system integrators, and partners can build on top of ReconX using production-grade REST APIs.
+Guardian Flow v6.0 evolves from an internal intelligence platform to a **developer-ready Platform as a Service**. Now external developers, system integrators, and partners can build on top of Guardian Flow using production-grade REST APIs.
 
 ### PaaS Core Features
 
@@ -60,7 +60,7 @@ ReconX v6.0 evolves from an internal intelligence platform to a **developer-read
 ## 🌐 What's New in v5.0
 
 ### Hierarchical Forecasting System
-ReconX v5.0 introduces enterprise-grade predictive analytics with **7-level geographic hierarchy** and **product-level forecasting**, enabling precision capacity planning from country-level strategy down to pin-code execution.
+Guardian Flow v5.0 introduces enterprise-grade predictive analytics with **7-level geographic hierarchy** and **product-level forecasting**, enabling precision capacity planning from country-level strategy down to pin-code execution.
 
 **Key Innovations:**
 - **Geographic Intelligence**: Country → Region → State → District → City → Partner Hub → Pin Code
@@ -73,7 +73,7 @@ ReconX v5.0 introduces enterprise-grade predictive analytics with **7-level geog
 
 ## Executive Summary
 
-ReconX Guardian Flow v5.0 is a self-governing, forecast-driven field service AI platform that combines agentic automation (v3.0) with hierarchical predictive intelligence. The system forecasts demand, capacity, and financials across **7 geographic levels × unlimited products**, feeding precision insights into every operational decision.
+Guardian Flow v5.0 is a self-governing, forecast-driven field service AI platform that combines agentic automation (v3.0) with hierarchical predictive intelligence. The system forecasts demand, capacity, and financials across **7 geographic levels × unlimited products**, feeding precision insights into every operational decision.
 
 ### Enterprise Impact
 
@@ -143,7 +143,7 @@ ReconX Guardian Flow v5.0 is a self-governing, forecast-driven field service AI 
                                   │
                                   ▼
 ┌───────────────────────────────────────────────────────────────────┐
-│                      Core ReconX Platform                          │
+│                      Core Guardian Flow Platform                   │
 │  (Work Orders, Tickets, Forecasts, Fraud Detection, Finance)      │
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -667,7 +667,7 @@ Request → Gateway (log with corr_id)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 ReconX v5.0 Global Intelligence                  │
+│                 Guardian Flow v5.0 Global Intelligence             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
 │  ┌──────────────────────────────────────────────────────┐       │

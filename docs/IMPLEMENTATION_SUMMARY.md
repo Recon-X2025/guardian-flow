@@ -1,4 +1,4 @@
-# ReconX Guardian Flow - Implementation Summary
+# Guardian Flow - Implementation Summary
 
 ## Executive Summary
 

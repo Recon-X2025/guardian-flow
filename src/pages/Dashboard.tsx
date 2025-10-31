@@ -140,7 +140,7 @@ export default function Dashboard() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'ReconX_Product_Specifications.md';
+      link.download = 'GuardianFlow_Product_Specifications.md';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -193,7 +193,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Welcome to ReconX AI Field Service Platform</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Welcome to Guardian Flow Field Service Platform</p>
         </div>
         <Button onClick={downloadProductSpecs} variant="outline" className="gap-2 w-full sm:w-auto">
           <Download className="h-4 w-4" />

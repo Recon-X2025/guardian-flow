@@ -52,7 +52,7 @@ if (!existsSync(screenshotsDir)) {
   mkdirSync(screenshotsDir, { recursive: true });
 }
 
-test.describe('ReconX Guardian Flow - Functional Tests', () => {
+test.describe('Guardian Flow - Functional Tests', () => {
   let accounts: TestAccount[] = [];
   let report: TestReport;
 

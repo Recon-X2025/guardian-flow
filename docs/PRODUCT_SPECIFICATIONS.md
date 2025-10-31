@@ -1,11 +1,11 @@
-# ReconX Guardian Flow - Product Specifications Document
+# Guardian Flow - Product Specifications Document
 
 **Version:** 5.0 - Global Intelligence  
 **Date:** October 2025  
 **Status:** Production Ready  
 **Document Type:** Product Specifications & Technical Architecture
 
-> **🆕 Latest Version**: This document covers ReconX v5.0 with hierarchical forecasting. For v3.0 agentic features, see [v3.0 specs](../public/PRODUCT_SPECIFICATIONS_V3.md). For detailed v5.0 forecasting, see [v5.0 specs](../public/PRODUCT_SPECIFICATIONS_V5.md).
+> **🆕 Latest Version**: This document covers Guardian Flow v5.0 with hierarchical forecasting. For v3.0 agentic features, see [v3.0 specs](../public/PRODUCT_SPECIFICATIONS_V3.md). For detailed v5.0 forecasting, see [v5.0 specs](../public/PRODUCT_SPECIFICATIONS_V5.md).
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## Executive Summary
 
-ReconX Guardian Flow is an enterprise-grade, multi-tenant field service management platform that orchestrates end-to-end work order lifecycle from ticket creation through partner settlement. Built on a modern React/TypeScript frontend with Supabase backend, the platform integrates AI-powered recommendations, fraud detection, automated prechecks, and comprehensive financial management.
+Guardian Flow is an enterprise-grade, multi-tenant field service management platform that orchestrates end-to-end work order lifecycle from ticket creation through partner settlement. Built on a modern React/TypeScript frontend with Supabase backend, the platform integrates AI-powered recommendations, fraud detection, automated prechecks, and comprehensive financial management.
 
 ### Key Differentiators
 
@@ -53,7 +53,7 @@ ReconX Guardian Flow is an enterprise-grade, multi-tenant field service manageme
 
 ### Purpose
 
-ReconX Guardian Flow streamlines field service operations across distributed technician networks, ensuring quality control, fraud prevention, and financial accuracy through intelligent automation and rigorous validation workflows.
+Guardian Flow streamlines field service operations across distributed technician networks, ensuring quality control, fraud prevention, and financial accuracy through intelligent automation and rigorous validation workflows.
 
 ### Target Users
 
@@ -1600,8 +1600,8 @@ work_orders (1) ──< (many) sapos_offers
 
 **Support Channels:**
 - In-app help tickets
-- Email: support@reconx.example.com
-- Slack: #reconx-support (internal)
+- Email: support@guardianflow.example.com
+- Slack: #guardianflow-support (internal)
 
 ---
 

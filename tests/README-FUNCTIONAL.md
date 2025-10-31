@@ -1,4 +1,4 @@
-# ReconX Guardian Flow - Functional Testing Suite
+# Guardian Flow - Functional Testing Suite
 
 ## Overview
 Automated functional testing assistant that validates login and key workflows across all test accounts.

@@ -205,7 +205,7 @@ export default function DeveloperConsole() {
                   <Key className="h-5 w-5" />
                   API Key Management
                 </CardTitle>
-                <CardDescription>Create and manage API keys for accessing ReconX APIs</CardDescription>
+                <CardDescription>Create and manage API keys for accessing Guardian Flow APIs</CardDescription>
               </div>
               <Button onClick={generateApiKey}>
                 <Plus className="h-4 w-4 mr-2" />

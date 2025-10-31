@@ -1,4 +1,4 @@
-# ReconX API Documentation
+# Guardian Flow API Documentation
 
 **Version:** 6.0  
 **Last Updated:** October 2025
@@ -7,7 +7,7 @@
 
 ## Getting Started
 
-ReconX provides REST APIs for building on top of our field service intelligence platform. Access powerful agents for operations, fraud detection, finance, and forecasting through a unified API gateway.
+Guardian Flow provides REST APIs for building on top of our field service intelligence platform. Access powerful agents for operations, fraud detection, finance, and forecasting through a unified API gateway.
 
 ### Quick Start
 
@@ -47,7 +47,7 @@ x-tenant-id: {YOUR_TENANT_UUID}
 API keys can be:
 - Generated via Developer Console (`/developer-console`)
 - Obtained through sandbox creation (`/developer`)
-- Provided by ReconX sales team
+- Provided by Guardian Flow sales team
 
 ---
 
@@ -566,9 +566,9 @@ No authentication required.
 
 - **Developer Portal**: `/developer-console`
 - **Status Page**: Coming soon
-- **Email**: api-support@reconx.dev
+- **Email**: api-support@guardianflow.dev
 - **Documentation**: `/product-specs`
 
 ---
 
-**© 2025 ReconX. All rights reserved.**
+**© 2025 Guardian Flow. All rights reserved.**

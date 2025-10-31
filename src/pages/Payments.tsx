@@ -216,7 +216,7 @@ export default function Payments() {
         <CardContent>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              ReconX AI supports multiple payment processors:
+              Guardian Flow supports multiple payment processors:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg bg-card">

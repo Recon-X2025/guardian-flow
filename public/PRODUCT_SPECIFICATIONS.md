@@ -1,4 +1,4 @@
-# ReconX Guardian Flow - Product Specifications Document
+# Guardian Flow - Product Specifications Document
 
 **Version:** 3.0  
 **Date:** October 2025  
@@ -52,7 +52,7 @@
 
 ## Executive Summary
 
-ReconX Guardian Flow v3.0 is an enterprise-grade, multi-tenant field service management platform powered by **autonomous AI agents** that orchestrate end-to-end work order lifecycle from ticket creation through partner settlement. Built on an adaptive architecture with auto-detection capabilities, the platform features policy-driven governance, declarative workflow execution, and comprehensive observability for 1M+ work orders per day.
+Guardian Flow v3.0 is an enterprise-grade, multi-tenant field service management platform powered by **autonomous AI agents** that orchestrate end-to-end work order lifecycle from ticket creation through partner settlement. Built on an adaptive architecture with auto-detection capabilities, the platform features policy-driven governance, declarative workflow execution, and comprehensive observability for 1M+ work orders per day.
 
 ### Key Differentiators (v3.0)
 
@@ -71,7 +71,7 @@ ReconX Guardian Flow v3.0 is an enterprise-grade, multi-tenant field service man
 
 ### Purpose
 
-ReconX Guardian Flow streamlines field service operations across distributed technician networks, ensuring quality control, fraud prevention, and financial accuracy through intelligent automation and rigorous validation workflows.
+Guardian Flow streamlines field service operations across distributed technician networks, ensuring quality control, fraud prevention, and financial accuracy through intelligent automation and rigorous validation workflows.
 
 ### Target Users
 
@@ -1752,8 +1752,8 @@ work_orders (1) ──< (many) sapos_offers
 **Support Channels:**
 
 - In-app help tickets
-- Email: support@reconx.example.com
-- Slack: #reconx-support (internal)
+- Email: support@guardianflow.example.com
+- Slack: #guardianflow-support (internal)
 
 ---
 
@@ -1796,28 +1796,28 @@ work_orders (1) ──< (many) sapos_offers
         ┌───────────────────┴──────────────────┐
         │                                       │
 ┌───────▼───────┐                   ┌──────────▼──────────┐
-│ @reconx/      │                   │  @reconx/           │
+│ @guardianflow/ │                   │  @guardianflow/     │
 │ tickets       │                   │  work-orders        │
 └───────────────┘                   └─────────────────────┘
         │                                       │
 ┌───────▼───────┐                   ┌──────────▼──────────┐
-│ @reconx/      │                   │  @reconx/           │
+│ @guardianflow/ │                   │  @guardianflow/     │
 │ finance       │                   │  fraud              │
 └───────────────┘                   └─────────────────────┘
         │                                       │
 ┌───────▼───────┐                   ┌──────────▼──────────┐
-│ @reconx/      │                   │  @reconx/           │
+│ @guardianflow/ │                   │  @guardianflow/     │
 │ sapos         │                   │  inventory          │
 └───────────────┘                   └─────────────────────┘
 ```
 
 **Module Structure:**
 
-- Each module as scoped NPM package (`@reconx/<module>`)
+- Each module as scoped NPM package (`@guardianflow/<module>`)
 - Independent build and deployment pipelines
-- Shared component library (`@reconx/ui`)
-- Shared utilities library (`@reconx/utils`)
-- Type definitions package (`@reconx/types`)
+- Shared component library (`@guardianflow/ui`)
+- Shared utilities library (`@guardianflow/utils`)
+- Type definitions package (`@guardianflow/types`)
 
 **Benefits:**
 
@@ -2322,9 +2322,9 @@ export async function routeToRegion(tenantId: string): Promise<string> {
     .single();
 
   const REGION_ENDPOINTS = {
-    'us-east-1': 'https://us.reconx.example.com',
-    'eu-west-1': 'https://eu.reconx.example.com',
-    'ap-southeast-1': 'https://apac.reconx.example.com',
+    'us-east-1': 'https://us.guardianflow.example.com',
+    'eu-west-1': 'https://eu.guardianflow.example.com',
+    'ap-southeast-1': 'https://apac.guardianflow.example.com',
   };
 
   return REGION_ENDPOINTS[tenant.region] || REGION_ENDPOINTS['us-east-1'];
@@ -2942,7 +2942,7 @@ function buildSystemPrompt(metadata: any): string {
   const userRole = metadata?.user_role || 'user';
   const tenantConfig = metadata?.tenant_config || {};
 
-  return `You are an AI assistant for ReconX Guardian Flow, a field service management platform.
+  return `You are an AI assistant for Guardian Flow, a field service management platform.
 
 Current user role: ${userRole}
 Tenant: ${tenantConfig.tenant_name}
@@ -3189,7 +3189,7 @@ const AIAssistantInline = ({ context }: { context: string }) => {
 
 ## v3.0 Agentic AI Implementation (PRODUCTION READY)
 
-ReconX Guardian Flow v3.0 features a **fully implemented autonomous AI agent system** with the following production-ready capabilities:
+Guardian Flow v3.0 features a **fully implemented autonomous AI agent system** with the following production-ready capabilities:
 
 ### ✅ Implemented Components
 

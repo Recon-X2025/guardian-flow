@@ -86,7 +86,7 @@ const App = () => (
                               <div className="flex items-center gap-2 sm:gap-4">
                                 <SidebarTrigger />
                                 <div className="flex items-center gap-1 sm:gap-2">
-                                  <span className="text-xs sm:text-sm font-semibold">ReconX AI</span>
+                                  <span className="text-xs sm:text-sm font-semibold">Guardian Flow</span>
                                   <span className="text-xs text-muted-foreground hidden md:inline">
                                     Enterprise Field Service Platform
                                   </span>

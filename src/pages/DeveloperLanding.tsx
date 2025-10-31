@@ -63,7 +63,7 @@ export default function DeveloperLanding() {
         <div className="text-center max-w-4xl mx-auto space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-4">
             <Zap className="h-4 w-4" />
-            Build on ReconX Platform
+            Build on Guardian Flow Platform
           </div>
           
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
@@ -80,7 +80,7 @@ export default function DeveloperLanding() {
               Developer Console
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => window.open('https://docs.reconx.dev', '_blank')}>
+            <Button size="lg" variant="outline" onClick={() => window.open('https://docs.guardianflow.dev', '_blank')}>
               View API Docs
             </Button>
           </div>
@@ -140,7 +140,7 @@ export default function DeveloperLanding() {
         {/* Sandbox Section */}
         <Card className="max-w-2xl mx-auto mt-20">
           <CardHeader>
-            <CardTitle>Try ReconX Sandbox</CardTitle>
+            <CardTitle>Try Guardian Flow Sandbox</CardTitle>
             <CardDescription>
               Get instant access to a demo environment with preloaded data. No credit card required.
             </CardDescription>

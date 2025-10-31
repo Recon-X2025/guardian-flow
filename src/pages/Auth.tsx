@@ -103,7 +103,7 @@ export default function Auth() {
                 <Wrench className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold">ReconX AI</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Guardian Flow</h1>
             <p className="text-sm sm:text-base text-muted-foreground">Enterprise Field Service Platform</p>
           </div>
 
@@ -163,7 +163,7 @@ export default function Auth() {
             <Card>
               <CardHeader>
                 <CardTitle>Create account</CardTitle>
-                <CardDescription>Get started with ReconX AI</CardDescription>
+                <CardDescription>Get started with Guardian Flow</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSignup} className="space-y-4">

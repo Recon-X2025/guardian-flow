@@ -1,7 +1,7 @@
 # RBAC & Tenant Isolation Implementation
 
 ## Overview
-This document describes the backend-first RBAC and tenant isolation implementation for ReconX Guardian Flow.
+This document describes the backend-first RBAC and tenant isolation implementation for Guardian Flow.
 
 ## Architecture
 

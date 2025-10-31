@@ -167,7 +167,7 @@ export function AppSidebar() {
               <Wrench className="h-5 w-5 text-white" />
             </div>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-bold text-sidebar-foreground">ReconX AI</span>
+              <span className="text-sm font-bold text-sidebar-foreground">Guardian Flow</span>
               <span className="text-xs text-muted-foreground">Loading...</span>
             </div>
           </div>
@@ -186,7 +186,7 @@ export function AppSidebar() {
             <Wrench className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold text-sidebar-foreground">ReconX AI</span>
+            <span className="text-sm font-bold text-sidebar-foreground">Guardian Flow</span>
             <span className="text-xs text-muted-foreground">Field Service Platform</span>
           </div>
         </div>

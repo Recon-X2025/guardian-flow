@@ -404,7 +404,7 @@ export default function HelpTraining() {
         <TabsContent value="quickstart" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Getting Started with ReconX AI</CardTitle>
+              <CardTitle>Getting Started with Guardian Flow</CardTitle>
               <CardDescription>A comprehensive overview of the platform</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -412,7 +412,7 @@ export default function HelpTraining() {
                 <div className="border-l-4 border-primary pl-4">
                   <h3 className="font-semibold mb-2">🎯 Platform Overview</h3>
                   <p className="text-sm text-muted-foreground">
-                    ReconX AI is an enterprise field service platform that automates PC and printer repair workflows with AI-powered prechecks, warranty validation, and fraud detection.
+                    Guardian Flow is an enterprise field service platform that automates PC and printer repair workflows with AI-powered prechecks, warranty validation, and fraud detection.
                   </p>
                 </div>
 

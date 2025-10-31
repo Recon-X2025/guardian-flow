@@ -1,7 +1,7 @@
 # Infrastructure Requirements & Deployment Guide
 
 ## Overview
-This document outlines the external infrastructure required to fully deploy ReconX Guardian Flow in a production environment. These components are beyond Lovable's scope and require cloud provider accounts.
+This document outlines the external infrastructure required to fully deploy Guardian Flow in a production environment. These components are beyond Lovable's scope and require cloud provider accounts.
 
 ---
 
@@ -168,8 +168,8 @@ terraform/
 ### Example: Postgres Module
 ```hcl
 # terraform/modules/postgres/main.tf
-resource "aws_db_instance" "reconx_postgres" {
-  identifier             = "reconx-${var.environment}"
+resource "aws_db_instance" "guardianflow_postgres" {
+  identifier             = "guardianflow-${var.environment}"
   engine                 = "postgres"
   engine_version         = "15.4"
   instance_class         = var.instance_class
@@ -178,7 +178,7 @@ resource "aws_db_instance" "reconx_postgres" {
   multi_az               = var.environment == "production"
   backup_retention_period = 30
   
-  db_name  = "reconx_guardian"
+  db_name  = "guardianflow_db"
   username = var.db_username
   password = var.db_password
   
@@ -187,12 +187,12 @@ resource "aws_db_instance" "reconx_postgres" {
   
   tags = {
     Environment = var.environment
-    Project     = "ReconX Guardian Flow"
+    Project     = "Guardian Flow"
   }
 }
 
 output "postgres_endpoint" {
-  value = aws_db_instance.reconx_postgres.endpoint
+  value = aws_db_instance.guardianflow_postgres.endpoint
 }
 ```
 

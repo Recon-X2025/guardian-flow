@@ -1,4 +1,4 @@
-# ReconX Guardian Flow - Product Documentation
+# Guardian Flow - Product Documentation
 
 ## 📋 Table of Contents
 1. [Product Overview](#product-overview)
@@ -16,7 +16,7 @@
 
 ## 🎯 Product Overview
 
-**ReconX Guardian Flow** is an enterprise-grade field service management platform that combines work order orchestration, AI-powered recommendations, fraud detection, and comprehensive financial reconciliation into a unified system.
+**Guardian Flow** is an enterprise-grade field service management platform that combines work order orchestration, AI-powered recommendations, fraud detection, and comprehensive financial reconciliation into a unified system.
 
 ### Product Purpose
 Streamline field service operations from ticket creation to financial settlement while ensuring compliance, security, and operational efficiency through automated workflows and AI-driven insights.
