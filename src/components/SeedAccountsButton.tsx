@@ -46,20 +46,30 @@ export function SeedAccountsButton({ onSelectAccount }: SeedAccountsButtonProps)
     setResult(null);
 
     try {
+      console.log('Invoking seed-test-accounts...');
       const { data, error } = await supabase.functions.invoke('seed-test-accounts');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to invoke seed-test-accounts function');
+      }
 
+      if (!data) {
+        throw new Error('No data returned from seed-test-accounts');
+      }
+
+      console.log('Seed result:', data);
       setResult(data.results);
       toast({
         title: 'Test accounts seeded',
-        description: `Created ${data.results.created.length} new accounts. ${data.results.existing.length} already existed.`,
+        description: `Created ${data.results?.created?.length || 0} new accounts. ${data.results?.existing?.length || 0} already existed.`,
       });
     } catch (error) {
       console.error('Error seeding accounts:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast({
         title: 'Error seeding accounts',
-        description: error instanceof Error ? error.message : 'Failed to create test accounts',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

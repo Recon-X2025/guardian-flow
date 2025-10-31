@@ -30,15 +30,24 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      console.log('Attempting login...');
       const { error } = await signIn(loginForm.email, loginForm.password);
       
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: 'Login failed',
-          description: error.message,
+          description: error.message || 'An error occurred during login',
           variant: 'destructive',
         });
       }
+    } catch (error) {
+      console.error('Unexpected login error:', error);
+      toast({
+        title: 'Login failed',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -68,22 +77,31 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      console.log('Attempting signup...');
       const { error } = await signUp(signupForm.email, signupForm.password, signupForm.fullName);
       
       if (error) {
+        console.error('Signup error:', error);
         toast({
           title: 'Signup failed',
-          description: error.message,
+          description: error.message || 'An error occurred during signup',
           variant: 'destructive',
         });
       } else {
         toast({
           title: 'Account created',
-          description: 'Your account has been created successfully. You can now log in.',
+          description: 'Your account has been created successfully. Logging you in...',
         });
         // Auto-login after signup
         await signIn(signupForm.email, signupForm.password);
       }
+    } catch (error) {
+      console.error('Unexpected signup error:', error);
+      toast({
+        title: 'Signup failed',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

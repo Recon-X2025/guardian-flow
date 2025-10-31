@@ -67,7 +67,15 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('auth-me error:', error);
+        // Don't throw - just log and continue with empty permissions
+        setRoles([]);
+        setPermissions([]);
+        setTenantId(null);
+        setLoading(false);
+        return;
+      }
 
       // Fetch full user_roles with metadata for client use
       const { data: userRoles, error: rolesError } = await supabase
@@ -75,11 +83,16 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('user_id', user.id);
 
-      if (rolesError) throw rolesError;
-
-      setRoles(userRoles || []);
-      setPermissions(data.permissions || []);
-      setTenantId(data.tenant_id || null);
+      if (rolesError) {
+        console.error('roles fetch error:', rolesError);
+        setRoles([]);
+        setPermissions(data?.permissions || []);
+        setTenantId(data?.tenant_id || null);
+      } else {
+        setRoles(userRoles || []);
+        setPermissions(data?.permissions || []);
+        setTenantId(data?.tenant_id || null);
+      }
     } catch (error) {
       console.error('Error fetching roles/permissions:', error);
       setRoles([]);
