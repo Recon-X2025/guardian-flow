@@ -69,20 +69,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate internal secret for admin operations
-    const INTERNAL_SECRET = Deno.env.get('INTERNAL_API_SECRET');
-    const providedSecret = req.headers.get('x-internal-secret');
-    
-    if (!INTERNAL_SECRET || providedSecret !== INTERNAL_SECRET) {
-      console.error('[seed-test-accounts] Unauthorized: Invalid or missing internal secret');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: This endpoint requires internal authentication' }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    console.log('[seed-test-accounts] Starting account seeding...');
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

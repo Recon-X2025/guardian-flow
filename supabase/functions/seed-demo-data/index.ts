@@ -11,22 +11,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const INTERNAL_SECRET = Deno.env.get('INTERNAL_API_SECRET');
-    const providedSecret = req.headers.get('x-internal-secret');
-    
-    if (!INTERNAL_SECRET || providedSecret !== INTERNAL_SECRET) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log('[seed-demo-data] Starting comprehensive data seeding...');
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    console.log('[seed-demo-data] Starting comprehensive data seeding...');
 
     const results = {
       customers: 0,
