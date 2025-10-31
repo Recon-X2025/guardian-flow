@@ -70,6 +70,13 @@ import MarketplaceManagement from "./pages/MarketplaceManagement";
 import DeveloperPortal from "./pages/DeveloperPortal";
 import IndustryWorkflows from "./pages/IndustryWorkflows";
 import Templates from "./pages/Templates";
+import Landing from "./pages/Landing";
+import PricingCalculator from "./pages/PricingCalculator";
+import FieldServiceModule from "./pages/modules/FieldServiceModule";
+import AssetLifecycleModule from "./pages/modules/AssetLifecycleModule";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +90,13 @@ const App = () => (
           <AuthProvider>
             <RBACProvider>
               <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/pricing-calculator" element={<PricingCalculator />} />
+                <Route path="/modules/field-service" element={<FieldServiceModule />} />
+                <Route path="/modules/asset-lifecycle" element={<AssetLifecycleModule />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/developer" element={<DeveloperLanding />} />
                 <Route
@@ -107,7 +121,7 @@ const App = () => (
                             </header>
                             <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
                               <Routes>
-                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/tickets" element={
                                   <RoleGuard permissions={["ticket.read"]} showError={true}>
                                     <Tickets />
