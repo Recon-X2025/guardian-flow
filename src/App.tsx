@@ -83,26 +83,26 @@ const queryClient = new QueryClient();
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <RBACProvider>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/pricing-calculator" element={<PricingCalculator />} />
-                <Route path="/modules/field-service" element={<FieldServiceModule />} />
-                <Route path="/modules/asset-lifecycle" element={<AssetLifecycleModule />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/developer" element={<DeveloperLanding />} />
-                <Route
-                  path="*"
-                  element={
-                    <ProtectedRoute>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <RBACProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/pricing-calculator" element={<PricingCalculator />} />
+              <Route path="/modules/field-service" element={<FieldServiceModule />} />
+              <Route path="/modules/asset-lifecycle" element={<AssetLifecycleModule />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/developer" element={<DeveloperLanding />} />
+              <Route
+                path="*"
+                element={
+                  <ProtectedRoute>
+                    <TooltipProvider>
                       <SidebarProvider>
                         <div className="min-h-screen flex w-full">
                           <AppSidebar />
@@ -388,14 +388,14 @@ const App = () => (
                           </div>
                         </div>
                       </SidebarProvider>
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </RBACProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+                    </TooltipProvider>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </RBACProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   </ErrorBoundary>
 );
