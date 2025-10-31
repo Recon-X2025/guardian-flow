@@ -9,20 +9,29 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Users } from 'lucide-react';
 import { CustomerDialog } from '@/components/CustomerDialog';
 import { useToast } from '@/hooks/use-toast';
+import { useRBAC } from '@/contexts/RBACContext';
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const { toast } = useToast();
+  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const isSysAdmin = hasRole('sys_admin');
 
   const { data: customers, isLoading, refetch } = useQuery({
-    queryKey: ['customers', searchTerm],
+    queryKey: ['customers', searchTerm, tenantId, isSysAdmin],
+    enabled: !rbacLoading && (isSysAdmin || !!tenantId),
     queryFn: async () => {
       let query = supabase
         .from('customers')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as any;
+
+      // Only sys_admin sees all customers, others filtered by tenant
+      if (!isSysAdmin && tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
 
       if (searchTerm) {
         query = query.or(`company_name.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);

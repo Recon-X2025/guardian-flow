@@ -10,19 +10,28 @@ import { Plus, Search, Wrench, MapPin } from 'lucide-react';
 import { TechnicianDialog } from '@/components/TechnicianDialog';
 import { TechnicianMap } from '@/components/TechnicianMap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useRBAC } from '@/contexts/RBACContext';
 
 export default function Technicians() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const isSysAdmin = hasRole('sys_admin');
 
   const { data: technicians, isLoading, refetch } = useQuery({
-    queryKey: ['technicians', searchTerm],
+    queryKey: ['technicians', searchTerm, tenantId, isSysAdmin],
+    enabled: !rbacLoading && (isSysAdmin || !!tenantId),
     queryFn: async () => {
       let query = supabase
         .from('technicians')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as any;
+
+      // Only sys_admin sees all technicians, others filtered by tenant
+      if (!isSysAdmin && tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
 
       if (searchTerm) {
         query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,employee_id.ilike.%${searchTerm}%`);

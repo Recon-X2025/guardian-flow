@@ -8,19 +8,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Package, QrCode } from 'lucide-react';
 import { EquipmentDialog } from '@/components/EquipmentDialog';
+import { useRBAC } from '@/contexts/RBACContext';
 
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const isSysAdmin = hasRole('sys_admin');
 
   const { data: equipment, isLoading, refetch } = useQuery({
-    queryKey: ['equipment', searchTerm],
+    queryKey: ['equipment', searchTerm, tenantId, isSysAdmin],
+    enabled: !rbacLoading && (isSysAdmin || !!tenantId),
     queryFn: async () => {
       let query = supabase
         .from('equipment')
         .select('*, customers(company_name, first_name, last_name)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as any;
+
+      // Only sys_admin sees all equipment, others filtered by tenant
+      if (!isSysAdmin && tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      }
 
       if (searchTerm) {
         query = query.or(`name.ilike.%${searchTerm}%,serial_number.ilike.%${searchTerm}%,equipment_number.ilike.%${searchTerm}%`);

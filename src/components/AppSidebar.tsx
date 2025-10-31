@@ -141,7 +141,7 @@ const menuGroups: MenuGroup[] = [
 ];
 
 export function AppSidebar() {
-  const { hasAnyPermission, isAdmin, loading } = useRBAC();
+  const { hasAnyPermission, hasAnyRole, hasRole, isAdmin, loading } = useRBAC();
 
   const canAccessItem = (item: MenuItem): boolean => {
     // Dashboard, Settings, and Help & Training are accessible to all authenticated users
@@ -149,18 +149,23 @@ export function AppSidebar() {
       return true;
     }
 
-    // Admins can see everything
-    if (isAdmin) {
+    // sys_admin can see everything
+    if (hasRole('sys_admin')) {
       return true;
     }
 
-    // Check permissions
+    // Check role-based access first (more specific)
+    if (item.roles && item.roles.length > 0) {
+      return hasAnyRole(item.roles as any);
+    }
+
+    // Check permission-based access
     if (item.permissions && item.permissions.length > 0) {
       return hasAnyPermission(item.permissions);
     }
 
-    // If no permissions specified, default to accessible
-    return true;
+    // If no permissions or roles specified, deny access by default for security
+    return false;
   };
 
   const getVisibleGroups = (): MenuGroup[] => {
