@@ -7,6 +7,7 @@ import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileTe
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/contexts/RBACContext';
+import { useActionPermissions } from '@/hooks/useActionPermissions';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateOfferDialog } from '@/components/GenerateOfferDialog';
 import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
@@ -28,6 +29,11 @@ export default function WorkOrders() {
   const { formatCurrency } = useCurrency();
   const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
+  
+  // RBAC permissions for actions
+  const woPerms = useActionPermissions('workOrders');
+  const soPerms = useActionPermissions('serviceOrders');
+  
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
@@ -402,17 +408,19 @@ export default function WorkOrders() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setSelectedWOData(wo);
-                        setEditDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    {woPerms.edit && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedWOData(wo);
+                          setEditDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -425,53 +433,68 @@ export default function WorkOrders() {
                       <BookOpen className="h-4 w-4 mr-1" />
                       KB Guides
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      disabled={isCompleted}
-                      title={isCompleted ? 'Disabled for completed work orders' : undefined}
-                      onClick={() => {
-                        console.log('Offer AI button clicked for WO:', wo.id, 'Status:', wo.status);
-                        if (wo.status === 'draft' || wo.status === 'pending_validation') {
-                          toast({
-                            title: 'Work order not ready',
-                            description: 'Please release the work order first before generating offers',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        const customerId = wo.ticket?.customer_id;
-                        console.log('Customer ID:', customerId);
-                        setSelectedWO(wo.id);
-                        setSelectedCustomerId(customerId || null);
-                        setSaposDialogOpen(true);
-                      }}
-                    >
-                      <Sparkles className="h-4 w-4 mr-1" />
-                      Offer AI
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      disabled={isCompleted}
-                      title={isCompleted ? 'Disabled for completed work orders' : undefined}
-                      onClick={() => {
-                        console.log('Generate SO button clicked for WO:', wo.id, 'Status:', wo.status);
-                        if (wo.status === 'draft' || wo.status === 'pending_validation') {
-                          toast({
-                            title: 'Work order not ready',
-                            description: 'Please release the work order first before generating Service Order',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        setSelectedWO(wo.id);
-                        setGenerateSOOpen(true);
-                      }}
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      Generate SO
-                    </Button>
+                    {woPerms.execute && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={isCompleted}
+                        title={isCompleted ? 'Disabled for completed work orders' : undefined}
+                        onClick={() => {
+                          console.log('Offer AI button clicked for WO:', wo.id, 'Status:', wo.status);
+                          if (wo.status === 'draft' || wo.status === 'pending_validation') {
+                            toast({
+                              title: 'Work order not ready',
+                              description: 'Please release the work order first before generating offers',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          const customerId = wo.ticket?.customer_id;
+                          console.log('Customer ID:', customerId);
+                          setSelectedWO(wo.id);
+                          setSelectedCustomerId(customerId || null);
+                          setSaposDialogOpen(true);
+                        }}
+                      >
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        Offer AI
+                      </Button>
+                    )}
+                    {/* Only users with execute permission on serviceOrders can generate SO */}
+                    {soPerms.execute ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={isCompleted}
+                        title={isCompleted ? 'Disabled for completed work orders' : undefined}
+                        onClick={() => {
+                          console.log('Generate SO button clicked for WO:', wo.id, 'Status:', wo.status);
+                          if (wo.status === 'draft' || wo.status === 'pending_validation') {
+                            toast({
+                              title: 'Work order not ready',
+                              description: 'Please release the work order first before generating Service Order',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          setSelectedWO(wo.id);
+                          setGenerateSOOpen(true);
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        Generate SO
+                      </Button>
+                    ) : soPerms.view ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled
+                        title="View-only access to Service Orders"
+                      >
+                        <FileText className="h-4 w-4 mr-1" />
+                        View SO
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               );

@@ -2,18 +2,26 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle, Navigation } from 'lucide-react';
+import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle, Navigation, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GeoCheckInDialog } from '@/components/GeoCheckInDialog';
+import { useActionPermissions } from '@/hooks/useActionPermissions';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useRBAC } from '@/contexts/RBACContext';
 
 export default function Dispatch() {
   const { toast } = useToast();
+  const { roles } = useRBAC();
+  const dispatchPerms = useActionPermissions('dispatch');
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [geoDialogOpen, setGeoDialogOpen] = useState(false);
   const [selectedWOId, setSelectedWOId] = useState<string | null>(null);
   const [checkMode, setCheckMode] = useState<'check-in' | 'check-out'>('check-in');
+  
+  // Check if user is view-only
+  const isViewOnly = !dispatchPerms.create && !dispatchPerms.edit && !dispatchPerms.execute;
 
   useEffect(() => {
     fetchWorkOrders();
@@ -76,6 +84,17 @@ export default function Dispatch() {
           Real-time dispatch board for field operations
         </p>
       </div>
+
+      {/* View-only alert for Operations Managers */}
+      {isViewOnly && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <EyeOff className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <strong>View-Only Mode:</strong> You can view dispatch information but cannot perform actions on work orders.
+            Your role ({roles.map(r => r.role).join(', ')}) has read-only access to this page.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
@@ -164,7 +183,7 @@ export default function Dispatch() {
                     </div>
                   )}
                   <div className="mt-3 flex gap-2">
-                    {!wo.check_in_at && (
+                    {!wo.check_in_at && dispatchPerms.execute && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -178,7 +197,7 @@ export default function Dispatch() {
                         Check In
                       </Button>
                     )}
-                    {wo.check_in_at && !wo.check_out_at && (
+                    {wo.check_in_at && !wo.check_out_at && dispatchPerms.execute && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -192,14 +211,21 @@ export default function Dispatch() {
                         Check Out
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => updateStatus(wo.id, 'completed')}
-                      disabled={!wo.check_in_at}
-                    >
-                      Mark Complete
-                    </Button>
+                    {dispatchPerms.edit && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateStatus(wo.id, 'completed')}
+                        disabled={!wo.check_in_at}
+                      >
+                        Mark Complete
+                      </Button>
+                    )}
+                    {isViewOnly && (
+                      <Badge variant="outline" className="text-xs">
+                        View Only
+                      </Badge>
+                    )}
                   </div>
                 </div>
               ))}
@@ -244,13 +270,20 @@ export default function Dispatch() {
                     </div>
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => updateStatus(wo.id, 'in_progress')}
-                    >
-                      Release to Field
-                    </Button>
+                    {dispatchPerms.execute && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateStatus(wo.id, 'in_progress')}
+                      >
+                        Release to Field
+                      </Button>
+                    )}
+                    {isViewOnly && (
+                      <Badge variant="outline" className="text-xs">
+                        View Only
+                      </Badge>
+                    )}
                   </div>
                 </div>
               ))}
