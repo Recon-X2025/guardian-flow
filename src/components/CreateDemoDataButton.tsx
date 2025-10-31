@@ -66,13 +66,14 @@ export function CreateDemoDataButton({ onSuccess }: { onSuccess: () => void }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Create Demo Data</AlertDialogTitle>
           <AlertDialogDescription>
-            This will create 2000 demo work orders with:
+            This will create 2000 demo work orders distributed across tenants with:
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li>20 different PC & Printer issues</li>
               <li>Varied statuses (draft, pending, released, in progress, completed)</li>
               <li>Dates spread over past 90 days</li>
-              <li>Assigned to existing technicians</li>
+              <li>Assigned to existing technicians by tenant</li>
               <li>Realistic costs and part statuses</li>
+              <li><strong>Tenant isolation enforced</strong> - each user sees only their org's data</li>
             </ul>
             <p className="mt-4 font-semibold">This operation takes about 2-3 minutes.</p>
           </AlertDialogDescription>

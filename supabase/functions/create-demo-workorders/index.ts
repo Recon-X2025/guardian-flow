@@ -235,6 +235,7 @@ Deno.serve(async (req) => {
 
       // Bulk insert work orders
       const workOrderRows = plans.map((p, idx) => ({
+        tenant_id: p.tenantId,
         wo_number: p.woNumber,
         ticket_id: ticketsInserted[idx].id,
         technician_id: p.techId,

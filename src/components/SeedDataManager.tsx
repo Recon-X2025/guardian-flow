@@ -75,7 +75,7 @@ export function SeedDataManager() {
       <CardHeader>
         <CardTitle>Seed Data Manager</CardTitle>
         <CardDescription>
-          Generate validated test data for your tenant with referential integrity checks
+          Generate validated test data for your tenant. All data will be isolated to your organization and only visible to users with appropriate roles.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

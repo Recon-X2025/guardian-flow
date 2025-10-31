@@ -59,7 +59,7 @@ export function SeedDemoDataButton() {
           Demo Data Seeder
         </CardTitle>
         <CardDescription>
-          Populate the database with realistic test data for customers, technicians, equipment, and transactions
+          Populate the database with realistic test data distributed across tenants. All data respects RBAC and tenant isolation - users will only see data belonging to their organization.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -105,7 +105,7 @@ export function SeedDemoDataButton() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
             <strong>Note:</strong> Make sure test accounts are seeded first using the "Seed Test Accounts" button above. 
-            This seeder requires existing users with technician roles.
+            This seeder requires existing users with technician roles and will distribute data across all tenants based on their roles.
           </AlertDescription>
         </Alert>
       </CardContent>
