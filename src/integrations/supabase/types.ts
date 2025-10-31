@@ -318,6 +318,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          properties: Json
+          source: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          properties: Json
+          source?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          properties?: Json
+          source?: string | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analytics_exports: {
         Row: {
           correlation_id: string | null
@@ -572,6 +602,66 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_lifecycle_events: {
+        Row: {
+          asset_id: string
+          details: Json | null
+          event_time: string | null
+          event_type: string
+          id: string
+        }
+        Insert: {
+          asset_id: string
+          details?: Json | null
+          event_time?: string | null
+          event_type: string
+          id?: string
+        }
+        Update: {
+          asset_id?: string
+          details?: Json | null
+          event_time?: string | null
+          event_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          location: Json | null
+          metadata: Json | null
+          name: string
+          status: string
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: Json | null
+          metadata?: Json | null
+          name: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          location?: Json | null
+          metadata?: Json | null
+          name?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           bucket_url: string | null
@@ -686,6 +776,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bi_connectors: {
+        Row: {
+          config: Json
+          created_at: string | null
+          id: string
+          name: string
+          provider: string
+          status: string
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string | null
+          id?: string
+          name: string
+          provider: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          id?: string
+          name?: string
+          provider?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       billing_usage: {
         Row: {
@@ -907,6 +1030,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      compliance_controls: {
+        Row: {
+          control_id: string
+          description: string | null
+          framework_id: string
+          id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          control_id: string
+          description?: string | null
+          framework_id: string
+          id?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          control_id?: string
+          description?: string | null
+          framework_id?: string
+          id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      compliance_evidence: {
+        Row: {
+          control_id: string
+          framework_id: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          record_date: string | null
+          status: string
+        }
+        Insert: {
+          control_id: string
+          framework_id: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          record_date?: string | null
+          status?: string
+        }
+        Update: {
+          control_id?: string
+          framework_id?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          record_date?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      compliance_frameworks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: []
       }
       compliance_reports: {
         Row: {
@@ -1241,6 +1448,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customer_portal_users: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       customer_surveys: {
         Row: {
@@ -2357,6 +2585,75 @@ export type Database = {
         }
         Relationships: []
       }
+      frontend_errors: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          route: string | null
+          stack: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          route?: string | null
+          stack?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          route?: string | null
+          stack?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      function_telemetry: {
+        Row: {
+          cold_start: boolean | null
+          duration_ms: number | null
+          error_message: string | null
+          function_name: string
+          id: string
+          metadata: Json | null
+          request_id: string | null
+          status: string
+          tenant_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          cold_start?: boolean | null
+          duration_ms?: number | null
+          error_message?: string | null
+          function_name: string
+          id?: string
+          metadata?: Json | null
+          request_id?: string | null
+          status: string
+          tenant_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          cold_start?: boolean | null
+          duration_ms?: number | null
+          error_message?: string | null
+          function_name?: string
+          id?: string
+          metadata?: Json | null
+          request_id?: string | null
+          status?: string
+          tenant_id?: string | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
       geography_hierarchy: {
         Row: {
           city: string | null
@@ -3254,6 +3551,36 @@ export type Database = {
           },
         ]
       }
+      oauth_providers: {
+        Row: {
+          client_id: string | null
+          config: Json | null
+          created_at: string | null
+          enabled: boolean
+          id: string
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          config?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          config?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       observability_traces: {
         Row: {
           agent_id: string | null
@@ -3341,6 +3668,42 @@ export type Database = {
           sync_status?: string | null
           synced_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      offline_queue: {
+        Row: {
+          action_type: string
+          attempts: number | null
+          created_at: string | null
+          id: string
+          payload: Json
+          resource_type: string
+          synced: boolean | null
+          synced_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          attempts?: number | null
+          created_at?: string | null
+          id?: string
+          payload: Json
+          resource_type: string
+          synced?: boolean | null
+          synced_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          attempts?: number | null
+          created_at?: string | null
+          id?: string
+          payload?: Json
+          resource_type?: string
+          synced?: boolean | null
+          synced_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -3554,6 +3917,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partner_api_usage: {
+        Row: {
+          avg_latency_ms: number | null
+          day: string
+          error_count: number
+          id: string
+          request_count: number
+          tenant_id: string
+        }
+        Insert: {
+          avg_latency_ms?: number | null
+          day: string
+          error_count?: number
+          id?: string
+          request_count?: number
+          tenant_id: string
+        }
+        Update: {
+          avg_latency_ms?: number | null
+          day?: string
+          error_count?: number
+          id?: string
+          request_count?: number
+          tenant_id?: string
+        }
+        Relationships: []
       }
       partner_commissions: {
         Row: {
@@ -3927,6 +4317,30 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_activity: {
+        Row: {
+          activity: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          activity: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          activity?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       portal_sessions: {
         Row: {
           ended_at: string | null
@@ -4093,6 +4507,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_config: {
+        Row: {
+          burst_limit: number
+          daily_limit: number
+          tenant_id: string
+          updated_at: string | null
+          window_seconds: number
+        }
+        Insert: {
+          burst_limit?: number
+          daily_limit?: number
+          tenant_id: string
+          updated_at?: string | null
+          window_seconds?: number
+        }
+        Update: {
+          burst_limit?: number
+          daily_limit?: number
+          tenant_id?: string
+          updated_at?: string | null
+          window_seconds?: number
+        }
+        Relationships: []
       }
       report_audit: {
         Row: {
@@ -4408,6 +4846,72 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduling_recommendations: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string | null
+          recommendation_score: number | null
+          technician_id: string | null
+          tenant_id: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          recommendation_score?: number | null
+          technician_id?: string | null
+          tenant_id?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          recommendation_score?: number | null
+          technician_id?: string | null
+          tenant_id?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          severity: string
+          tenant_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          severity?: string
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          severity?: string
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       seed_info: {
         Row: {
           created_at: string | null
@@ -4469,6 +4973,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seed_metadata: {
+        Row: {
+          applied_at: string | null
+          details: Json | null
+          id: string
+          seed_name: string
+          version: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          details?: Json | null
+          id?: string
+          seed_name: string
+          version?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          details?: Json | null
+          id?: string
+          seed_name?: string
+          version?: string | null
+        }
+        Relationships: []
       }
       seed_queue: {
         Row: {
@@ -4785,6 +5313,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sla_alerts: {
+        Row: {
+          alert_time: string | null
+          alert_type: string
+          details: Json | null
+          id: string
+          resolved_at: string | null
+          status: string
+          work_order_id: string
+        }
+        Insert: {
+          alert_time?: string | null
+          alert_type: string
+          details?: Json | null
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          work_order_id: string
+        }
+        Update: {
+          alert_time?: string | null
+          alert_type?: string
+          details?: Json | null
+          id?: string
+          resolved_at?: string | null
+          status?: string
+          work_order_id?: string
+        }
+        Relationships: []
+      }
+      sla_predictions: {
+        Row: {
+          breach_probability: number | null
+          details: Json | null
+          id: string
+          predicted_at: string | null
+          predicted_breach: boolean
+          work_order_id: string
+        }
+        Insert: {
+          breach_probability?: number | null
+          details?: Json | null
+          id?: string
+          predicted_at?: string | null
+          predicted_breach?: boolean
+          work_order_id: string
+        }
+        Update: {
+          breach_probability?: number | null
+          details?: Json | null
+          id?: string
+          predicted_at?: string | null
+          predicted_breach?: boolean
+          work_order_id?: string
+        }
+        Relationships: []
       }
       sla_thresholds: {
         Row: {
@@ -5379,6 +5964,54 @@ export type Database = {
           },
         ]
       }
+      tenant_extensions: {
+        Row: {
+          extension_id: string
+          id: string
+          installed_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          extension_id: string
+          id?: string
+          installed_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          extension_id?: string
+          id?: string
+          installed_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      tenant_localization: {
+        Row: {
+          currency: string
+          locale: string
+          tenant_id: string
+          timezone: string
+          updated_at: string | null
+        }
+        Insert: {
+          currency?: string
+          locale?: string
+          tenant_id: string
+          timezone?: string
+          updated_at?: string | null
+        }
+        Update: {
+          currency?: string
+          locale?: string
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           active: boolean | null
@@ -5451,6 +6084,33 @@ export type Database = {
         }
         Relationships: []
       }
+      translations: {
+        Row: {
+          created_at: string | null
+          id: string
+          locale: string
+          tenant_id: string | null
+          translation_key: string
+          translation_value: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          locale: string
+          tenant_id?: string | null
+          translation_key: string
+          translation_value: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          locale?: string
+          tenant_id?: string | null
+          translation_key?: string
+          translation_value?: string
+        }
+        Relationships: []
+      }
       user_behavior_events: {
         Row: {
           anomaly_score: number | null
@@ -5474,6 +6134,30 @@ export type Database = {
           event_type?: string
           id?: string
           timestamp?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_mfa_settings: {
+        Row: {
+          backup_codes: Json | null
+          mfa_enabled: boolean
+          preferred_factor: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_codes?: Json | null
+          mfa_enabled?: boolean
+          preferred_factor?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_codes?: Json | null
+          mfa_enabled?: boolean
+          preferred_factor?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -6079,7 +6763,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      trace_spans: {
+        Row: {
+          agent_id: string | null
+          attributes: Json | null
+          created_at: string | null
+          duration_ms: number | null
+          end_time: string | null
+          error_message: string | null
+          events: Json | null
+          id: string | null
+          operation_name: string | null
+          parent_span_id: string | null
+          service_name: string | null
+          span_id: string | null
+          start_time: string | null
+          status: string | null
+          trace_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          attributes?: Json | null
+          created_at?: string | null
+          duration_ms?: number | null
+          end_time?: string | null
+          error_message?: string | null
+          events?: Json | null
+          id?: string | null
+          operation_name?: string | null
+          parent_span_id?: string | null
+          service_name?: string | null
+          span_id?: string | null
+          start_time?: string | null
+          status?: string | null
+          trace_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          attributes?: Json | null
+          created_at?: string | null
+          duration_ms?: number | null
+          end_time?: string | null
+          error_message?: string | null
+          events?: Json | null
+          id?: string | null
+          operation_name?: string | null
+          parent_span_id?: string | null
+          service_name?: string | null
+          span_id?: string | null
+          start_time?: string | null
+          status?: string | null
+          trace_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_wo_number: { Args: never; Returns: string }
