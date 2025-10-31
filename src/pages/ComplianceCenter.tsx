@@ -35,13 +35,13 @@ export default function ComplianceCenter() {
         trainingRes,
         checkpointRes
       ] = await Promise.all([
-        supabase.from('vulnerabilities').select('*').order('severity'),
-        supabase.from('security_incidents').select('*').order('detected_at', { ascending: false }),
-        supabase.from('security_patches').select('*'),
-        supabase.from('risk_assessments').select('*').order('risk_score', { ascending: false }),
-        supabase.from('vendor_assessments').select('*'),
-        supabase.from('security_training_records').select('*'),
-        supabase.from('compliance_checkpoints').select('*')
+        supabase.from('vulnerabilities' as any).select('*').order('severity'),
+        supabase.from('security_incidents' as any).select('*').order('detected_at', { ascending: false }),
+        supabase.from('security_patches' as any).select('*'),
+        supabase.from('risk_assessments' as any).select('*').order('risk_score', { ascending: false }),
+        supabase.from('vendor_assessments' as any).select('*'),
+        supabase.from('security_training_records' as any).select('*'),
+        supabase.from('compliance_checkpoints' as any).select('*')
       ]);
 
       if (vulnRes.error) throw vulnRes.error;
@@ -57,13 +57,13 @@ export default function ComplianceCenter() {
       setComplianceCheckpoints(checkpointRes.data || []);
 
       // Calculate stats
-      const vulns = vulnRes.data || [];
-      const incs = incidentRes.data || [];
-      const patches = patchRes.data || [];
-      const risks = riskRes.data || [];
-      const vendors = vendorRes.data || [];
-      const training = trainingRes.data || [];
-      const checkpoints = checkpointRes.data || [];
+      const vulns = (vulnRes.data || []) as any[];
+      const incs = (incidentRes.data || []) as any[];
+      const patches = (patchRes.data || []) as any[];
+      const risks = (riskRes.data || []) as any[];
+      const vendors = (vendorRes.data || []) as any[];
+      const training = (trainingRes.data || []) as any[];
+      const checkpoints = (checkpointRes.data || []) as any[];
 
       const compliantCount = checkpoints.filter(c => c.review_outcome === 'compliant').length;
 

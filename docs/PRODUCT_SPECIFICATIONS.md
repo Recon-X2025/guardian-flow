@@ -1592,6 +1592,9 @@ work_orders (1) ──< (many) sapos_offers
 - Implementation Guide: `/docs/IMPLEMENTATION_COMPLETE.md`
 - Testing Guide: `/docs/TESTING_GUIDE.md`
 - RBAC Reference: `/docs/RBAC_TENANT_ISOLATION.md`
+- SOC 2 & ISO 27001 Roadmap: `/docs/SOC2_ISO27001_COMPLIANCE_ROADMAP.md`
+- V7 Product Roadmap: `/docs/GUARDIAN_FLOW_V7_ROADMAP.md`
+- V5 PaaS Specifications: `/public/PRODUCT_SPECIFICATIONS_V5.md`
 
 **Training:**
 - Help & Training module in-app
@@ -1609,7 +1612,8 @@ work_orders (1) ──< (many) sapos_offers
 
 ### Glossary
 
-- **SaPOS**: Service and Parts Order System - AI-powered recommendation engine
+- **SaPOS**: Service and Parts Order System - AI-powered recommendation engine (renamed to Offer AI)
+- **Offer AI**: AI-powered recommendation engine for contextual service offers
 - **Precheck**: Automated validation of inventory, warranty, and photos before work order release
 - **RLS**: Row-Level Security - Database-level access control
 - **RBAC**: Role-Based Access Control - Permission system based on user roles
@@ -1617,6 +1621,10 @@ work_orders (1) ──< (many) sapos_offers
 - **Provenance**: Origin tracking for AI-generated content
 - **Cascade**: Multi-tier inventory check (partner → warehouse → supplier)
 - **Override**: Manual approval to bypass failed prechecks
+- **SOC 2**: Service Organization Control 2 - Security, availability, and confidentiality compliance
+- **ISO 27001**: International standard for Information Security Management Systems
+- **JIT Access**: Just-in-time access provisioning with automatic expiration
+- **SIEM**: Security Information and Event Management for centralized logging
 
 ### Version History
 

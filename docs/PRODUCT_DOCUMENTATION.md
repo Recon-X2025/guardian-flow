@@ -565,6 +565,58 @@ Detected (open) → Assigned (in_progress) → Resolved/Escalated
 
 ---
 
+### 18. Compliance Center
+**Route**: `/compliance`  
+**Permissions**: `platform_ops`, `compliance_auditor`  
+**Purpose**: SOC 2 & ISO 27001 compliance management
+
+**Features**:
+- Real-time compliance dashboard with KPI tracking
+- Vulnerability and patch management oversight
+- Security incident monitoring and response tracking
+- Risk assessment heat maps and trend analysis
+- Vendor security posture monitoring
+- Training compliance tracking
+- Automated compliance reporting
+
+**Compliance Infrastructure**:
+- **Temporary Access Management**: JIT access with automatic expiration
+- **Audit Log Archiving**: 7-year immutable audit trail retention
+- **Vulnerability Management**: Automated scanning, tracking, and remediation
+- **Security Patch Tracking**: Formal patch management with SLA enforcement
+- **Encryption Key Management**: Key lifecycle and rotation policies
+- **Security Incident Response**: Formal incident tracking and escalation
+- **Risk Assessment Program**: Continuous risk identification and mitigation
+- **Vendor Security Assessment**: Third-party security evaluation
+- **Security Training**: Mandatory training with compliance tracking
+- **Compliance Checkpoints**: Regular validation of security controls
+
+**Key Metrics**:
+- Open vulnerabilities by severity
+- Incident response time and resolution rate
+- Patch deployment compliance percentage
+- Risk score trending and heat maps
+- Vendor security ratings
+- Training completion rates
+- Control checkpoint pass/fail ratios
+
+**Certification Roadmap**:
+- **Phase 1** (Months 1-3): Discovery & gap analysis
+- **Phase 2** (Months 4-12): Implementation of controls
+- **Phase 3** (Months 13-16): Validation & testing
+- **Phase 4** (Months 17-18): Certification readiness
+- **Target**: SOC 2 Type II & ISO 27001 by Q4 2026
+
+**Integration Points**:
+- → Audit Logs (compliance evidence)
+- → User Roles (access control validation)
+- → Edge Functions (security monitoring)
+- → RBAC System (authorization controls)
+
+For detailed compliance roadmap, see [SOC 2 & ISO 27001 Compliance Roadmap](./SOC2_ISO27001_COMPLIANCE_ROADMAP.md)
+
+---
+
 ## 🔄 Workflows & Integration
 
 ### Complete End-to-End Workflow
@@ -1533,6 +1585,10 @@ Comprehensive activity tracking
 - `docs/COMPLETE_TEST_GUIDE.md` - Step-by-step testing instructions
 - `docs/PARTNER_ADMIN_SETUP.md` - Partner organization setup guide
 - `docs/QUICK_TEST_CHECKLIST.md` - 5-minute smoke test
+- `docs/SOC2_ISO27001_COMPLIANCE_ROADMAP.md` - SOC 2 & ISO 27001 certification roadmap
+- `docs/GUARDIAN_FLOW_V7_ROADMAP.md` - Platform evolution and future features
+- `public/PRODUCT_SPECIFICATIONS.md` - Core product specifications
+- `public/PRODUCT_SPECIFICATIONS_V5.md` - v5.0 PaaS and forecasting features
 
 ### Developer Setup
 ```bash

@@ -1493,12 +1493,14 @@ SELECT net.http_post(
 - [ ] Multi-variate forecasting (weather, events)
 - [ ] Cross-tenant learning (opt-in)
 - [ ] Workforce optimization module
+- [ ] **SOC 2 Phase 2 & 3** (Implementation & Validation)
 
 ### 2026 H2
 - [ ] Partner marketplace with forecast-based SLAs
 - [ ] White-label deployment
 - [ ] API for external consumption
 - [ ] Real-time forecast updates
+- [ ] **SOC 2 Type II & ISO 27001 Certification** (Q4 2026)
 
 ---
 
@@ -1511,6 +1513,10 @@ SELECT net.http_post(
 - **MinT Algorithm**: Minimum Trace reconciliation for hierarchical time series
 - **Confidence Bands**: Statistical range around predicted value (lower_bound, upper_bound)
 - **Drift Detection**: Monitoring model accuracy degradation over time
+- **SOC 2**: Service Organization Control 2 - Trust Services Criteria for security, availability, and confidentiality
+- **ISO 27001**: International standard for Information Security Management Systems (ISMS)
+- **RLS**: Row-Level Security for multi-tenant data isolation
+- **JIT Access**: Just-in-time access provisioning with automatic expiration
 
 ### References
 
@@ -1518,6 +1524,8 @@ SELECT net.http_post(
 - [MinT Reconciliation Algorithm](https://robjhyndman.com/papers/mint.pdf)
 - [Prophet Forecasting](https://facebook.github.io/prophet/)
 - [OpenTelemetry Tracing](https://opentelemetry.io/)
+- [SOC 2 & ISO 27001 Compliance Roadmap](../docs/SOC2_ISO27001_COMPLIANCE_ROADMAP.md)
+- [Guardian Flow V7 Roadmap](../docs/GUARDIAN_FLOW_V7_ROADMAP.md)
 
 ---
 
