@@ -60,6 +60,9 @@ verify_jwt = true
 [functions.seed-test-accounts]
 verify_jwt = false
 
+[functions.seed-demo-data]
+verify_jwt = false
+
 [functions.release-work-order]
 verify_jwt = true
 
