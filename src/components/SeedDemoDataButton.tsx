@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Database, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction, handleApiError } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,11 +27,16 @@ export function SeedDemoDataButton() {
     setResults(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('seed-demo-data', {
+      console.log('[SeedDemo] Starting seed operation...');
+      
+      const data = await invokeEdgeFunction<{
+        success: boolean;
+        results: SeedResults;
+      }>('seed-demo-data', {
         body: {},
       });
 
-      if (error) throw error;
+      console.log('[SeedDemo] Success:', data);
 
       setResults(data.results);
       toast({
@@ -39,12 +44,8 @@ export function SeedDemoDataButton() {
         description: 'Created customers, technicians, equipment, invoices, penalties, photo validations, and forecasts',
       });
     } catch (error: any) {
-      console.error('Seed demo data error:', error);
-      toast({
-        title: 'Failed to seed demo data',
-        description: error.message,
-        variant: 'destructive',
-      });
+      console.error('[SeedDemo] Seed demo data error:', error);
+      handleApiError(error, toast);
     } finally {
       setIsSeeding(false);
     }

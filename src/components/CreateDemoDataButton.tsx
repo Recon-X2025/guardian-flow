@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeEdgeFunction, handleApiError } from '@/lib/apiClient';
 import { Loader2, Database } from 'lucide-react';
 import {
   AlertDialog,
@@ -21,16 +21,19 @@ export function CreateDemoDataButton({ onSuccess }: { onSuccess: () => void }) {
 
   const createDemoData = async () => {
     setLoading(true);
-    console.log('Creating 2000 demo work orders...');
+    console.log('[CreateDemo] Starting creation of 2000 demo work orders...');
     
     try {
-      const { data, error } = await supabase.functions.invoke('create-demo-workorders', {
+      const data = await invokeEdgeFunction<{
+        success: boolean;
+        created: number;
+        total_in_db: number;
+        message: string;
+      }>('create-demo-workorders', {
         body: {}
       });
 
-      console.log('Demo data creation response:', data, error);
-
-      if (error) throw error;
+      console.log('[CreateDemo] Success:', data);
 
       toast({
         title: 'Demo Data Created',
@@ -40,12 +43,8 @@ export function CreateDemoDataButton({ onSuccess }: { onSuccess: () => void }) {
       // Refresh the page
       onSuccess();
     } catch (error: any) {
-      console.error('Demo data creation failed:', error);
-      toast({
-        title: 'Creation failed',
-        description: error.message || 'Failed to create demo data',
-        variant: 'destructive',
-      });
+      console.error('[CreateDemo] Failed:', error);
+      handleApiError(error, toast);
     } finally {
       setLoading(false);
     }
