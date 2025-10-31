@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,22 +8,44 @@ import { TrendingUp, DollarSign, Package, AlertCircle, Database, Activity, Refre
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 
+interface GeoItem {
+  name: string;
+}
+
+interface ForecastDataPoint {
+  date: string;
+  predicted: number;
+  lower: number;
+  upper: number;
+}
+
+interface ActualsDataPoint {
+  date: string;
+  actual: number;
+}
+
+interface SeedProgress {
+  status: string;
+  message: string;
+  details?: Record<string, any>;
+}
+
 export default function ForecastCenter() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [seeding, setSeeding] = useState(false);
-  const [systemMetrics, setSystemMetrics] = useState<any>(null);
+  const [systemMetrics, setSystemMetrics] = useState<Record<string, any> | null>(null);
   const [isSeedingData, setIsSeedingData] = useState(false);
-  const [seedProgress, setSeedProgress] = useState<any>(null);
+  const [seedProgress, setSeedProgress] = useState<SeedProgress | null>(null);
   
   // Hierarchy filters
-  const [countries, setCountries] = useState<any[]>([]);
-  const [regions, setRegions] = useState<any[]>([]);
-  const [states, setStates] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  const [hubs, setHubs] = useState<any[]>([]);
-  const [pinCodes, setPinCodes] = useState<any[]>([]);
+  const [countries, setCountries] = useState<GeoItem[]>([]);
+  const [regions, setRegions] = useState<GeoItem[]>([]);
+  const [states, setStates] = useState<GeoItem[]>([]);
+  const [cities, setCities] = useState<GeoItem[]>([]);
+  const [hubs, setHubs] = useState<GeoItem[]>([]);
+  const [pinCodes, setPinCodes] = useState<GeoItem[]>([]);
   
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
@@ -34,8 +55,8 @@ export default function ForecastCenter() {
   const [selectedPinCode, setSelectedPinCode] = useState('');
   
   const [forecastWindow, setForecastWindow] = useState<'short' | 'mid' | 'long'>('mid');
-  const [forecastData, setForecastData] = useState<any[]>([]);
-  const [actualsData, setActualsData] = useState<any[]>([]);
+  const [forecastData, setForecastData] = useState<ForecastDataPoint[]>([]);
+  const [actualsData, setActualsData] = useState<ActualsDataPoint[]>([]);
   const [metrics, setMetrics] = useState({
     volume: 0,
     revenue: 0,
@@ -277,30 +298,23 @@ export default function ForecastCenter() {
         .maybeSingle();
       const tenantId = profile?.tenant_id || user?.id;
 
-      const queryBuilder: any = (supabase.from('work_orders') as any)
+      // Build query with conditional filters
+      let q: any = supabase.from('work_orders')
         .select('created_at')
         .gte('created_at', startDate.toISOString());
       
-      let query: any = tenantId ? queryBuilder.eq('tenant_id', tenantId) : queryBuilder;
-
-      if (selectedPinCode) {
-        query = query.eq('pin_code', selectedPinCode);
-      } else if (selectedHub) {
-        query = query.eq('partner_hub', selectedHub);
-      } else if (selectedCity) {
-        query = query.eq('city', selectedCity);
-      } else if (selectedState) {
-        query = query.eq('state', selectedState);
-      } else if (selectedRegion) {
-        query = query.eq('region', selectedRegion);
-      } else if (selectedCountry) {
-        query = query.eq('country', selectedCountry);
-      }
-
-      const { data } = await query;
+      if (tenantId) q = q.eq('tenant_id', tenantId);
+      if (selectedPinCode) q = q.eq('pin_code', selectedPinCode);
+      else if (selectedHub) q = q.eq('partner_hub', selectedHub);
+      else if (selectedCity) q = q.eq('city', selectedCity);
+      else if (selectedState) q = q.eq('state', selectedState);
+      else if (selectedRegion) q = q.eq('region', selectedRegion);
+      else if (selectedCountry) q = q.eq('country', selectedCountry);
+      
+      const { data } = await q;
 
       if (data) {
-        const monthlyActuals = data.reduce((acc: any, wo: any) => {
+        const monthlyActuals = data.reduce((acc: Record<string, number>, wo: { created_at: string }) => {
           const month = new Date(wo.created_at).toISOString().slice(0, 7);
           acc[month] = (acc[month] || 0) + 1;
           return acc;
@@ -308,7 +322,7 @@ export default function ForecastCenter() {
 
         setActualsData(Object.entries(monthlyActuals).map(([month, count]) => ({
           date: month,
-          actual: count
+          actual: count as number
         })));
       }
     } catch (error) {
