@@ -51,6 +51,17 @@ export function EditWorkOrderDialog({ open, onOpenChange, workOrder, onSuccess }
     try {
       setLoading(true);
 
+      const isDraft = workOrder.status === 'draft';
+      if (isDraft && partStatus !== 'not_required') {
+        toast({
+          title: 'Not allowed in Draft',
+          description: 'You cannot assign or consume parts while the work order is in Draft.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('work_orders')
         .update({
@@ -80,8 +91,10 @@ export function EditWorkOrderDialog({ open, onOpenChange, workOrder, onSuccess }
     }
   };
 
+  const isDraft = workOrder.status === 'draft';
   const currentStatus = workOrder.part_status || 'not_required';
   const availableStatuses = [currentStatus, ...getNextPartStatuses(currentStatus)];
+  const allowedStatuses = isDraft ? ['not_required'] : Array.from(new Set(availableStatuses));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,7 +114,7 @@ export function EditWorkOrderDialog({ open, onOpenChange, workOrder, onSuccess }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availableStatuses.map((status) => (
+                {allowedStatuses.map((status) => (
                   <SelectItem key={status} value={status}>
                     {partStatusLabels[status] || status}
                   </SelectItem>
