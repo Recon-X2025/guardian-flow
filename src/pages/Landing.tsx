@@ -14,7 +14,76 @@ import {
   Twitter,
   Linkedin,
   Mail,
+  Activity,
+  Factory,
+  Zap,
+  Truck,
+  Building2,
+  Store,
 } from "lucide-react";
+
+const industries = [
+  {
+    id: "healthcare",
+    icon: Activity,
+    title: "Healthcare",
+    benefits: [
+      "Predictive maintenance for critical medical equipment",
+      "Automated regulatory compliance and audit trails",
+      "Secure, role-based access for sensitive data",
+    ],
+  },
+  {
+    id: "manufacturing",
+    icon: Factory,
+    title: "Manufacturing",
+    benefits: [
+      "Real-time asset monitoring and fault detection",
+      "Automated safety and environmental compliance",
+      "Modular workflows optimized for varied processes",
+    ],
+  },
+  {
+    id: "utilities",
+    icon: Zap,
+    title: "Utilities & Energy",
+    benefits: [
+      "Distributed asset and workforce management",
+      "AI-powered fault detection and rapid dispatch",
+      "Regulatory adherence and multi-agency support",
+    ],
+  },
+  {
+    id: "logistics",
+    icon: Truck,
+    title: "Logistics & Transportation",
+    benefits: [
+      "Fleet maintenance and driver compliance coordination",
+      "Predictive analytics for route & asset optimization",
+      "SLA monitoring with real-time operational visibility",
+    ],
+  },
+  {
+    id: "finance",
+    icon: Building2,
+    title: "Finance & Insurance",
+    benefits: [
+      "Automated claims inspection and workflow AI",
+      "Financial regulation compliance and audit readiness",
+      "AI-driven fraud detection and risk management",
+    ],
+  },
+  {
+    id: "retail",
+    icon: Store,
+    title: "Retail & Supply Chain",
+    benefits: [
+      "Equipment maintenance and vendor coordination",
+      "Real-time inventory and operational analytics",
+      "Scalable platform for multi-site deployment",
+    ],
+  },
+];
 
 const modules = [
   {
@@ -104,10 +173,10 @@ export default function Landing() {
         <div className="container relative">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-              Empowering AI-Driven Enterprise Operations Across Industries
+              Empowering AI-Driven Transformation Across Every Industry
             </h1>
-            <p className="mt-6 text-lg sm:text-xl text-muted-foreground">
-              From Field Service to Asset Lifecycle Management — One Unified Platform
+            <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto">
+              A unified platform designed to streamline operations, ensure compliance, and fuel innovation—tailored to your industry's unique challenges and ambitions.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Button size="lg" onClick={() => navigate("/auth")} className="gap-2">
@@ -118,12 +187,55 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 onClick={() =>
-                  document.getElementById("offerings")?.scrollIntoView({ behavior: "smooth" })
+                  document.getElementById("industries")?.scrollIntoView({ behavior: "smooth" })
                 }
               >
-                Learn More
+                Explore Industries
               </Button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Industries Section */}
+      <section id="industries" className="py-20 bg-gradient-to-br from-muted/30 to-background">
+        <div className="container">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
+              Trusted Across Industries
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Discover how Guardian Flow delivers operational excellence tailored to your sector
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+            {industries.map((industry) => {
+              const Icon = industry.icon;
+              return (
+                <Card
+                  key={industry.id}
+                  className="group relative overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-2 border-2 hover:border-primary/50"
+                >
+                  <CardHeader className="pb-4">
+                    <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="h-7 w-7 text-primary" />
+                    </div>
+                    <CardTitle className="text-2xl">{industry.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {industry.benefits.map((benefit, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                          <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                </Card>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -367,7 +479,7 @@ export default function Landing() {
                 <span className="font-bold">Guardian Flow</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Enterprise field service management platform powered by AI
+                A versatile, AI-powered enterprise platform that goes beyond field service management to deliver comprehensive operational excellence across industries worldwide.
               </p>
             </div>
             <div>
