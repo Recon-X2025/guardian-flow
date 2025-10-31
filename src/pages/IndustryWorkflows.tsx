@@ -23,11 +23,11 @@ export default function IndustryWorkflows() {
     queryKey: ["workflow-templates", selectedIndustry],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("workflow_templates")
+        .from("workflow_templates" as any)
         .select("*")
         .eq("industry_type", selectedIndustry)
         .eq("active", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }) as any;
 
       if (error) throw error;
       return data || [];
@@ -147,7 +147,7 @@ export default function IndustryWorkflows() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workflows.map((workflow) => (
+                {workflows.map((workflow: any) => (
                   <TableRow key={workflow.id}>
                     <TableCell>
                       <div>

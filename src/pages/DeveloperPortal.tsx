@@ -18,10 +18,10 @@ export default function DeveloperPortal() {
       if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
-        .from("developer_portal_accounts")
+        .from("developer_portal_accounts" as any)
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .maybeSingle() as any;
 
       return data || { api_quota_used: 0, api_quota_limit: 10000, account_status: 'active' };
     },
@@ -103,7 +103,7 @@ print(work_orders)`;
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {devAccount?.api_quota_used?.toLocaleString() || 0} / {devAccount?.api_quota_limit?.toLocaleString() || 10000}
+              {(devAccount as any)?.api_quota_used?.toLocaleString() || 0} / {(devAccount as any)?.api_quota_limit?.toLocaleString() || 10000}
             </div>
             <p className="text-xs text-muted-foreground">
               API calls this month
@@ -118,10 +118,10 @@ print(work_orders)`;
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold capitalize">
-              {devAccount?.account_status || 'Active'}
+              {(devAccount as any)?.account_status || 'Active'}
             </div>
             <p className="text-xs text-muted-foreground">
-              {devAccount?.trial_ends_at ? `Trial ends ${new Date(devAccount.trial_ends_at).toLocaleDateString()}` : 'Full access enabled'}
+              {(devAccount as any)?.trial_ends_at ? `Trial ends ${new Date((devAccount as any).trial_ends_at).toLocaleDateString()}` : 'Full access enabled'}
             </p>
           </CardContent>
         </Card>

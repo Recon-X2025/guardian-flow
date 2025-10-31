@@ -26,13 +26,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Verify API key and get partner info
-    const apiKeyHash = await hashApiKey(apiKey);
+    // Verify API key using tenant_api_keys table
     const { data: keyData, error: keyError } = await supabase
-      .from('partner_api_keys' as any)
-      .select('*, partners(*)')
-      .eq('api_key_hash', apiKeyHash)
-      .eq('revoked', false)
+      .from('tenant_api_keys')
+      .select('*')
+      .eq('api_key', apiKey)
+      .eq('status', 'active')
       .single();
 
     if (keyError || !keyData) {
@@ -42,36 +41,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check rate limits
-    const now = new Date();
-    const minuteAgo = new Date(now.getTime() - 60000);
-    
-    const { count: recentRequests } = await supabase
-      .from('api_usage_metrics' as any)
-      .select('*', { count: 'exact', head: true })
-      .eq('partner_id', keyData.partner_id)
-      .gte('recorded_at', minuteAgo.toISOString());
-
-    if ((recentRequests || 0) >= keyData.rate_limit_per_minute) {
-      return new Response(JSON.stringify({ 
-        error: 'Rate limit exceeded',
-        limit: keyData.rate_limit_per_minute,
-        resetAt: new Date(now.getTime() + 60000).toISOString()
-      }), {
-        status: 429,
+    // Check if expired
+    if (new Date(keyData.expiry_date) < new Date()) {
+      return new Response(JSON.stringify({ error: 'API key expired' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Check monthly quota
-    if (keyData.monthly_quota && keyData.usage_this_month >= keyData.monthly_quota) {
+    // Check rate limits (per minute)
+    const now = new Date();
+    const minuteAgo = new Date(now.getTime() - 60000);
+    
+    const { count: recentRequests } = await supabase
+      .from('api_usage_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', keyData.tenant_id)
+      .eq('api_key_id', keyData.id)
+      .gte('timestamp', minuteAgo.toISOString());
+
+    if ((recentRequests || 0) >= keyData.rate_limit) {
+      // Log overage
+      await supabase.from('api_overage_logs').insert({
+        tenant_id: keyData.tenant_id,
+        api_key_id: keyData.id,
+        daily_limit: keyData.rate_limit,
+        actual_usage: (recentRequests || 0) + 1,
+        overage_count: ((recentRequests || 0) + 1) - keyData.rate_limit
+      });
+
       return new Response(JSON.stringify({ 
-        error: 'Monthly quota exceeded',
-        quota: keyData.monthly_quota,
-        used: keyData.usage_this_month
+        error: 'Rate limit exceeded',
+        limit: keyData.rate_limit,
+        resetAt: new Date(now.getTime() + 60000).toISOString()
       }), {
         status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Limit': String(keyData.rate_limit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(now.getTime() + 60000).toISOString()
+        }
       });
     }
 
@@ -93,35 +104,37 @@ Deno.serve(async (req) => {
     }
 
     const responseTime = Date.now() - startTime;
+    const statusCode = response.error ? 400 : 200;
 
     // Log API usage
-    await supabase.from('api_usage_metrics' as any).insert({
-      tenant_id: keyData.partners.organization_id,
-      partner_id: keyData.partner_id,
-      api_endpoint: path,
-      http_method: method,
-      request_count: 1,
-      response_time_ms: responseTime,
-      status_code: 200,
-      billing_tier: keyData.billing_tier,
-      cost_incurred: calculateCost(keyData.billing_tier, path)
+    await supabase.from('api_usage_logs').insert({
+      tenant_id: keyData.tenant_id,
+      api_key_id: keyData.id,
+      endpoint: path,
+      method: method,
+      status_code: statusCode,
+      response_time: responseTime,
+      correlation_id: crypto.randomUUID(),
+      error_message: response.error || null
     });
 
-    // Update usage counter
+    // Update last used timestamp
     await supabase
-      .from('partner_api_keys' as any)
+      .from('tenant_api_keys')
       .update({ 
-        usage_this_month: keyData.usage_this_month + 1,
         last_used_at: now.toISOString()
       })
       .eq('id', keyData.id);
 
     return new Response(JSON.stringify(response), {
+      status: statusCode,
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json',
         'X-Response-Time': `${responseTime}ms`,
-        'X-Rate-Limit-Remaining': String(keyData.rate_limit_per_minute - (recentRequests || 0))
+        'X-RateLimit-Limit': String(keyData.rate_limit),
+        'X-RateLimit-Remaining': String(Math.max(0, keyData.rate_limit - (recentRequests || 0) - 1)),
+        'X-RateLimit-Reset': new Date(now.getTime() + 60000).toISOString()
       }
     });
 
@@ -134,32 +147,40 @@ Deno.serve(async (req) => {
   }
 });
 
-async function hashApiKey(apiKey: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(apiKey);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 async function handleWorkOrders(supabase: any, keyData: any, method: string, path: string, req: Request) {
-  const scopes = keyData.scopes || [];
-  
-  if (method === 'GET' && !scopes.includes('read:orders')) {
-    return { error: 'Insufficient permissions' };
-  }
-  if ((method === 'POST' || method === 'PUT') && !scopes.includes('write:orders')) {
-    return { error: 'Insufficient permissions' };
-  }
-
   if (method === 'GET') {
-    const { data, error } = await supabase
-      .from('work_orders')
-      .select('*')
-      .eq('organization_id', keyData.partners.organization_id)
-      .limit(100);
+    // Extract work order ID if present in path
+    const woId = path.split('/')[2];
     
+    let query = supabase
+      .from('work_orders')
+      .select('*, ticket:tickets(*), technician:technicians(*)');
+    
+    // Tenant isolation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', keyData.created_by)
+      .single();
+    
+    if (profile?.tenant_id) {
+      const { data: tickets } = await supabase
+        .from('tickets')
+        .select('id')
+        .eq('tenant_id', profile.tenant_id);
+      
+      const ticketIds = tickets?.map((t: any) => t.id) || [];
+      query = query.in('ticket_id', ticketIds);
+    }
+    
+    if (woId) {
+      query = query.eq('id', woId).single();
+    } else {
+      query = query.limit(100);
+    }
+    
+    const { data, error } = await query;
     return error ? { error: error.message } : { data };
   }
 
@@ -167,19 +188,31 @@ async function handleWorkOrders(supabase: any, keyData: any, method: string, pat
 }
 
 async function handleCustomers(supabase: any, keyData: any, method: string, path: string, req: Request) {
-  const scopes = keyData.scopes || [];
-  
-  if (method === 'GET' && !scopes.includes('read:customers')) {
-    return { error: 'Insufficient permissions' };
-  }
-
   if (method === 'GET') {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('organization_id', keyData.partners.organization_id)
-      .limit(100);
+    const customerId = path.split('/')[2];
     
+    let query = supabase
+      .from('customers')
+      .select('*, contacts:customer_contacts(*)');
+    
+    // Tenant isolation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', keyData.created_by)
+      .single();
+    
+    if (profile?.tenant_id) {
+      query = query.eq('tenant_id', profile.tenant_id);
+    }
+    
+    if (customerId) {
+      query = query.eq('id', customerId).single();
+    } else {
+      query = query.limit(100);
+    }
+    
+    const { data, error } = await query;
     return error ? { error: error.message } : { data };
   }
 
@@ -187,31 +220,33 @@ async function handleCustomers(supabase: any, keyData: any, method: string, path
 }
 
 async function handleInvoices(supabase: any, keyData: any, method: string, path: string, req: Request) {
-  const scopes = keyData.scopes || [];
-  
-  if (method === 'GET' && !scopes.includes('read:invoices')) {
-    return { error: 'Insufficient permissions' };
-  }
-
   if (method === 'GET') {
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('organization_id', keyData.partners.organization_id)
-      .limit(100);
+    const invoiceId = path.split('/')[2];
     
+    let query = supabase
+      .from('invoices')
+      .select('*, customer:customers(*), work_order:work_orders(*)');
+    
+    // Tenant isolation
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', keyData.created_by)
+      .single();
+    
+    if (profile?.tenant_id) {
+      query = query.eq('tenant_id', profile.tenant_id);
+    }
+    
+    if (invoiceId) {
+      query = query.eq('id', invoiceId).single();
+    } else {
+      query = query.limit(100);
+    }
+    
+    const { data, error } = await query;
     return error ? { error: error.message } : { data };
   }
 
   return { error: 'Method not implemented' };
-}
-
-function calculateCost(tier: string, endpoint: string): number {
-  const baseCosts: Record<string, number> = {
-    free: 0,
-    basic: 0.001,
-    pro: 0.0005,
-    enterprise: 0.0001
-  };
-  return baseCosts[tier] || 0;
 }

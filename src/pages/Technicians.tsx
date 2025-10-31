@@ -179,7 +179,7 @@ export default function Technicians() {
 
         <TabsContent value="map">
           <Card className="p-6">
-            <TechnicianMap technicians={technicians || []} />
+            <TechnicianMap technicians={(technicians || []) as any} />
           </Card>
         </TabsContent>
 
