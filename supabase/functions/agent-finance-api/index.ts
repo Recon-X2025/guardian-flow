@@ -48,8 +48,8 @@ serve(async (req) => {
       case 'get_penalties':
         result = await getPenalties(supabase, tenantId!, data);
         break;
-      case 'generate_sapos_offer':
-        result = await generateSaPOSOffer(supabase, data);
+      case 'generate_offer':
+        result = await generateOffer(supabase, data);
         break;
       case 'get_billing_summary':
         result = await getBillingSummary(supabase, tenantId!, data);
@@ -127,7 +127,7 @@ async function getPenalties(supabase: any, tenantId: string, filters: any = {}) 
   return { penalties: data, total: count };
 }
 
-async function generateSaPOSOffer(supabase: any, data: any) {
+async function generateOffer(supabase: any, data: any) {
   const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-service-order`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`, 'Content-Type': 'application/json' },

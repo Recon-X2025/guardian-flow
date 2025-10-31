@@ -145,8 +145,8 @@ Deno.serve(async (req) => {
 
     console.log(`[${correlationId}] Work order released as ${repairType} repair`);
 
-    // Automatically trigger SaPOS offer generation
-    console.log(`[${correlationId}] Triggering automatic SaPOS generation...`);
+    // Automatically trigger offer generation
+    console.log(`[${correlationId}] Triggering automatic offer generation...`);
     try {
       // Fetch customer_id from ticket
       const { data: ticket } = await context.supabase
@@ -155,20 +155,20 @@ Deno.serve(async (req) => {
         .eq('id', workOrder.ticket_id)
         .single();
 
-      const { error: saposError } = await context.supabase.functions.invoke('generate-sapos-offers', {
+      const { error: offerError } = await context.supabase.functions.invoke('generate-sapos-offers', {
         body: { 
           workOrderId,
           customerId: ticket?.customer_id 
         }
       });
       
-      if (saposError) {
-        console.error(`[${correlationId}] SaPOS generation failed (non-blocking):`, saposError);
+      if (offerError) {
+        console.error(`[${correlationId}] Offer generation failed (non-blocking):`, offerError);
       } else {
-        console.log(`[${correlationId}] SaPOS offers generated automatically`);
+        console.log(`[${correlationId}] Offers generated automatically`);
       }
     } catch (error) {
-      console.error(`[${correlationId}] SaPOS generation error (non-blocking):`, error);
+      console.error(`[${correlationId}] Offer generation error (non-blocking):`, error);
     }
 
     // Log audit event
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
         released_at: new Date().toISOString(),
         override_used: !!overrideToken,
         correlation_id: correlationId,
-        sapos_auto_generated: true
+        offers_auto_generated: true
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

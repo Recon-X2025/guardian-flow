@@ -208,7 +208,7 @@ export default function Observability() {
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Trace precheck latencies (p50/p95)</li>
                   <li>• Track photo validation pass rate</li>
-                  <li>• Monitor SaPOS acceptance rate</li>
+                  <li>• Monitor offer acceptance rate</li>
                   <li>• Fraud alert queue depth</li>
                 </ul>
               </div>

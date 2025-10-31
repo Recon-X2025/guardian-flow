@@ -55,7 +55,7 @@ export default function Prompts() {
     },
     {
       id: "prompt_003",
-      name: "SaPOS Offer Generation",
+      name: "AI Offer Generation",
       category: "Sales",
       content: "Based on the current work order details, generate personalized upsell offers:\n\nCustomer: {{customer_name}}\nUnit Type: {{unit_type}}\nIssue: {{issue_description}}\nWarranty Status: {{warranty_status}}\n\nGenerate 3 relevant offers with clear value propositions.",
       variables: ["customer_name", "unit_type", "issue_description", "warranty_status"],

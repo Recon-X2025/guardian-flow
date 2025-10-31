@@ -59,7 +59,7 @@ export default function Dashboard() {
         return sum + stock;
       }, 0) || 0;
 
-      // Fetch SaPOS offers for revenue
+      // Fetch AI offers for revenue
       const { data: saposOffers } = await supabase
         .from('sapos_offers')
         .select('price')
@@ -174,7 +174,7 @@ export default function Dashboard() {
       color: "text-success",
     },
     {
-      title: "Revenue (SaPOS)",
+      title: "Revenue (Offers)",
       value: formatCurrency(stats.saposRevenue, false),
       icon: TrendingUp,
       color: "text-accent",

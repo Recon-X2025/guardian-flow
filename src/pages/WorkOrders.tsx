@@ -415,7 +415,7 @@ export default function WorkOrders() {
                       disabled={isCompleted}
                       title={isCompleted ? 'Disabled for completed work orders' : undefined}
                       onClick={() => {
-                        console.log('SaPOS button clicked for WO:', wo.id, 'Status:', wo.status);
+                        console.log('Offer AI button clicked for WO:', wo.id, 'Status:', wo.status);
                         if (wo.status === 'draft' || wo.status === 'pending_validation') {
                           toast({
                             title: 'Work order not ready',

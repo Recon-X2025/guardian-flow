@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error: any) {
-    console.error('SaPOS feedback error:', error);
+    console.error('Offer feedback error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

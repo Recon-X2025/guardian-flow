@@ -173,7 +173,7 @@ const trainingModules: TrainingModule[] = [
       { title: "Penalty Calculation", duration: "6:00" },
     ],
     workflow: [
-      { step: "1. Quote Generation", description: "Create quote from SaPOS offer or manual entry" },
+      { step: "1. Quote Generation", description: "Create quote from AI offer or manual entry" },
       { step: "2. Customer Approval", description: "Send quote to customer for approval" },
       { step: "3. Invoice Creation", description: "Generate invoice from completed WO and quote" },
       { step: "4. Penalty Application", description: "Auto-apply penalties based on penalty matrix" },
@@ -182,12 +182,12 @@ const trainingModules: TrainingModule[] = [
   },
   {
     id: "sapos",
-    title: "SaPOS AI - Sales Point-of-Service",
+    title: "Offer AI - Sales Point-of-Service",
     icon: Sparkles,
     description: "AI-powered upsell and cross-sell recommendations",
     duration: "14 min",
     videos: [
-      { title: "SaPOS Overview", duration: "3:30" },
+      { title: "Offer AI Overview", duration: "3:30" },
       { title: "AI Offer Generation", duration: "5:15" },
       { title: "Warranty Conflict Detection", duration: "3:00" },
       { title: "Offer Presentation", duration: "2:15" },
@@ -423,7 +423,7 @@ export default function HelpTraining() {
                     <li><strong>Work Orders:</strong> Technical assignments created from tickets</li>
                     <li><strong>Prechecks:</strong> Automated validations (inventory, warranty, photos)</li>
                     <li><strong>Part Status:</strong> Lifecycle tracking from reservation to consumption</li>
-                    <li><strong>SaPOS:</strong> AI-powered upsell offers at point-of-service</li>
+                    <li><strong>Offer AI:</strong> AI-powered upsell offers at point-of-service</li>
                     <li><strong>RBAC:</strong> Role-based permissions ensuring secure access</li>
                   </ul>
                 </div>
@@ -435,7 +435,7 @@ export default function HelpTraining() {
                     <li>System validates warranty & inventory</li>
                     <li>Work Order generated & assigned to technician</li>
                     <li>Technician captures photos & performs repair</li>
-                    <li>AI suggests SaPOS offers to customer</li>
+                    <li>AI suggests offers to customer</li>
                     <li>Work Order completed with documentation</li>
                     <li>Invoice generated with penalties (if any)</li>
                     <li>Payment processed & ticket closed</li>

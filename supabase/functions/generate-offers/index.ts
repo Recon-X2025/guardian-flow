@@ -24,9 +24,9 @@ Deno.serve(async (req) => {
     const { workOrderId, customerId } = await req.json();
     const correlationId = crypto.randomUUID();
     const modelVersion = 'google/gemini-2.5-flash';
-    const promptTemplateId = 'sapos_contextual_offers_v1';
+    const promptTemplateId = 'offer_contextual_offers_v1';
 
-    console.log(`[${correlationId}] Generating SaPOS offers for WO: ${workOrderId}`);
+    console.log(`[${correlationId}] Generating AI offers for WO: ${workOrderId}`);
 
     // Get work order and warranty context
     const { data: workOrder } = await context.supabase
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a SaPOS (Sales at Point of Service) AI assistant. Generate 2-3 contextual product/service offers for a customer based on their service context. Each offer should include:
+            content: `You are an AI Sales Assistant. Generate 2-3 contextual product/service offers for a customer based on their service context. Each offer should include:
 - title (max 50 chars)
 - description (max 200 chars)
 - offer_type (extended_warranty, upgrade, accessory)
@@ -161,7 +161,7 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
     // Log audit event
     await logAuditEvent(context.supabase, {
       userId: context.user.id,
-      action: 'sapos_offers_generated',
+      action: 'offers_generated',
       resourceType: 'work_order',
       resourceId: workOrderId,
       changes: { offers_count: offers.length, model: 'google/gemini-2.5-flash' },
@@ -175,7 +175,7 @@ Exclude offers that conflict with active warranty coverage. Return ONLY a JSON a
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('SaPOS generation error:', error);
+    console.error('Offer generation error:', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
