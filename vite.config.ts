@@ -16,4 +16,16 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react/jsx-runtime"],
+    exclude: [],
+    esbuildOptions: {
+      target: "esnext",
+    },
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
+  },
 }));
