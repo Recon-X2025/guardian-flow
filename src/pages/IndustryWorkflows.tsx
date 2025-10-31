@@ -19,19 +19,28 @@ const industryIcons: Record<string, any> = {
 export default function IndustryWorkflows() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>("healthcare");
 
-  const { data: workflows = [], isLoading } = useQuery({
-    queryKey: ["workflow-templates", selectedIndustry],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("workflow_templates")
-        .select("*")
-        .eq("industry_type", selectedIndustry)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+  // TODO: Replace with real data after migration approval
+  const isLoading = false;
+  const workflows = [
+    {
+      id: '1',
+      name: 'Standard Service Call',
+      description: 'Basic service workflow for field technician visits',
+      steps: ['Check-in', 'Diagnosis', 'Repair', 'Quality Check', 'Customer Sign-off'],
+      compliance_requirements: ['HIPAA', 'Safety Standards'],
+      version: '1.0',
+      active: true
     },
-  });
+    {
+      id: '2',
+      name: 'Emergency Response',
+      description: 'Fast-track workflow for critical service requests',
+      steps: ['Immediate Dispatch', 'On-site Assessment', 'Emergency Repair', 'Follow-up'],
+      compliance_requirements: ['Safety Standards', 'Emergency Protocols'],
+      version: '1.2',
+      active: true
+    }
+  ];
 
   const industries = [
     {

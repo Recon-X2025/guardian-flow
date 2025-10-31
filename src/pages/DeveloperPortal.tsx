@@ -11,35 +11,18 @@ import { toast } from "sonner";
 export default function DeveloperPortal() {
   const [copiedText, setCopiedText] = useState<string>("");
 
-  const { data: devAccount } = useQuery({
-    queryKey: ["developer-account"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+  // TODO: Replace with real data after migration approval
+  const devAccount = {
+    api_quota_used: 1247,
+    api_quota_limit: 10000,
+    account_status: 'active',
+    trial_ends_at: null
+  };
 
-      const { data, error } = await supabase
-        .from("developer_portal_accounts")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
-    },
-  });
-
-  const { data: apiKeys = [] } = useQuery({
-    queryKey: ["partner-api-keys"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("partner_api_keys")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const apiKeys = [
+    { id: '1', name: 'Production API Key', created_at: new Date().toISOString() },
+    { id: '2', name: 'Development API Key', created_at: new Date().toISOString() }
+  ];
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
