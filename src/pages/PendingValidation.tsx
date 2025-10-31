@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, Clock, AlertCircle, Sparkles, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +20,39 @@ export default function PendingValidation() {
 
   useEffect(() => {
     loadData();
+
+    // Real-time subscription for work order updates
+    const channel = supabase
+      .channel('pending-validation-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'work_orders',
+        },
+        (payload) => {
+          console.log('Work order update detected:', payload);
+          loadData(); // Reload data when changes occur
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'work_order_prechecks'
+        },
+        (payload) => {
+          console.log('Precheck update detected:', payload);
+          loadData(); // Reload when prechecks update
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadData = async () => {
@@ -70,12 +104,26 @@ export default function PendingValidation() {
       if (error) throw error;
       
       setAgentEnabled(enabled);
+      
+      const message = enabled 
+        ? "🤖 Ops Agent is now active. It will automatically run prechecks and release eligible work orders every 5 minutes."
+        : "Agent disabled. Work orders will require manual precheck and release.";
+      
       toast({
-        title: enabled ? "Agent Enabled" : "Agent Disabled",
-        description: enabled 
-          ? "Ops Agent will auto-release eligible work orders"
-          : "Manual release required for work orders",
+        title: enabled ? "🤖 Agent Activated" : "Agent Disabled",
+        description: message,
+        duration: 5000,
       });
+
+      // If enabling, trigger immediate agent run
+      if (enabled) {
+        console.log("Triggering immediate agent run...");
+        await supabase.functions.invoke("ops-agent-processor");
+        toast({
+          title: "Agent Processing",
+          description: "Running initial precheck and release cycle...",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -120,8 +168,16 @@ export default function PendingValidation() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {agentEnabled && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
                 <Sparkles className="h-5 w-5 text-primary" />
-                <Label htmlFor="agent-toggle">Agent Auto-Release</Label>
+                <Label htmlFor="agent-toggle">
+                  {agentEnabled ? "🤖 Agent Active" : "Agent Inactive"}
+                </Label>
               </div>
               <Switch
                 id="agent-toggle"
@@ -131,12 +187,31 @@ export default function PendingValidation() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               {agentEnabled 
-                ? "AI agent will automatically release eligible work orders"
+                ? "Automatically running prechecks & releasing eligible WOs every 5min"
                 : "Manual approval required for all releases"}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {agentEnabled && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <div className="text-sm text-green-800">
+                <strong className="font-semibold">Agent is actively monitoring:</strong>
+                <ul className="mt-2 space-y-1 list-disc list-inside">
+                  <li>Automatically running prechecks for pending work orders</li>
+                  <li>Auto-releasing work orders that pass all checks</li>
+                  <li>Logging all actions for full audit trail</li>
+                  <li>Updates appear here in real-time</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4">
         {workOrders.map((wo) => {
