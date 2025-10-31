@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, FileText, Download } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 interface GenerateServiceOrderDialogProps {
   open: boolean;
@@ -167,7 +168,12 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
 
             <div 
               className="border rounded-lg p-6 prose prose-sm max-w-none bg-white"
-              dangerouslySetInnerHTML={{ __html: serviceOrder.html_content }}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(serviceOrder.html_content, {
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'img'],
+                  ALLOWED_ATTR: ['class', 'style', 'src', 'alt', 'width', 'height']
+                })
+              }}
             />
 
             <div className="flex gap-2">

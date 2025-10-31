@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,9 +5,21 @@ import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
+interface ForecastDataPoint {
+  date: string;
+  forecast: number;
+  actual: number;
+}
+
+interface ForecastMetrics {
+  totalForecast: number;
+  totalActual: number;
+  accuracy: string;
+}
+
 export function ForecastTab() {
-  const [forecastData, setForecastData] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<any>(null);
+  const [forecastData, setForecastData] = useState<ForecastDataPoint[]>([]);
+  const [metrics, setMetrics] = useState<ForecastMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,8 +45,7 @@ export function ForecastTab() {
 
       console.log('[ForecastTab] Querying forecasts from', today, 'to', future, 'tenant', tenantId);
 
-      const fTable = (supabase.from('forecast_outputs') as any);
-      let forecastQuery: any = fTable
+      let forecastQuery = supabase.from('forecast_outputs')
         .select('target_date, value, forecast_type')
         .gte('target_date', today)
         .lte('target_date', future);
@@ -56,10 +66,12 @@ export function ForecastTab() {
       // Get actual work orders for comparison (past 90 days)
       const past90Days = new Date(Date.now() - 90*24*60*60*1000).toISOString();
       
-      const woTable = (supabase.from('work_orders') as any);
-      let actualsQuery: any = woTable.select('created_at').gte('created_at', past90Days);
-      if (tenantId) actualsQuery = actualsQuery.eq('tenant_id', tenantId);
-      const { data: actuals, error: actualsError } = await actualsQuery.order('created_at');
+      const actualsResult = tenantId
+        ? await (supabase.from('work_orders') as any).select('created_at').gte('created_at', past90Days).eq('tenant_id', tenantId).order('created_at')
+        : await (supabase.from('work_orders') as any).select('created_at').gte('created_at', past90Days).order('created_at');
+      
+      const actuals = actualsResult.data;
+      const actualsError = actualsResult.error;
 
       if (actualsError) {
         console.error('[ForecastTab] Actuals query error:', actualsError);
@@ -68,12 +80,12 @@ export function ForecastTab() {
       console.log('[ForecastTab] Fetched actuals:', actuals?.length || 0);
 
       if (forecasts && forecasts.length > 0) {
-        const forecastByDate = forecasts.reduce((acc: any, f) => {
+        const forecastByDate = forecasts.reduce((acc: Record<string, number>, f: any) => {
           acc[f.target_date] = (acc[f.target_date] || 0) + Number(f.value);
           return acc;
         }, {});
 
-        const actualByDate = (actuals || []).reduce((acc: any, wo) => {
+        const actualByDate = (actuals || []).reduce((acc: Record<string, number>, wo: any) => {
           const day = new Date(wo.created_at).toISOString().split('T')[0];
           acc[day] = (acc[day] || 0) + 1;
           return acc;
@@ -155,8 +167,8 @@ export function ForecastTab() {
             <div className="text-2xl font-bold">
               {loading ? <Skeleton className="h-8 w-20" /> : `${metrics?.accuracy || 0}%`}
             </div>
-            <Badge variant={metrics?.accuracy > 90 ? 'default' : 'secondary'}>
-              {metrics?.accuracy > 90 ? 'Excellent' : 'Good'}
+            <Badge variant={Number(metrics?.accuracy) > 90 ? 'default' : 'secondary'}>
+              {Number(metrics?.accuracy) > 90 ? 'Excellent' : 'Good'}
             </Badge>
           </CardContent>
         </Card>

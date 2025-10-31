@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, FileText, Download, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import DOMPurify from 'dompurify';
 
 export default function ServiceOrders() {
   const [serviceOrders, setServiceOrders] = useState<any[]>([]);
@@ -244,7 +245,12 @@ export default function ServiceOrders() {
           {selectedSO && (
             <div 
               className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: selectedSO.html_content || '<p>No content</p>' }}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(selectedSO.html_content || '<p>No content</p>', {
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'img'],
+                  ALLOWED_ATTR: ['class', 'style', 'src', 'alt', 'width', 'height']
+                })
+              }}
             />
           )}
         </DialogContent>
