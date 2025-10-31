@@ -278,57 +278,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 8. Generate Forecast Data
-    console.log('[seed-demo-data] Generating forecast data...');
-    const geographyLevels = ['country', 'region', 'state', 'district', 'city', 'partner_hub'];
-    const products = ['PC Repair', 'Printer Service', 'Toner Replacement', 'Hardware Upgrade'];
-
-    for (const tenant of tenants) {
-      const rows: any[] = [];
-      for (const product of products) {
-        for (const level of geographyLevels) {
-          const today = new Date();
-          for (let day = 0; day < 30; day++) {
-            const forecastDate = new Date(today);
-            forecastDate.setDate(today.getDate() + day);
-
-            const baseValue = 50 + Math.random() * 100;
-            const trend = day * 2;
-            const seasonality = Math.sin((day / 7) * Math.PI) * 20;
-            const noise = (Math.random() - 0.5) * 10;
-
-            rows.push({
-              tenant_id: tenant.id,
-              forecast_date: forecastDate.toISOString().split('T')[0],
-              geography_level: level,
-              geography_id: `${level}-${tenant.slug}`,
-              product_id: product,
-              predicted_volume: Math.round(baseValue + trend + seasonality + noise),
-              confidence_interval_lower: Math.round(baseValue + trend + seasonality - 15),
-              confidence_interval_upper: Math.round(baseValue + trend + seasonality + 15),
-              confidence_score: 0.75 + Math.random() * 0.2,
-              model_version: 'v1.0',
-              metadata: {
-                model: 'hierarchical_arima',
-                features: ['historical_demand', 'seasonality', 'trend'],
-                training_date: new Date().toISOString(),
-              },
-            });
-          }
-        }
-      }
-
-      // Insert in chunks of 200 to avoid timeouts and size limits
-      const chunkSize = 200;
-      for (let i = 0; i < rows.length; i += chunkSize) {
-        const chunk = rows.slice(i, i + chunkSize);
-        const { error } = await supabase.from('forecast_outputs').insert(chunk);
-        if (error) {
-          console.error('[seed-demo-data] Forecast batch insert error:', error.message);
-          throw error;
-        }
-        results.forecasts += chunk.length;
-      }
+    // 8. Generate Forecast Data (temporarily disabled to avoid schema mismatch)
+    try {
+      console.log('[seed-demo-data] Skipping forecast generation due to schema mismatch in forecast_outputs');
+    } catch (_) {
+      // no-op
     }
 
     console.log('[seed-demo-data] Seeding complete!', results);

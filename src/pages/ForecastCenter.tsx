@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { TrendingUp, DollarSign, Package, AlertCircle, Database, Activity, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Badge } from '@/components/ui/badge';
+import { SeedDemoDataButton } from '@/components/SeedDemoDataButton';
 
 interface GeoItem {
   name: string;
@@ -474,6 +475,8 @@ export default function ForecastCenter() {
           </Button>
         </div>
       </div>
+
+      <SeedDemoDataButton />
 
       {/* Seed Progress Alert */}
       {seedProgress && (
