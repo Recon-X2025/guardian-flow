@@ -1,0 +1,45 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+export function CustomerDialog({ open, onOpenChange, customer, onSuccess }: any) {
+  const [formData, setFormData] = useState(customer || {});
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (customer) {
+      await supabase.from('customers').update(formData).eq('id', customer.id);
+    } else {
+      await supabase.functions.invoke('customer-create', { body: formData });
+    }
+    
+    onSuccess();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{customer ? 'Edit Customer' : 'New Customer'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Company Name</Label>
+              <Input value={formData.company_name || ''} onChange={e => setFormData({...formData, company_name: e.target.value})} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </div>
+          </div>
+          <Button type="submit">Save</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
