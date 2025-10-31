@@ -4,12 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Users } from 'lucide-react';
 import { CustomerDialog } from '@/components/CustomerDialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/contexts/RBACContext';
+import { useActionPermissions } from '@/hooks/useActionPermissions';
 
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +20,8 @@ export default function Customers() {
   const { toast } = useToast();
   const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
+  const customerPerms = useActionPermissions('customers');
+  const isViewOnly = !customerPerms.create && !customerPerms.edit;
 
   const { data: customers, isLoading, refetch } = useQuery({
     queryKey: ['customers', searchTerm, tenantId, isSysAdmin],
@@ -64,6 +68,14 @@ export default function Customers() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {isViewOnly && (
+        <Alert>
+          <AlertDescription>
+            <strong>View-Only Mode:</strong> You have read-only access to Customers.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -74,10 +86,12 @@ export default function Customers() {
             Manage customer information and relationships
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Customer
-        </Button>
+        {customerPerms.create && (
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Customer
+          </Button>
+        )}
       </div>
 
       <Card className="p-6">
@@ -146,8 +160,9 @@ export default function Customers() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(customer)}
+                      disabled={!customerPerms.view}
                     >
-                      View Details
+                      {customerPerms.edit ? 'View Details' : 'View'}
                     </Button>
                   </TableCell>
                 </TableRow>

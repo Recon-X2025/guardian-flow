@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, FileText, Download, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import DOMPurify from 'dompurify';
+import { useActionPermissions } from "@/hooks/useActionPermissions";
 
 export default function ServiceOrders() {
   const [serviceOrders, setServiceOrders] = useState<any[]>([]);
@@ -17,6 +20,8 @@ export default function ServiceOrders() {
   const [selectedSO, setSelectedSO] = useState<any | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const { toast } = useToast();
+  const soPerms = useActionPermissions('serviceOrders');
+  const isViewOnly = !soPerms.create && !soPerms.edit && !soPerms.execute;
 
   const fetchServiceOrders = async () => {
     setLoading(true);
@@ -105,6 +110,14 @@ export default function ServiceOrders() {
 
   return (
     <div className="space-y-6">
+      {isViewOnly && (
+        <Alert>
+          <AlertDescription>
+            <strong>View-Only Mode:</strong> You have read-only access to Service Orders. Contact an admin for edit permissions.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Service Orders</h1>
@@ -112,43 +125,45 @@ export default function ServiceOrders() {
             Auto-generated service documentation with signatures and evidence
           </p>
         </div>
-        <div className="flex gap-2">
-          <select
-            className="px-3 py-2 border rounded-md"
-            value={selectedWO}
-            onChange={(e) => setSelectedWO(e.target.value)}
-            disabled={generating}
-          >
-            <option value="">Select Work Order...</option>
-            {workOrders.map(wo => (
-              <option key={wo.id} value={wo.id}>
-                {wo.wo_number} ({wo.status})
-              </option>
-            ))}
-          </select>
-          <Button 
-            onClick={() => {
-              if (!selectedWO) {
-                toast({ title: "Select a work order first", variant: "destructive" });
-                return;
-              }
-              generateSO(selectedWO);
-            }}
-            disabled={generating || !selectedWO}
-          >
-            {generating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <FileText className="mr-2 h-4 w-4" />
-                Generate SO
-              </>
-            )}
-          </Button>
-        </div>
+        {soPerms.execute && (
+          <div className="flex gap-2">
+            <select
+              className="px-3 py-2 border rounded-md"
+              value={selectedWO}
+              onChange={(e) => setSelectedWO(e.target.value)}
+              disabled={generating}
+            >
+              <option value="">Select Work Order...</option>
+              {workOrders.map(wo => (
+                <option key={wo.id} value={wo.id}>
+                  {wo.wo_number} ({wo.status})
+                </option>
+              ))}
+            </select>
+            <Button 
+              onClick={() => {
+                if (!selectedWO) {
+                  toast({ title: "Select a work order first", variant: "destructive" });
+                  return;
+                }
+                generateSO(selectedWO);
+              }}
+              disabled={generating || !selectedWO}
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate SO
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -220,10 +235,12 @@ export default function ServiceOrders() {
                     <Eye className="h-4 w-4 mr-1" />
                     Preview
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-1" />
-                    PDF
-                  </Button>
+                  {soPerms.view && (
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-1" />
+                      PDF
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

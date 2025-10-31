@@ -3,11 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 import { InvoiceDetailDialog } from '@/components/InvoiceDetailDialog';
+import { useActionPermissions } from '@/hooks/useActionPermissions';
 import jsPDF from 'jspdf';
 
 export default function Invoicing() {
@@ -17,6 +19,8 @@ export default function Invoicing() {
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const invoicePerms = useActionPermissions('invoices');
+  const isViewOnly = !invoicePerms.create && !invoicePerms.edit && !invoicePerms.execute;
 
   useEffect(() => {
     fetchInvoices();
@@ -182,6 +186,14 @@ export default function Invoicing() {
 
   return (
     <div className="space-y-6">
+      {isViewOnly && (
+        <Alert>
+          <AlertDescription>
+            <strong>View-Only Mode:</strong> You have read-only access to Invoices.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Invoicing</h1>
@@ -288,17 +300,19 @@ export default function Invoicing() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(invoice);
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Download
-                    </Button>
+                    {invoicePerms.view && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownload(invoice);
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm"

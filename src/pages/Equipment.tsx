@@ -4,11 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Package, QrCode } from 'lucide-react';
 import { EquipmentDialog } from '@/components/EquipmentDialog';
 import { useRBAC } from '@/contexts/RBACContext';
+import { useActionPermissions } from '@/hooks/useActionPermissions';
 
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +18,8 @@ export default function Equipment() {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
+  const equipmentPerms = useActionPermissions('equipment');
+  const isViewOnly = !equipmentPerms.create && !equipmentPerms.edit;
 
   const { data: equipment, isLoading, refetch } = useQuery({
     queryKey: ['equipment', searchTerm, tenantId, isSysAdmin],
@@ -53,6 +57,14 @@ export default function Equipment() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {isViewOnly && (
+        <Alert>
+          <AlertDescription>
+            <strong>View-Only Mode:</strong> You have read-only access to Equipment.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -63,10 +75,12 @@ export default function Equipment() {
             Track and manage equipment lifecycle and maintenance
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Register Equipment
-        </Button>
+        {equipmentPerms.create && (
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Register Equipment
+          </Button>
+        )}
       </div>
 
       <Card className="p-6">

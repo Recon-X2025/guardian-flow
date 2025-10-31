@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Search, Clock, CheckCircle2, AlertCircle, Briefcase, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateWorkOrderDialog } from "@/components/CreateWorkOrderDialog";
 import { TicketDetailsDialog } from "@/components/TicketDetailsDialog";
+import { useActionPermissions } from "@/hooks/useActionPermissions";
 import { differenceInDays } from "date-fns";
 
 export default function Tickets() {
@@ -21,6 +23,8 @@ export default function Tickets() {
   const [woDialogOpen, setWoDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedTicketForDetails, setSelectedTicketForDetails] = useState<any>(null);
+  const ticketPerms = useActionPermissions('tickets');
+  const isViewOnly = !ticketPerms.create && !ticketPerms.edit;
   const [formData, setFormData] = useState({
     unitSerial: '',
     customer: '',
@@ -139,15 +143,25 @@ export default function Tickets() {
 
   return (
     <div className="space-y-6">
+      {isViewOnly && (
+        <Alert>
+          <AlertDescription>
+            <strong>View-Only Mode:</strong> You have read-only access to Tickets.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Tickets</h1>
           <p className="text-muted-foreground">Manage service requests and work orders</p>
         </div>
-        <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Ticket
-        </Button>
+        {ticketPerms.create && (
+          <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Ticket
+          </Button>
+        )}
       </div>
 
       {showCreateForm && (

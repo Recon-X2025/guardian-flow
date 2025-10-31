@@ -14,19 +14,31 @@ export const roleActionPermissions: Record<string, Record<string, ActionPermissi
     dispatch: { view: true, create: true, edit: true, delete: true, execute: true },
     technicians: { view: true, create: true, edit: true, delete: true, execute: true },
     customers: { view: true, create: true, edit: true, delete: true, execute: true },
+    equipment: { view: true, create: true, edit: true, delete: true, execute: true },
+    tickets: { view: true, create: true, edit: true, delete: true, execute: true },
+    invoices: { view: true, create: true, edit: true, delete: true, execute: true },
     inventory: { view: true, create: true, edit: true, delete: true, execute: true },
     finance: { view: true, create: true, edit: true, delete: true, execute: true },
+    contracts: { view: true, create: true, edit: true, delete: true, execute: true },
+    quotes: { view: true, create: true, edit: true, delete: true, execute: true },
+    analytics: { view: true, create: true, edit: true, delete: true, execute: true },
     fraud: { view: true, create: true, edit: true, delete: true, execute: true },
+    compliance: { view: true, create: true, edit: true, delete: true, execute: true },
+    settings: { view: true, create: true, edit: true, delete: true, execute: true },
   },
   
   operations_manager: {
     workOrders: { view: true, create: false, edit: false, delete: false, execute: false },
-    serviceOrders: { view: true, create: false, edit: false, delete: false, execute: false }, // View only!
-    dispatch: { view: true, create: false, edit: false, delete: false, execute: false }, // No actions
+    serviceOrders: { view: true, create: false, edit: false, delete: false, execute: false },
+    dispatch: { view: true, create: false, edit: false, delete: false, execute: false },
     technicians: { view: true, create: false, edit: false, delete: false, execute: false },
     customers: { view: true, create: false, edit: false, delete: false, execute: false },
+    equipment: { view: true, create: false, edit: false, delete: false, execute: false },
+    tickets: { view: true, create: false, edit: false, delete: false, execute: false },
+    invoices: { view: true, create: false, edit: false, delete: false, execute: false },
     inventory: { view: true, create: false, edit: false, delete: false, execute: false },
     finance: { view: true, create: false, edit: false, delete: false, execute: false },
+    analytics: { view: true, create: false, edit: false, delete: false, execute: false },
   },
   
   tenant_admin: {
@@ -35,8 +47,15 @@ export const roleActionPermissions: Record<string, Record<string, ActionPermissi
     dispatch: { view: true, create: true, edit: true, delete: false, execute: true },
     technicians: { view: true, create: true, edit: true, delete: false, execute: false },
     customers: { view: true, create: true, edit: true, delete: false, execute: false },
+    equipment: { view: true, create: true, edit: true, delete: false, execute: false },
+    tickets: { view: true, create: true, edit: true, delete: false, execute: true },
+    invoices: { view: true, create: true, edit: true, delete: false, execute: true },
     inventory: { view: true, create: true, edit: true, delete: false, execute: true },
+    contracts: { view: true, create: true, edit: true, delete: false, execute: true },
+    quotes: { view: true, create: true, edit: true, delete: false, execute: true },
     finance: { view: true, create: false, edit: false, delete: false, execute: false },
+    analytics: { view: true, create: false, edit: false, delete: false, execute: false },
+    settings: { view: true, create: true, edit: true, delete: false, execute: true },
   },
   
   partner_admin: {
@@ -45,7 +64,10 @@ export const roleActionPermissions: Record<string, Record<string, ActionPermissi
     dispatch: { view: true, create: true, edit: true, delete: false, execute: true },
     technicians: { view: true, create: true, edit: true, delete: false, execute: false },
     customers: { view: true, create: false, edit: false, delete: false, execute: false },
+    equipment: { view: true, create: false, edit: false, delete: false, execute: false },
+    tickets: { view: true, create: true, edit: true, delete: false, execute: false },
     inventory: { view: true, create: false, edit: false, delete: false, execute: false },
+    invoices: { view: true, create: false, edit: false, delete: false, execute: false },
   },
   
   dispatcher: {
@@ -54,31 +76,55 @@ export const roleActionPermissions: Record<string, Record<string, ActionPermissi
     dispatch: { view: true, create: true, edit: true, delete: false, execute: true },
     technicians: { view: true, create: false, edit: false, delete: false, execute: false },
     customers: { view: true, create: false, edit: false, delete: false, execute: false },
+    equipment: { view: true, create: false, edit: false, delete: false, execute: false },
+    tickets: { view: true, create: true, edit: true, delete: false, execute: true },
+    inventory: { view: true, create: false, edit: false, delete: false, execute: false },
   },
   
   technician: {
     workOrders: { view: true, create: false, edit: true, delete: false, execute: true },
     serviceOrders: { view: true, create: false, edit: false, delete: false, execute: false },
     dispatch: { view: true, create: false, edit: false, delete: false, execute: false },
+    tickets: { view: true, create: false, edit: false, delete: false, execute: false },
+    equipment: { view: true, create: false, edit: false, delete: false, execute: false },
     inventory: { view: true, create: false, edit: false, delete: false, execute: false },
   },
   
   finance_manager: {
     workOrders: { view: true, create: false, edit: false, delete: false, execute: false },
     serviceOrders: { view: true, create: false, edit: false, delete: false, execute: false },
+    invoices: { view: true, create: true, edit: true, delete: false, execute: true },
     finance: { view: true, create: true, edit: true, delete: false, execute: true },
+    contracts: { view: true, create: true, edit: true, delete: false, execute: true },
+    quotes: { view: true, create: true, edit: true, delete: false, execute: true },
     customers: { view: true, create: false, edit: false, delete: false, execute: false },
+    analytics: { view: true, create: false, edit: false, delete: false, execute: true },
   },
   
   fraud_investigator: {
     workOrders: { view: true, create: false, edit: false, delete: false, execute: false },
+    serviceOrders: { view: true, create: false, edit: false, delete: false, execute: false },
     fraud: { view: true, create: true, edit: true, delete: false, execute: true },
+    compliance: { view: true, create: true, edit: true, delete: false, execute: true },
+    invoices: { view: true, create: false, edit: false, delete: false, execute: false },
     customers: { view: true, create: false, edit: false, delete: false, execute: false },
+    analytics: { view: true, create: false, edit: false, delete: false, execute: true },
   },
   
   customer: {
     workOrders: { view: true, create: false, edit: false, delete: false, execute: false },
     serviceOrders: { view: true, create: false, edit: false, delete: false, execute: false },
+    tickets: { view: true, create: true, edit: false, delete: false, execute: false },
+    invoices: { view: true, create: false, edit: false, delete: false, execute: false },
+    equipment: { view: true, create: false, edit: false, delete: false, execute: false },
+  },
+  
+  compliance_officer: {
+    workOrders: { view: true, create: false, edit: false, delete: false, execute: false },
+    compliance: { view: true, create: true, edit: true, delete: false, execute: true },
+    fraud: { view: true, create: false, edit: false, delete: false, execute: false },
+    invoices: { view: true, create: false, edit: false, delete: false, execute: false },
+    analytics: { view: true, create: false, edit: false, delete: false, execute: true },
   },
 };
 
