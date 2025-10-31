@@ -38,14 +38,14 @@ Deno.serve(async (req) => {
     // 1. Create Partners (Organizations)
     console.log('[seed-demo-data] Creating partners...');
     const partnerData = [
-      { name: 'ServicePro Partners', slug: 'servicepro', logo_url: null, primary_color: '#3b82f6', timezone: 'America/New_York', currency: 'USD' },
-      { name: 'TechField Solutions', slug: 'techfield', logo_url: null, primary_color: '#10b981', timezone: 'America/Los_Angeles', currency: 'USD' },
-      { name: 'RepairHub Network', slug: 'repairhub', logo_url: null, primary_color: '#f59e0b', timezone: 'Europe/London', currency: 'GBP' },
-      { name: 'FixIt Partners', slug: 'fixit', logo_url: null, primary_color: '#ef4444', timezone: 'Asia/Dubai', currency: 'AED' },
+      { company_name: 'ServicePro Partners', partner_number: 'PTR-0001', email: 'contact@servicepro.com', phone: '+1-555-0001', status: 'active' },
+      { company_name: 'TechField Solutions', partner_number: 'PTR-0002', email: 'contact@techfield.com', phone: '+1-555-0002', status: 'active' },
+      { company_name: 'RepairHub Network', partner_number: 'PTR-0003', email: 'contact@repairhub.com', phone: '+44-555-0003', status: 'active' },
+      { company_name: 'FixIt Partners', partner_number: 'PTR-0004', email: 'contact@fixit.com', phone: '+971-555-0004', status: 'active' },
     ];
 
     for (const partner of partnerData) {
-      const { error } = await supabase.from('partners').upsert(partner, { onConflict: 'slug' });
+      const { error } = await supabase.from('partners').upsert(partner, { onConflict: 'partner_number' });
       if (!error) results.partners++;
     }
 
@@ -66,18 +66,14 @@ Deno.serve(async (req) => {
         .from('customers')
         .insert({
           tenant_id: tenant.id,
-          name: customerNames[i],
-          customer_code: `CUST-${String(i + 1).padStart(4, '0')}`,
-          email: `customer${i + 1}@example.com`,
+          company_name: customerNames[i],
+          customer_number: `CUST-${String(i + 1).padStart(4, '0')}`,
+          first_name: `Contact`,
+          last_name: `Person${i + 1}`,
+          email: `cust${i + 1}@company${i + 1}.com`,
           phone: `+1-555-${String(i + 1000).slice(-4)}`,
-          contact_name: `Contact Person ${i + 1}`,
-          address: `${100 + i} Business Blvd, Suite ${i + 1}`,
-          city: 'New York',
-          state: 'NY',
-          postal_code: `100${String(i).padStart(2, '0')}`,
-          country: 'USA',
           status: 'active',
-          account_type: i % 3 === 0 ? 'enterprise' : 'business',
+          customer_type: i % 3 === 0 ? 'enterprise' : 'business',
         })
         .select('id')
         .single();
@@ -224,16 +220,11 @@ Deno.serve(async (req) => {
           .from('penalty_applications')
           .insert({
             work_order_id: wo.id,
-            technician_id: wo.technician_id,
             penalty_code: penalty.code,
-            violation_type: penalty.type,
-            severity_level: penalty.severity,
-            base_amount: baseAmount,
-            penalty_percentage: penalty.percentage,
-            penalty_amount: penaltyAmount,
-            auto_applied: true,
+            reason: `${penalty.type}: ${penalty.severity} severity violation`,
+            amount: penaltyAmount,
             disputed: i % 5 === 0,
-            status: i % 5 === 0 ? 'disputed' : 'applied',
+            dispute_reason: i % 5 === 0 ? 'Contesting penalty application' : null,
           });
         
         if (!error) results.penalties++;
@@ -251,9 +242,9 @@ Deno.serve(async (req) => {
     if (photoWOs) {
       for (let i = 0; i < photoWOs.length; i++) {
         const wo = photoWOs[i];
-        const stages = ['before_repair', 'during_repair', 'after_repair', 'customer_signature'];
+        const stages = ['post_repair', 'replacement', 'pickup'];
         
-        for (const stage of stages.slice(0, i % 2 === 0 ? 4 : 2)) {
+        for (const stage of stages.slice(0, i % 3 === 0 ? 3 : (i % 2 === 0 ? 2 : 1))) {
           const { error } = await supabase
             .from('photo_validations')
             .insert({
