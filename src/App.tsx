@@ -183,6 +183,51 @@ const App = () => (
                                     <ForgeryDetection />
                                   </RoleGuard>
                                 } />
+                                <Route path="/customers" element={
+                                  <RoleGuard permissions={["customers.view"]} showError={true}>
+                                    <Customers />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/technicians" element={
+                                  <RoleGuard permissions={["technicians.view"]} showError={true}>
+                                    <Technicians />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/equipment" element={
+                                  <RoleGuard permissions={["equipment.view"]} showError={true}>
+                                    <Equipment />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/contracts" element={
+                                  <RoleGuard permissions={["contracts.view"]} showError={true}>
+                                    <Contracts />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/customer-portal" element={
+                                  <RoleGuard permissions={["portal.access"]} showError={true}>
+                                    <CustomerPortal />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/predictive-maintenance" element={
+                                  <RoleGuard permissions={["maintenance.view"]} showError={true}>
+                                    <PredictiveMaintenance />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/partner-portal" element={
+                                  <RoleGuard permissions={["partners.view"]} showError={true}>
+                                    <PartnerPortal />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/documents" element={
+                                  <RoleGuard permissions={["documents.view"]} showError={true}>
+                                    <Documents />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/webhooks" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <Webhooks />
+                                  </RoleGuard>
+                                } />
                                 <Route path="/knowledge-base" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
                                     <KnowledgeBase />
