@@ -28,6 +28,7 @@ import Scheduler from "./pages/Scheduler";
 import Dispatch from "./pages/Dispatch";
 import Procurement from "./pages/Procurement";
 import Settings from "./pages/Settings";
+import AdminConsole from "./pages/AdminConsole";
 import NotFound from "./pages/NotFound";
 import Invoicing from "./pages/Invoicing";
 import Payments from "./pages/Payments";
@@ -544,6 +545,14 @@ const App = () => (
                   <ProtectedRoute>
                     <RoleGuard roles={["sys_admin", "tenant_admin", "ops_manager"]} showError={true}>
                       <AppLayout><IndustryWorkflows /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
+                      <AppLayout><AdminConsole /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
                 } />

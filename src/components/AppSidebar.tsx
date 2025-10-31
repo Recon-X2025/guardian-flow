@@ -131,6 +131,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { title: "Documents", url: "/documents", icon: FileText, permissions: ["documents.view"] },
       { title: "Templates", url: "/templates", icon: FileText, permissions: ["admin.config"] },
+      { title: "Admin Console", url: "/admin", icon: Shield, roles: ["sys_admin", "tenant_admin"] },
       { title: "Compliance Center", url: "/compliance", icon: Shield, permissions: ["admin.config"] },
       { title: "System Health", url: "/system-health", icon: Heart, permissions: ["admin.config"] },
       { title: "Product Specs", url: "/product-specs", icon: FileText },
