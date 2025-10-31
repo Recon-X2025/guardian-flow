@@ -145,7 +145,7 @@ export function AppSidebar() {
 
   const canAccessItem = (item: MenuItem): boolean => {
     // Dashboard, Settings, Help & Training, and Product Specs are accessible to all authenticated users
-    if (item.url === "/" || item.url === "/settings" || item.url === "/help" || item.url === "/product-specs") {
+    if (item.url === "/dashboard" || item.url === "/settings" || item.url === "/help" || item.url === "/product-specs") {
       return true;
     }
 
