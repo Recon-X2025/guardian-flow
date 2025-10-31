@@ -1,32 +1,62 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OperationalCommandView } from "@/components/OperationalCommandView";
-import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useRBAC } from '@/contexts/RBACContext';
 import { toast } from "sonner";
+import { DashboardStats, getRoleConfig } from "@/config/dashboardConfig";
+import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
-  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const { tenantId, hasRole, roles, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
-  const [stats, setStats] = useState({
+  
+  const [stats, setStats] = useState<DashboardStats>({
+    // Work Order metrics
+    totalWOs: 0,
     activeWorkOrders: 0,
-    pendingTickets: 0,
-    partsInStock: 0,
-    saposRevenue: 0,
-    totalPayables: 0,
     completedWOs: 0,
     pendingValidation: 0,
-    totalWOs: 0,
+    myAssignedWOs: 0,
+    myCompletedToday: 0,
+    
+    // Ticket metrics
+    pendingTickets: 0,
+    openTickets: 0,
+    
+    // Inventory metrics
+    partsInStock: 0,
+    lowStockItems: 0,
+    
+    // Financial metrics
+    saposRevenue: 0,
+    totalPayables: 0,
+    monthlyRevenue: 0,
+    overdueInvoices: 0,
+    
+    // Fraud & Compliance
+    activeFraudCases: 0,
+    anomaliesDetected: 0,
+    forgeriesDetected: 0,
+    complianceScore: 95,
+    policyViolations: 0,
+    auditsPending: 0,
+    
+    // Team metrics
+    activeTechnicians: 0,
+    totalCustomers: 0,
+    partnerPerformance: 0,
   });
-  const [recentWorkOrders, setRecentWorkOrders] = useState<any[]>([]);
+  
   const [chartData, setChartData] = useState<any[]>([]);
   const [statusData, setStatusData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Get role-specific configuration
+  const roleConfig = getRoleConfig(roles.map(r => r.role));
 
   useEffect(() => {
     if (!rbacLoading) {
@@ -41,6 +71,8 @@ export default function Dashboard() {
     }
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       // Build query with tenant filtering - only sys_admin sees ALL data
       let woQuery = supabase
         .from('work_orders')
@@ -53,13 +85,32 @@ export default function Dashboard() {
 
       const { data: allWorkOrders, count: totalWOCount } = await woQuery;
 
-      console.log('Dashboard: Total WOs in DB:', totalWOCount, 'Fetched:', allWorkOrders?.length);
-
       const activeWOs = allWorkOrders?.filter(wo => ['in_progress', 'assigned'].includes(wo.status || '')).length || 0;
       const completedWOs = allWorkOrders?.filter(wo => wo.status === 'completed').length || 0;
       const pendingWOs = allWorkOrders?.filter(wo => wo.status === 'pending_validation').length || 0;
 
-      // Fetch tickets count with tenant filter
+      // Technician-specific metrics
+      let myAssignedWOs = 0;
+      let myCompletedToday = 0;
+      if (hasRole('technician') && user) {
+        const { data: myWOs } = await supabase
+          .from('work_orders')
+          .select('*')
+          .eq('technician_id', user.id)
+          .in('status', ['in_progress', 'assigned']);
+        myAssignedWOs = myWOs?.length || 0;
+
+        const today = new Date().toISOString().split('T')[0];
+        const { data: completedToday } = await supabase
+          .from('work_orders')
+          .select('*')
+          .eq('technician_id', user.id)
+          .eq('status', 'completed')
+          .gte('completed_at', today);
+        myCompletedToday = completedToday?.length || 0;
+      }
+
+      // Ticket metrics
       let ticketQuery = supabase
         .from('tickets')
         .select('*', { count: 'exact', head: true })
@@ -69,9 +120,9 @@ export default function Dashboard() {
         ticketQuery = ticketQuery.eq('tenant_id', tenantId);
       }
       
-      const { count: ticketCount } = await ticketQuery;
+      const { count: openTicketCount } = await ticketQuery;
 
-      // Fetch inventory items count with tenant filter
+      // Inventory metrics
       let inventoryQuery = supabase
         .from('inventory_items')
         .select('id, stock_levels(qty_available, qty_reserved)') as any;
@@ -88,7 +139,13 @@ export default function Dashboard() {
         return sum + stock;
       }, 0) || 0;
 
-      // Fetch AI offers for revenue with tenant filter
+      const lowStockItems = inventoryData?.filter((item: any) => {
+        const availableStock = item.stock_levels?.reduce((s: number, level: any) => 
+          s + (level.qty_available - level.qty_reserved), 0) || 0;
+        return availableStock < 10;
+      }).length || 0;
+
+      // Financial metrics
       let offersQuery = supabase
         .from('sapos_offers')
         .select('price')
@@ -99,10 +156,26 @@ export default function Dashboard() {
       }
       
       const { data: saposOffers } = await offersQuery;
-
       const saposRevenue = saposOffers?.reduce((sum, offer) => sum + Number(offer.price), 0) || 0;
 
-      // Fetch invoices for payables with tenant filter
+      // Monthly revenue (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      let monthlyOffersQuery = supabase
+        .from('sapos_offers')
+        .select('price')
+        .eq('status', 'accepted')
+        .gte('created_at', thirtyDaysAgo.toISOString()) as any;
+      
+      if (!isSysAdmin && tenantId) {
+        monthlyOffersQuery = monthlyOffersQuery.eq('tenant_id', tenantId);
+      }
+      
+      const { data: monthlyOffers } = await monthlyOffersQuery;
+      const monthlyRevenue = monthlyOffers?.reduce((sum, offer) => sum + Number(offer.price), 0) || 0;
+
+      // Invoices
       let invoicesQuery = supabase
         .from('invoices')
         .select('total_amount, status')
@@ -113,38 +186,56 @@ export default function Dashboard() {
       }
       
       const { data: invoices } = await invoicesQuery;
-
       const totalPayables = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
+      const overdueInvoices = invoices?.filter(inv => inv.status === 'overdue').length || 0;
 
-      // Fetch recent work orders with details and tenant filter
-      let recentWOQuery = supabase
-        .from('work_orders')
-        .select(`
-          *,
-          ticket:tickets(unit_serial),
-          technician:profiles(full_name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(3) as any;
+      // Fraud & Compliance metrics (placeholder - these tables may not exist yet)
+      // Use work orders as proxy for now
+      const fraudCount = 0; // Placeholder
+      const anomalyCount = 0; // Placeholder  
+      const forgeryCount = 0; // Placeholder
+
+      // Team metrics
+      let techQuery = supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true }) as any;
       
       if (!isSysAdmin && tenantId) {
-        recentWOQuery = recentWOQuery.eq('tenant_id', tenantId);
+        techQuery = techQuery.eq('tenant_id', tenantId);
       }
       
-      const { data: workOrders } = await recentWOQuery;
+      const { count: techCount } = await techQuery;
 
       setStats({
+        totalWOs: totalWOCount || 0,
         activeWorkOrders: activeWOs,
-        pendingTickets: ticketCount || 0,
-        partsInStock: totalParts,
-        saposRevenue,
-        totalPayables,
         completedWOs,
         pendingValidation: pendingWOs,
-        totalWOs: totalWOCount || 0,
+        myAssignedWOs,
+        myCompletedToday,
+        
+        pendingTickets: pendingWOs,
+        openTickets: openTicketCount || 0,
+        
+        partsInStock: totalParts,
+        lowStockItems,
+        
+        saposRevenue,
+        totalPayables,
+        monthlyRevenue,
+        overdueInvoices,
+        
+        activeFraudCases: fraudCount || 0,
+        anomaliesDetected: anomalyCount || 0,
+        forgeriesDetected: forgeryCount || 0,
+        complianceScore: 95,
+        policyViolations: 0,
+        auditsPending: 0,
+        
+        activeTechnicians: techCount || 0,
+        totalCustomers: 0,
+        partnerPerformance: 0,
       });
-
-      setRecentWorkOrders(workOrders || []);
 
       // Generate chart data - last 7 days
       const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -178,136 +269,144 @@ export default function Dashboard() {
     }
   };
 
-  const statCards = [
-    {
-      title: "Total Work Orders",
-      value: stats.totalWOs.toLocaleString(),
-      subtitle: `${stats.activeWorkOrders} active`,
-      icon: Wrench,
-      color: "text-primary",
-    },
-    {
-      title: "Pending Tickets",
-      value: stats.pendingTickets.toString(),
-      icon: Clock,
-      color: "text-warning",
-    },
-    {
-      title: "Parts in Stock",
-      value: stats.partsInStock.toLocaleString(),
-      icon: Package,
-      color: "text-success",
-    },
-    {
-      title: "Revenue (Offers)",
-      value: formatCurrency(stats.saposRevenue, false),
-      icon: TrendingUp,
-      color: "text-accent",
-    },
-    {
-      title: "Total Payables",
-      value: formatCurrency(stats.totalPayables, false),
-      subtitle: "Finance & Settlements",
-      icon: DollarSign,
-      color: "text-orange-500",
-    },
-  ];
+  // Format card values based on data type
+  const formatCardValue = (value: any, dataKey: keyof DashboardStats): string => {
+    if (typeof value === 'number') {
+      // Financial metrics
+      if (['saposRevenue', 'totalPayables', 'monthlyRevenue'].includes(dataKey)) {
+        return formatCurrency(value, false);
+      }
+      // Percentage metrics
+      if (dataKey === 'complianceScore') {
+        return `${value}%`;
+      }
+      // Regular numbers
+      return value.toLocaleString();
+    }
+    return String(value);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-muted-foreground">Loading dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">Welcome to Guardian Flow Field Service Platform</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            {isSysAdmin ? 'Platform-wide Overview' : 'Your Organization Overview'}
+          </p>
+        </div>
+        <Badge variant="outline" className="hidden sm:inline-flex">
+          {roles.join(', ').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+        </Badge>
       </div>
 
+      {/* Role-specific stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-        {statCards.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+        {roleConfig.cards.map((card) => {
+          const IconComponent = card.icon;
+          const value = stats[card.dataKey];
+          const formattedValue = formatCardValue(value, card.dataKey);
+          
+          return (
+            <Card key={card.title}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                <IconComponent className={`h-4 w-4 ${card.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formattedValue}</div>
+                {(card as any).subtitle && (
+                  <p className="text-xs text-muted-foreground mt-1">{(card as any).subtitle}</p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Operational Command View - only for certain roles */}
+      {roleConfig.showOperationalView && (
+        <div className="lg:col-span-2">
+          <OperationalCommandView />
+        </div>
+      )}
+
+      {/* Charts - only show for roles that need them */}
+      {roleConfig.showCharts && (
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base sm:text-lg">Work Orders Trend</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Last 7 days activity</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              {(stat as any).subtitle && (
-                <p className="text-xs text-muted-foreground mt-1">{(stat as any).subtitle}</p>
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="date" className="text-[10px] sm:text-xs" />
+                    <YAxis className="text-[10px] sm:text-xs" />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+                  No data available
+                </div>
               )}
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Operational Command View */}
-      <div className="lg:col-span-2">
-        <OperationalCommandView />
-      </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base sm:text-lg">Status Distribution</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Current work order breakdown</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {statusData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={60}
+                      className="sm:outerRadius-80"
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+                  No data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg">Work Orders Trend</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Last 7 days activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="date" className="text-[10px] sm:text-xs" />
-                  <YAxis className="text-[10px] sm:text-xs" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
-                No data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base sm:text-lg">Status Distribution</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Current work order breakdown</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {statusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250} className="sm:h-[300px]">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={60}
-                    className="sm:outerRadius-80"
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
-                No data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Platform Features Card */}
       <Card className="bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 border-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
             Platform Features
           </CardTitle>
           <CardDescription className="text-xs sm:text-sm">87 integrated modules for complete field service management</CardDescription>
