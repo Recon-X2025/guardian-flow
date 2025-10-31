@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Wrench,
   BarChart3,
@@ -88,10 +88,12 @@ export default function Landing() {
             <span className="text-xl font-bold">Guardian Flow</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => navigate("/auth")}>
-              Sign In
+            <Button variant="ghost" asChild>
+              <Link to="/auth">Sign In</Link>
             </Button>
-            <Button onClick={() => navigate("/auth")}>Get Started</Button>
+            <Button asChild>
+              <Link to="/auth">Get Started</Link>
+            </Button>
           </div>
         </div>
       </header>
