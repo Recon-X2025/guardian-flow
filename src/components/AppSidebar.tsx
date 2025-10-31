@@ -27,6 +27,7 @@ import {
   Settings,
   GraduationCap,
   Route,
+  Heart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -119,6 +120,8 @@ const menuGroups: MenuGroup[] = [
   {
     label: "System",
     items: [
+      { title: "Compliance Center", url: "/compliance", icon: Shield, permissions: ["admin.config"] },
+      { title: "System Health", url: "/system-health", icon: Heart, permissions: ["admin.config"] },
       { title: "Product Specs", url: "/product-specs", icon: FileText },
       { title: "Help & Training", url: "/help", icon: GraduationCap },
       { title: "Settings", url: "/settings", icon: Settings },

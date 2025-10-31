@@ -64,6 +64,7 @@ import DisputeManagement from "./pages/DisputeManagement";
 import ABTestManager from "./pages/ABTestManager";
 import SystemHealth from "./pages/SystemHealth";
 import ComplianceDashboard from "./pages/ComplianceDashboard";
+import ComplianceCenter from "./pages/ComplianceCenter";
 
 const queryClient = new QueryClient();
 
@@ -319,6 +320,11 @@ const App = () => (
                                 <Route path="/ab-tests" element={
                                   <RoleGuard permissions={["mlops.view"]} showError={true}>
                                     <ABTestManager />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/compliance" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <ComplianceCenter />
                                   </RoleGuard>
                                 } />
                                 <Route path="/system-health" element={
