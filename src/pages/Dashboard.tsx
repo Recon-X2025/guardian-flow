@@ -6,11 +6,13 @@ import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, User
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useRBAC } from '@/contexts/RBACContext';
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
+  const { tenantId, isAdmin, loading: rbacLoading } = useRBAC();
   const [stats, setStats] = useState({
     activeWorkOrders: 0,
     pendingTickets: 0,
@@ -27,15 +29,29 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (!rbacLoading) {
+      fetchDashboardData();
+    }
+  }, [tenantId, isAdmin, rbacLoading]);
 
   const fetchDashboardData = async () => {
+    if (rbacLoading || (!isAdmin && !tenantId)) {
+      console.log('Waiting for RBAC context...');
+      return;
+    }
+
     try {
-      // Fetch all work orders for comprehensive analysis
-      const { data: allWorkOrders, count: totalWOCount } = await supabase
+      // Build query with tenant filtering for non-admins
+      let woQuery = supabase
         .from('work_orders')
-        .select('*, created_at, status', { count: 'exact' });
+        .select('*, created_at, status', { count: 'exact' }) as any;
+      
+      // Apply tenant filter if not sys_admin
+      if (!isAdmin && tenantId) {
+        woQuery = woQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: allWorkOrders, count: totalWOCount } = await woQuery;
 
       console.log('Dashboard: Total WOs in DB:', totalWOCount, 'Fetched:', allWorkOrders?.length);
 
@@ -43,16 +59,28 @@ export default function Dashboard() {
       const completedWOs = allWorkOrders?.filter(wo => wo.status === 'completed').length || 0;
       const pendingWOs = allWorkOrders?.filter(wo => wo.status === 'pending_validation').length || 0;
 
-      // Fetch tickets count
-      const { count: ticketCount } = await supabase
+      // Fetch tickets count with tenant filter
+      let ticketQuery = supabase
         .from('tickets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'open');
+        .eq('status', 'open') as any;
+      
+      if (!isAdmin && tenantId) {
+        ticketQuery = ticketQuery.eq('tenant_id', tenantId);
+      }
+      
+      const { count: ticketCount } = await ticketQuery;
 
-      // Fetch inventory items count
-      const { data: inventoryData } = await supabase
+      // Fetch inventory items count with tenant filter
+      let inventoryQuery = supabase
         .from('inventory_items')
-        .select('id, stock_levels(qty_available, qty_reserved)');
+        .select('id, stock_levels(qty_available, qty_reserved)') as any;
+      
+      if (!isAdmin && tenantId) {
+        inventoryQuery = inventoryQuery.eq('tenant_id', tenantId);
+      }
+      
+      const { data: inventoryData } = await inventoryQuery;
 
       const totalParts = inventoryData?.reduce((sum, item) => {
         const stock = item.stock_levels?.reduce((s: number, level: any) => 
@@ -60,24 +88,36 @@ export default function Dashboard() {
         return sum + stock;
       }, 0) || 0;
 
-      // Fetch AI offers for revenue
-      const { data: saposOffers } = await supabase
+      // Fetch AI offers for revenue with tenant filter
+      let offersQuery = supabase
         .from('sapos_offers')
         .select('price')
-        .eq('status', 'accepted');
+        .eq('status', 'accepted') as any;
+      
+      if (!isAdmin && tenantId) {
+        offersQuery = offersQuery.eq('tenant_id', tenantId);
+      }
+      
+      const { data: saposOffers } = await offersQuery;
 
       const saposRevenue = saposOffers?.reduce((sum, offer) => sum + Number(offer.price), 0) || 0;
 
-      // Fetch invoices for payables
-      const { data: invoices } = await supabase
+      // Fetch invoices for payables with tenant filter
+      let invoicesQuery = supabase
         .from('invoices')
         .select('total_amount, status')
-        .in('status', ['sent', 'overdue']);
+        .in('status', ['sent', 'overdue']) as any;
+      
+      if (!isAdmin && tenantId) {
+        invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
+      }
+      
+      const { data: invoices } = await invoicesQuery;
 
       const totalPayables = invoices?.reduce((sum, inv) => sum + Number(inv.total_amount), 0) || 0;
 
-      // Fetch recent work orders with details
-      const { data: workOrders } = await supabase
+      // Fetch recent work orders with details and tenant filter
+      let recentWOQuery = supabase
         .from('work_orders')
         .select(`
           *,
@@ -85,7 +125,13 @@ export default function Dashboard() {
           technician:profiles(full_name)
         `)
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(3) as any;
+      
+      if (!isAdmin && tenantId) {
+        recentWOQuery = recentWOQuery.eq('tenant_id', tenantId);
+      }
+      
+      const { data: workOrders } = await recentWOQuery;
 
       setStats({
         activeWorkOrders: activeWOs,

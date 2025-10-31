@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useRBAC } from "@/contexts/RBACContext";
 import { Loader2, DollarSign, TrendingDown, Receipt, AlertTriangle, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { InvoiceDetailDialog } from "@/components/InvoiceDetailDialog";
@@ -17,41 +18,49 @@ export default function Finance() {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
+  const { tenantId, isAdmin, hasRole, loading: rbacLoading } = useRBAC();
 
   const fetchData = async () => {
+    if (rbacLoading || (!isAdmin && !tenantId)) {
+      console.log('Waiting for RBAC context...');
+      return;
+    }
+
     setLoading(true);
     try {
+      // Build queries with tenant filtering
+      let invoicesQuery = supabase
+        .from('invoices')
+        .select('*, work_orders(wo_number, tenant_id)')
+        .order('created_at', { ascending: false }) as any;
+      
+      let penaltiesQuery = supabase
+        .from('penalty_applications')
+        .select('*, work_orders(wo_number, tenant_id)')
+        .order('created_at', { ascending: false }) as any;
+
+      // Apply tenant filter for non-sys_admin users
+      if (!isAdmin && tenantId) {
+        // Partner admins see only their tenant's data through work_orders
+        if (hasRole('partner_admin')) {
+          invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
+          penaltiesQuery = penaltiesQuery.eq('tenant_id', tenantId);
+        } else {
+          invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
+          penaltiesQuery = penaltiesQuery.eq('tenant_id', tenantId);
+        }
+      }
+
       const [invoicesRes, penaltiesRes] = await Promise.all([
-        supabase
-          .from('invoices')
-          .select('*, work_orders(wo_number)')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('penalty_applications')
-          .select('*, work_orders(wo_number)')
-          .order('created_at', { ascending: false })
+        invoicesQuery,
+        penaltiesQuery
       ]);
 
       if (invoicesRes.error) throw invoicesRes.error;
       if (penaltiesRes.error) throw penaltiesRes.error;
 
-      // Use mock data if no real data exists
-      const mockInvoices = [
-        { id: '1', invoice_number: 'INV-2025-001', status: 'paid', subtotal: 850, penalties: 42.50, total_amount: 807.50, created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), work_orders: { wo_number: 'WO-1234' } },
-        { id: '2', invoice_number: 'INV-2025-002', status: 'sent', subtotal: 1200, penalties: 0, total_amount: 1200, created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), work_orders: { wo_number: 'WO-1235' } },
-        { id: '3', invoice_number: 'INV-2025-003', status: 'on_hold', subtotal: 650, penalties: 97.50, total_amount: 552.50, hold_reason: 'Fraud investigation', created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), work_orders: { wo_number: 'WO-1236' } },
-        { id: '4', invoice_number: 'INV-2025-004', status: 'paid', subtotal: 1500, penalties: 0, total_amount: 1500, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), work_orders: { wo_number: 'WO-1238' } },
-        { id: '5', invoice_number: 'INV-2025-005', status: 'paid', subtotal: 2200, penalties: 110, total_amount: 2090, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), work_orders: { wo_number: 'WO-1241' } }
-      ];
-
-      const mockPenalties = [
-        { id: '1', penalty_code: 'LATE-COMP', reason: 'Work order completed 2 hours past SLA', amount: 42.50, created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), disputed: false, work_orders: { wo_number: 'WO-1234' } },
-        { id: '2', penalty_code: 'MISS-PHOTO', reason: 'Missing before photos', amount: 97.50, created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), disputed: true, dispute_reason: 'Photos were uploaded but system error occurred', work_orders: { wo_number: 'WO-1236' } },
-        { id: '3', penalty_code: 'LATE-COMP', reason: 'Exceeded SLA by 4 hours', amount: 110, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), disputed: false, resolved_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(), work_orders: { wo_number: 'WO-1241' } }
-      ];
-
-      setInvoices((invoicesRes.data && invoicesRes.data.length > 0) ? invoicesRes.data : mockInvoices);
-      setPenalties((penaltiesRes.data && penaltiesRes.data.length > 0) ? penaltiesRes.data : mockPenalties);
+      setInvoices(invoicesRes.data || []);
+      setPenalties(penaltiesRes.data || []);
 
       // Generate revenue chart - last 30 days
       const last30Days = Array.from({ length: 30 }, (_, i) => {
@@ -84,8 +93,10 @@ export default function Finance() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!rbacLoading) {
+      fetchData();
+    }
+  }, [tenantId, isAdmin, rbacLoading]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

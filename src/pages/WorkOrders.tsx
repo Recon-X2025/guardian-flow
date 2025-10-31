@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useRBAC } from '@/contexts/RBACContext';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
 import { GenerateOfferDialog } from '@/components/GenerateOfferDialog';
 import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
@@ -25,6 +26,7 @@ export default function WorkOrders() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { formatCurrency } = useCurrency();
+  const { tenantId, isAdmin, loading: rbacLoading } = useRBAC();
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
@@ -42,17 +44,24 @@ export default function WorkOrders() {
   const pageSize = 20;
 
   useEffect(() => {
-    fetchWorkOrders();
-  }, [currentPage, statusFilter]);
+    if (!rbacLoading) {
+      fetchWorkOrders();
+    }
+  }, [currentPage, statusFilter, tenantId, isAdmin, rbacLoading]);
 
   const fetchWorkOrders = async () => {
+    if (rbacLoading || (!isAdmin && !tenantId)) {
+      console.log('Waiting for RBAC context...');
+      return;
+    }
+
     try {
       setLoading(true);
       
-      // Build query with status filter
+      // Build query with status filter and tenant isolation
       let countQuery = supabase
         .from('work_orders')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true }) as any;
       
       let dataQuery = supabase
         .from('work_orders')
@@ -62,7 +71,13 @@ export default function WorkOrders() {
           technician:profiles(full_name),
           sapos_offers(id, title, price, status, offer_type)
         `)
-        .order('created_at', { ascending: false});
+        .order('created_at', { ascending: false}) as any;
+
+      // Apply tenant filter for non-sys_admin users
+      if (!isAdmin && tenantId) {
+        countQuery = countQuery.eq('tenant_id', tenantId);
+        dataQuery = dataQuery.eq('tenant_id', tenantId);
+      }
 
       // Apply status filter if selected
       if (statusFilter) {
