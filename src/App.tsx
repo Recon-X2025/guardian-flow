@@ -342,14 +342,14 @@ const App = () => (
                                     <ComplianceCenter />
                                   </RoleGuard>
                                 } />
+                                <Route path="/compliance-dashboard" element={
+                                  <RoleGuard permissions={["audit.read"]} showError={true}>
+                                    <ComplianceDashboard />
+                                  </RoleGuard>
+                                } />
                                 <Route path="/system-health" element={
                                   <RoleGuard permissions={["audit.read"]} showError={true}>
                                     <SystemHealth />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/compliance" element={
-                                  <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <ComplianceDashboard />
                                   </RoleGuard>
                                 } />
                                 <Route path="/marketplace-management" element={

@@ -22,58 +22,100 @@ export class ForbiddenError extends Error {
 }
 
 /**
- * Standardized API client wrapper with proper error handling
+ * Exponential backoff retry utility
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Don't retry auth errors or forbidden errors
+      if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
+        throw error;
+      }
+      
+      // Don't retry on last attempt
+      if (attempt === maxRetries) {
+        break;
+      }
+      
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Standardized API client wrapper with retry logic and proper error handling
  */
 export async function invokeEdgeFunction<T = any>(
   functionName: string,
   options: {
     body?: any;
     headers?: Record<string, string>;
+    retries?: number;
   } = {}
 ): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { body, headers, retries = 3 } = options;
   
-  if (!session) {
-    throw new UnauthorizedError({
-      code: 'unauthorized',
-      message: 'Authentication required',
-      correlationId: crypto.randomUUID(),
-    });
-  }
-
-  const response = await supabase.functions.invoke(functionName, {
-    body: options.body,
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      ...options.headers,
-    },
-  });
-
-  if (response.error) {
-    const error = response.error as any;
-    const correlationId = error.correlationId || crypto.randomUUID();
-
-    if (error.code === 'unauthorized' || error.status === 401) {
+  return retryWithBackoff(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
       throw new UnauthorizedError({
         code: 'unauthorized',
-        message: error.message || 'Authentication failed',
-        correlationId,
+        message: 'Authentication required',
+        correlationId: crypto.randomUUID(),
       });
     }
 
-    if (error.code === 'forbidden' || error.status === 403) {
-      throw new ForbiddenError({
-        code: 'forbidden',
-        message: error.message || 'Insufficient permissions',
-        correlationId,
-        allowedActions: error.allowedActions,
-      });
+    const response = await supabase.functions.invoke(functionName, {
+      body,
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        ...headers,
+      },
+    });
+
+    if (response.error) {
+      const error = response.error as any;
+      const correlationId = error.correlationId || crypto.randomUUID();
+
+      if (error.code === 'unauthorized' || error.status === 401) {
+        throw new UnauthorizedError({
+          code: 'unauthorized',
+          message: error.message || 'Authentication failed',
+          correlationId,
+        });
+      }
+
+      if (error.code === 'forbidden' || error.status === 403) {
+        throw new ForbiddenError({
+          code: 'forbidden',
+          message: error.message || 'Insufficient permissions',
+          correlationId,
+          allowedActions: error.allowedActions,
+        });
+      }
+
+      throw new Error(error.message || 'API request failed');
     }
 
-    throw new Error(error.message || 'API request failed');
-  }
-
-  return response.data as T;
+    return response.data as T;
+  }, retries);
 }
 
 /**
