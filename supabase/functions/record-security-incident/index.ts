@@ -114,7 +114,22 @@ Deno.serve(async (req) => {
     // If critical, could trigger additional notifications here
     if (severity === 'critical') {
       console.log('CRITICAL INCIDENT ALERT:', incidentNumber);
-      // TODO: Send alerts to security team via notification service
+      // Log alert details for notification system pickup
+      await context.supabase.from('notification_queue').insert({
+        recipient_id: null, // Will be picked up by security team notification filter
+        notification_type: 'security_alert',
+        priority: 'critical',
+        title: `CRITICAL Security Incident: ${incidentNumber}`,
+        message: `Type: ${incidentType}, Severity: ${severity}. ${description}`,
+        data: {
+          incident_id: incident.id,
+          incident_number: incidentNumber,
+          severity: severity,
+          incident_type: incidentType
+        },
+        status: 'queued'
+      });
+      console.log('Critical incident alert queued for security team');
     }
 
     return new Response(

@@ -107,6 +107,30 @@ Deno.serve(async (req) => {
     const requestBody = await req.json();
     const { workOrderId, templateId } = requestBody;
 
+    // Helper to get technician name
+    async function getTechnicianName(technicianId: string): Promise<string> {
+      if (!technicianId) return 'Unassigned';
+      
+      const { data: tech } = await context.supabase
+        .from('technicians')
+        .select('first_name, last_name')
+        .eq('user_id', technicianId)
+        .single();
+      
+      if (tech) {
+        return `${tech.first_name} ${tech.last_name}`;
+      }
+      
+      // Fallback to profile
+      const { data: profile } = await context.supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', technicianId)
+        .single();
+      
+      return profile?.full_name || 'Technician';
+    }
+
     if (!workOrderId) {
       console.error(`[${correlationId}] Missing workOrderId`);
       return new Response(
@@ -198,7 +222,7 @@ Deno.serve(async (req) => {
       warranty_end: warrantyResult.warranty_end,
       parts: warrantyResult.parts_coverage || [],
       total_cost: workOrder.cost_to_customer,
-      technician_name: 'Technician Name', // TODO: get from user profile
+      technician_name: await getTechnicianName(workOrder.technician_id),
       qr_code_url: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${workOrderId}`
     };
 

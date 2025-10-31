@@ -62,8 +62,20 @@ serve(async (req) => {
       in_progress: workOrders?.filter(w => w.status === 'in_progress').length || 0,
       pending_parts: workOrders?.filter(w => w.status === 'pending_parts').length || 0,
       pending_validation: workOrders?.filter(w => w.status === 'pending_validation').length || 0,
-      sla_breached: 0, // Will calculate if we have SLA data
-      avg_age_hours: 48 // Placeholder
+      sla_breached: workOrders?.filter(w => {
+        // Calculate if work order is past SLA based on created_at + expected SLA time
+        const created = new Date(w.created_at);
+        const now = new Date();
+        const hoursSinceCreated = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
+        return hoursSinceCreated > 48 && w.status !== 'completed'; // 48 hour SLA
+      }).length || 0,
+      avg_age_hours: Math.floor(
+        (workOrders?.reduce((sum, w) => {
+          const created = new Date(w.created_at);
+          const now = new Date();
+          return sum + ((now.getTime() - created.getTime()) / (1000 * 60 * 60));
+        }, 0) || 0) / (workOrders?.length || 1)
+      )
     };
 
     console.log('[OPCV Summary] Stages calculated:', stages);
