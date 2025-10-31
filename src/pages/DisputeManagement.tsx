@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { FileText, MessageSquare, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 

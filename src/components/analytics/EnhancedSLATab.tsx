@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Clock, CheckCircle, XCircle, AlertTriangle, TrendingUp, TrendingDown, Activity, Target } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 
 interface SLAMetrics {
   compliance: number;
