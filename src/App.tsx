@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { ThemeProvider } from "next-themes";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RBACProvider } from "@/contexts/RBACContext";
@@ -90,9 +91,10 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Toaster />
-        <Sonner />
-        <AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Toaster />
+          <Sonner />
+          <AuthProvider>
           <RBACProvider>
             <Routes>
               <Route path="/" element={<Landing />} />
@@ -407,6 +409,7 @@ const App = () => (
             </Routes>
           </RBACProvider>
         </AuthProvider>
+      </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </ErrorBoundary>
