@@ -20,7 +20,7 @@ import PendingValidation from "./pages/PendingValidation";
 import Inventory from "./pages/Inventory";
 import Warranty from "./pages/Warranty";
 import Penalties from "./pages/Penalties";
-import SaPOS from "./pages/SaPOS";
+import OfferAI from "./pages/OfferAI";
 import ServiceOrders from "./pages/ServiceOrders";
 import FraudInvestigation from "./pages/FraudInvestigation";
 import ForgeryDetection from "./pages/ForgeryDetection";
@@ -179,7 +179,7 @@ const App = () => (
                                 } />
                                 <Route path="/sapos" element={
                                   <RoleGuard permissions={["sapos.view"]} showError={true}>
-                                    <SaPOS />
+                                    <OfferAI />
                                   </RoleGuard>
                                 } />
                                 <Route path="/service-orders" element={

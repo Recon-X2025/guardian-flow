@@ -7,12 +7,15 @@ import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle } from '
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
+import { InvoiceDetailDialog } from '@/components/InvoiceDetailDialog';
 
 export default function Invoicing() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchInvoices();
@@ -126,6 +129,35 @@ export default function Invoicing() {
   const totalPending = invoices.filter(inv => ['draft', 'sent'].includes(inv.status)).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
   const totalOverdue = invoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + Number(inv.total_amount), 0);
 
+  const handleDownload = (invoice: any) => {
+    const invoiceData = `
+Invoice: ${invoice.invoice_number}
+Date: ${new Date(invoice.created_at).toLocaleDateString()}
+Customer: ${invoice.work_order?.ticket?.customer_name || 'N/A'}
+Unit: ${invoice.work_order?.ticket?.unit_serial || 'N/A'}
+
+Subtotal: ${formatCurrency(Number(invoice.subtotal))}
+Penalties: -${formatCurrency(Number(invoice.penalties || 0))}
+---
+Total: ${formatCurrency(Number(invoice.total_amount))}
+    `.trim();
+
+    const blob = new Blob([invoiceData], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${invoice.invoice_number || 'invoice'}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    toast({
+      title: "Invoice Downloaded",
+      description: `${invoice.invoice_number} has been downloaded.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -234,11 +266,26 @@ export default function Invoicing() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(invoice);
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-1" />
                       Download
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedInvoice(invoice);
+                        setInvoiceDialogOpen(true);
+                      }}
+                    >
                       View Details
                     </Button>
                   </div>
@@ -263,6 +310,12 @@ export default function Invoicing() {
           </div>
         </CardContent>
       </Card>
+
+      <InvoiceDetailDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        invoice={selectedInvoice}
+      />
     </div>
   );
 }

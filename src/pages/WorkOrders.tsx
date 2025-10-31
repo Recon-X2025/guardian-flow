@@ -7,7 +7,7 @@ import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileTe
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
-import { GenerateSaPOSDialog } from '@/components/GenerateSaPOSDialog';
+import { GenerateOfferDialog } from '@/components/GenerateOfferDialog';
 import { KBArticleSuggestions } from '@/components/KBArticleSuggestions';
 import { EditWorkOrderDialog } from '@/components/EditWorkOrderDialog';
 import { CreateDemoDataButton } from '@/components/CreateDemoDataButton';
@@ -88,7 +88,7 @@ export default function WorkOrders() {
       console.log(`Page ${currentPage}: Fetched ${data?.length} of ${count} total`);
       setWorkOrders(data || []);
 
-      // Auto-generate SaPOS offers for released/in_progress WOs lacking offers (max 3 per load)
+      // Auto-generate Offer AI offers for released/in_progress WOs lacking offers (max 3 per load)
       try {
         const targets = (data || [])
           .filter((wo: any) => (wo.status === 'released' || wo.status === 'in_progress') && (!wo.sapos_offers || wo.sapos_offers.length === 0))
@@ -96,18 +96,18 @@ export default function WorkOrders() {
         targets.forEach(async (wo: any) => {
           const customerId = wo.ticket?.customer_id;
           try {
-            console.log('Auto-generating SaPOS for WO:', wo.id);
-            await supabase.functions.invoke('generate-sapos-offers', {
+            console.log('Auto-generating Offer AI for WO:', wo.id);
+            await supabase.functions.invoke('generate-offers', {
               body: { workOrderId: wo.id, customerId }
             });
             // Refresh this WO row to show offers soon after
             fetchWorkOrders();
           } catch (e) {
-            console.error('Auto SaPOS generation failed for WO', wo.id, e);
+            console.error('Auto Offer AI generation failed for WO', wo.id, e);
           }
         });
       } catch (e) {
-        console.error('Auto SaPOS batch error', e);
+        console.error('Auto Offer AI batch error', e);
       }
     } catch (error: any) {
       toast({
@@ -419,7 +419,7 @@ export default function WorkOrders() {
                         if (wo.status === 'draft' || wo.status === 'pending_validation') {
                           toast({
                             title: 'Work order not ready',
-                            description: 'Please release the work order first before generating SaPOS offers',
+                            description: 'Please release the work order first before generating offers',
                             variant: 'destructive',
                           });
                           return;
@@ -432,7 +432,7 @@ export default function WorkOrders() {
                       }}
                     >
                       <Sparkles className="h-4 w-4 mr-1" />
-                      SaPOS
+                      Offer AI
                     </Button>
                     <Button 
                       variant="outline" 
@@ -551,7 +551,7 @@ export default function WorkOrders() {
 
       {selectedWO && (
         <>
-          <GenerateSaPOSDialog
+          <GenerateOfferDialog
             open={saposDialogOpen}
             onOpenChange={setSaposDialogOpen}
             workOrderId={selectedWO}

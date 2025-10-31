@@ -6,12 +6,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Loader2, DollarSign, TrendingDown, Receipt, AlertTriangle, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { InvoiceDetailDialog } from "@/components/InvoiceDetailDialog";
 
 export default function Finance() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [penalties, setPenalties] = useState<any[]>([]);
   const [revenueChart, setRevenueChart] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
 
@@ -207,7 +210,11 @@ export default function Finance() {
             {invoices.map((invoice) => (
               <div
                 key={invoice.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setSelectedInvoice(invoice);
+                  setInvoiceDialogOpen(true);
+                }}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -297,6 +304,12 @@ export default function Finance() {
           <p>• Dispute flow available for penalty challenges (requires MFA)</p>
         </CardContent>
       </Card>
+
+      <InvoiceDetailDialog
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        invoice={selectedInvoice}
+      />
     </div>
   );
 }

@@ -90,7 +90,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "AI & Automation",
     items: [
-      { title: "SaPOS AI", url: "/sapos", icon: Sparkles, permissions: ["sapos.view"] },
+      { title: "Offer AI", url: "/sapos", icon: Sparkles, permissions: ["sapos.view"] },
       { title: "Knowledge Base", url: "/knowledge-base", icon: BookOpen, permissions: ["admin.config"] },
       { title: "RAG Engine", url: "/rag", icon: Brain, permissions: ["admin.config"] },
       { title: "Assistant", url: "/assistant", icon: MessageSquare, permissions: ["admin.config"] },

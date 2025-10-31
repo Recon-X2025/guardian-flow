@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, ShoppingCart, TrendingUp } from "lucide-react";
 
-export default function SaPOS() {
+export default function OfferAI() {
   const [offers, setOffers] = useState<any[]>([]);
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [selectedWO, setSelectedWO] = useState<string>('');
@@ -63,7 +63,7 @@ export default function SaPOS() {
   const generateOffers = async (workOrderId: string) => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-sapos-offers', {
+      const { data, error } = await supabase.functions.invoke('generate-offers', {
         body: { workOrderId, customerId: 'demo-customer' }
       });
 
@@ -129,7 +129,7 @@ export default function SaPOS() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">SaPOS - Sales at Point of Service</h1>
+          <h1 className="text-3xl font-bold text-foreground">Offer AI - Sales at Point of Service</h1>
           <p className="text-muted-foreground">
             AI-powered contextual sales offers during service events
           </p>
