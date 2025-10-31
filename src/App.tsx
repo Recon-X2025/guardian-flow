@@ -66,6 +66,9 @@ import ABTestManager from "./pages/ABTestManager";
 import SystemHealth from "./pages/SystemHealth";
 import ComplianceDashboard from "./pages/ComplianceDashboard";
 import ComplianceCenter from "./pages/ComplianceCenter";
+import MarketplaceManagement from "./pages/MarketplaceManagement";
+import DeveloperPortal from "./pages/DeveloperPortal";
+import IndustryWorkflows from "./pages/IndustryWorkflows";
 
 const queryClient = new QueryClient();
 
@@ -341,6 +344,21 @@ const App = () => (
                                 <Route path="/compliance" element={
                                   <RoleGuard permissions={["audit.read"]} showError={true}>
                                     <ComplianceDashboard />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/marketplace-management" element={
+                                  <RoleGuard roles={["sys_admin"]} showError={true}>
+                                    <MarketplaceManagement />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/developer-portal" element={
+                                  <RoleGuard roles={["sys_admin", "tenant_admin", "partner_admin"]} showError={true}>
+                                    <DeveloperPortal />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/industry-workflows" element={
+                                  <RoleGuard roles={["sys_admin", "tenant_admin", "ops_manager"]} showError={true}>
+                                    <IndustryWorkflows />
                                   </RoleGuard>
                                 } />
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -30,6 +30,8 @@ import {
   Heart,
   Store,
   BarChart3,
+  Workflow,
+  Code2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -116,7 +118,10 @@ const menuGroups: MenuGroup[] = [
     label: "Developer",
     items: [
       { title: "Developer Console", url: "/developer-console", icon: Brain, permissions: ["admin.config"] },
+      { title: "Developer Portal", url: "/developer-portal", icon: Code2, roles: ["sys_admin", "tenant_admin", "partner_admin"] },
+      { title: "Industry Workflows", url: "/industry-workflows", icon: Workflow, roles: ["sys_admin", "tenant_admin", "ops_manager"] },
       { title: "Marketplace", url: "/marketplace", icon: Store, permissions: ["admin.config"] },
+      { title: "Marketplace Management", url: "/marketplace-management", icon: Package, roles: ["sys_admin"] },
       { title: "Platform Metrics", url: "/platform-metrics", icon: BarChart3, roles: ["sys_admin"] },
       { title: "Analytics Integrations", url: "/analytics-integrations", icon: BarChart3, permissions: ["admin.config"] },
     ],
