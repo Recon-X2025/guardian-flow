@@ -1,16 +1,14 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeProvider } from "next-themes";
-import { AppSidebar } from "@/components/AppSidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RBACProvider } from "@/contexts/RBACContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleGuard } from "@/components/RoleGuard";
-import { UserMenu } from "@/components/UserMenu";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AccessDenied } from "@/components/AccessDenied";
+import { AppLayout } from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Tickets from "./pages/Tickets";
@@ -92,323 +90,471 @@ const App = () => (
       <BrowserRouter>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
-          <RBACProvider>
-            
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/pricing-calculator" element={<PricingCalculator />} />
-              <Route path="/modules/field-service" element={<FieldServiceModule />} />
-              <Route path="/modules/asset-lifecycle" element={<AssetLifecycleModule />} />
-              <Route path="/modules/ai-forecasting" element={<AIForecastingModule />} />
-              <Route path="/modules/fraud-compliance" element={<FraudComplianceModule />} />
-              <Route path="/modules/marketplace" element={<MarketplaceModule />} />
-              <Route path="/modules/analytics-bi" element={<AnalyticsBIModule />} />
-              <Route path="/modules/customer-portal" element={<CustomerPortalModule />} />
-              <Route path="/modules/video-training" element={<VideoTrainingModule />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/developer" element={<DeveloperLanding />} />
-              <Route
-                path="*"
-                element={
+            <RBACProvider>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/pricing-calculator" element={<PricingCalculator />} />
+                <Route path="/modules/field-service" element={<FieldServiceModule />} />
+                <Route path="/modules/asset-lifecycle" element={<AssetLifecycleModule />} />
+                <Route path="/modules/ai-forecasting" element={<AIForecastingModule />} />
+                <Route path="/modules/fraud-compliance" element={<FraudComplianceModule />} />
+                <Route path="/modules/marketplace" element={<MarketplaceModule />} />
+                <Route path="/modules/analytics-bi" element={<AnalyticsBIModule />} />
+                <Route path="/modules/customer-portal" element={<CustomerPortalModule />} />
+                <Route path="/modules/video-training" element={<VideoTrainingModule />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/developer" element={<DeveloperLanding />} />
+
+                {/* Protected Routes */}
+                <Route path="/dashboard" element={
                   <ProtectedRoute>
-                    <TooltipProvider>
-                      <SidebarProvider>
-                        <div className="min-h-screen flex w-full">
-                          <AppSidebar />
-                          <div className="flex-1 flex flex-col">
-                            <header className="h-12 sm:h-14 border-b border-border bg-card flex items-center justify-between px-3 sm:px-4 sticky top-0 z-10">
-                              <div className="flex items-center gap-2 sm:gap-4">
-                                <SidebarTrigger />
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                  <span className="text-xs sm:text-sm font-semibold">Guardian Flow</span>
-                                  <span className="text-xs text-muted-foreground hidden md:inline">
-                                    Enterprise Field Service Platform
-                                  </span>
-                                </div>
-                              </div>
-                              <UserMenu />
-                            </header>
-                            <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
-                              <Routes>
-                                <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/tickets" element={
-                                  <RoleGuard permissions={["ticket.read"]} showError={true}>
-                                    <Tickets />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/work-orders" element={
-                                  <RoleGuard permissions={["wo.read"]} showError={true}>
-                                    <WorkOrders />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/pending-validation" element={
-                                  <RoleGuard permissions={["wo.read"]} showError={true}>
-                                    <PendingValidation />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/inventory" element={
-                                  <RoleGuard permissions={["inventory.view"]} showError={true}>
-                                    <Inventory />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/photo-capture" element={
-                                  <RoleGuard permissions={["attachment.upload"]} showError={true}>
-                                    <PhotoCapturePage />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/scheduler" element={
-                                  <RoleGuard permissions={["wo.assign"]} showError={true}>
-                                    <Scheduler />
-                                  </RoleGuard>
-                                 } />
-                                 <Route path="/dispatch" element={
-                                   <RoleGuard permissions={["wo.assign"]} showError={true}>
-                                     <Dispatch />
-                                   </RoleGuard>
-                                 } />
-                                 <Route path="/route-optimization" element={
-                                   <RoleGuard permissions={["wo.assign"]} showError={true}>
-                                     <RouteOptimization />
-                                   </RoleGuard>
-                                 } />
-                                 <Route path="/procurement" element={
-                                  <RoleGuard permissions={["inventory.procure"]} showError={true}>
-                                    <Procurement />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/warranty" element={
-                                  <RoleGuard permissions={["warranty.view"]} showError={true}>
-                                    <Warranty />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/quotes" element={
-                                  <RoleGuard permissions={["quote.view"]} showError={true}>
-                                    <Quotes />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/invoicing" element={
-                                  <RoleGuard permissions={["invoice.view"]} showError={true}>
-                                    <Invoicing />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/payments" element={
-                                  <RoleGuard permissions={["invoice.pay"]} showError={true}>
-                                    <Payments />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/finance" element={
-                                  <RoleGuard permissions={["finance.view"]} showError={true}>
-                                    <Finance />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/penalties" element={
-                                  <RoleGuard permissions={["penalty.calculate"]} showError={true}>
-                                    <Penalties />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/sapos" element={
-                                  <RoleGuard permissions={["sapos.view"]} showError={true}>
-                                    <OfferAI />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/service-orders" element={
-                                  <RoleGuard permissions={["so.view"]} showError={true}>
-                                    <ServiceOrders />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/fraud" element={
-                                  <RoleGuard permissions={["fraud.view"]} showError={true}>
-                                    <FraudInvestigation />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/forgery-detection" element={
-                                  <RoleGuard permissions={["fraud.view"]} showError={true}>
-                                    <ForgeryDetection />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/customers" element={
-                                  <RoleGuard permissions={["customers.view"]} showError={true}>
-                                    <Customers />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/technicians" element={
-                                  <RoleGuard permissions={["technicians.view"]} showError={true}>
-                                    <Technicians />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/equipment" element={
-                                  <RoleGuard permissions={["equipment.view"]} showError={true}>
-                                    <Equipment />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/contracts" element={
-                                  <RoleGuard permissions={["contracts.view"]} showError={true}>
-                                    <Contracts />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/customer-portal" element={
-                                  <RoleGuard permissions={["portal.access"]} showError={true}>
-                                    <CustomerPortal />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/predictive-maintenance" element={
-                                  <RoleGuard permissions={["maintenance.view"]} showError={true}>
-                                    <PredictiveMaintenance />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/partner-portal" element={
-                                  <RoleGuard permissions={["partners.view"]} showError={true}>
-                                    <PartnerPortal />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/documents" element={
-                                  <RoleGuard permissions={["documents.view"]} showError={true}>
-                                    <Documents />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/templates" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <Templates />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/webhooks" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <Webhooks />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/knowledge-base" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <KnowledgeBase />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/rag" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <RAGEngine />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/assistant" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <Assistant />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/models" element={
-                                  <RoleGuard permissions={["mlops.view"]} showError={true}>
-                                    <ModelOrchestration />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/prompts" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <Prompts />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/analytics" element={
-                                  <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <Analytics />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/forecast" element={
-                                  <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <ForecastCenter />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/anomaly" element={
-                                  <RoleGuard permissions={["fraud.view"]} showError={true}>
-                                    <AnomalyDetection />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/observability" element={
-                                  <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <Observability />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/agent-dashboard" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <AgentDashboard />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/product-specs" element={<ProductSpecs />} />
-                                <Route path="/developer-console" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <DeveloperConsole />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/platform-metrics" element={
-                                  <RoleGuard roles={["sys_admin"]} showError={true}>
-                                    <PlatformMetrics />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/analytics-integrations" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <AnalyticsIntegrations />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/help" element={<HelpTraining />} />
-                                <Route path="/settings" element={<Settings />} />
-                                <Route path="/access-denied" element={<AccessDenied />} />
-                                <Route path="/marketplace" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <Marketplace />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/disputes" element={
-                                  <RoleGuard permissions={["finance.view"]} showError={true}>
-                                    <DisputeManagement />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/ab-tests" element={
-                                  <RoleGuard permissions={["mlops.view"]} showError={true}>
-                                    <ABTestManager />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/compliance" element={
-                                  <RoleGuard permissions={["admin.config"]} showError={true}>
-                                    <ComplianceCenter />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/compliance-dashboard" element={
-                                  <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <ComplianceDashboard />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/system-health" element={
-                                  <RoleGuard permissions={["audit.read"]} showError={true}>
-                                    <SystemHealth />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/marketplace-management" element={
-                                  <RoleGuard roles={["sys_admin"]} showError={true}>
-                                    <MarketplaceManagement />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/developer-portal" element={
-                                  <RoleGuard roles={["sys_admin", "tenant_admin", "partner_admin"]} showError={true}>
-                                    <DeveloperPortal />
-                                  </RoleGuard>
-                                } />
-                                <Route path="/industry-workflows" element={
-                                  <RoleGuard roles={["sys_admin", "tenant_admin", "ops_manager"]} showError={true}>
-                                    <IndustryWorkflows />
-                                  </RoleGuard>
-                                } />
-                                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                                <Route path="*" element={<NotFound />} />
-                              </Routes>
-                            </main>
-                          </div>
-                        </div>
-                      </SidebarProvider>
-                    </TooltipProvider>
+                    <AppLayout><Dashboard /></AppLayout>
                   </ProtectedRoute>
-                }
-              />
-            </Routes>
-            <Toaster richColors position="top-right" />
-          </RBACProvider>
-        </AuthProvider>
-      </ThemeProvider>
+                } />
+                
+                <Route path="/tickets" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["ticket.read"]} showError={true}>
+                      <AppLayout><Tickets /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/work-orders" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.read"]} showError={true}>
+                      <AppLayout><WorkOrders /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/pending-validation" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.read"]} showError={true}>
+                      <AppLayout><PendingValidation /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/inventory" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["inventory.view"]} showError={true}>
+                      <AppLayout><Inventory /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/photo-capture" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["attachment.upload"]} showError={true}>
+                      <AppLayout><PhotoCapturePage /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/scheduler" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                      <AppLayout><Scheduler /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dispatch" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                      <AppLayout><Dispatch /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/route-optimization" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                      <AppLayout><RouteOptimization /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/procurement" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["inventory.procure"]} showError={true}>
+                      <AppLayout><Procurement /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/warranty" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["warranty.view"]} showError={true}>
+                      <AppLayout><Warranty /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/quotes" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["quote.view"]} showError={true}>
+                      <AppLayout><Quotes /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/invoicing" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["invoice.view"]} showError={true}>
+                      <AppLayout><Invoicing /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/payments" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["invoice.pay"]} showError={true}>
+                      <AppLayout><Payments /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/finance" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["finance.view"]} showError={true}>
+                      <AppLayout><Finance /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/penalties" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["penalty.calculate"]} showError={true}>
+                      <AppLayout><Penalties /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/sapos" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["sapos.view"]} showError={true}>
+                      <AppLayout><OfferAI /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/service-orders" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["so.view"]} showError={true}>
+                      <AppLayout><ServiceOrders /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/fraud" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["fraud.view"]} showError={true}>
+                      <AppLayout><FraudInvestigation /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/forgery-detection" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["fraud.view"]} showError={true}>
+                      <AppLayout><ForgeryDetection /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/customers" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["customers.view"]} showError={true}>
+                      <AppLayout><Customers /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/technicians" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["technicians.view"]} showError={true}>
+                      <AppLayout><Technicians /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/equipment" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["equipment.view"]} showError={true}>
+                      <AppLayout><Equipment /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/contracts" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["contracts.view"]} showError={true}>
+                      <AppLayout><Contracts /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/customer-portal" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["portal.access"]} showError={true}>
+                      <AppLayout><CustomerPortal /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/predictive-maintenance" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["maintenance.view"]} showError={true}>
+                      <AppLayout><PredictiveMaintenance /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/partner-portal" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["partners.view"]} showError={true}>
+                      <AppLayout><PartnerPortal /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/documents" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["documents.view"]} showError={true}>
+                      <AppLayout><Documents /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/templates" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><Templates /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/webhooks" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><Webhooks /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/knowledge-base" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><KnowledgeBase /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/rag" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><RAGEngine /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/assistant" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><Assistant /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/models" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["mlops.view"]} showError={true}>
+                      <AppLayout><ModelOrchestration /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/prompts" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><Prompts /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AppLayout><Analytics /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/forecast" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AppLayout><ForecastCenter /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/anomaly" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["fraud.view"]} showError={true}>
+                      <AppLayout><AnomalyDetection /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/observability" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AppLayout><Observability /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/agent-dashboard" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><AgentDashboard /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/product-specs" element={
+                  <ProtectedRoute>
+                    <AppLayout><ProductSpecs /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/developer-console" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><DeveloperConsole /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/platform-metrics" element={
+                  <ProtectedRoute>
+                    <RoleGuard roles={["sys_admin"]} showError={true}>
+                      <AppLayout><PlatformMetrics /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/analytics-integrations" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><AnalyticsIntegrations /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/help" element={
+                  <ProtectedRoute>
+                    <AppLayout><HelpTraining /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <AppLayout><Settings /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/access-denied" element={
+                  <ProtectedRoute>
+                    <AppLayout><AccessDenied /></AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/marketplace" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><Marketplace /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/disputes" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["finance.view"]} showError={true}>
+                      <AppLayout><DisputeManagement /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/ab-tests" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["mlops.view"]} showError={true}>
+                      <AppLayout><ABTestManager /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/compliance" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><ComplianceCenter /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/compliance-dashboard" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AppLayout><ComplianceDashboard /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/system-health" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AppLayout><SystemHealth /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/marketplace-management" element={
+                  <ProtectedRoute>
+                    <RoleGuard roles={["sys_admin"]} showError={true}>
+                      <AppLayout><MarketplaceManagement /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/developer-portal" element={
+                  <ProtectedRoute>
+                    <RoleGuard roles={["sys_admin", "tenant_admin", "partner_admin"]} showError={true}>
+                      <AppLayout><DeveloperPortal /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/industry-workflows" element={
+                  <ProtectedRoute>
+                    <RoleGuard roles={["sys_admin", "tenant_admin", "ops_manager"]} showError={true}>
+                      <AppLayout><IndustryWorkflows /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                {/* Catch-all for 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster richColors position="top-right" />
+            </RBACProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </ErrorBoundary>
