@@ -23,6 +23,7 @@ import Penalties from "./pages/Penalties";
 import SaPOS from "./pages/SaPOS";
 import ServiceOrders from "./pages/ServiceOrders";
 import FraudInvestigation from "./pages/FraudInvestigation";
+import ForgeryDetection from "./pages/ForgeryDetection";
 import Finance from "./pages/Finance";
 import PhotoCapturePage from "./pages/PhotoCapturePage";
 import Quotes from "./pages/Quotes";

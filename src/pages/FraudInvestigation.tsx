@@ -43,6 +43,13 @@ export default function FraudInvestigation() {
 
   useEffect(() => {
     fetchAlerts();
+    
+    // Check for detection ID in URL params to show specific detection
+    const params = new URLSearchParams(window.location.search);
+    const detectionId = params.get('detection');
+    if (detectionId) {
+      loadDetectionDetails(detectionId);
+    }
   }, []);
 
   const getSeverityColor = (severity: string) => {
