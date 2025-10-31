@@ -74,6 +74,12 @@ import Landing from "./pages/Landing";
 import PricingCalculator from "./pages/PricingCalculator";
 import FieldServiceModule from "./pages/modules/FieldServiceModule";
 import AssetLifecycleModule from "./pages/modules/AssetLifecycleModule";
+import AIForecastingModule from "./pages/modules/AIForecastingModule";
+import FraudComplianceModule from "./pages/modules/FraudComplianceModule";
+import MarketplaceModule from "./pages/modules/MarketplaceModule";
+import AnalyticsBIModule from "./pages/modules/AnalyticsBIModule";
+import CustomerPortalModule from "./pages/modules/CustomerPortalModule";
+import VideoTrainingModule from "./pages/modules/VideoTrainingModule";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -93,6 +99,12 @@ const App = () => (
               <Route path="/pricing-calculator" element={<PricingCalculator />} />
               <Route path="/modules/field-service" element={<FieldServiceModule />} />
               <Route path="/modules/asset-lifecycle" element={<AssetLifecycleModule />} />
+              <Route path="/modules/ai-forecasting" element={<AIForecastingModule />} />
+              <Route path="/modules/fraud-compliance" element={<FraudComplianceModule />} />
+              <Route path="/modules/marketplace" element={<MarketplaceModule />} />
+              <Route path="/modules/analytics-bi" element={<AnalyticsBIModule />} />
+              <Route path="/modules/customer-portal" element={<CustomerPortalModule />} />
+              <Route path="/modules/video-training" element={<VideoTrainingModule />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
