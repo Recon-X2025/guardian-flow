@@ -1,232 +1,217 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-tenant-id',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
 };
 
-interface GatewayRequestBody {
-  service?: 'ops' | 'fraud' | 'finance' | 'forecast';
-  action?: string;
-  data?: any;
-}
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
-  const correlationId = crypto.randomUUID();
+  const apiKey = req.headers.get('x-api-key');
+
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'API key required' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const INTERNAL_API_SECRET = Deno.env.get('INTERNAL_API_SECRET')!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
-    // Extract API key and tenant ID from headers
-    const apiKey = req.headers.get('x-api-key');
-    const tenantId = req.headers.get('x-tenant-id');
-    const method = req.method;
+    // Verify API key and get partner info
+    const apiKeyHash = await hashApiKey(apiKey);
+    const { data: keyData, error: keyError } = await supabase
+      .from('partner_api_keys' as any)
+      .select('*, partners(*)')
+      .eq('api_key_hash', apiKeyHash)
+      .eq('revoked', false)
+      .single();
 
-    // Parse request body (support GET with query params)
-    let bodyText = '';
-    let bodyJson: GatewayRequestBody = {};
-
-    if (method !== 'GET') {
-      bodyText = await req.text();
-      if (bodyText) {
-        try { bodyJson = JSON.parse(bodyText); } catch { /* ignore parse errors */ }
-      }
-    } else {
-      const url = new URL(req.url);
-      const service = url.searchParams.get('service') as GatewayRequestBody['service'];
-      const action = url.searchParams.get('action') ?? undefined;
-      bodyJson = { service, action, data: {} };
-    }
-
-    // Validate basic inputs
-    if (!bodyJson.service) {
-      return jsonError(400, 'Missing service. Expected one of: ops, fraud, finance, forecast', correlationId);
-    }
-
-    // Validate API key
-    const validation = await validateApiKey(supabase, apiKey, tenantId);
-    if (!validation.valid) {
-      await logUsage(supabase, {
-        tenant_id: tenantId || null,
-        api_key_id: null,
-        endpoint: `/api/agent/${bodyJson.service}`,
-        method,
-        status_code: 401,
-        response_time: Date.now() - startTime,
-        error_message: validation.error,
-        correlation_id: correlationId,
-        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
-        user_agent: req.headers.get('user-agent'),
+    if (keyError || !keyData) {
+      return new Response(JSON.stringify({ error: 'Invalid API key' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
-      return jsonError(401, validation.error || 'Unauthorized', correlationId);
     }
 
     // Check rate limits
-    const rateLimitCheck = await checkRateLimit(
-      supabase,
-      validation.tenant_id!,
-      validation.api_key_id!,
-      validation.rate_limit!
-    );
+    const now = new Date();
+    const minuteAgo = new Date(now.getTime() - 60000);
+    
+    const { count: recentRequests } = await supabase
+      .from('api_usage_metrics' as any)
+      .select('*', { count: 'exact', head: true })
+      .eq('partner_id', keyData.partner_id)
+      .gte('recorded_at', minuteAgo.toISOString());
 
-    if (!rateLimitCheck.allowed) {
-      await logUsage(supabase, {
-        tenant_id: validation.tenant_id!,
-        api_key_id: validation.api_key_id!,
-        endpoint: `/api/agent/${bodyJson.service}`,
-        method,
-        status_code: 429,
-        response_time: Date.now() - startTime,
-        error_message: 'Rate limit exceeded',
-        correlation_id: correlationId,
-        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
-        user_agent: req.headers.get('user-agent'),
-      });
-
-      await supabase.from('api_overage_logs').insert({
-        tenant_id: validation.tenant_id,
-        api_key_id: validation.api_key_id,
-        daily_limit: validation.rate_limit,
-        actual_usage: rateLimitCheck.current_usage,
-        overage_count: rateLimitCheck.current_usage - validation.rate_limit!,
-      });
-
-      return jsonError(429, `Rate limit exceeded. Daily limit: ${validation.rate_limit}`, correlationId, {
-        current_usage: rateLimitCheck.current_usage,
+    if ((recentRequests || 0) >= keyData.rate_limit_per_minute) {
+      return new Response(JSON.stringify({ 
+        error: 'Rate limit exceeded',
+        limit: keyData.rate_limit_per_minute,
+        resetAt: new Date(now.getTime() + 60000).toISOString()
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Update last_used_at for API key
-    await supabase
-      .from('tenant_api_keys')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('id', validation.api_key_id);
+    // Check monthly quota
+    if (keyData.monthly_quota && keyData.usage_this_month >= keyData.monthly_quota) {
+      return new Response(JSON.stringify({ 
+        error: 'Monthly quota exceeded',
+        quota: keyData.monthly_quota,
+        used: keyData.usage_this_month
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    // Forward request to the correct internal function
-    const targetUrl = `${supabaseUrl}/functions/v1/agent-${bodyJson.service}-api`;
-    const forwardBody = method === 'GET' ? undefined : JSON.stringify({
-      action: bodyJson.action,
-      data: bodyJson.data,
-    });
+    // Parse request path and method
+    const url = new URL(req.url);
+    const path = url.pathname.replace('/api-gateway', '');
+    const method = req.method;
 
-    const response = await fetch(targetUrl, {
-      method: 'POST', // normalize to POST internally
-      headers: {
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        'x-tenant-id': validation.tenant_id!,
-        'x-correlation-id': correlationId,
-        'x-internal-secret': INTERNAL_API_SECRET,
-      },
-      body: forwardBody,
-    });
+    // Route to appropriate handler based on path
+    let response;
+    if (path.startsWith('/work-orders')) {
+      response = await handleWorkOrders(supabase, keyData, method, path, req);
+    } else if (path.startsWith('/customers')) {
+      response = await handleCustomers(supabase, keyData, method, path, req);
+    } else if (path.startsWith('/invoices')) {
+      response = await handleInvoices(supabase, keyData, method, path, req);
+    } else {
+      response = { error: 'Endpoint not found' };
+    }
 
-    const text = await response.text();
     const responseTime = Date.now() - startTime;
 
-    await logUsage(supabase, {
-      tenant_id: validation.tenant_id!,
-      api_key_id: validation.api_key_id!,
-      endpoint: `/api/agent/${bodyJson.service}`,
-      method,
-      request_size: forwardBody?.length || 0,
-      status_code: response.status,
-      response_time: responseTime,
-      correlation_id: correlationId,
-      ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
-      user_agent: req.headers.get('user-agent'),
+    // Log API usage
+    await supabase.from('api_usage_metrics' as any).insert({
+      tenant_id: keyData.partners.organization_id,
+      partner_id: keyData.partner_id,
+      api_endpoint: path,
+      http_method: method,
+      request_count: 1,
+      response_time_ms: responseTime,
+      status_code: 200,
+      billing_tier: keyData.billing_tier,
+      cost_incurred: calculateCost(keyData.billing_tier, path)
     });
 
-    return new Response(text, {
-      status: response.status,
-      headers: {
-        ...corsHeaders,
+    // Update usage counter
+    await supabase
+      .from('partner_api_keys' as any)
+      .update({ 
+        usage_this_month: keyData.usage_this_month + 1,
+        last_used_at: now.toISOString()
+      })
+      .eq('id', keyData.id);
+
+    return new Response(JSON.stringify(response), {
+      headers: { 
+        ...corsHeaders, 
         'Content-Type': 'application/json',
         'X-Response-Time': `${responseTime}ms`,
-        'X-Correlation-ID': correlationId,
-      },
+        'X-Rate-Limit-Remaining': String(keyData.rate_limit_per_minute - (recentRequests || 0))
+      }
     });
 
   } catch (error: any) {
     console.error('API Gateway error:', error);
-    return jsonError(500, error.message || 'Internal Server Error', correlationId);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
 
-function jsonError(status: number, message: string, correlationId: string, extra: any = {}) {
-  return new Response(JSON.stringify({ error: message, correlation_id: correlationId, ...extra }), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+async function hashApiKey(apiKey: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(apiKey);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-interface ApiKeyValidation {
-  valid: boolean;
-  tenant_id?: string;
-  api_key_id?: string;
-  rate_limit?: number;
-  error?: string;
-}
-
-async function validateApiKey(
-  supabase: any,
-  apiKey: string | null,
-  tenantId: string | null
-): Promise<ApiKeyValidation> {
-  if (!apiKey || !tenantId) {
-    return { valid: false, error: 'Missing API key or tenant ID' };
+async function handleWorkOrders(supabase: any, keyData: any, method: string, path: string, req: Request) {
+  const scopes = keyData.scopes || [];
+  
+  if (method === 'GET' && !scopes.includes('read:orders')) {
+    return { error: 'Insufficient permissions' };
+  }
+  if ((method === 'POST' || method === 'PUT') && !scopes.includes('write:orders')) {
+    return { error: 'Insufficient permissions' };
   }
 
-  const { data: keyData, error } = await supabase
-    .from('tenant_api_keys')
-    .select('id, tenant_id, expiry_date, status, rate_limit')
-    .eq('api_key', apiKey)
-    .eq('tenant_id', tenantId)
-    .single();
-
-  if (error || !keyData) return { valid: false, error: 'Invalid API key' };
-  if (keyData.status !== 'active') return { valid: false, error: 'API key is not active' };
-  if (new Date(keyData.expiry_date) < new Date()) {
-    await supabase.from('tenant_api_keys').update({ status: 'expired' }).eq('id', keyData.id);
-    return { valid: false, error: 'API key has expired' };
+  if (method === 'GET') {
+    const { data, error } = await supabase
+      .from('work_orders')
+      .select('*')
+      .eq('organization_id', keyData.partners.organization_id)
+      .limit(100);
+    
+    return error ? { error: error.message } : { data };
   }
 
-  return { valid: true, tenant_id: keyData.tenant_id, api_key_id: keyData.id, rate_limit: keyData.rate_limit };
+  return { error: 'Method not implemented' };
 }
 
-async function checkRateLimit(
-  supabase: any,
-  tenantId: string,
-  apiKeyId: string,
-  rateLimit: number
-): Promise<{ allowed: boolean; current_usage: number }> {
-  const today = new Date().toISOString().split('T')[0];
-  const { count, error } = await supabase
-    .from('api_usage_logs')
-    .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .eq('api_key_id', apiKeyId)
-    .gte('timestamp', `${today}T00:00:00`)
-    .lte('timestamp', `${today}T23:59:59`);
-  if (error) {
-    console.error('Rate limit check error:', error);
-    return { allowed: true, current_usage: 0 };
+async function handleCustomers(supabase: any, keyData: any, method: string, path: string, req: Request) {
+  const scopes = keyData.scopes || [];
+  
+  if (method === 'GET' && !scopes.includes('read:customers')) {
+    return { error: 'Insufficient permissions' };
   }
-  const currentUsage = count || 0;
-  return { allowed: currentUsage < rateLimit, current_usage: currentUsage };
+
+  if (method === 'GET') {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('organization_id', keyData.partners.organization_id)
+      .limit(100);
+    
+    return error ? { error: error.message } : { data };
+  }
+
+  return { error: 'Method not implemented' };
 }
 
-async function logUsage(supabase: any, logData: any) {
-  const { error } = await supabase.from('api_usage_logs').insert(logData);
-  if (error) console.error('Failed to log API usage:', error);
+async function handleInvoices(supabase: any, keyData: any, method: string, path: string, req: Request) {
+  const scopes = keyData.scopes || [];
+  
+  if (method === 'GET' && !scopes.includes('read:invoices')) {
+    return { error: 'Insufficient permissions' };
+  }
+
+  if (method === 'GET') {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('organization_id', keyData.partners.organization_id)
+      .limit(100);
+    
+    return error ? { error: error.message } : { data };
+  }
+
+  return { error: 'Method not implemented' };
+}
+
+function calculateCost(tier: string, endpoint: string): number {
+  const baseCosts: Record<string, number> = {
+    free: 0,
+    basic: 0.001,
+    pro: 0.0005,
+    enterprise: 0.0001
+  };
+  return baseCosts[tier] || 0;
 }

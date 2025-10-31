@@ -28,6 +28,8 @@ import {
   GraduationCap,
   Route,
   Heart,
+  Store,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -114,7 +116,8 @@ const menuGroups: MenuGroup[] = [
     label: "Developer",
     items: [
       { title: "Developer Console", url: "/developer-console", icon: Brain, permissions: ["admin.config"] },
-      { title: "Platform Metrics", url: "/platform-metrics", icon: Activity, roles: ["sys_admin"] },
+      { title: "Marketplace", url: "/marketplace", icon: Store, permissions: ["admin.config"] },
+      { title: "Platform Metrics", url: "/platform-metrics", icon: BarChart3, roles: ["sys_admin"] },
     ],
   },
   {
