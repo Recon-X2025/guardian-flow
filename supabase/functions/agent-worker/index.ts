@@ -1,7 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-serve(async () => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-secret',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  // Validate internal secret for worker operations
+  const internalSecret = req.headers.get('x-internal-secret');
+  const expectedSecret = Deno.env.get('INTERNAL_API_SECRET');
+  
+  if (!internalSecret || internalSecret !== expectedSecret) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -68,13 +88,14 @@ serve(async () => {
       }
     }
 
-    return new Response(JSON.stringify({ processed: tasks?.length || 0 }), {
-      headers: { 'Content-Type': 'application/json' }
+    return new Response(JSON.stringify({ success: true, processed: tasks?.length || 0 }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error('Agent worker error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal processing error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });

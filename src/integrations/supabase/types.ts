@@ -318,6 +318,36 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_exports: {
+        Row: {
+          correlation_id: string | null
+          created_at: string | null
+          dataset: string
+          format: string
+          id: string
+          record_count: number
+          tenant_id: string
+        }
+        Insert: {
+          correlation_id?: string | null
+          created_at?: string | null
+          dataset: string
+          format: string
+          id?: string
+          record_count?: number
+          tenant_id: string
+        }
+        Update: {
+          correlation_id?: string | null
+          created_at?: string | null
+          dataset?: string
+          format?: string
+          id?: string
+          record_count?: number
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       api_overage_logs: {
         Row: {
           actual_usage: number
@@ -484,6 +514,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      applied_penalties: {
+        Row: {
+          auto_applied: boolean | null
+          base_amount: number
+          created_at: string | null
+          dispute_allowed: boolean | null
+          disputed_at: string | null
+          id: string
+          metadata: Json | null
+          penalty_amount: number
+          penalty_code: string
+          penalty_percentage: number
+          resolved_at: string | null
+          severity_level: string
+          status: string | null
+          technician_id: string | null
+          violation_type: string
+          work_order_id: string | null
+        }
+        Insert: {
+          auto_applied?: boolean | null
+          base_amount?: number
+          created_at?: string | null
+          dispute_allowed?: boolean | null
+          disputed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          penalty_amount: number
+          penalty_code: string
+          penalty_percentage: number
+          resolved_at?: string | null
+          severity_level: string
+          status?: string | null
+          technician_id?: string | null
+          violation_type: string
+          work_order_id?: string | null
+        }
+        Update: {
+          auto_applied?: boolean | null
+          base_amount?: number
+          created_at?: string | null
+          dispute_allowed?: boolean | null
+          disputed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          penalty_amount?: number
+          penalty_code?: string
+          penalty_percentage?: number
+          resolved_at?: string | null
+          severity_level?: string
+          status?: string | null
+          technician_id?: string | null
+          violation_type?: string
+          work_order_id?: string | null
+        }
+        Relationships: []
       }
       attachments: {
         Row: {
