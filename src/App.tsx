@@ -178,6 +178,11 @@ const App = () => (
                                     <FraudInvestigation />
                                   </RoleGuard>
                                 } />
+                                <Route path="/forgery-detection" element={
+                                  <RoleGuard permissions={["fraud.view"]} showError={true}>
+                                    <ForgeryDetection />
+                                  </RoleGuard>
+                                } />
                                 <Route path="/knowledge-base" element={
                                   <RoleGuard permissions={["admin.config"]} showError={true}>
                                     <KnowledgeBase />

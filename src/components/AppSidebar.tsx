@@ -104,6 +104,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Analytics", url: "/analytics", icon: TrendingUp, permissions: ["audit.read"] },
       { title: "Forecast Center", url: "/forecast", icon: Activity, permissions: ["audit.read"] },
       { title: "Fraud Detection", url: "/fraud", icon: ShieldAlert, permissions: ["fraud.view"] },
+      { title: "Forgery Detection", url: "/forgery-detection", icon: Shield, permissions: ["fraud.view"] },
       { title: "Anomaly Detection", url: "/anomaly", icon: Activity, permissions: ["fraud.view"] },
       { title: "Observability", url: "/observability", icon: Eye, permissions: ["audit.read"] },
     ],

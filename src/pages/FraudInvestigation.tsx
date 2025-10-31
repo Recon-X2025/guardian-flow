@@ -41,6 +41,26 @@ export default function FraudInvestigation() {
     }
   };
 
+  const loadDetectionDetails = async (detectionId: string) => {
+    try {
+      const { data: detection } = await (supabase as any)
+        .from("forgery_detections")
+        .select("*, fraud_alerts(*)")
+        .eq("id", detectionId)
+        .single();
+
+      if (detection && detection.fraud_alerts) {
+        // Scroll to the fraud alert card
+        setTimeout(() => {
+          const alertElement = document.getElementById(`alert-${detection.fraud_alerts.id}`);
+          alertElement?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }
+    } catch (error: any) {
+      console.error("Error loading detection details:", error);
+    }
+  };
+
   useEffect(() => {
     fetchAlerts();
     
