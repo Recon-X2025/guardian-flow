@@ -115,7 +115,14 @@ Deno.serve(async (req) => {
     ];
 
     const statuses = ['draft', 'pending_validation', 'released', 'in_progress', 'completed'];
-    const partStatuses = ['not_required', 'reserved', 'issued', 'received', 'consumed', 'unutilized'];
+    // Valid part status per work order status
+    const partStatusByWO: Record<string, string[]> = {
+      draft: ['not_required'],
+      pending_validation: ['not_required', 'reserved'],
+      released: ['reserved'],
+      in_progress: ['issued', 'received'],
+      completed: ['consumed', 'unutilized'],
+    };
 
     // Get the highest existing WO number to avoid duplicates
     const { data: maxWO } = await supabaseAdmin
@@ -170,7 +177,8 @@ Deno.serve(async (req) => {
         const tenantId = tenants[n % tenants.length].id;
         const symptom = symptoms[n % symptoms.length];
         const status = statuses[n % statuses.length];
-        const partStatus = partStatuses[n % partStatuses.length];
+        const allowed = partStatusByWO[status];
+        const partStatus = allowed[Math.floor(Math.random() * allowed.length)];
         const repairType = (n % 2 === 0) ? 'in_warranty' : 'out_of_warranty';
         const cost = Math.floor(Math.random() * 500 * 100) / 100;
         const daysAgo = Math.floor(Math.random() * 90);
@@ -240,7 +248,7 @@ Deno.serve(async (req) => {
           warranty_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           parts_coverage: []
         } : null,
-        parts_reserved: ['released', 'in_progress', 'completed'].includes(p.status),
+        parts_reserved: ['reserved','issued','received'].includes(p.partStatus),
         released_at: p.releasedAt,
         completed_at: p.completedAt,
         created_at: p.createdAt,

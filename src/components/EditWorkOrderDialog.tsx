@@ -94,7 +94,15 @@ export function EditWorkOrderDialog({ open, onOpenChange, workOrder, onSuccess }
   const isDraft = workOrder.status === 'draft';
   const currentStatus = workOrder.part_status || 'not_required';
   const availableStatuses = [currentStatus, ...getNextPartStatuses(currentStatus)];
-  const allowedStatuses = isDraft ? ['not_required'] : Array.from(new Set(availableStatuses));
+  const statusGuardMap: Record<string, string[]> = {
+    draft: ['not_required'],
+    pending_validation: ['not_required', 'reserved'],
+    released: ['reserved'],
+    in_progress: ['issued', 'received', 'consumed'],
+    completed: ['consumed', 'unutilized'],
+  };
+  const guard = statusGuardMap[workOrder.status] || availableStatuses;
+  const allowedStatuses = isDraft ? ['not_required'] : Array.from(new Set(availableStatuses.filter(s => guard.includes(s))));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
