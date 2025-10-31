@@ -136,17 +136,36 @@ Deno.serve(async (req) => {
     console.log(`Starting WO numbers from: WO-2025-${String(startNumber).padStart(4, '0')}`);
 
     let created = 0;
-    const batchSize = 100;
 
-    // Create in batches
-    for (let batch = 0; batch < 20; batch++) {
-      const ticketBatch = [];
-      const workOrderBatch = [];
-      const precheckBatch = [];
+    // Batch planning numbers
+    const totalToCreate = 2000;
+    const batchSize = 500; // 4 batches x 500 = 2000
+    const totalBatches = Math.ceil(totalToCreate / batchSize);
+
+    for (let batch = 0; batch < totalBatches; batch++) {
+      type Plan = {
+        n: number;
+        techId: string;
+        tenantId: string;
+        symptom: string;
+        status: string;
+        partStatus: string;
+        repairType: 'in_warranty' | 'out_of_warranty';
+        cost: number;
+        createdAt: string;
+        woNumber: string;
+        releasedAt: string | null;
+        completedAt: string | null;
+      };
+
+      const plans: Plan[] = [];
 
       for (let i = 0; i < batchSize; i++) {
-        const n = batch * batchSize + i + 1;
-        const woIndex = startNumber + batch * batchSize + i;
+        const globalIndex = batch * batchSize + i;
+        if (globalIndex >= totalToCreate) break;
+
+        const n = globalIndex + 1;
+        const woIndex = startNumber + globalIndex;
         const techId = techs[n % techs.length].user_id;
         const tenantId = tenants[n % tenants.length].id;
         const symptom = symptoms[n % symptoms.length];
@@ -157,100 +176,120 @@ Deno.serve(async (req) => {
         const daysAgo = Math.floor(Math.random() * 90);
         const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
 
-        // Use valid ticket_status enum values: 'open', 'assigned', 'in_progress', 'completed', 'cancelled'
         const ticketStatus = ['draft', 'pending_validation'].includes(status) ? 'open' :
-                            ['released', 'in_progress'].includes(status) ? 'assigned' : 'completed';
+                             ['released', 'in_progress'].includes(status) ? 'assigned' : 'completed';
 
-        // Create ticket
-        const { data: ticket, error: ticketError } = await supabaseAdmin
-          .from('tickets')
-          .insert({
-            tenant_id: tenantId,
-            customer_id: customer.id,
-            customer_name: `Customer ${n}`,
-            unit_serial: `PC-${String(n).padStart(6, '0')}`,
-            site_address: `${n} Tech Street, Suite ${n % 100}`,
-            symptom: symptom,
-            status: ticketStatus,
-            created_at: createdAt,
-            updated_at: createdAt
-          })
-          .select('id')
-          .single();
-
-        if (ticketError || !ticket) {
-          console.error(`Failed to create ticket ${n}:`, ticketError);
-          continue;
-        }
-
-        // Create work order with unique number
         const woNumber = `WO-2025-${String(woIndex).padStart(4, '0')}`;
-        const releasedAt = ['released', 'in_progress', 'completed'].includes(status) 
-          ? new Date(new Date(createdAt).getTime() + 60 * 60 * 1000).toISOString() 
-          : null;
-        const completedAt = status === 'completed' 
-          ? new Date(new Date(createdAt).getTime() + 4 * 60 * 60 * 1000).toISOString() 
-          : null;
+        const releasedAt = ['released', 'in_progress', 'completed'].includes(status)
+          ? new Date(new Date(createdAt).getTime() + 60 * 60 * 1000).toISOString() : null;
+        const completedAt = status === 'completed'
+          ? new Date(new Date(createdAt).getTime() + 4 * 60 * 60 * 1000).toISOString() : null;
 
-        const { data: wo, error: woError } = await supabaseAdmin
-          .from('work_orders')
-          .insert({
-            wo_number: woNumber,
-            ticket_id: ticket.id,
-            technician_id: techId,
-            status: status,
-            part_status: partStatus,
-            repair_type: ['released', 'in_progress', 'completed'].includes(status) ? repairType : null,
-            cost_to_customer: status === 'completed' ? cost : 0,
-            warranty_checked: ['released', 'in_progress', 'completed'].includes(status),
-            warranty_result: ['released', 'in_progress', 'completed'].includes(status) ? {
-              covered: repairType === 'in_warranty',
-              warranty_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              parts_coverage: []
-            } : null,
-            parts_reserved: ['released', 'in_progress', 'completed'].includes(status),
-            released_at: releasedAt,
-            completed_at: completedAt,
-            created_at: createdAt,
-            updated_at: new Date(new Date(createdAt).getTime() + 30 * 60 * 1000).toISOString()
-          })
-          .select('id')
-          .single();
-
-        if (woError || !wo) {
-          console.error(`Failed to create work order ${n}:`, woError);
-          continue;
-        }
-
-        // Create precheck if needed
-        if (['released', 'in_progress', 'completed'].includes(status)) {
-          await supabaseAdmin
-            .from('work_order_prechecks')
-            .insert({
-              work_order_id: wo.id,
-              inventory_status: 'passed',
-              warranty_status: 'passed',
-              photo_status: 'passed',
-              inventory_result: { all_available: true, parts: [] },
-              warranty_result: {
-                covered: repairType === 'in_warranty',
-                warranty_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-              },
-              photo_result: { 
-                before_photos: 2, 
-                after_photos: status === 'completed' ? 2 : 0 
-              },
-              can_release: true,
-              created_at: createdAt,
-              updated_at: createdAt
-            });
-        }
-
-        created++;
+        plans.push({
+          n,
+          techId,
+          tenantId,
+          symptom,
+          status,
+          partStatus,
+          repairType,
+          cost,
+          createdAt,
+          woNumber,
+          releasedAt,
+          completedAt,
+        });
       }
 
-      console.log(`Batch ${batch + 1}/20 complete. Total created: ${created}`);
+      // Bulk insert tickets
+      const ticketRows = plans.map((p) => ({
+        tenant_id: p.tenantId,
+        customer_id: customer.id,
+        customer_name: `Customer ${p.n}`,
+        unit_serial: `PC-${String(p.n).padStart(6, '0')}`,
+        site_address: `${p.n} Tech Street, Suite ${p.n % 100}`,
+        symptom: p.symptom,
+        status: ['draft', 'pending_validation'].includes(p.status) ? 'open'
+              : ['released', 'in_progress'].includes(p.status) ? 'assigned' : 'completed',
+        created_at: p.createdAt,
+        updated_at: p.createdAt,
+      }));
+
+      const { data: ticketsInserted, error: ticketsErr } = await supabaseAdmin
+        .from('tickets')
+        .insert(ticketRows)
+        .select('id');
+
+      if (ticketsErr || !ticketsInserted) {
+        console.error(`[create-demo-workorders] Ticket batch ${batch + 1}/${totalBatches} failed:`, ticketsErr);
+        continue;
+      }
+
+      // Bulk insert work orders
+      const workOrderRows = plans.map((p, idx) => ({
+        wo_number: p.woNumber,
+        ticket_id: ticketsInserted[idx].id,
+        technician_id: p.techId,
+        status: p.status,
+        part_status: p.partStatus,
+        repair_type: ['released', 'in_progress', 'completed'].includes(p.status) ? p.repairType : null,
+        cost_to_customer: p.status === 'completed' ? p.cost : 0,
+        warranty_checked: ['released', 'in_progress', 'completed'].includes(p.status),
+        warranty_result: ['released', 'in_progress', 'completed'].includes(p.status) ? {
+          covered: p.repairType === 'in_warranty',
+          warranty_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          parts_coverage: []
+        } : null,
+        parts_reserved: ['released', 'in_progress', 'completed'].includes(p.status),
+        released_at: p.releasedAt,
+        completed_at: p.completedAt,
+        created_at: p.createdAt,
+        updated_at: new Date(new Date(p.createdAt).getTime() + 30 * 60 * 1000).toISOString(),
+      }));
+
+      const { data: workOrdersInserted, error: woErr } = await supabaseAdmin
+        .from('work_orders')
+        .insert(workOrderRows)
+        .select('id, status');
+
+      if (woErr || !workOrdersInserted) {
+        console.error(`[create-demo-workorders] WO batch ${batch + 1}/${totalBatches} failed:`, woErr);
+        continue;
+      }
+
+      // Bulk insert prechecks only for relevant statuses
+      const precheckRows = workOrdersInserted
+        .map((wo, idx) => ({ wo, plan: plans[idx] }))
+        .filter(({ plan }) => ['released', 'in_progress', 'completed'].includes(plan.status))
+        .map(({ wo, plan }) => ({
+          work_order_id: wo.id,
+          inventory_status: 'passed',
+          warranty_status: 'passed',
+          photo_status: 'passed',
+          inventory_result: { all_available: true, parts: [] },
+          warranty_result: {
+            covered: plan.repairType === 'in_warranty',
+            warranty_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          },
+          photo_result: { before_photos: 2, after_photos: plan.status === 'completed' ? 2 : 0 },
+          can_release: true,
+          created_at: plan.createdAt,
+          updated_at: plan.createdAt,
+        }));
+
+      if (precheckRows.length > 0) {
+        const { error: preErr } = await supabaseAdmin
+          .from('work_order_prechecks')
+          .insert(precheckRows);
+        if (preErr) {
+          console.error(`[create-demo-workorders] Precheck batch ${batch + 1}/${totalBatches} failed:`, preErr);
+        }
+      }
+
+      created += workOrdersInserted.length;
+      console.log(`Batch ${batch + 1}/${totalBatches} complete. Total created so far: ${created}`);
     }
+
 
     // Verify final count
     const { count } = await supabaseAdmin
