@@ -20,7 +20,7 @@ export default function Marketplace() {
     queryKey: ['marketplace-extensions', selectedCategory, searchQuery],
     queryFn: async () => {
       let query = supabase
-        .from('marketplace_extensions')
+        .from('marketplace_extensions' as any)
         .select('*')
         .eq('status', 'approved')
         .order('install_count', { ascending: false });
@@ -35,7 +35,7 @@ export default function Marketplace() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 
@@ -43,11 +43,11 @@ export default function Marketplace() {
     queryKey: ['my-installations'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('extension_installations')
+        .from('extension_installations' as any)
         .select('extension_id')
         .eq('user_id', user?.id);
       if (error) throw error;
-      return data?.map(i => i.extension_id) || [];
+      return (data as any[])?.map((i: any) => i.extension_id) || [];
     },
     enabled: !!user,
   });
@@ -55,7 +55,7 @@ export default function Marketplace() {
   const installMutation = useMutation({
     mutationFn: async (extensionId: string) => {
       const { error } = await supabase
-        .from('extension_installations')
+        .from('extension_installations' as any)
         .insert({
           extension_id: extensionId,
           user_id: user?.id,

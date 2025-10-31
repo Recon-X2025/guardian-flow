@@ -23,12 +23,12 @@ export default function ComplianceDashboard() {
     queryKey: ['user-behavior'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('user_behavior_events')
+        .from('user_behavior_events' as any)
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 
@@ -36,11 +36,11 @@ export default function ComplianceDashboard() {
     queryKey: ['compliance-reports'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('compliance_reports')
+        .from('compliance_reports' as any)
         .select('*')
         .order('generated_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 

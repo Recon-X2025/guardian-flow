@@ -21,12 +21,12 @@ export default function SystemHealth() {
     queryKey: ['system-health-history'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('system_health_metrics')
+        .from('system_health_metrics' as any)
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data?.reverse();
+      return (data as any[])?.reverse();
     },
   });
 

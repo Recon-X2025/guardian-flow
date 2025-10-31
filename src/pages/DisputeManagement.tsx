@@ -21,7 +21,7 @@ export default function DisputeManagement() {
     queryKey: ['disputes'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('disputes')
+        .from('disputes' as any)
         .select(`
           *,
           invoices(invoice_number, total_amount),
@@ -29,7 +29,7 @@ export default function DisputeManagement() {
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 

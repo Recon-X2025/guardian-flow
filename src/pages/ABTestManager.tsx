@@ -15,11 +15,11 @@ export default function ABTestManager() {
     queryKey: ['ab-experiments'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ab_test_experiments')
+        .from('ab_test_experiments' as any)
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 

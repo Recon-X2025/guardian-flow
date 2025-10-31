@@ -59,6 +59,11 @@ import PredictiveMaintenance from "./pages/PredictiveMaintenance";
 import PartnerPortal from "./pages/PartnerPortal";
 import Documents from "./pages/Documents";
 import Webhooks from "./pages/Webhooks";
+import Marketplace from "./pages/Marketplace";
+import DisputeManagement from "./pages/DisputeManagement";
+import ABTestManager from "./pages/ABTestManager";
+import SystemHealth from "./pages/SystemHealth";
+import ComplianceDashboard from "./pages/ComplianceDashboard";
 
 const queryClient = new QueryClient();
 
@@ -301,6 +306,31 @@ const App = () => (
                                 <Route path="/help" element={<HelpTraining />} />
                                 <Route path="/settings" element={<Settings />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />
+                                <Route path="/marketplace" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <Marketplace />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/disputes" element={
+                                  <RoleGuard permissions={["finance.view"]} showError={true}>
+                                    <DisputeManagement />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/ab-tests" element={
+                                  <RoleGuard permissions={["mlops.view"]} showError={true}>
+                                    <ABTestManager />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/system-health" element={
+                                  <RoleGuard permissions={["audit.read"]} showError={true}>
+                                    <SystemHealth />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/compliance" element={
+                                  <RoleGuard permissions={["audit.read"]} showError={true}>
+                                    <ComplianceDashboard />
+                                  </RoleGuard>
+                                } />
                                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
