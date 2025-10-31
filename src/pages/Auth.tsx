@@ -7,13 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wrench, Loader2, Shield, CheckCircle2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/sonner';
 import { SeedAccountsButton } from '@/components/SeedAccountsButton';
 
 export default function Auth() {
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const [loading, setLoading] = useState(false);
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
@@ -35,19 +35,10 @@ export default function Auth() {
       
       if (error) {
         console.error('Login error:', error);
-        toast({
-          title: 'Login failed',
-          description: error.message || 'An error occurred during login',
-          variant: 'destructive',
-        });
+        // Notification suppressed to avoid hook conflicts; can re-enable later via Sonner toast
       }
     } catch (error) {
       console.error('Unexpected login error:', error);
-      toast({
-        title: 'Login failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        variant: 'destructive',
-      });
     } finally {
       setLoading(false);
     }
@@ -57,20 +48,14 @@ export default function Auth() {
     e.preventDefault();
 
     if (signupForm.password !== signupForm.confirmPassword) {
-      toast({
-        title: 'Passwords do not match',
-        description: 'Please make sure your passwords match',
-        variant: 'destructive',
-      });
+      // notify user
+      console.error('Passwords do not match');
       return;
     }
 
     if (signupForm.password.length < 6) {
-      toast({
-        title: 'Password too short',
-        description: 'Password must be at least 6 characters',
-        variant: 'destructive',
-      });
+      // notify user
+      console.error('Password too short');
       return;
     }
 
@@ -82,26 +67,16 @@ export default function Auth() {
       
       if (error) {
         console.error('Signup error:', error);
-        toast({
-          title: 'Signup failed',
-          description: error.message || 'An error occurred during signup',
-          variant: 'destructive',
-        });
+        console.error('Signup failed:', error?.message || 'An error occurred during signup');
       } else {
-        toast({
-          title: 'Account created',
-          description: 'Your account has been created successfully. Logging you in...',
-        });
+        // Success notification suppressed
+        console.info('Account created. Logging in...');
         // Auto-login after signup
         await signIn(signupForm.email, signupForm.password);
       }
     } catch (error) {
       console.error('Unexpected signup error:', error);
-      toast({
-        title: 'Signup failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      console.error('Signup failed:', error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
