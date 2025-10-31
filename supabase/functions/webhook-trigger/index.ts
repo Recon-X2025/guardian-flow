@@ -87,14 +87,14 @@ Deno.serve(async (req) => {
             event_type,
             payload,
             success: false,
-            error_message: error.message,
+            error_message: (error as Error).message,
             duration_ms: duration
           });
 
         results.push({
           webhook_id: webhook.id,
           success: false,
-          error: error.message
+          error: (error as Error).message
         });
       }
     }
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

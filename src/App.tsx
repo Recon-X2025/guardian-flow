@@ -50,6 +50,15 @@ import Prompts from "./pages/Prompts";
 import ForecastCenter from "./pages/ForecastCenter";
 import ProductSpecs from "./pages/ProductSpecs";
 import RouteOptimization from "./pages/RouteOptimization";
+import Customers from "./pages/Customers";
+import Technicians from "./pages/Technicians";
+import Equipment from "./pages/Equipment";
+import Contracts from "./pages/Contracts";
+import CustomerPortal from "./pages/CustomerPortal";
+import PredictiveMaintenance from "./pages/PredictiveMaintenance";
+import PartnerPortal from "./pages/PartnerPortal";
+import Documents from "./pages/Documents";
+import Webhooks from "./pages/Webhooks";
 
 const queryClient = new QueryClient();
 

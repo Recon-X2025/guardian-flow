@@ -11,13 +11,13 @@ Deno.serve(async (req) => {
 
     if (!authResult.success) {
       return new Response(JSON.stringify({ error: authResult.error.message }), {
-        status: authResult.error.status,
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     const { offline_actions } = await req.json();
-    const userId = authResult.context.userId;
+    const userId = authResult.context.user.id;
     const results = [];
 
     for (const action of offline_actions) {
@@ -62,17 +62,17 @@ Deno.serve(async (req) => {
 
         results.push({
           action_id: action.id,
-          status: result.error ? 'failed' : 'success',
-          error: result.error?.message
+          status: result?.error ? 'failed' : 'success',
+          error: result?.error?.message
         });
 
         // Update sync queue
         await authResult.context.supabase
           .from('mobile_sync_queue')
           .update({
-            sync_status: result.error ? 'failed' : 'synced',
+            sync_status: result?.error ? 'failed' : 'synced',
             synced_at: new Date().toISOString(),
-            error_message: result.error?.message
+            error_message: result?.error?.message
           })
           .eq('id', action.id);
 
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         results.push({
           action_id: action.id,
           status: 'failed',
-          error: error.message
+          error: (error as Error).message
         });
       }
     }
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
 
     if (!authResult.success) {
       return new Response(JSON.stringify({ error: authResult.error.message }), {
-        status: authResult.error.status,
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
