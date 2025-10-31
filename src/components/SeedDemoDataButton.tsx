@@ -14,6 +14,7 @@ interface SeedResults {
   invoices: number;
   penalties: number;
   photos: number;
+  forecasts: number;
 }
 
 export function SeedDemoDataButton() {
@@ -35,7 +36,7 @@ export function SeedDemoDataButton() {
       setResults(data.results);
       toast({
         title: 'Demo data seeded successfully!',
-        description: 'Created customers, technicians, equipment, invoices, penalties, and photo validations',
+        description: 'Created customers, technicians, equipment, invoices, penalties, photo validations, and forecasts',
       });
     } catch (error: any) {
       console.error('Seed demo data error:', error);
@@ -93,6 +94,7 @@ export function SeedDemoDataButton() {
                 <li>• {results.invoices} Invoices</li>
                 <li>• {results.penalties} Penalty Applications</li>
                 <li>• {results.photos} Photo Validations</li>
+                <li>• {results.forecasts} Forecast Records</li>
               </ul>
             </AlertDescription>
           </Alert>

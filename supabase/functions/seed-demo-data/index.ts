@@ -36,6 +36,7 @@ Deno.serve(async (req) => {
       invoices: 0,
       penalties: 0,
       photos: 0,
+      forecasts: 0,
     };
 
     // Get tenants
@@ -287,6 +288,51 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 8. Generate Forecast Data
+    console.log('[seed-demo-data] Generating forecast data...');
+    const geographyLevels = ['country', 'region', 'state', 'district', 'city', 'partner_hub'];
+    const products = ['PC Repair', 'Printer Service', 'Toner Replacement', 'Hardware Upgrade'];
+    
+    for (const tenant of tenants) {
+      for (const product of products) {
+        for (const level of geographyLevels) {
+          // Generate forecasts for next 30 days
+          const today = new Date();
+          for (let day = 0; day < 30; day++) {
+            const forecastDate = new Date(today);
+            forecastDate.setDate(today.getDate() + day);
+            
+            const baseValue = 50 + Math.random() * 100;
+            const trend = day * 2; // Upward trend
+            const seasonality = Math.sin(day / 7 * Math.PI) * 20; // Weekly pattern
+            const noise = (Math.random() - 0.5) * 10;
+            
+            const { error } = await supabase
+              .from('forecast_outputs')
+              .insert({
+                tenant_id: tenant.id,
+                forecast_date: forecastDate.toISOString().split('T')[0],
+                geography_level: level,
+                geography_id: `${level}-${tenant.slug}`,
+                product_id: product,
+                predicted_volume: Math.round(baseValue + trend + seasonality + noise),
+                confidence_interval_lower: Math.round(baseValue + trend + seasonality - 15),
+                confidence_interval_upper: Math.round(baseValue + trend + seasonality + 15),
+                confidence_score: 0.75 + Math.random() * 0.2,
+                model_version: 'v1.0',
+                metadata: {
+                  model: 'hierarchical_arima',
+                  features: ['historical_demand', 'seasonality', 'trend'],
+                  training_date: new Date().toISOString(),
+                },
+              });
+            
+            if (!error) results.forecasts++;
+          }
+        }
+      }
+    }
+
     console.log('[seed-demo-data] Seeding complete!', results);
 
     return new Response(
@@ -302,6 +348,7 @@ Deno.serve(async (req) => {
           invoices: `${results.invoices} invoices generated`,
           penalties: `${results.penalties} penalties applied`,
           photo_validations: `${results.photos} photo validations created`,
+          forecasts: `${results.forecasts} forecast records generated`,
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
