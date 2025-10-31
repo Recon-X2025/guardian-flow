@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from "sonner";
+import jsPDF from 'jspdf';
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
@@ -136,17 +137,31 @@ export default function Dashboard() {
       const response = await fetch('/PRODUCT_SPECIFICATIONS_V5.md');
       const content = await response.text();
       
-      const blob = new Blob([content], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'GuardianFlow_Product_Specifications.md';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const doc = new jsPDF();
       
-      toast.success('Product Specifications downloaded successfully');
+      // Title
+      doc.setFontSize(18);
+      doc.text('Guardian Flow Product Specifications', 105, 20, { align: 'center' });
+      
+      // Process markdown content - split into lines and add to PDF
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(content, 170);
+      let y = 35;
+      const pageHeight = doc.internal.pageSize.height;
+      
+      lines.forEach((line: string) => {
+        if (y > pageHeight - 20) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, 20, y);
+        y += 5;
+      });
+      
+      // Save
+      doc.save('GuardianFlow_Product_Specifications.pdf');
+      
+      toast.success('Product Specifications downloaded as PDF');
     } catch (error) {
       console.error('Error downloading specs:', error);
       toast.error('Failed to download Product Specifications');
