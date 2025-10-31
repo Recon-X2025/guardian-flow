@@ -1,164 +1,171 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Star, Download, Search, TrendingUp, Shield, Zap } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Package, Star, Download, Settings } from 'lucide-react';
 
 export default function Marketplace() {
-  const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedExtension, setSelectedExtension] = useState<string | null>(null);
 
   const { data: extensions, isLoading } = useQuery({
-    queryKey: ['marketplace-extensions', selectedCategory, searchQuery],
+    queryKey: ['marketplace-extensions'],
     queryFn: async () => {
-      let query = supabase
-        .from('marketplace_extensions' as any)
+      const { data, error } = await supabase
+        .from('marketplace_extensions')
         .select('*')
         .eq('status', 'approved')
-        .order('install_count', { ascending: false });
-
-      if (selectedCategory !== 'all') {
-        query = query.eq('category', selectedCategory);
-      }
-
-      if (searchQuery) {
-        query = query.ilike('name', `%${searchQuery}%`);
-      }
-
-      const { data, error } = await query;
+        .order('rating', { ascending: false });
+      
       if (error) throw error;
-      return data as any[];
+      return data;
     },
   });
 
-  const { data: myInstallations } = useQuery({
-    queryKey: ['my-installations'],
+  const { data: installed } = useQuery({
+    queryKey: ['installed-extensions'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('extension_installations' as any)
-        .select('extension_id')
-        .eq('user_id', user?.id);
+      const { data, error } = await supabase.functions.invoke('marketplace-extension-manager', {
+        body: { action: 'list_installed' }
+      });
+      
       if (error) throw error;
-      return (data as any[])?.map((i: any) => i.extension_id) || [];
+      return data.extensions || [];
     },
-    enabled: !!user,
   });
 
   const installMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { error } = await supabase
-        .from('extension_installations' as any)
-        .insert({
-          extension_id: extensionId,
-          user_id: user?.id,
-          status: 'active',
-        });
+      const { data, error } = await supabase.functions.invoke('marketplace-extension-manager', {
+        body: { action: 'install', extensionId }
+      });
+      
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-installations'] });
-      toast.success('Extension installed successfully');
+      queryClient.invalidateQueries({ queryKey: ['installed-extensions'] });
+      toast({
+        title: 'Extension installed',
+        description: 'The extension has been successfully installed.',
+      });
     },
-    onError: () => {
-      toast.error('Failed to install extension');
+    onError: (error: Error) => {
+      toast({
+        title: 'Installation failed',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
-  const categories = [
-    { value: 'all', label: 'All Extensions', icon: TrendingUp },
-    { value: 'analytics', label: 'Analytics', icon: TrendingUp },
-    { value: 'automation', label: 'Automation', icon: Zap },
-    { value: 'integration', label: 'Integrations', icon: Shield },
-  ];
+  const uninstallMutation = useMutation({
+    mutationFn: async (extensionId: string) => {
+      const { data, error } = await supabase.functions.invoke('marketplace-extension-manager', {
+        body: { action: 'uninstall', extensionId }
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installed-extensions'] });
+      toast({
+        title: 'Extension uninstalled',
+        description: 'The extension has been removed.',
+      });
+    },
+  });
+
+  const isInstalled = (extensionId: string) => {
+    return installed?.some((ext: any) => ext.extension_id === extensionId);
+  };
+
+  if (isLoading) {
+    return <div className="p-8">Loading marketplace...</div>;
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-8 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Extension Marketplace</h1>
-          <p className="text-muted-foreground">Enhance your Guardian Flow platform</p>
+          <p className="text-muted-foreground">
+            Extend Guardian Flow with powerful integrations
+          </p>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search extensions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {extensions?.map((extension) => (
+          <Card key={extension.id}>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  {extension.icon_url ? (
+                    <img src={extension.icon_url} alt="" className="w-10 h-10 rounded" />
+                  ) : (
+                    <Package className="w-10 h-10 text-primary" />
+                  )}
+                  <div>
+                    <CardTitle className="text-lg">{extension.extension_name}</CardTitle>
+                    <Badge variant="outline">{extension.category}</Badge>
+                  </div>
+                </div>
+              </div>
+              <CardDescription>{extension.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <span>{extension.rating?.toFixed(1) || '0.0'}</span>
+                </div>
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Download className="w-4 h-4" />
+                  <span>{extension.install_count} installs</span>
+                </div>
+              </div>
 
-      <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-        <TabsList>
-          {categories.map((cat) => (
-            <TabsTrigger key={cat.value} value={cat.value}>
-              <cat.icon className="h-4 w-4 mr-2" />
-              {cat.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value={selectedCategory} className="mt-6">
-          {isLoading ? (
-            <div className="text-center py-12">Loading extensions...</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {extensions?.map((ext) => (
-                <Card key={ext.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle>{ext.name}</CardTitle>
-                        <CardDescription className="mt-2">{ext.description}</CardDescription>
-                      </div>
-                      <Badge variant="secondary">{ext.category}</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span>{ext.rating?.toFixed(1) || '0.0'}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Download className="h-4 w-4" />
-                        <span>{ext.install_count || 0}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <span className="text-sm font-bold">
-                        ${ext.pricing_model === 'free' ? 'Free' : ext.price}
-                        {ext.pricing_model === 'subscription' && '/mo'}
-                      </span>
-                    </div>
-
+              <div className="flex gap-2">
+                {isInstalled(extension.id) ? (
+                  <>
                     <Button
-                      className="w-full"
-                      disabled={myInstallations?.includes(ext.id)}
-                      onClick={() => installMutation.mutate(ext.id)}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => uninstallMutation.mutate(extension.id)}
+                      disabled={uninstallMutation.isPending}
                     >
-                      {myInstallations?.includes(ext.id) ? 'Installed' : 'Install'}
+                      Uninstall
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedExtension(extension.id)}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => installMutation.mutate(extension.id)}
+                    disabled={installMutation.isPending}
+                  >
+                    Install
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

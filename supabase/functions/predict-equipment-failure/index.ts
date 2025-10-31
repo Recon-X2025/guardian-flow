@@ -1,5 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-import { validateAuth } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -7,97 +7,107 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authResult = await validateAuth(req);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (!authResult.success) {
-      return new Response(JSON.stringify({ error: authResult.error.message }), {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { equipment_id } = await req.json();
-
-    // Get equipment history
-    const { data: history } = await authResult.context.supabase
-      .from('equipment_history')
-      .select('*')
-      .eq('equipment_id', equipment_id)
-      .order('event_date', { ascending: false })
-      .limit(50);
-
-    // Get sensor data
-    const { data: sensors } = await authResult.context.supabase
-      .from('equipment_sensors')
-      .select('*')
-      .eq('equipment_id', equipment_id)
-      .order('recorded_at', { ascending: false })
-      .limit(100);
-
-    // Simple ML logic for demonstration (in production, use actual ML models)
-    let failureProbability = 0;
-    const factors = [];
-
-    // Check maintenance frequency
-    const maintenanceEvents = history?.filter(h => h.event_type === 'maintenance') || [];
-    if (maintenanceEvents.length === 0) {
-      failureProbability += 0.3;
-      factors.push('No maintenance history');
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Check sensor anomalies
-    const abnormalSensors = sensors?.filter(s => s.status === 'abnormal') || [];
-    if (abnormalSensors.length > 5) {
-      failureProbability += 0.4;
-      factors.push('Multiple sensor anomalies detected');
-    }
-
-    // Check downtime history
-    const downtimeEvents = history?.filter(h => h.downtime_hours && h.downtime_hours > 24) || [];
-    if (downtimeEvents.length > 2) {
-      failureProbability += 0.2;
-      factors.push('Multiple downtime incidents');
-    }
-
-    // Calculate predicted failure date
-    const daysUntilFailure = Math.floor((1 - failureProbability) * 180);
-    const predictedFailureDate = new Date();
-    predictedFailureDate.setDate(predictedFailureDate.getDate() + daysUntilFailure);
-
-    const riskLevel = failureProbability > 0.7 ? 'high' : failureProbability > 0.4 ? 'medium' : 'low';
-
-    // Save prediction
-    const { data: prediction, error } = await authResult.context.supabase
-      .from('maintenance_predictions')
-      .insert({
-        equipment_id,
-        prediction_type: 'failure',
-        failure_probability: failureProbability,
-        predicted_failure_date: predictedFailureDate.toISOString().split('T')[0],
-        confidence_score: 0.75,
-        risk_level: riskLevel,
-        recommended_action: failureProbability > 0.5 ? 'Schedule preventive maintenance immediately' : 'Monitor equipment closely',
-        contributing_factors: factors,
-        model_version: 'v1.0'
-      })
-      .select()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tenant_id')
+      .eq('id', user.id)
       .single();
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    if (!profile?.tenant_id) {
+      return new Response(JSON.stringify({ error: 'No tenant found' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ prediction }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    const { equipmentId } = await req.json();
+
+    const { data: events } = await supabase
+      .from('asset_lifecycle_events')
+      .select('*')
+      .eq('asset_id', equipmentId)
+      .eq('tenant_id', profile.tenant_id)
+      .order('event_timestamp', { ascending: false })
+      .limit(100);
+
+    if (!events || events.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          prediction: 'low_risk',
+          confidence: 0,
+          message: 'Insufficient data for prediction'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const maintenanceEvents = events.filter(e => e.event_type === 'maintenance');
+    const failureEvents = events.filter(e => e.event_type === 'failure');
+    
+    const daysSinceLastMaintenance = maintenanceEvents.length > 0
+      ? (Date.now() - new Date(maintenanceEvents[0].event_timestamp).getTime()) / (1000 * 60 * 60 * 24)
+      : 365;
+
+    const failureRate = failureEvents.length / events.length;
+    
+    let prediction = 'low_risk';
+    let confidence = 50;
+
+    if (daysSinceLastMaintenance > 180 || failureRate > 0.1) {
+      prediction = 'high_risk';
+      confidence = 85;
+    } else if (daysSinceLastMaintenance > 90 || failureRate > 0.05) {
+      prediction = 'medium_risk';
+      confidence = 70;
+    } else {
+      confidence = 60;
+    }
+
+    const nextMaintenanceDate = new Date();
+    nextMaintenanceDate.setDate(nextMaintenanceDate.getDate() + (90 - daysSinceLastMaintenance));
+
+    return new Response(
+      JSON.stringify({
+        prediction,
+        confidence,
+        daysSinceLastMaintenance: Math.round(daysSinceLastMaintenance),
+        failureRate: (failureRate * 100).toFixed(2),
+        recommendedMaintenanceDate: nextMaintenanceDate.toISOString(),
+        factors: {
+          maintenanceHistory: maintenanceEvents.length,
+          failureHistory: failureEvents.length,
+          totalEvents: events.length
+        }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    console.error('Error predicting equipment failure:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
