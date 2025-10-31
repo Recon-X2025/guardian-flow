@@ -1,5 +1,19 @@
 # Guardian Flow - Product Documentation
 
+**Version:** 6.0.1  
+**Last Updated:** October 31, 2025  
+**Status:** Production Ready
+
+## 📋 Recent Updates
+
+### v6.0.1 Technical Patch (October 31, 2025)
+- **React Initialization**: Fixed edge case in AuthContext initialization with explicit React imports
+- **Root Element Handling**: Enhanced error handling for DOM root element with validation checks
+- **Production Stability**: Improved React component tree initialization for edge environments
+- **Bug Fix**: Resolved "Cannot read properties of null" error in authentication context
+
+---
+
 ## 📋 Table of Contents
 1. [Product Overview](#product-overview)
 2. [Core Features & Capabilities](#core-features--capabilities)
@@ -104,7 +118,7 @@ Streamline field service operations from ticket creation to financial settlement
 ## 🛠 Technology Stack
 
 ### Frontend
-- **Framework**: React 18.3.1
+- **Framework**: React 18.3.1 (with enhanced initialization stability)
 - **Build Tool**: Vite (fast development and optimized production builds)
 - **Language**: TypeScript (type-safe development)
 - **Styling**: Tailwind CSS (utility-first CSS framework)
@@ -112,6 +126,7 @@ Streamline field service operations from ticket creation to financial settlement
 - **Routing**: React Router v6 (declarative routing)
 - **State Management**: TanStack Query (server state management)
 - **Forms**: React Hook Form + Zod (form handling and validation)
+- **Error Handling**: React Error Boundaries with robust context initialization
 
 ### Backend (Lovable Cloud / Supabase)
 - **Database**: PostgreSQL (relational database with JSONB support)

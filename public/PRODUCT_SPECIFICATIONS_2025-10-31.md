@@ -1,9 +1,20 @@
 # Guardian Flow v6.0 - Platform as a Service (PaaS)
 
-**Version:** 6.0 - PaaS Evolution  
-**Date:** October 2025  
+**Version:** 6.0.1 - PaaS Evolution  
+**Date:** October 31, 2025  
 **Status:** Production Ready  
-**Major Update:** Full PaaS Capabilities - API Gateway, Developer Console, Multi-Tenant Billing
+**Major Update:** Full PaaS Capabilities - API Gateway, Developer Console, Multi-Tenant Billing  
+**Latest Patch:** v6.0.1 - React Initialization Stability (Oct 31, 2025)
+
+---
+
+## 🔧 v6.0.1 Patch Notes (October 31, 2025)
+
+### Technical Stability Improvements
+- **React Context Initialization**: Enhanced AuthContext with explicit React imports to prevent initialization race conditions
+- **Root Element Validation**: Added robust error handling for DOM root element mounting with null checks
+- **Error Boundary Improvements**: Strengthened React component tree initialization for production stability
+- **Impact**: Eliminates "Cannot read properties of null (reading 'useState')" errors in edge cases
 
 ---
 
