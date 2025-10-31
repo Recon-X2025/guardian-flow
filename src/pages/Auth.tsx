@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wrench, Loader2, Shield, CheckCircle2 } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
 import { SeedAccountsButton } from '@/components/SeedAccountsButton';
 
 export default function Auth() {
