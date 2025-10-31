@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import { EnhancedSLATab } from './EnhancedSLATab';
 
 export function SLATab() {
+  return <EnhancedSLATab />;
+}
+
+export function SLATabLegacy() {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

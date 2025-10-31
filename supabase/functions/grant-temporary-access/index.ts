@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   try {
     const authResult = await validateAuth(req, {
       requireAuth: true,
-      requireRoles: ['sys_admin', 'admin']
+      requiredRoles: ['sys_admin', 'admin']
     });
 
     if (!authResult.success) {

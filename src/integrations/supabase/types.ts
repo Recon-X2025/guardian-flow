@@ -426,6 +426,65 @@ export type Database = {
           },
         ]
       }
+      api_usage_metrics: {
+        Row: {
+          api_endpoint: string
+          billing_tier: string | null
+          cost_incurred: number | null
+          data_transferred_kb: number | null
+          error_count: number | null
+          http_method: string
+          id: string
+          metadata: Json | null
+          partner_id: string | null
+          recorded_at: string
+          request_count: number | null
+          response_time_ms: number | null
+          status_code: number | null
+          tenant_id: string
+        }
+        Insert: {
+          api_endpoint: string
+          billing_tier?: string | null
+          cost_incurred?: number | null
+          data_transferred_kb?: number | null
+          error_count?: number | null
+          http_method: string
+          id?: string
+          metadata?: Json | null
+          partner_id?: string | null
+          recorded_at?: string
+          request_count?: number | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tenant_id: string
+        }
+        Update: {
+          api_endpoint?: string
+          billing_tier?: string | null
+          cost_incurred?: number | null
+          data_transferred_kb?: number | null
+          error_count?: number | null
+          http_method?: string
+          id?: string
+          metadata?: Json | null
+          partner_id?: string | null
+          recorded_at?: string
+          request_count?: number | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_metrics_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           bucket_url: string | null
@@ -2419,6 +2478,47 @@ export type Database = {
           },
         ]
       }
+      marketplace_analytics: {
+        Row: {
+          event_data: Json | null
+          event_type: string
+          extension_id: string | null
+          id: string
+          partner_id: string | null
+          recorded_at: string
+          revenue_amount: number | null
+          user_id: string | null
+        }
+        Insert: {
+          event_data?: Json | null
+          event_type: string
+          extension_id?: string | null
+          id?: string
+          partner_id?: string | null
+          recorded_at?: string
+          revenue_amount?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          event_data?: Json | null
+          event_type?: string
+          extension_id?: string | null
+          id?: string
+          partner_id?: string | null
+          recorded_at?: string
+          revenue_amount?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_analytics_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_extensions: {
         Row: {
           category: string
@@ -2534,6 +2634,140 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ml_models: {
+        Row: {
+          accuracy_score: number | null
+          created_at: string
+          created_by: string | null
+          deployed_at: string | null
+          explainability_enabled: boolean | null
+          f1_score: number | null
+          features: Json | null
+          framework: string
+          hyperparameters: Json | null
+          id: string
+          last_retrained_at: string | null
+          model_metadata: Json | null
+          model_name: string
+          model_type: string
+          model_version: string
+          next_retrain_at: string | null
+          precision_score: number | null
+          recall_score: number | null
+          status: string
+          tenant_id: string | null
+          training_data_size: number | null
+          updated_at: string
+        }
+        Insert: {
+          accuracy_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          deployed_at?: string | null
+          explainability_enabled?: boolean | null
+          f1_score?: number | null
+          features?: Json | null
+          framework: string
+          hyperparameters?: Json | null
+          id?: string
+          last_retrained_at?: string | null
+          model_metadata?: Json | null
+          model_name: string
+          model_type: string
+          model_version: string
+          next_retrain_at?: string | null
+          precision_score?: number | null
+          recall_score?: number | null
+          status?: string
+          tenant_id?: string | null
+          training_data_size?: number | null
+          updated_at?: string
+        }
+        Update: {
+          accuracy_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          deployed_at?: string | null
+          explainability_enabled?: boolean | null
+          f1_score?: number | null
+          features?: Json | null
+          framework?: string
+          hyperparameters?: Json | null
+          id?: string
+          last_retrained_at?: string | null
+          model_metadata?: Json | null
+          model_name?: string
+          model_type?: string
+          model_version?: string
+          next_retrain_at?: string | null
+          precision_score?: number | null
+          recall_score?: number | null
+          status?: string
+          tenant_id?: string | null
+          training_data_size?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ml_predictions: {
+        Row: {
+          actual_outcome: Json | null
+          confidence_score: number | null
+          created_at: string
+          feedback_correct: boolean | null
+          feedback_provided: boolean | null
+          id: string
+          input_data: Json
+          metadata: Json | null
+          model_id: string | null
+          outcome_time: string | null
+          prediction_output: Json
+          prediction_time: string
+          prediction_type: string
+          tenant_id: string
+        }
+        Insert: {
+          actual_outcome?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          feedback_correct?: boolean | null
+          feedback_provided?: boolean | null
+          id?: string
+          input_data: Json
+          metadata?: Json | null
+          model_id?: string | null
+          outcome_time?: string | null
+          prediction_output: Json
+          prediction_time?: string
+          prediction_type: string
+          tenant_id: string
+        }
+        Update: {
+          actual_outcome?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          feedback_correct?: boolean | null
+          feedback_provided?: boolean | null
+          id?: string
+          input_data?: Json
+          metadata?: Json | null
+          model_id?: string | null
+          outcome_time?: string | null
+          prediction_output?: Json
+          prediction_time?: string
+          prediction_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ml_predictions_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "ml_models"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mobile_sync_queue: {
         Row: {
@@ -3106,6 +3340,74 @@ export type Database = {
             columns: ["requester_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_api_keys: {
+        Row: {
+          api_key_hash: string
+          api_key_prefix: string
+          billing_tier: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          monthly_quota: number | null
+          name: string
+          partner_id: string
+          rate_limit_per_day: number | null
+          rate_limit_per_minute: number | null
+          revoked: boolean | null
+          revoked_at: string | null
+          scopes: Json | null
+          updated_at: string
+          usage_this_month: number | null
+        }
+        Insert: {
+          api_key_hash: string
+          api_key_prefix: string
+          billing_tier?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          monthly_quota?: number | null
+          name: string
+          partner_id: string
+          rate_limit_per_day?: number | null
+          rate_limit_per_minute?: number | null
+          revoked?: boolean | null
+          revoked_at?: string | null
+          scopes?: Json | null
+          updated_at?: string
+          usage_this_month?: number | null
+        }
+        Update: {
+          api_key_hash?: string
+          api_key_prefix?: string
+          billing_tier?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          monthly_quota?: number | null
+          name?: string
+          partner_id?: string
+          rate_limit_per_day?: number | null
+          rate_limit_per_minute?: number | null
+          revoked?: boolean | null
+          revoked_at?: string | null
+          scopes?: Json | null
+          updated_at?: string
+          usage_this_month?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_api_keys_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
@@ -4341,6 +4643,110 @@ export type Database = {
           },
         ]
       }
+      sla_thresholds: {
+        Row: {
+          active: boolean | null
+          alert_enabled: boolean | null
+          applies_to: Json | null
+          created_at: string
+          escalation_rules: Json | null
+          id: string
+          metric_type: string
+          name: string
+          tenant_id: string
+          threshold_value: number
+          unit: string
+          updated_at: string
+          warning_value: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          alert_enabled?: boolean | null
+          applies_to?: Json | null
+          created_at?: string
+          escalation_rules?: Json | null
+          id?: string
+          metric_type: string
+          name: string
+          tenant_id: string
+          threshold_value: number
+          unit: string
+          updated_at?: string
+          warning_value?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          alert_enabled?: boolean | null
+          applies_to?: Json | null
+          created_at?: string
+          escalation_rules?: Json | null
+          id?: string
+          metric_type?: string
+          name?: string
+          tenant_id?: string
+          threshold_value?: number
+          unit?: string
+          updated_at?: string
+          warning_value?: number | null
+        }
+        Relationships: []
+      }
+      sla_violations: {
+        Row: {
+          actual_value: number
+          created_at: string
+          detected_at: string
+          id: string
+          metadata: Json | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          severity: string
+          tenant_id: string
+          threshold_value: number
+          updated_at: string
+          violation_type: string
+          work_order_id: string | null
+        }
+        Insert: {
+          actual_value: number
+          created_at?: string
+          detected_at?: string
+          id?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity: string
+          tenant_id: string
+          threshold_value: number
+          updated_at?: string
+          violation_type: string
+          work_order_id?: string | null
+        }
+        Update: {
+          actual_value?: number
+          created_at?: string
+          detected_at?: string
+          id?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          severity?: string
+          tenant_id?: string
+          threshold_value?: number
+          updated_at?: string
+          violation_type?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_violations_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staging_work_orders: {
         Row: {
           city: string | null
@@ -5034,6 +5440,71 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      white_label_configs: {
+        Row: {
+          active: boolean | null
+          brand_name: string
+          created_at: string
+          custom_css: string | null
+          custom_domain: string | null
+          custom_domain_verified: boolean | null
+          email_templates: Json | null
+          feature_flags: Json | null
+          id: string
+          logo_url: string | null
+          partner_id: string
+          primary_color: string | null
+          secondary_color: string | null
+          tenant_id: string
+          theme_config: Json | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          brand_name: string
+          created_at?: string
+          custom_css?: string | null
+          custom_domain?: string | null
+          custom_domain_verified?: boolean | null
+          email_templates?: Json | null
+          feature_flags?: Json | null
+          id?: string
+          logo_url?: string | null
+          partner_id: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          tenant_id: string
+          theme_config?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          brand_name?: string
+          created_at?: string
+          custom_css?: string | null
+          custom_domain?: string | null
+          custom_domain_verified?: boolean | null
+          email_templates?: Json | null
+          feature_flags?: Json | null
+          id?: string
+          logo_url?: string | null
+          partner_id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          tenant_id?: string
+          theme_config?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "white_label_configs_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
         ]
