@@ -38,6 +38,7 @@ import Analytics from "./pages/Analytics";
 import DeveloperConsole from "./pages/DeveloperConsole";
 import DeveloperLanding from "./pages/DeveloperLanding";
 import PlatformMetrics from "./pages/PlatformMetrics";
+import AnalyticsIntegrations from "./pages/AnalyticsIntegrations";
 import Observability from "./pages/Observability";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Assistant from "./pages/Assistant";
@@ -302,6 +303,11 @@ const App = () => (
                                 <Route path="/platform-metrics" element={
                                   <RoleGuard roles={["sys_admin"]} showError={true}>
                                     <PlatformMetrics />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/analytics-integrations" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <AnalyticsIntegrations />
                                   </RoleGuard>
                                 } />
                                 <Route path="/help" element={<HelpTraining />} />

@@ -118,6 +118,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Developer Console", url: "/developer-console", icon: Brain, permissions: ["admin.config"] },
       { title: "Marketplace", url: "/marketplace", icon: Store, permissions: ["admin.config"] },
       { title: "Platform Metrics", url: "/platform-metrics", icon: BarChart3, roles: ["sys_admin"] },
+      { title: "Analytics Integrations", url: "/analytics-integrations", icon: BarChart3, permissions: ["admin.config"] },
     ],
   },
   {
