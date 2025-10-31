@@ -15,7 +15,7 @@ export default function Marketplace() {
   const { data: extensions, isLoading } = useQuery({
     queryKey: ['marketplace-extensions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('marketplace_extensions')
         .select('*')
         .eq('status', 'approved')
@@ -29,7 +29,7 @@ export default function Marketplace() {
   const { data: installed } = useQuery({
     queryKey: ['installed-extensions'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await (supabase as any).functions.invoke('marketplace-extension-manager', {
         body: { action: 'list_installed' }
       });
       
@@ -40,7 +40,7 @@ export default function Marketplace() {
 
   const installMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { data, error } = await supabase.functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await (supabase as any).functions.invoke('marketplace-extension-manager', {
         body: { action: 'install', extensionId }
       });
       
@@ -65,7 +65,7 @@ export default function Marketplace() {
 
   const uninstallMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { data, error } = await supabase.functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await (supabase as any).functions.invoke('marketplace-extension-manager', {
         body: { action: 'uninstall', extensionId }
       });
       
@@ -101,7 +101,7 @@ export default function Marketplace() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {extensions?.map((extension) => (
+        {extensions?.map((extension: any) => (
           <Card key={extension.id}>
             <CardHeader>
               <div className="flex items-start justify-between">

@@ -15,7 +15,7 @@ export default function ComplianceCenter() {
   const { data: frameworks, isLoading } = useQuery({
     queryKey: ['compliance-frameworks'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('compliance_frameworks')
         .select(`
           *,
@@ -32,14 +32,14 @@ export default function ComplianceCenter() {
 
   const collectEvidenceMutation = useMutation({
     mutationFn: async (frameworkId: string) => {
-      const { data, error } = await supabase.functions.invoke('compliance-policy-enforcer', {
+      const { data, error } = await (supabase as any).functions.invoke('compliance-policy-enforcer', {
         body: { action: 'collect_evidence', frameworkId }
       });
       
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['compliance-frameworks'] });
       toast({
         title: 'Evidence collected',
@@ -50,14 +50,14 @@ export default function ComplianceCenter() {
 
   const generateReportMutation = useMutation({
     mutationFn: async (frameworkId: string) => {
-      const { data, error } = await supabase.functions.invoke('compliance-policy-enforcer', {
+      const { data, error } = await (supabase as any).functions.invoke('compliance-policy-enforcer', {
         body: { action: 'generate_report', frameworkId }
       });
       
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       const blob = new Blob([JSON.stringify(data.report, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

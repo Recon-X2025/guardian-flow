@@ -10,7 +10,7 @@ export default function PlatformMetrics() {
   const { data: telemetry } = useQuery({
     queryKey: ['function-telemetry'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('function_telemetry')
         .select('*')
         .order('created_at', { ascending: false })
