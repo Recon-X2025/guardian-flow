@@ -26,7 +26,8 @@ export default function WorkOrders() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { formatCurrency } = useCurrency();
-  const { tenantId, isAdmin, loading: rbacLoading } = useRBAC();
+  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const isSysAdmin = hasRole('sys_admin');
   const [workOrders, setWorkOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
@@ -47,10 +48,10 @@ export default function WorkOrders() {
     if (!rbacLoading) {
       fetchWorkOrders();
     }
-  }, [currentPage, statusFilter, tenantId, isAdmin, rbacLoading]);
+  }, [currentPage, statusFilter, tenantId, isSysAdmin, rbacLoading]);
 
   const fetchWorkOrders = async () => {
-    if (rbacLoading || (!isAdmin && !tenantId)) {
+    if (rbacLoading || (!isSysAdmin && !tenantId)) {
       console.log('Waiting for RBAC context...');
       return;
     }
@@ -58,7 +59,7 @@ export default function WorkOrders() {
     try {
       setLoading(true);
       
-      // Build query with status filter and tenant isolation
+      // Build query with status filter and tenant isolation - only sys_admin sees ALL data
       let countQuery = supabase
         .from('work_orders')
         .select('*', { count: 'exact', head: true }) as any;
@@ -73,8 +74,8 @@ export default function WorkOrders() {
         `)
         .order('created_at', { ascending: false}) as any;
 
-      // Apply tenant filter for non-sys_admin users
-      if (!isAdmin && tenantId) {
+      // Apply tenant filter for everyone except sys_admin
+      if (!isSysAdmin && tenantId) {
         countQuery = countQuery.eq('tenant_id', tenantId);
         dataQuery = dataQuery.eq('tenant_id', tenantId);
       }

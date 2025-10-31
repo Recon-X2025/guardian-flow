@@ -18,17 +18,18 @@ export default function Finance() {
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
-  const { tenantId, isAdmin, hasRole, loading: rbacLoading } = useRBAC();
+  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const isSysAdmin = hasRole('sys_admin');
 
   const fetchData = async () => {
-    if (rbacLoading || (!isAdmin && !tenantId)) {
+    if (rbacLoading || (!isSysAdmin && !tenantId)) {
       console.log('Waiting for RBAC context...');
       return;
     }
 
     setLoading(true);
     try {
-      // Build queries with tenant filtering
+      // Build queries with tenant filtering - only sys_admin sees ALL data
       let invoicesQuery = supabase
         .from('invoices')
         .select('*, work_orders(wo_number, tenant_id)')
@@ -39,16 +40,10 @@ export default function Finance() {
         .select('*, work_orders(wo_number, tenant_id)')
         .order('created_at', { ascending: false }) as any;
 
-      // Apply tenant filter for non-sys_admin users
-      if (!isAdmin && tenantId) {
-        // Partner admins see only their tenant's data through work_orders
-        if (hasRole('partner_admin')) {
-          invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
-          penaltiesQuery = penaltiesQuery.eq('tenant_id', tenantId);
-        } else {
-          invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
-          penaltiesQuery = penaltiesQuery.eq('tenant_id', tenantId);
-        }
+      // Apply tenant filter for everyone except sys_admin
+      if (!isSysAdmin && tenantId) {
+        invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
+        penaltiesQuery = penaltiesQuery.eq('tenant_id', tenantId);
       }
 
       const [invoicesRes, penaltiesRes] = await Promise.all([
@@ -96,7 +91,7 @@ export default function Finance() {
     if (!rbacLoading) {
       fetchData();
     }
-  }, [tenantId, isAdmin, rbacLoading]);
+  }, [tenantId, isSysAdmin, rbacLoading]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

@@ -120,11 +120,17 @@ export default function AdminConsole() {
   };
 
   const loadPlatformSettings = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('platform_settings' as any)
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as any;
     
+    // tenant_admin and partner_admin only see their tenant's settings
+    if (!rbac.hasRole('sys_admin') && rbac.tenantId) {
+      query = query.eq('tenant_id', rbac.tenantId);
+    }
+    
+    const { data, error } = await query;
     if (error) throw error;
     setPlatformSettings(data || []);
   };
@@ -198,12 +204,18 @@ export default function AdminConsole() {
   };
 
   const loadSystemHealth = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('system_health_metrics' as any)
       .select('*')
       .order('recorded_at', { ascending: false })
-      .limit(50);
+      .limit(50) as any;
     
+    // Only sys_admin sees global system health, others see tenant-specific
+    if (!rbac.hasRole('sys_admin') && rbac.tenantId) {
+      query = query.eq('tenant_id', rbac.tenantId);
+    }
+    
+    const { data, error } = await query;
     if (error) throw error;
     setSystemHealth(data || []);
 
@@ -221,15 +233,24 @@ export default function AdminConsole() {
   };
 
   const loadUserStats = async () => {
-    const { count: totalCount } = await supabase
+    let profilesQuery = supabase
       .from('profiles')
-      .select('*', { count: 'exact', head: true });
-
-    const { data: roles } = await supabase
+      .select('*', { count: 'exact', head: true }) as any;
+    
+    let rolesQuery = supabase
       .from('user_roles')
-      .select('role');
+      .select('role, tenant_id') as any;
+    
+    // Filter by tenant for non-sys_admin users
+    if (!rbac.hasRole('sys_admin') && rbac.tenantId) {
+      profilesQuery = profilesQuery.eq('tenant_id', rbac.tenantId);
+      rolesQuery = rolesQuery.eq('tenant_id', rbac.tenantId);
+    }
+    
+    const { count: totalCount } = await profilesQuery;
+    const { data: roles } = await rolesQuery;
 
-    const adminCount = roles?.filter(r => ['sys_admin', 'tenant_admin'].includes(r.role)).length || 0;
+    const adminCount = roles?.filter(r => ['sys_admin', 'tenant_admin', 'partner_admin'].includes(r.role)).length || 0;
     const techCount = roles?.filter(r => r.role === 'technician').length || 0;
 
     setUserStats({

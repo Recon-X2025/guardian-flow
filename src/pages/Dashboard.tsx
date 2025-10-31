@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OperationalCommandView } from "@/components/OperationalCommandView";
 import { Button } from "@/components/ui/button";
-import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp, Download } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Clock, DollarSign, Package, Users, Wrench, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useRBAC } from '@/contexts/RBACContext';
 import { toast } from "sonner";
-import jsPDF from 'jspdf';
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
-  const { tenantId, isAdmin, loading: rbacLoading } = useRBAC();
+  const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
+  const isSysAdmin = hasRole('sys_admin');
   const [stats, setStats] = useState({
     activeWorkOrders: 0,
     pendingTickets: 0,
@@ -32,22 +32,22 @@ export default function Dashboard() {
     if (!rbacLoading) {
       fetchDashboardData();
     }
-  }, [tenantId, isAdmin, rbacLoading]);
+  }, [tenantId, isSysAdmin, rbacLoading]);
 
   const fetchDashboardData = async () => {
-    if (rbacLoading || (!isAdmin && !tenantId)) {
+    if (rbacLoading || (!isSysAdmin && !tenantId)) {
       console.log('Waiting for RBAC context...');
       return;
     }
 
     try {
-      // Build query with tenant filtering for non-admins
+      // Build query with tenant filtering - only sys_admin sees ALL data
       let woQuery = supabase
         .from('work_orders')
         .select('*, created_at, status', { count: 'exact' }) as any;
       
-      // Apply tenant filter if not sys_admin
-      if (!isAdmin && tenantId) {
+      // Apply tenant filter for everyone except sys_admin
+      if (!isSysAdmin && tenantId) {
         woQuery = woQuery.eq('tenant_id', tenantId);
       }
 
@@ -65,7 +65,7 @@ export default function Dashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'open') as any;
       
-      if (!isAdmin && tenantId) {
+      if (!isSysAdmin && tenantId) {
         ticketQuery = ticketQuery.eq('tenant_id', tenantId);
       }
       
@@ -76,7 +76,7 @@ export default function Dashboard() {
         .from('inventory_items')
         .select('id, stock_levels(qty_available, qty_reserved)') as any;
       
-      if (!isAdmin && tenantId) {
+      if (!isSysAdmin && tenantId) {
         inventoryQuery = inventoryQuery.eq('tenant_id', tenantId);
       }
       
@@ -94,7 +94,7 @@ export default function Dashboard() {
         .select('price')
         .eq('status', 'accepted') as any;
       
-      if (!isAdmin && tenantId) {
+      if (!isSysAdmin && tenantId) {
         offersQuery = offersQuery.eq('tenant_id', tenantId);
       }
       
@@ -108,7 +108,7 @@ export default function Dashboard() {
         .select('total_amount, status')
         .in('status', ['sent', 'overdue']) as any;
       
-      if (!isAdmin && tenantId) {
+      if (!isSysAdmin && tenantId) {
         invoicesQuery = invoicesQuery.eq('tenant_id', tenantId);
       }
       
@@ -127,7 +127,7 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(3) as any;
       
-      if (!isAdmin && tenantId) {
+      if (!isSysAdmin && tenantId) {
         recentWOQuery = recentWOQuery.eq('tenant_id', tenantId);
       }
       
@@ -178,42 +178,6 @@ export default function Dashboard() {
     }
   };
 
-  const downloadProductSpecs = async () => {
-    try {
-      const response = await fetch('/PRODUCT_SPECIFICATIONS_V5.md');
-      const content = await response.text();
-      
-      const doc = new jsPDF();
-      
-      // Title
-      doc.setFontSize(18);
-      doc.text('Guardian Flow Product Specifications', 105, 20, { align: 'center' });
-      
-      // Process markdown content - split into lines and add to PDF
-      doc.setFontSize(10);
-      const lines = doc.splitTextToSize(content, 170);
-      let y = 35;
-      const pageHeight = doc.internal.pageSize.height;
-      
-      lines.forEach((line: string) => {
-        if (y > pageHeight - 20) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(line, 20, y);
-        y += 5;
-      });
-      
-      // Save
-      doc.save('GuardianFlow_Product_Specifications.pdf');
-      
-      toast.success('Product Specifications downloaded as PDF');
-    } catch (error) {
-      console.error('Error downloading specs:', error);
-      toast.error('Failed to download Product Specifications');
-    }
-  };
-
   const statCards = [
     {
       title: "Total Work Orders",
@@ -251,15 +215,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Welcome to Guardian Flow Field Service Platform</p>
-        </div>
-        <Button onClick={downloadProductSpecs} variant="outline" className="gap-2 w-full sm:w-auto">
-          <Download className="h-4 w-4" />
-          <span className="sm:inline">Download Product Specs</span>
-        </Button>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Welcome to Guardian Flow Field Service Platform</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">

@@ -47,7 +47,6 @@ import AgentDashboard from "./pages/AgentDashboard";
 import RAGEngine from "./pages/RAGEngine";
 import Prompts from "./pages/Prompts";
 import ForecastCenter from "./pages/ForecastCenter";
-import ProductSpecs from "./pages/ProductSpecs";
 import RouteOptimization from "./pages/RouteOptimization";
 import Customers from "./pages/Customers";
 import Technicians from "./pages/Technicians";
@@ -426,12 +425,6 @@ const App = () => (
                     <RoleGuard permissions={["admin.config"]} showError={true}>
                       <AppLayout><AgentDashboard /></AppLayout>
                     </RoleGuard>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/product-specs" element={
-                  <ProtectedRoute>
-                    <AppLayout><ProductSpecs /></AppLayout>
                   </ProtectedRoute>
                 } />
                 

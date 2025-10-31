@@ -134,7 +134,6 @@ const menuGroups: MenuGroup[] = [
       { title: "Admin Console", url: "/admin", icon: Shield, roles: ["sys_admin", "tenant_admin"] },
       { title: "Compliance Center", url: "/compliance", icon: Shield, permissions: ["admin.config"] },
       { title: "System Health", url: "/system-health", icon: Heart, permissions: ["admin.config"] },
-      { title: "Product Specs", url: "/product-specs", icon: FileText },
       { title: "Help & Training", url: "/help", icon: GraduationCap },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
@@ -145,8 +144,8 @@ export function AppSidebar() {
   const { hasAnyPermission, isAdmin, loading } = useRBAC();
 
   const canAccessItem = (item: MenuItem): boolean => {
-    // Dashboard, Settings, Help & Training, and Product Specs are accessible to all authenticated users
-    if (item.url === "/dashboard" || item.url === "/settings" || item.url === "/help" || item.url === "/product-specs") {
+    // Dashboard, Settings, and Help & Training are accessible to all authenticated users
+    if (item.url === "/dashboard" || item.url === "/settings" || item.url === "/help") {
       return true;
     }
 
