@@ -117,6 +117,24 @@ Deno.serve(async (req) => {
     const statuses = ['draft', 'pending_validation', 'released', 'in_progress', 'completed'];
     const partStatuses = ['not_required', 'reserved', 'issued', 'received', 'consumed', 'unutilized'];
 
+    // Get the highest existing WO number to avoid duplicates
+    const { data: maxWO } = await supabaseAdmin
+      .from('work_orders')
+      .select('wo_number')
+      .order('wo_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let startNumber = 1;
+    if (maxWO?.wo_number) {
+      const match = maxWO.wo_number.match(/WO-\d+-(\d+)/);
+      if (match) {
+        startNumber = parseInt(match[1]) + 1;
+      }
+    }
+
+    console.log(`Starting WO numbers from: WO-2025-${String(startNumber).padStart(4, '0')}`);
+
     let created = 0;
     const batchSize = 100;
 
@@ -128,6 +146,7 @@ Deno.serve(async (req) => {
 
       for (let i = 0; i < batchSize; i++) {
         const n = batch * batchSize + i + 1;
+        const woIndex = startNumber + batch * batchSize + i;
         const techId = techs[n % techs.length].user_id;
         const tenantId = tenants[n % tenants.length].id;
         const symptom = symptoms[n % symptoms.length];
@@ -138,8 +157,9 @@ Deno.serve(async (req) => {
         const daysAgo = Math.floor(Math.random() * 90);
         const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
 
+        // Use valid ticket_status enum values: 'open', 'assigned', 'in_progress', 'completed', 'cancelled'
         const ticketStatus = ['draft', 'pending_validation'].includes(status) ? 'open' :
-                            ['released', 'in_progress'].includes(status) ? 'assigned' : 'closed';
+                            ['released', 'in_progress'].includes(status) ? 'assigned' : 'completed';
 
         // Create ticket
         const { data: ticket, error: ticketError } = await supabaseAdmin
@@ -163,8 +183,8 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Create work order
-        const woNumber = `WO-2025-${String(n).padStart(4, '0')}`;
+        // Create work order with unique number
+        const woNumber = `WO-2025-${String(woIndex).padStart(4, '0')}`;
         const releasedAt = ['released', 'in_progress', 'completed'].includes(status) 
           ? new Date(new Date(createdAt).getTime() + 60 * 60 * 1000).toISOString() 
           : null;
