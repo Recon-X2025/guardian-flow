@@ -69,6 +69,7 @@ import ComplianceCenter from "./pages/ComplianceCenter";
 import MarketplaceManagement from "./pages/MarketplaceManagement";
 import DeveloperPortal from "./pages/DeveloperPortal";
 import IndustryWorkflows from "./pages/IndustryWorkflows";
+import Templates from "./pages/Templates";
 
 const queryClient = new QueryClient();
 
@@ -240,6 +241,11 @@ const App = () => (
                                 <Route path="/documents" element={
                                   <RoleGuard permissions={["documents.view"]} showError={true}>
                                     <Documents />
+                                  </RoleGuard>
+                                } />
+                                <Route path="/templates" element={
+                                  <RoleGuard permissions={["admin.config"]} showError={true}>
+                                    <Templates />
                                   </RoleGuard>
                                 } />
                                 <Route path="/webhooks" element={

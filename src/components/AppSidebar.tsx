@@ -129,6 +129,8 @@ const menuGroups: MenuGroup[] = [
   {
     label: "System",
     items: [
+      { title: "Documents", url: "/documents", icon: FileText, permissions: ["documents.view"] },
+      { title: "Templates", url: "/templates", icon: FileText, permissions: ["admin.config"] },
       { title: "Compliance Center", url: "/compliance", icon: Shield, permissions: ["admin.config"] },
       { title: "System Health", url: "/system-health", icon: Heart, permissions: ["admin.config"] },
       { title: "Product Specs", url: "/product-specs", icon: FileText },

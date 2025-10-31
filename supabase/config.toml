@@ -143,3 +143,9 @@ verify_jwt = false
 
 [functions.billing-reconciler]
 verify_jwt = false
+
+[functions.template-upload]
+verify_jwt = true
+
+[functions.template-render]
+verify_jwt = true

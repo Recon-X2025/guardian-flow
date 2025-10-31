@@ -1465,6 +1465,62 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          file_format: string
+          id: string
+          is_active: boolean
+          placeholders: Json
+          preview_data: Json | null
+          storage_path: string
+          template_name: string
+          template_type: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          file_format: string
+          id?: string
+          is_active?: boolean
+          placeholders?: Json
+          preview_data?: Json | null
+          storage_path: string
+          template_name: string
+          template_type: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          file_format?: string
+          id?: string
+          is_active?: boolean
+          placeholders?: Json
+          preview_data?: Json | null
+          storage_path?: string
+          template_name?: string
+          template_type?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null
@@ -5177,6 +5233,98 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_usage_log: {
+        Row: {
+          document_type: string
+          id: string
+          output_format: string | null
+          rendered_at: string
+          rendered_by: string | null
+          rendered_for_entity_id: string | null
+          rendering_time_ms: number | null
+          template_id: string
+          tenant_id: string
+        }
+        Insert: {
+          document_type: string
+          id?: string
+          output_format?: string | null
+          rendered_at?: string
+          rendered_by?: string | null
+          rendered_for_entity_id?: string | null
+          rendering_time_ms?: number | null
+          template_id: string
+          tenant_id: string
+        }
+        Update: {
+          document_type?: string
+          id?: string
+          output_format?: string | null
+          rendered_at?: string
+          rendered_by?: string | null
+          rendered_for_entity_id?: string | null
+          rendering_time_ms?: number | null
+          template_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_usage_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_usage_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_versions: {
+        Row: {
+          change_description: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          placeholders: Json
+          storage_path: string
+          template_id: string
+          version: number
+        }
+        Insert: {
+          change_description?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          placeholders: Json
+          storage_path: string
+          template_id: string
+          version: number
+        }
+        Update: {
+          change_description?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          placeholders?: Json
+          storage_path?: string
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
             referencedColumns: ["id"]
           },
         ]
