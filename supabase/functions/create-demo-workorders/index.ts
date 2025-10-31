@@ -11,14 +11,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate internal secret for admin operations
-    const INTERNAL_SECRET = Deno.env.get('INTERNAL_API_SECRET');
-    const providedSecret = req.headers.get('x-internal-secret');
-    
-    if (!INTERNAL_SECRET || providedSecret !== INTERNAL_SECRET) {
-      console.error('[create-demo-workorders] Unauthorized: Invalid or missing internal secret');
+    // Get JWT token from authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized: This endpoint requires internal authentication' }),
+        JSON.stringify({ error: 'Unauthorized: No authorization header' }),
         { 
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -26,6 +23,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Create Supabase client with user's JWT for auth check
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    );
+
+    // Verify user is authenticated
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Invalid token' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log(`[create-demo-workorders] Authenticated user: ${user.email}`);
+
+    // Use service role for admin operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
