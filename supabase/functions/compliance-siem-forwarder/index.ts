@@ -84,8 +84,8 @@ async function forwardRecentEvents(supabase: any, provider: string, config: any)
   if (secError) throw secError;
 
   const allEvents: SIEMEvent[] = [
-    ...auditLogs.map(log => convertAuditLogToSIEM(log)),
-    ...securityEvents.map(event => convertSecurityEventToSIEM(event))
+    ...auditLogs.map((log: any) => convertAuditLogToSIEM(log)),
+    ...securityEvents.map((event: any) => convertSecurityEventToSIEM(event))
   ];
 
   let successCount = 0;

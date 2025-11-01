@@ -1,10 +1,21 @@
 # Guardian Flow - Product Documentation
 
-**Version:** 6.0.1  
-**Last Updated:** October 31, 2025  
+**Version:** 6.1.0  
+**Last Updated:** November 1, 2025  
 **Status:** Production Ready
 
 ## 📋 Recent Updates
+
+### v6.1.0 SOC 2 & ISO 27001 Compliance Suite (November 1, 2025)
+- **Compliance Automation**: Comprehensive SOC 2 Type II and ISO 27001:2022 automation system
+- **40+ Database Tables**: Complete compliance infrastructure with 100% RLS coverage
+- **7-Year Audit Archive**: Immutable, partitioned audit log retention (2025-2031)
+- **JIT Access Control**: Temporary privileged access with automated quarterly reviews
+- **Vulnerability Management**: SLA-driven vulnerability tracking with auto-ticketing
+- **SIEM Integration**: Real-time forwarding to Datadog, Splunk, Azure Sentinel
+- **Incident Response**: P0-P3 classification with playbook automation
+- **Training & Awareness**: Phishing campaigns and compliance training tracking
+- **Evidence Collection**: Automated compliance evidence gathering for audits
 
 ### v6.0.1 Technical Patch (October 31, 2025)
 - **React Initialization**: Fixed edge case in AuthContext initialization with explicit React imports

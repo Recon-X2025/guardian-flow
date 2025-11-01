@@ -1,12 +1,29 @@
-# Guardian Flow v6.0 - Platform as a Service (PaaS)
+# Guardian Flow v6.1 - Platform as a Service (PaaS)
 
-**Version:** 6.0.1 - PaaS Evolution  
-**Date:** October 31, 2025  
-**Status:** Production Ready  
-**Major Update:** Full PaaS Capabilities - API Gateway, Developer Console, Multi-Tenant Billing  
-**Latest Patch:** v6.0.1 - React Initialization Stability (Oct 31, 2025)
+**Version:** 6.1.0 - Compliance-Ready PaaS  
+**Date:** November 1, 2025  
+**Status:** Production Ready - SOC 2 & ISO 27001 Audit Prepared  
+**Major Update:** Comprehensive Compliance Automation System  
+**Latest Release:** v6.1.0 - SOC 2/ISO 27001 Compliance Suite (Nov 1, 2025)
 
 ---
+
+## 🛡️ v6.1.0 Compliance Suite (November 1, 2025)
+
+### SOC 2 & ISO 27001 Automation System
+- **40+ Compliance Tables**: Complete infrastructure for SOC 2 Type II and ISO 27001:2022
+- **Immutable Audit Logs**: 7-year retention with tamper-proof hashing (partitioned 2025-2031)
+- **JIT Access Control**: Temporary privileged access with approval workflows and auto-expiration
+- **Automated Access Reviews**: Quarterly campaigns with auto-revoke for missed reviews
+- **Vulnerability Management**: SLA-driven tracking (Critical: 24h, High: 7d, Medium: 30d, Low: 90d)
+- **SIEM Integration**: Real-time event forwarding to Datadog, Splunk, Azure Sentinel
+- **Incident Response**: P0-P3 severity classification with playbook automation
+- **Training Management**: Security awareness courses and phishing simulation campaigns
+- **Evidence Collection**: Automated gathering of audit evidence for compliance frameworks
+- **Compliance Metrics**: Real-time KPI tracking (MFA enrollment, training completion, vulnerability SLA)
+- **6 Edge Functions**: Complete automation for access reviews, vulnerability management, SIEM forwarding, evidence collection, incident management, and training
+- **100% RLS Coverage**: All compliance tables secured with row-level security policies
+- **Impact**: Platform is now audit-ready for SOC 2 Type II and ISO 27001:2022 certifications
 
 ## 🔧 v6.0.1 Patch Notes (October 31, 2025)
 
