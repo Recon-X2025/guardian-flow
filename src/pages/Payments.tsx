@@ -83,10 +83,31 @@ export default function Payments() {
   };
 
   const handleProcessPayment = async (invoiceId: string) => {
-    toast({
-      title: 'Payment Gateway Integration',
-      description: 'Stripe or custom payment gateway integration pending. Configure in Settings.',
-    });
+    try {
+      const response = await supabase.functions.invoke('process-invoice-payment', {
+        body: {
+          invoiceId,
+          paymentMethod: 'credit_card',
+          transactionId: `TXN-${Date.now()}`,
+          amount: invoices.find(inv => inv.id === invoiceId)?.total_amount
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      toast({
+        title: 'Payment Processed',
+        description: 'Payment completed successfully',
+      });
+
+      fetchPendingPayments();
+    } catch (error: any) {
+      toast({
+        title: 'Payment Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const totalPending = invoices.filter(inv => ['draft', 'sent'].includes(inv.status)).reduce((sum, inv) => sum + Number(inv.total_amount), 0);

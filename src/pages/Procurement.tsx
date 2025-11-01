@@ -7,6 +7,7 @@ import { ShoppingCart, Package, AlertTriangle, TrendingUp, Search } from 'lucide
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
+import { PurchaseOrderDialog } from '@/components/PurchaseOrderDialog';
 
 export default function Procurement() {
   const { toast } = useToast();
@@ -15,6 +16,8 @@ export default function Procurement() {
   const [stockLevels, setStockLevels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [poDialogOpen, setPoDialogOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
@@ -43,11 +46,9 @@ export default function Procurement() {
     }
   };
 
-  const reorderItem = async (itemId: string, quantity: number) => {
-    toast({
-      title: "Purchase order created",
-      description: `Created PO for ${quantity} units`,
-    });
+  const handleCreatePO = (stock: any) => {
+    setSelectedStock(stock);
+    setPoDialogOpen(true);
   };
 
   const lowStockItems = stockLevels.filter(sl => 
@@ -177,7 +178,7 @@ export default function Procurement() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => reorderItem(stock.item_id, (stock.min_threshold || 10) * 2)}
+                        onClick={() => handleCreatePO(stock)}
                       >
                         <ShoppingCart className="h-3 w-3 mr-2" />
                         Create Purchase Order
@@ -196,6 +197,16 @@ export default function Procurement() {
           </div>
         </CardContent>
       </Card>
+
+      {selectedStock && (
+        <PurchaseOrderDialog
+          open={poDialogOpen}
+          onOpenChange={setPoDialogOpen}
+          item={selectedStock.item}
+          stockLevel={selectedStock}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }

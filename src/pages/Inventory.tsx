@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 import { AddInventoryItemDialog } from '@/components/AddInventoryItemDialog';
+import { StockAdjustmentDialog } from '@/components/StockAdjustmentDialog';
 
 export default function Inventory() {
   const { toast } = useToast();
@@ -15,6 +16,8 @@ export default function Inventory() {
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
 
   useEffect(() => {
     fetchInventory();
@@ -178,9 +181,16 @@ export default function Inventory() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setAdjustDialogOpen(true);
+                        }}
+                      >
                         <Package className="h-4 w-4 mr-1" />
-                        Reserve
+                        Adjust Stock
                       </Button>
                       <Button variant="ghost" size="sm">
                         View Details
@@ -233,6 +243,16 @@ export default function Inventory() {
         onOpenChange={setAddDialogOpen}
         onSuccess={fetchInventory}
       />
+
+      {selectedItem && (
+        <StockAdjustmentDialog
+          open={adjustDialogOpen}
+          onOpenChange={setAdjustDialogOpen}
+          item={selectedItem}
+          stockLevel={selectedItem.stock_levels?.[0]}
+          onSuccess={fetchInventory}
+        />
+      )}
     </div>
   );
 }

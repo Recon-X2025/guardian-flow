@@ -6,12 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Shield, CheckCircle2, XCircle, AlertCircle, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { WarrantyDialog } from '@/components/WarrantyDialog';
 
 export default function Warranty() {
   const { toast } = useToast();
   const [warranties, setWarranties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchSerial, setSearchSerial] = useState('');
+  const [warrantyDialogOpen, setWarrantyDialogOpen] = useState(false);
+  const [selectedWarranty, setSelectedWarranty] = useState<any>(null);
 
   useEffect(() => {
     fetchWarranties();
@@ -84,7 +87,7 @@ export default function Warranty() {
           <h1 className="text-3xl font-bold text-foreground">Warranty & RMA Management</h1>
           <p className="text-muted-foreground">Track warranty coverage and manage RMA requests</p>
         </div>
-        <Button>
+        <Button onClick={() => { setSelectedWarranty(null); setWarrantyDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Register Warranty
         </Button>
@@ -207,8 +210,12 @@ export default function Warranty() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        View Details
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => { setSelectedWarranty(warranty); setWarrantyDialogOpen(true); }}
+                      >
+                        Edit
                       </Button>
                       <Button variant="ghost" size="sm">
                         Create RMA
@@ -262,6 +269,13 @@ export default function Warranty() {
           </div>
         </CardContent>
       </Card>
+
+      <WarrantyDialog
+        open={warrantyDialogOpen}
+        onOpenChange={setWarrantyDialogOpen}
+        warranty={selectedWarranty}
+        onSuccess={fetchWarranties}
+      />
     </div>
   );
 }
