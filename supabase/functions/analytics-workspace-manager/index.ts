@@ -38,16 +38,14 @@ serve(async (req) => {
           .from('analytics_workspaces')
           .select('*')
           .order('created_at', { ascending: false });
-
         if (error) throw error;
-
         return new Response(JSON.stringify({ workspaces }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       case 'create': {
-        const { name, description, settings, tags } = payload;
+        const { name, description, workspace_type = 'custom', storage_quota_gb = 1000, query_quota_per_day = 10000 } = payload || {};
 
         const { data: profile } = await supabaseClient
           .from('profiles')
@@ -55,28 +53,20 @@ serve(async (req) => {
           .eq('id', user.id)
           .single();
 
-        if (!profile?.tenant_id) {
-          return new Response(JSON.stringify({ error: 'User must belong to a tenant' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
         const { data: workspace, error } = await supabaseClient
           .from('analytics_workspaces')
           .insert({
             name,
             description,
-            settings: settings || {},
-            tags: tags || [],
-            tenant_id: profile.tenant_id,
+            workspace_type,
+            storage_quota_gb,
+            query_quota_per_day,
+            tenant_id: profile?.tenant_id ?? null,
             created_by: user.id,
           })
           .select()
           .single();
-
         if (error) throw error;
-
         return new Response(JSON.stringify({ workspace }), {
           status: 201,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
