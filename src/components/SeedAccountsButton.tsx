@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, Check, AlertCircle, LogIn } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { MODULE_RELEVANT_ROLES, type AuthModule } from '@/lib/authRedirects';
 
 interface SeedResult {
   created: string[];
@@ -22,7 +23,7 @@ interface TestAccount {
 
 interface SeedAccountsButtonProps {
   onSelectAccount?: (email: string, password: string) => void;
-  module?: 'platform' | 'fsm' | 'asset' | 'forecasting' | 'fraud' | 'marketplace' | 'analytics' | 'customer' | 'training';
+  module?: AuthModule;
 }
 
 const ALL_TEST_ACCOUNTS: TestAccount[] = [
@@ -58,27 +59,14 @@ const ALL_TEST_ACCOUNTS: TestAccount[] = [
   { email: 'trainer@techcorp.com', password: 'Trainer123!', role: 'trainer', name: 'Training Coordinator' },
 ];
 
-const MODULE_ROLE_MAP: Record<string, string[]> = {
-  platform: ['sys_admin', 'tenant_admin', 'ops_manager', 'finance_manager', 'fraud_investigator', 
-             'partner_admin', 'technician', 'customer', 'dispatcher', 'auditor', 'support_agent', 'developer'],
-  fsm: ['technician', 'dispatcher', 'ops_manager', 'support_agent'],
-  asset: ['technician', 'ops_manager', 'partner_admin'],
-  forecasting: ['ops_manager', 'dispatcher', 'ml_ops', 'data_analyst'],
-  fraud: ['fraud_investigator', 'auditor'],
-  marketplace: ['partner_admin', 'developer', 'ops_manager'],
-  analytics: ['finance_manager', 'ops_manager', 'auditor', 'data_analyst'],
-  customer: ['customer', 'support_agent'],
-  training: ['technician', 'support_agent', 'trainer']
-};
-
 export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: SeedAccountsButtonProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
   const [showAccounts, setShowAccounts] = useState(false);
   const { toast } = useToast();
 
-  // Filter accounts based on module
-  const relevantRoles = MODULE_ROLE_MAP[module] || MODULE_ROLE_MAP.platform;
+  // Filter accounts based on module using centralized role mapping
+  const relevantRoles = MODULE_RELEVANT_ROLES[module];
   const TEST_ACCOUNTS = ALL_TEST_ACCOUNTS.filter(account => 
     relevantRoles.includes(account.role)
   );
