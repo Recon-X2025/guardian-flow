@@ -12,6 +12,8 @@ import { AnalyticsJITAccess } from "@/components/analytics-platform/AnalyticsJIT
 import { AnalyticsCompliance } from "@/components/analytics-platform/AnalyticsCompliance";
 import { AnalyticsAuditLogs } from "@/components/analytics-platform/AnalyticsAuditLogs";
 import { AnalyticsSecurity } from "@/components/analytics-platform/AnalyticsSecurity";
+import { AnalyticsDataQuality } from "@/components/analytics-platform/AnalyticsDataQuality";
+import { AnalyticsAnomalies } from "@/components/analytics-platform/AnalyticsAnomalies";
 
 export default function AnalyticsPlatform() {
   const [activeTab, setActiveTab] = useState("workspaces");
@@ -96,9 +98,11 @@ export default function AnalyticsPlatform() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="workspaces">Workspaces</TabsTrigger>
             <TabsTrigger value="data-sources">Data Sources</TabsTrigger>
+            <TabsTrigger value="data-quality">Data Quality</TabsTrigger>
+            <TabsTrigger value="anomalies">Anomalies</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="access">JIT Access</TabsTrigger>
             <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -111,6 +115,14 @@ export default function AnalyticsPlatform() {
 
           <TabsContent value="data-sources" className="space-y-4">
             <AnalyticsDataSources />
+          </TabsContent>
+
+          <TabsContent value="data-quality" className="space-y-4">
+            <AnalyticsDataQuality workspaceId={workspaces?.[0]?.id || ''} />
+          </TabsContent>
+
+          <TabsContent value="anomalies" className="space-y-4">
+            <AnalyticsAnomalies workspaceId={workspaces?.[0]?.id || ''} />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-4">

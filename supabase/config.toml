@@ -176,3 +176,15 @@ verify_jwt = true
 
 [functions.analytics-alert-manager]
 verify_jwt = true
+
+[functions.analytics-data-quality]
+verify_jwt = true
+
+[functions.analytics-anomaly-detector]
+verify_jwt = true
+
+[functions.analytics-template-manager]
+verify_jwt = true
+
+[functions.analytics-api-gateway]
+verify_jwt = true
