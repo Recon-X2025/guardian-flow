@@ -20,6 +20,7 @@ import {
   Truck,
   Building2,
   Store,
+  Database,
 } from "lucide-react";
 
 const industries = [
@@ -141,6 +142,13 @@ const modules = [
     title: "Video Training & Knowledge Base",
     description: "Comprehensive training resources, video tutorials, and AI-powered knowledge base for rapid team onboarding.",
     path: "/modules/video-training",
+  },
+  {
+    id: "analytics-platform",
+    icon: Database,
+    title: "Enterprise Analytics Platform",
+    description: "Secure, scalable data analytics with ML orchestration, data quality validation, anomaly detection, and SOC2/ISO27001 compliance.",
+    path: "/analytics-platform",
   },
 ];
 
