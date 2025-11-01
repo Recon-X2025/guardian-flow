@@ -80,6 +80,7 @@ import VideoTrainingModule from "./pages/modules/VideoTrainingModule";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import AnalyticsPlatform from "./pages/AnalyticsPlatform";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();

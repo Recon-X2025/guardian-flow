@@ -149,3 +149,12 @@ verify_jwt = true
 
 [functions.template-render]
 verify_jwt = true
+
+[functions.analytics-workspace-manager]
+verify_jwt = true
+
+[functions.analytics-jit-access]
+verify_jwt = true
+
+[functions.analytics-compliance-evidence]
+verify_jwt = true
