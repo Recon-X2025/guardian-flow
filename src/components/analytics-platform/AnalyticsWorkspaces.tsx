@@ -44,8 +44,16 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
     try {
       const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
         body: {
-          action: "create_workspace",
-          ...formData,
+          action: "create",
+          payload: {
+            name: formData.name,
+            description: formData.description,
+            settings: {
+              storage_quota_gb: formData.storage_quota_gb,
+              query_quota_per_day: formData.query_quota_per_day,
+            },
+            tags: [formData.workspace_type],
+          },
         },
       });
 

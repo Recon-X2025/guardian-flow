@@ -23,10 +23,10 @@ export default function AnalyticsPlatform() {
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
-        body: { action: "get_workspaces" },
+        body: { action: "list" },
       });
       if (error) throw error;
-      return data.workspaces;
+      return data.workspaces || [];
     },
   });
 
