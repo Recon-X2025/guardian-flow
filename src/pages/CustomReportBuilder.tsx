@@ -43,18 +43,6 @@ export default function CustomReportBuilder() {
     },
   });
 
-  const { data: templates } = useQuery({
-    queryKey: ['report-templates'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('report_templates')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const createReportMutation = useMutation({
     mutationFn: async (reportData: any) => {
       const { data, error } = await supabase.functions.invoke('custom-report-builder', {
@@ -330,28 +318,6 @@ export default function CustomReportBuilder() {
           </CardContent>
         </Card>
       </div>
-
-      {templates && templates.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Report Templates</CardTitle>
-            <CardDescription>Pre-built report templates to get started</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {templates.map((template: any) => (
-                <div key={template.id} className="border rounded-lg p-4 hover:bg-accent cursor-pointer">
-                  <h4 className="font-medium">{template.name}</h4>
-                  <p className="text-sm text-muted-foreground">{template.description}</p>
-                  <div className="mt-2">
-                    <span className="text-xs bg-secondary px-2 py-1 rounded">{template.category}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

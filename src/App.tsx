@@ -98,6 +98,8 @@ import TrainingAuth from "./pages/auth/TrainingAuth";
 import TrainingPlatform from "./pages/TrainingPlatform";
 import ScheduleOptimizer from "./pages/ScheduleOptimizer";
 import NLPQueryInterface from "./pages/NLPQueryInterface";
+import CustomReportBuilder from "./pages/CustomReportBuilder";
+import MaintenanceCalendar from "./pages/MaintenanceCalendar";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();
@@ -408,6 +410,22 @@ const App = () => (
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
                       <AppLayout><NLPQueryInterface /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/custom-reports" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AppLayout><CustomReportBuilder /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/maintenance-calendar" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                      <AppLayout><MaintenanceCalendar /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
