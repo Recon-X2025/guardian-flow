@@ -158,3 +158,21 @@ verify_jwt = true
 
 [functions.analytics-compliance-evidence]
 verify_jwt = true
+
+[functions.analytics-data-ingestion]
+verify_jwt = true
+
+[functions.analytics-pipeline-executor]
+verify_jwt = true
+
+[functions.analytics-query-executor]
+verify_jwt = true
+
+[functions.analytics-ml-orchestrator]
+verify_jwt = true
+
+[functions.analytics-dashboard-manager]
+verify_jwt = true
+
+[functions.analytics-alert-manager]
+verify_jwt = true

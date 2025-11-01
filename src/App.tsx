@@ -397,6 +397,14 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
+                <Route path="/analytics-platform" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["analytics:view"]} showError={true}>
+                      <AnalyticsPlatform />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
                 <Route path="/forecast" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
