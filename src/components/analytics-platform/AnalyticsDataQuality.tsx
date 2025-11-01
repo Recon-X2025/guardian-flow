@@ -14,7 +14,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
     queryKey: ["analytics-quality-rules", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("analytics-data-quality", {
-        body: { action: "get_rules", workspaceId }
+        body: { action: "get_rules", payload: { workspaceId } }
       });
       if (error) throw error;
       return data.rules || [];
@@ -25,7 +25,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
     queryKey: ["analytics-quality-results", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("analytics-data-quality", {
-        body: { action: "get_quality_results", workspaceId }
+        body: { action: "get_quality_results", payload: { workspaceId } }
       });
       if (error) throw error;
       return data.results || [];
@@ -35,7 +35,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
   const runCheckMutation = useMutation({
     mutationFn: async (ruleId: string) => {
       const { data, error } = await supabase.functions.invoke("analytics-data-quality", {
-        body: { action: "run_quality_check", ruleId }
+        body: { action: "run_quality_check", payload: { ruleId } }
       });
       if (error) throw error;
       return data;

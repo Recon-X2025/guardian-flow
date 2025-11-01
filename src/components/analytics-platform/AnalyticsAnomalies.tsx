@@ -26,7 +26,7 @@ export function AnalyticsAnomalies({ workspaceId }: { workspaceId: string }) {
     queryKey: ["analytics-anomalies", workspaceId],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("analytics-anomaly-detector", {
-        body: { action: "get_anomalies", workspaceId }
+        body: { action: "get_anomalies", payload: { workspaceId } }
       });
       if (error) throw error;
       return data.anomalies || [];
@@ -36,7 +36,7 @@ export function AnalyticsAnomalies({ workspaceId }: { workspaceId: string }) {
   const acknowledgeMutation = useMutation({
     mutationFn: async ({ anomalyId, notes }: { anomalyId: string; notes: string }) => {
       const { data, error } = await supabase.functions.invoke("analytics-anomaly-detector", {
-        body: { action: "acknowledge_anomaly", anomalyId, notes }
+        body: { action: "acknowledge_anomaly", payload: { anomalyId, notes } }
       });
       if (error) throw error;
       return data;

@@ -48,11 +48,9 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
           payload: {
             name: formData.name,
             description: formData.description,
-            settings: {
-              storage_quota_gb: formData.storage_quota_gb,
-              query_quota_per_day: formData.query_quota_per_day,
-            },
-            tags: [formData.workspace_type],
+            workspace_type: formData.workspace_type,
+            storage_quota_gb: formData.storage_quota_gb,
+            query_quota_per_day: formData.query_quota_per_day,
           },
         },
       });
