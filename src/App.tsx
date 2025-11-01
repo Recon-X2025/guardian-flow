@@ -95,6 +95,9 @@ import MarketplaceAuth from "./pages/auth/MarketplaceAuth";
 import AnalyticsAuth from "./pages/auth/AnalyticsAuth";
 import CustomerAuth from "./pages/auth/CustomerAuth";
 import TrainingAuth from "./pages/auth/TrainingAuth";
+import TrainingPlatform from "./pages/TrainingPlatform";
+import ScheduleOptimizer from "./pages/ScheduleOptimizer";
+import NLPQueryInterface from "./pages/NLPQueryInterface";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();
@@ -383,6 +386,28 @@ const App = () => (
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
                       <AppLayout><KnowledgeBase /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/training" element={
+                  <ProtectedRoute>
+                    <AppLayout><TrainingPlatform /></AppLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/schedule-optimizer" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                      <AppLayout><ScheduleOptimizer /></AppLayout>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/nlp-query" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                      <AppLayout><NLPQueryInterface /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
