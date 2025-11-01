@@ -12,6 +12,22 @@ export type AuthModule =
   | 'training';
 
 /**
+ * Maps each auth module to the relevant roles/personas for that module
+ */
+export const MODULE_RELEVANT_ROLES: Record<AuthModule, string[]> = {
+  platform: ['sys_admin', 'tenant_admin', 'ops_manager', 'finance_manager', 'fraud_investigator', 
+             'partner_admin', 'technician', 'customer', 'dispatcher', 'auditor', 'support_agent'],
+  fsm: ['technician', 'dispatcher', 'ops_manager', 'support_agent'],
+  asset: ['technician', 'ops_manager', 'partner_admin'],
+  forecasting: ['ops_manager', 'dispatcher', 'ml_ops'],
+  fraud: ['fraud_investigator', 'auditor', 'compliance_officer'],
+  marketplace: ['partner_admin', 'developer', 'ops_manager'],
+  analytics: ['finance_manager', 'ops_manager', 'auditor', 'data_analyst'],
+  customer: ['customer', 'support_agent'],
+  training: ['technician', 'support_agent', 'trainer']
+};
+
+/**
  * Determines the best redirect route based on both the authentication module
  * and the user's role. Prioritizes module context while respecting role permissions.
  */

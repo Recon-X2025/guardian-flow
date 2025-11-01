@@ -28,7 +28,7 @@ export default function ForecastingAuth() {
   return (
     <ModularAuthLayout config={config}>
       <div className="space-y-6">
-        <SeedAccountsButton onSelectAccount={handleSelectAccount} />
+        <SeedAccountsButton onSelectAccount={handleSelectAccount} module="forecasting" />
         <EnhancedAuthForm 
           config={config} 
           onSuccess={handleAuthSuccess}

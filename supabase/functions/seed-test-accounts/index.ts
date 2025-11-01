@@ -16,15 +16,35 @@ function generateTestAccounts() {
   }> = [
     // Core platform accounts
     { email: 'admin@techcorp.com', password: 'Admin123!', fullName: 'System Admin', role: 'sys_admin', tenantSlug: null },
+    { email: 'tenant.admin@techcorp.com', password: 'Admin123!', fullName: 'Tenant Admin', role: 'tenant_admin', tenantSlug: null },
     { email: 'ops@techcorp.com', password: 'Ops123!', fullName: 'Operations Manager', role: 'ops_manager', tenantSlug: null },
+    
+    // Finance & Analytics
     { email: 'finance@techcorp.com', password: 'Finance123!', fullName: 'Finance Manager', role: 'finance_manager', tenantSlug: null },
+    { email: 'analyst@techcorp.com', password: 'Analyst123!', fullName: 'Data Analyst', role: 'data_analyst', tenantSlug: null },
+    
+    // Fraud & Compliance
     { email: 'fraud@techcorp.com', password: 'Fraud123!', fullName: 'Fraud Investigator', role: 'fraud_investigator', tenantSlug: null },
-    { email: 'dispatch@techcorp.com', password: 'Dispatch123!', fullName: 'Dispatcher', role: 'dispatcher', tenantSlug: null },
-    { email: 'customer@example.com', password: 'Customer123!', fullName: 'Customer User', role: 'customer', tenantSlug: null },
+    { email: 'auditor@techcorp.com', password: 'Auditor123!', fullName: 'Compliance Auditor', role: 'auditor', tenantSlug: null },
+    
+    // Field Service
+    { email: 'dispatch@techcorp.com', password: 'Dispatch123!', fullName: 'Service Dispatcher', role: 'dispatcher', tenantSlug: null },
+    
+    // Developer & Marketplace
+    { email: 'developer@techcorp.com', password: 'Dev123!', fullName: 'Platform Developer', role: 'developer', tenantSlug: null },
+    
+    // AI & ML
     { email: 'mlops@techcorp.com', password: 'MLOps123!', fullName: 'ML Operations', role: 'ml_ops', tenantSlug: null },
+    
+    // Billing & Support
     { email: 'billing@techcorp.com', password: 'Billing123!', fullName: 'Billing Agent', role: 'billing_agent', tenantSlug: null },
-    { email: 'auditor@techcorp.com', password: 'Auditor123!', fullName: 'Auditor', role: 'auditor', tenantSlug: null },
     { email: 'support@techcorp.com', password: 'Support123!', fullName: 'Support Agent', role: 'support_agent', tenantSlug: null },
+    
+    // Training
+    { email: 'trainer@techcorp.com', password: 'Trainer123!', fullName: 'Training Coordinator', role: 'trainer', tenantSlug: null },
+    
+    // Customer
+    { email: 'customer@example.com', password: 'Customer123!', fullName: 'Customer User', role: 'customer', tenantSlug: null },
   ];
 
   // 4 Partner organizations with 1 admin + 40 engineers each
