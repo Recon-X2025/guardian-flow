@@ -255,6 +255,81 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_anomalies: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          anomaly_type: string
+          confidence_score: number
+          context: Json | null
+          created_at: string
+          data_source_id: string | null
+          detected_at: string
+          detected_value: number | null
+          deviation_score: number
+          expected_value: number | null
+          id: string
+          metric_name: string
+          resolution_notes: string | null
+          severity: string
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          anomaly_type: string
+          confidence_score: number
+          context?: Json | null
+          created_at?: string
+          data_source_id?: string | null
+          detected_at?: string
+          detected_value?: number | null
+          deviation_score: number
+          expected_value?: number | null
+          id?: string
+          metric_name: string
+          resolution_notes?: string | null
+          severity?: string
+          workspace_id: string
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          anomaly_type?: string
+          confidence_score?: number
+          context?: Json | null
+          created_at?: string
+          data_source_id?: string | null
+          detected_at?: string
+          detected_value?: number | null
+          deviation_score?: number
+          expected_value?: number | null
+          id?: string
+          metric_name?: string
+          resolution_notes?: string | null
+          severity?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_anomalies_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_anomalies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_cache: {
         Row: {
           cache_key: string
@@ -281,6 +356,50 @@ export type Database = {
           tenant_id?: string | null
         }
         Relationships: []
+      }
+      analytics_compliance_checks: {
+        Row: {
+          control_id: string
+          created_at: string
+          evidence: Json | null
+          framework: string
+          id: string
+          last_checked_at: string
+          next_check_at: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          control_id: string
+          created_at?: string
+          evidence?: Json | null
+          framework: string
+          id?: string
+          last_checked_at?: string
+          next_check_at?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          control_id?: string
+          created_at?: string
+          evidence?: Json | null
+          framework?: string
+          id?: string
+          last_checked_at?: string
+          next_check_at?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_compliance_checks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analytics_dashboards: {
         Row: {
@@ -317,6 +436,278 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      analytics_data_profiles: {
+        Row: {
+          avg_value: number | null
+          column_name: string | null
+          created_at: string
+          data_source_id: string | null
+          data_type: string | null
+          distinct_count: number | null
+          distinct_percentage: number | null
+          id: string
+          max_value: string | null
+          min_value: string | null
+          null_count: number | null
+          null_percentage: number | null
+          pattern_analysis: Json | null
+          profiled_at: string
+          row_count: number | null
+          table_name: string
+          value_distribution: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          avg_value?: number | null
+          column_name?: string | null
+          created_at?: string
+          data_source_id?: string | null
+          data_type?: string | null
+          distinct_count?: number | null
+          distinct_percentage?: number | null
+          id?: string
+          max_value?: string | null
+          min_value?: string | null
+          null_count?: number | null
+          null_percentage?: number | null
+          pattern_analysis?: Json | null
+          profiled_at?: string
+          row_count?: number | null
+          table_name: string
+          value_distribution?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          avg_value?: number | null
+          column_name?: string | null
+          created_at?: string
+          data_source_id?: string | null
+          data_type?: string | null
+          distinct_count?: number | null
+          distinct_percentage?: number | null
+          id?: string
+          max_value?: string | null
+          min_value?: string | null
+          null_count?: number | null
+          null_percentage?: number | null
+          pattern_analysis?: Json | null
+          profiled_at?: string
+          row_count?: number | null
+          table_name?: string
+          value_distribution?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_data_profiles_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_data_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_data_quality_results: {
+        Row: {
+          created_at: string
+          details: Json | null
+          error_samples: Json | null
+          execution_time: string
+          id: string
+          passed: boolean
+          records_failed: number | null
+          records_tested: number | null
+          remediation_suggestions: string | null
+          rule_id: string
+          score: number | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          error_samples?: Json | null
+          execution_time?: string
+          id?: string
+          passed: boolean
+          records_failed?: number | null
+          records_tested?: number | null
+          remediation_suggestions?: string | null
+          rule_id: string
+          score?: number | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          error_samples?: Json | null
+          execution_time?: string
+          id?: string
+          passed?: boolean
+          records_failed?: number | null
+          records_tested?: number | null
+          remediation_suggestions?: string | null
+          rule_id?: string
+          score?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_data_quality_results_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_quality_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_data_quality_results_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_data_quality_rules: {
+        Row: {
+          column_name: string | null
+          created_at: string
+          created_by: string
+          data_source_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          name: string
+          rule_definition: Json
+          rule_type: string
+          schedule_cron: string | null
+          severity: string
+          table_name: string
+          tenant_id: string
+          threshold_value: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          column_name?: string | null
+          created_at?: string
+          created_by: string
+          data_source_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name: string
+          rule_definition?: Json
+          rule_type: string
+          schedule_cron?: string | null
+          severity?: string
+          table_name: string
+          tenant_id: string
+          threshold_value?: number | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          column_name?: string | null
+          created_at?: string
+          created_by?: string
+          data_source_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          rule_definition?: Json
+          rule_type?: string
+          schedule_cron?: string | null
+          severity?: string
+          table_name?: string
+          tenant_id?: string
+          threshold_value?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_data_quality_rules_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_data_quality_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_data_sources: {
+        Row: {
+          connection_config: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          last_sync_at: string | null
+          name: string
+          source_type: string
+          status: string
+          sync_frequency: string | null
+          tenant_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          connection_config?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name: string
+          source_type: string
+          status?: string
+          sync_frequency?: string | null
+          tenant_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          connection_config?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name?: string
+          source_type?: string
+          status?: string
+          sync_frequency?: string | null
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_data_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analytics_events: {
         Row: {
@@ -375,6 +766,400 @@ export type Database = {
           id?: string
           record_count?: number
           tenant_id?: string
+        }
+        Relationships: []
+      }
+      analytics_jit_access_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          duration_hours: number
+          expires_at: string | null
+          id: string
+          justification: string
+          requested_permissions: string[]
+          requester_id: string
+          resource_id: string
+          resource_type: string
+          revoked_at: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          duration_hours?: number
+          expires_at?: string | null
+          id?: string
+          justification: string
+          requested_permissions: string[]
+          requester_id: string
+          resource_id: string
+          resource_type: string
+          revoked_at?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          duration_hours?: number
+          expires_at?: string | null
+          id?: string
+          justification?: string
+          requested_permissions?: string[]
+          requester_id?: string
+          resource_id?: string
+          resource_type?: string
+          revoked_at?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_jit_access_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_ml_models: {
+        Row: {
+          artifact_uri: string | null
+          config: Json
+          created_at: string
+          created_by: string
+          deployed_at: string | null
+          description: string | null
+          framework: string
+          id: string
+          metrics: Json | null
+          model_type: string
+          name: string
+          status: string
+          tenant_id: string
+          training_data_source_id: string | null
+          updated_at: string
+          version: string
+          workspace_id: string
+        }
+        Insert: {
+          artifact_uri?: string | null
+          config?: Json
+          created_at?: string
+          created_by: string
+          deployed_at?: string | null
+          description?: string | null
+          framework: string
+          id?: string
+          metrics?: Json | null
+          model_type: string
+          name: string
+          status?: string
+          tenant_id: string
+          training_data_source_id?: string | null
+          updated_at?: string
+          version?: string
+          workspace_id: string
+        }
+        Update: {
+          artifact_uri?: string | null
+          config?: Json
+          created_at?: string
+          created_by?: string
+          deployed_at?: string | null
+          description?: string | null
+          framework?: string
+          id?: string
+          metrics?: Json | null
+          model_type?: string
+          name?: string
+          status?: string
+          tenant_id?: string
+          training_data_source_id?: string | null
+          updated_at?: string
+          version?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_ml_models_training_data_source_id_fkey"
+            columns: ["training_data_source_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_ml_models_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_pipeline_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          execution_logs: Json | null
+          id: string
+          pipeline_id: string
+          records_processed: number | null
+          started_at: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_logs?: Json | null
+          id?: string
+          pipeline_id: string
+          records_processed?: number | null
+          started_at?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          execution_logs?: Json | null
+          id?: string
+          pipeline_id?: string
+          records_processed?: number | null
+          started_at?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_pipeline_runs_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_pipeline_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_pipelines: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          schedule: string | null
+          source_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          schedule?: string | null
+          source_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          schedule?: string | null
+          source_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_pipelines_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_pipelines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_query_history: {
+        Row: {
+          data_source_id: string | null
+          error_message: string | null
+          executed_at: string
+          execution_time_ms: number | null
+          id: string
+          query_text: string
+          rows_returned: number | null
+          status: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          data_source_id?: string | null
+          error_message?: string | null
+          executed_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          query_text: string
+          rows_returned?: number | null
+          status?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          data_source_id?: string | null
+          error_message?: string | null
+          executed_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          query_text?: string
+          rows_returned?: number | null
+          status?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_query_history_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_query_history_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_security_scans: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          findings: Json | null
+          id: string
+          risk_score: number | null
+          scan_type: string
+          started_at: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          findings?: Json | null
+          id?: string
+          risk_score?: number | null
+          scan_type: string
+          started_at?: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          findings?: Json | null
+          id?: string
+          risk_score?: number | null
+          scan_type?: string
+          started_at?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_security_scans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "analytics_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_workspaces: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          query_quota_per_day: number
+          status: string
+          storage_quota_gb: number
+          tenant_id: string
+          updated_at: string
+          workspace_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          query_quota_per_day?: number
+          status?: string
+          storage_quota_gb?: number
+          tenant_id: string
+          updated_at?: string
+          workspace_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          query_quota_per_day?: number
+          status?: string
+          storage_quota_gb?: number
+          tenant_id?: string
+          updated_at?: string
+          workspace_type?: string
         }
         Relationships: []
       }
