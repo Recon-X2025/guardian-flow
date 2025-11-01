@@ -148,7 +148,7 @@ const modules = [
     icon: Database,
     title: "Enterprise Analytics Platform",
     description: "Secure, scalable data analytics with ML orchestration, data quality validation, anomaly detection, and SOC2/ISO27001 compliance.",
-    path: "/analytics-platform",
+    path: "/modules/analytics-platform",
   },
 ];
 

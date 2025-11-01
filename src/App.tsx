@@ -77,6 +77,7 @@ import MarketplaceModule from "./pages/modules/MarketplaceModule";
 import AnalyticsBIModule from "./pages/modules/AnalyticsBIModule";
 import CustomerPortalModule from "./pages/modules/CustomerPortalModule";
 import VideoTrainingModule from "./pages/modules/VideoTrainingModule";
+import AnalyticsPlatformModule from "./pages/modules/AnalyticsPlatformModule";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -104,6 +105,7 @@ const App = () => (
                 <Route path="/modules/analytics-bi" element={<AnalyticsBIModule />} />
                 <Route path="/modules/customer-portal" element={<CustomerPortalModule />} />
                 <Route path="/modules/video-training" element={<VideoTrainingModule />} />
+                <Route path="/modules/analytics-platform" element={<AnalyticsPlatformModule />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
