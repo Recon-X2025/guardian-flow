@@ -82,6 +82,10 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import AnalyticsPlatform from "./pages/AnalyticsPlatform";
 import AnalyticsPlatformAuth from "./pages/AnalyticsPlatformAuth";
+import IndustryOnboarding from "./pages/IndustryOnboarding";
+import ImageForensicsModule from "./pages/modules/ImageForensicsModule";
+import EnhancedSchedulerModule from "./pages/modules/EnhancedSchedulerModule";
+import AdvancedComplianceModule from "./pages/modules/AdvancedComplianceModule";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();
@@ -106,6 +110,10 @@ const App = () => (
                 <Route path="/modules/customer-portal" element={<CustomerPortalModule />} />
                 <Route path="/modules/video-training" element={<VideoTrainingModule />} />
                 <Route path="/modules/analytics-platform" element={<AnalyticsPlatformModule />} />
+                <Route path="/modules/image-forensics" element={<ImageForensicsModule />} />
+                <Route path="/modules/enhanced-scheduler" element={<EnhancedSchedulerModule />} />
+                <Route path="/modules/advanced-compliance" element={<AdvancedComplianceModule />} />
+                <Route path="/industry-onboarding" element={<IndustryOnboarding />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />

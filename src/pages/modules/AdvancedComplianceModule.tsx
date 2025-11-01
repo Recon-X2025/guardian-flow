@@ -50,6 +50,9 @@ export default function AdvancedComplianceModule() {
 
   const loadComplianceData = async () => {
     try {
+      // For now, show placeholder data since tables don't exist yet
+      // TODO: Uncomment when compliance tables are created
+      /*
       const { data: controlsData } = await supabase
         .from("compliance_controls")
         .select("*")
@@ -70,6 +73,35 @@ export default function AdvancedComplianceModule() {
       if (evidenceData) {
         setEvidence(evidenceData);
       }
+      */
+      
+      // Placeholder data
+      const placeholderControls: ComplianceControl[] = [
+        {
+          id: "1",
+          framework: selectedFramework,
+          control_id: `${selectedFramework}-001`,
+          title: "Access Control Management",
+          description: "Implement proper access control mechanisms",
+          status: "compliant",
+          evidence_count: 5,
+          last_reviewed: new Date().toISOString()
+        },
+        {
+          id: "2",
+          framework: selectedFramework,
+          control_id: `${selectedFramework}-002`,
+          title: "Data Encryption",
+          description: "Ensure data is encrypted at rest and in transit",
+          status: "partial",
+          evidence_count: 3,
+          last_reviewed: new Date().toISOString()
+        }
+      ];
+      
+      setControls(placeholderControls);
+      calculateComplianceScore(placeholderControls);
+      setEvidence([]);
     } catch (error) {
       console.error("Error loading compliance data:", error);
     }

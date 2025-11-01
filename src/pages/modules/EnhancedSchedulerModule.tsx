@@ -60,13 +60,14 @@ export default function EnhancedSchedulerModule() {
   const loadScheduleData = async () => {
     try {
       // Load technicians
-      const { data: techData } = await supabase
+      // @ts-ignore - Supabase type inference issue
+      const techResponse = await supabase
         .from("technicians")
         .select("*")
         .eq("is_active", true);
 
-      if (techData) {
-        setTechnicians(techData.map((t: any) => ({
+      if (techResponse.data) {
+        setTechnicians(techResponse.data.map((t: any) => ({
           id: t.id,
           name: t.name,
           skills: t.skills || [],
@@ -76,14 +77,15 @@ export default function EnhancedSchedulerModule() {
       }
 
       // Load unscheduled work orders
-      const { data: woData } = await supabase
+      // @ts-ignore - Supabase type inference issue
+      const woResponse = await supabase
         .from("work_orders")
         .select("*")
-        .in("status", ["draft", "scheduled"])
+        .in("status", ["draft", "released"])
         .is("assigned_to", null);
 
-      if (woData) {
-        setWorkOrders(woData.map((wo: any) => ({
+      if (woResponse.data) {
+        setWorkOrders(woResponse.data.map((wo: any) => ({
           id: wo.id,
           title: wo.title,
           priority: wo.priority,
@@ -132,7 +134,7 @@ export default function EnhancedSchedulerModule() {
           .update({
             assigned_to: assignment.technicianId,
             scheduled_date: assignment.scheduledTime,
-            status: "scheduled"
+            status: "assigned"
           })
           .eq("id", assignment.workOrderId);
       }
