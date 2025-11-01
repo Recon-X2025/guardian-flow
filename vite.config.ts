@@ -17,11 +17,12 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "react/jsx-runtime"],
+    include: ["react", "react-dom", "react/jsx-runtime", "@radix-ui/react-tooltip"],
     exclude: [],
     esbuildOptions: {
       target: "esnext",
     },
+    force: true,
   },
   build: {
     commonjsOptions: {

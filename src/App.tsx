@@ -1,4 +1,3 @@
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -92,9 +91,8 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TooltipProvider>
-            <AuthProvider>
-              <RBACProvider>
+          <AuthProvider>
+            <RBACProvider>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Landing />} />
@@ -579,7 +577,6 @@ const App = () => (
               <Toaster richColors position="top-right" />
             </RBACProvider>
           </AuthProvider>
-        </TooltipProvider>
         </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
