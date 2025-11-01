@@ -92,8 +92,9 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>
-            <RBACProvider>
+          <TooltipProvider>
+            <AuthProvider>
+              <RBACProvider>
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Landing />} />
@@ -578,6 +579,7 @@ const App = () => (
               <Toaster richColors position="top-right" />
             </RBACProvider>
           </AuthProvider>
+        </TooltipProvider>
         </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
