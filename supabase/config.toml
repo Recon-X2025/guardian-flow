@@ -153,6 +153,9 @@ verify_jwt = true
 [functions.analytics-workspace-manager]
 verify_jwt = true
 
+[functions.analytics-data-source-manager]
+verify_jwt = true
+
 [functions.analytics-jit-access]
 verify_jwt = true
 
@@ -183,27 +186,8 @@ verify_jwt = true
 [functions.analytics-anomaly-detector]
 verify_jwt = true
 
-[functions.analytics-template-manager]
+[functions.analytics-export]
 verify_jwt = true
 
-[functions.analytics-api-gateway]
-verify_jwt = true
-
-[functions.analytics-workspace-manager]
-verify_jwt = true
-
-[functions.analytics-data-source-manager]
-verify_jwt = true
-
-[functions.analytics-pipeline-executor]
-
-[functions.analytics-ml-orchestrator]
-
-[functions.analytics-dashboard-manager]
-
-[functions.analytics-data-quality]
-
-[functions.analytics-jit-access]
-
-[functions.analytics-anomaly-detector]
+[functions.analytics-report-generator]
 verify_jwt = true

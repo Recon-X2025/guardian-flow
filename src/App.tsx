@@ -82,6 +82,7 @@ import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import AnalyticsPlatform from "./pages/AnalyticsPlatform";
+import AnalyticsPlatformAuth from "./pages/AnalyticsPlatformAuth";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();
@@ -552,6 +553,16 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
+                
+                <Route path="/analytics-platform" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={["audit.read"]} showError={true}>
+                      <AnalyticsPlatform />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/analytics-platform-auth" element={<AnalyticsPlatformAuth />} />
                 
                 <Route path="/admin" element={
                   <ProtectedRoute>
