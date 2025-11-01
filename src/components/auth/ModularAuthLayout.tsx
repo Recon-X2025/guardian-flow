@@ -1,10 +1,11 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AuthBrandingConfig } from "@/config/authConfig";
 import { Shield, Info, HelpCircle, Mail, Phone } from "lucide-react";
+import { logAuthEvent } from "@/hooks/useAuthAudit";
 
 type ModularAuthLayoutProps = {
   config: AuthBrandingConfig;
@@ -17,6 +18,33 @@ type ModularAuthLayoutProps = {
 
 export default function ModularAuthLayout({ config, children, whiteLabel }: ModularAuthLayoutProps) {
   const Icon = config.icon;
+
+  // SEO metadata and audit logging (non-PII)
+  useEffect(() => {
+    try {
+      document.title = `${config.name} – Sign In | Guardian Flow`;
+      const desc = config.description || `${config.name} authentication`;
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.setAttribute('name', 'description');
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.setAttribute('content', desc);
+
+      let linkCanonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+      if (!linkCanonical) {
+        linkCanonical = document.createElement('link');
+        linkCanonical.rel = 'canonical';
+        document.head.appendChild(linkCanonical);
+      }
+      linkCanonical.href = window.location.href;
+
+      logAuthEvent("auth_page_view", config.module);
+    } catch (_) {
+      // no-op
+    }
+  }, [config]);
   
   return (
     <div className={`min-h-screen bg-gradient-to-br ${config.gradientFrom} ${config.gradientTo} flex items-center justify-center p-4`}>
