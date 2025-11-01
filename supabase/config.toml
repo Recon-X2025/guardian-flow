@@ -196,4 +196,14 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.analytics-pipeline-executor]
+
+[functions.analytics-ml-orchestrator]
+
+[functions.analytics-dashboard-manager]
+
+[functions.analytics-data-quality]
+
+[functions.analytics-jit-access]
+
+[functions.analytics-anomaly-detector]
 verify_jwt = true
