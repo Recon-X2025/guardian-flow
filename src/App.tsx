@@ -86,6 +86,15 @@ import IndustryOnboarding from "./pages/IndustryOnboarding";
 import ImageForensicsModule from "./pages/modules/ImageForensicsModule";
 import EnhancedSchedulerModule from "./pages/modules/EnhancedSchedulerModule";
 import AdvancedComplianceModule from "./pages/modules/AdvancedComplianceModule";
+import UnifiedPlatformAuth from "./pages/auth/UnifiedPlatformAuth";
+import FSMAuth from "./pages/auth/FSMAuth";
+import AssetAuth from "./pages/auth/AssetAuth";
+import ForecastingAuth from "./pages/auth/ForecastingAuth";
+import FraudAuth from "./pages/auth/FraudAuth";
+import MarketplaceAuth from "./pages/auth/MarketplaceAuth";
+import AnalyticsAuth from "./pages/auth/AnalyticsAuth";
+import CustomerAuth from "./pages/auth/CustomerAuth";
+import TrainingAuth from "./pages/auth/TrainingAuth";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();
@@ -117,7 +126,18 @@ const App = () => (
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
-                <Route path="/auth" element={<Auth />} />
+                
+                {/* Authentication Routes - Unified & Module-Specific */}
+                <Route path="/auth" element={<UnifiedPlatformAuth />} />
+                <Route path="/auth/platform" element={<UnifiedPlatformAuth />} />
+                <Route path="/auth/fsm" element={<FSMAuth />} />
+                <Route path="/auth/asset" element={<AssetAuth />} />
+                <Route path="/auth/forecasting" element={<ForecastingAuth />} />
+                <Route path="/auth/fraud" element={<FraudAuth />} />
+                <Route path="/auth/marketplace" element={<MarketplaceAuth />} />
+                <Route path="/auth/analytics" element={<AnalyticsAuth />} />
+                <Route path="/auth/customer" element={<CustomerAuth />} />
+                <Route path="/auth/training" element={<TrainingAuth />} />
                 <Route path="/developer" element={<DeveloperLanding />} />
 
                 {/* Protected Routes */}
