@@ -20,18 +20,17 @@ export default function TrainingAuth() {
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
+    logAuthEvent('auth_success', config.module);
+    const allowed = MODULE_RELEVANT_ROLES.training.some((r) => hasRole(r as AppRole));
+    if (!allowed) {
+      toast.error('This account does not have access to Video Training. Please use a relevant role.');
+      await supabase.auth.signOut();
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.email) {
       setAuthenticatedEmail(user.email);
     }
-    logAuthEvent('auth_success', config.module);
-    const allowed = MODULE_RELEVANT_ROLES.training.some((r) => hasRole(r as AppRole));
-    if (!allowed) {
-      toast.error('This account does not have access to Training & Knowledge Base. Please use a relevant role.');
-      await supabase.auth.signOut();
-      return;
-    }
-    navigate(getModuleAwareRedirect('training', hasRole));
   };
 
   const handleSelectAccount = (selectedEmail: string, selectedPassword: string) => {

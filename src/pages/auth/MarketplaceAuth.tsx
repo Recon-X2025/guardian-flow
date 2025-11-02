@@ -20,18 +20,17 @@ export default function MarketplaceAuth() {
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
+    logAuthEvent('auth_success', config.module);
+    const allowed = MODULE_RELEVANT_ROLES.marketplace.some((r) => hasRole(r as AppRole));
+    if (!allowed) {
+      toast.error('This account does not have access to the Marketplace. Please use a relevant role.');
+      await supabase.auth.signOut();
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.email) {
       setAuthenticatedEmail(user.email);
     }
-    logAuthEvent('auth_success', config.module);
-    const allowed = MODULE_RELEVANT_ROLES.marketplace.some((r) => hasRole(r as AppRole));
-    if (!allowed) {
-      toast.error('This account does not have access to the Extension Marketplace. Please use a relevant role.');
-      await supabase.auth.signOut();
-      return;
-    }
-    navigate(getModuleAwareRedirect('marketplace', hasRole));
   };
 
   const handleSelectAccount = (selectedEmail: string, selectedPassword: string) => {

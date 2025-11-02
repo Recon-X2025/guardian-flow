@@ -20,18 +20,17 @@ export default function AnalyticsAuth() {
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
+    logAuthEvent('auth_success', config.module);
+    const allowed = MODULE_RELEVANT_ROLES.analytics.some((r) => hasRole(r as AppRole));
+    if (!allowed) {
+      toast.error('This account does not have access to Advanced Analytics. Please use a relevant role.');
+      await supabase.auth.signOut();
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.email) {
       setAuthenticatedEmail(user.email);
     }
-    logAuthEvent('auth_success', config.module);
-    const allowed = MODULE_RELEVANT_ROLES.analytics.some((r) => hasRole(r as AppRole));
-    if (!allowed) {
-      toast.error('This account does not have access to the Analytics Platform. Please use a relevant role.');
-      await supabase.auth.signOut();
-      return;
-    }
-    navigate(getModuleAwareRedirect('analytics', hasRole));
   };
 
   const handleSelectAccount = (selectedEmail: string, selectedPassword: string) => {

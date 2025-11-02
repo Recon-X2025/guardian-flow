@@ -20,10 +20,6 @@ export default function CustomerAuth() {
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.email) {
-      setAuthenticatedEmail(user.email);
-    }
     logAuthEvent('auth_success', config.module);
     const allowed = MODULE_RELEVANT_ROLES.customer.some((r) => hasRole(r as AppRole));
     if (!allowed) {
@@ -31,7 +27,10 @@ export default function CustomerAuth() {
       await supabase.auth.signOut();
       return;
     }
-    navigate(getModuleAwareRedirect('customer', hasRole));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      setAuthenticatedEmail(user.email);
+    }
   };
 
   const handleSelectAccount = (selectedEmail: string, selectedPassword: string) => {
