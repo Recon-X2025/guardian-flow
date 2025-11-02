@@ -4117,6 +4117,50 @@ export type Database = {
         }
         Relationships: []
       }
+      module_data_sources: {
+        Row: {
+          id: string
+          ingested_at: string | null
+          ingested_by: string | null
+          metadata: Json | null
+          module_context: string
+          record_count: number | null
+          source_name: string
+          source_type: string
+          tenant_id: string
+        }
+        Insert: {
+          id?: string
+          ingested_at?: string | null
+          ingested_by?: string | null
+          metadata?: Json | null
+          module_context: string
+          record_count?: number | null
+          source_name: string
+          source_type: string
+          tenant_id: string
+        }
+        Update: {
+          id?: string
+          ingested_at?: string | null
+          ingested_by?: string | null
+          metadata?: Json | null
+          module_context?: string
+          record_count?: number | null
+          source_name?: string
+          source_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_data_sources_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nlp_query_feedback: {
         Row: {
           created_at: string | null
@@ -5398,6 +5442,7 @@ export type Database = {
           country: string | null
           created_at: string | null
           currency: string | null
+          current_module_context: string | null
           email: string | null
           full_name: string | null
           id: string
@@ -5412,6 +5457,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           currency?: string | null
+          current_module_context?: string | null
           email?: string | null
           full_name?: string | null
           id: string
@@ -5426,6 +5472,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           currency?: string | null
+          current_module_context?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -7046,6 +7093,7 @@ export type Database = {
           config: Json | null
           created_at: string | null
           id: string
+          module_context: string | null
           name: string
           slug: string
           updated_at: string | null
@@ -7055,6 +7103,7 @@ export type Database = {
           config?: Json | null
           created_at?: string | null
           id?: string
+          module_context?: string | null
           name: string
           slug: string
           updated_at?: string | null
@@ -7064,6 +7113,7 @@ export type Database = {
           config?: Json | null
           created_at?: string | null
           id?: string
+          module_context?: string | null
           name?: string
           slug?: string
           updated_at?: string | null

@@ -13,9 +13,11 @@ import { AuthBrandingConfig } from "@/config/authConfig";
 type EnhancedAuthFormProps = {
   config: AuthBrandingConfig;
   onSuccess?: () => void;
+  initialEmail?: string;
+  initialPassword?: string;
 };
 
-export default function EnhancedAuthForm({ config, onSuccess }: EnhancedAuthFormProps) {
+export default function EnhancedAuthForm({ config, onSuccess, initialEmail = "", initialPassword = "" }: EnhancedAuthFormProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,10 +25,24 @@ export default function EnhancedAuthForm({ config, onSuccess }: EnhancedAuthForm
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: initialEmail,
+    password: initialPassword,
     confirmPassword: ""
   });
+
+  // Update form when initial values change
+  useEffect(() => {
+    if (initialEmail || initialPassword) {
+      setFormData(prev => ({
+        ...prev,
+        email: initialEmail || prev.email,
+        password: initialPassword || prev.password
+      }));
+      if (initialEmail && initialPassword) {
+        setActiveTab("signin");
+      }
+    }
+  }, [initialEmail, initialPassword]);
   
   const [passwordStrength, setPasswordStrength] = useState({
     length: false,

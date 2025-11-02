@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, Check, AlertCircle, LogIn } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { MODULE_RELEVANT_ROLES, type AuthModule } from '@/lib/authRedirects';
 
 interface SeedResult {
   created: string[];
@@ -22,24 +23,53 @@ interface TestAccount {
 
 interface SeedAccountsButtonProps {
   onSelectAccount?: (email: string, password: string) => void;
+  module?: AuthModule;
 }
 
-const TEST_ACCOUNTS: TestAccount[] = [
+const ALL_TEST_ACCOUNTS: TestAccount[] = [
+  // Platform Core Accounts
   { email: 'admin@techcorp.com', password: 'Admin123!', role: 'sys_admin', name: 'System Admin' },
   { email: 'tenant.admin@techcorp.com', password: 'Admin123!', role: 'tenant_admin', name: 'Tenant Admin' },
   { email: 'ops@techcorp.com', password: 'Ops123!', role: 'ops_manager', name: 'Operations Manager' },
+  
+  // Finance & Analytics
   { email: 'finance@techcorp.com', password: 'Finance123!', role: 'finance_manager', name: 'Finance Manager' },
+  { email: 'analyst@techcorp.com', password: 'Analyst123!', role: 'data_analyst', name: 'Data Analyst' },
+  
+  // Fraud & Compliance
   { email: 'fraud@techcorp.com', password: 'Fraud123!', role: 'fraud_investigator', name: 'Fraud Investigator' },
+  { email: 'auditor@techcorp.com', password: 'Auditor123!', role: 'auditor', name: 'Compliance Auditor' },
+  
+  // Field Service
+  { email: 'dispatch@techcorp.com', password: 'Dispatch123!', role: 'dispatcher', name: 'Service Dispatcher' },
+  { email: 'tech1@servicepro.com', password: 'Tech123!', role: 'technician', name: 'Field Technician' },
+  
+  // Partner & Marketplace
   { email: 'partner.admin@servicepro.com', password: 'Partner123!', role: 'partner_admin', name: 'Partner Admin' },
-  { email: 'tech1@servicepro.com', password: 'Tech123!', role: 'technician', name: 'Technician One' },
+  { email: 'developer@techcorp.com', password: 'Dev123!', role: 'developer', name: 'Platform Developer' },
+  
+  // AI & ML
+  { email: 'mlops@techcorp.com', password: 'MLOps123!', role: 'ml_ops', name: 'ML Operations' },
+  
+  // Customer & Support
   { email: 'customer@example.com', password: 'Customer123!', role: 'customer', name: 'Customer User' },
+  { email: 'support@techcorp.com', password: 'Support123!', role: 'support_agent', name: 'Support Agent' },
+  
+  // Training
+  { email: 'trainer@techcorp.com', password: 'Trainer123!', role: 'trainer', name: 'Training Coordinator' },
 ];
 
-export function SeedAccountsButton({ onSelectAccount }: SeedAccountsButtonProps) {
+export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: SeedAccountsButtonProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
   const [showAccounts, setShowAccounts] = useState(false);
   const { toast } = useToast();
+
+  // Filter accounts based on module using centralized role mapping
+  const relevantRoles = MODULE_RELEVANT_ROLES[module];
+  const TEST_ACCOUNTS = ALL_TEST_ACCOUNTS.filter(account => 
+    relevantRoles.includes(account.role)
+  );
 
   const handleSeedAccounts = async () => {
     setLoading(true);
@@ -82,10 +112,12 @@ export function SeedAccountsButton({ onSelectAccount }: SeedAccountsButtonProps)
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Test Accounts
+          Test Accounts - {module === 'platform' ? 'All Roles' : module.toUpperCase()}
         </CardTitle>
         <CardDescription>
-          Create test accounts or click any account below to auto-fill login
+          {module === 'platform' 
+            ? 'Create all test accounts or select any role below' 
+            : `Showing ${TEST_ACCOUNTS.length} ${module} module accounts`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

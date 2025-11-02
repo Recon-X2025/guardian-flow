@@ -164,7 +164,7 @@ const App = () => (
                 
                 <Route path="/tickets" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["ticket.read"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician','support_agent']} permissions={["ticket.read"]} showError={true}>
                       <AppLayout><Tickets /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -172,7 +172,7 @@ const App = () => (
                 
                 <Route path="/work-orders" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["wo.read"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician','partner_admin']} permissions={["wo.read"]} showError={true}>
                       <AppLayout><WorkOrders /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -180,7 +180,7 @@ const App = () => (
                 
                 <Route path="/pending-validation" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["wo.read"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.read"]} showError={true}>
                       <AppLayout><PendingValidation /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -188,7 +188,7 @@ const App = () => (
                 
                 <Route path="/inventory" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["inventory.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','partner_admin']} permissions={["inventory.view"]} showError={true}>
                       <AppLayout><Inventory /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -196,7 +196,7 @@ const App = () => (
                 
                 <Route path="/photo-capture" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["attachment.upload"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician']} permissions={["attachment.upload"]} showError={true}>
                       <AppLayout><PhotoCapturePage /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -204,7 +204,7 @@ const App = () => (
                 
                 <Route path="/scheduler" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
                       <AppLayout><Scheduler /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -212,7 +212,7 @@ const App = () => (
                 
                 <Route path="/dispatch" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
                       <AppLayout><Dispatch /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -220,7 +220,7 @@ const App = () => (
                 
                 <Route path="/route-optimization" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["wo.assign"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
                       <AppLayout><RouteOptimization /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -228,7 +228,7 @@ const App = () => (
                 
                 <Route path="/procurement" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["inventory.procure"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager']} permissions={["inventory.procure"]} showError={true}>
                       <AppLayout><Procurement /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -236,7 +236,7 @@ const App = () => (
                 
                 <Route path="/warranty" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["warranty.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','support_agent']} permissions={["warranty.view"]} showError={true}>
                       <AppLayout><Warranty /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -244,7 +244,7 @@ const App = () => (
                 
                 <Route path="/quotes" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["quote.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["quote.view"]} showError={true}>
                       <AppLayout><Quotes /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -252,7 +252,7 @@ const App = () => (
                 
                 <Route path="/invoicing" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["invoice.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["invoice.view"]} showError={true}>
                       <AppLayout><Invoicing /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -260,7 +260,7 @@ const App = () => (
                 
                 <Route path="/payments" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["invoice.pay"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["invoice.pay"]} showError={true}>
                       <AppLayout><Payments /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -268,7 +268,7 @@ const App = () => (
                 
                 <Route path="/finance" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["finance.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
                       <AppLayout><Finance /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -276,7 +276,7 @@ const App = () => (
                 
                 <Route path="/penalties" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["penalty.calculate"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["penalty.calculate"]} showError={true}>
                       <AppLayout><Penalties /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -292,7 +292,7 @@ const App = () => (
                 
                 <Route path="/service-orders" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["so.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician']} permissions={["so.view"]} showError={true}>
                       <AppLayout><ServiceOrders /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -300,7 +300,7 @@ const App = () => (
                 
                 <Route path="/fraud" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["fraud.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','fraud_investigator','auditor']} permissions={["fraud.view"]} showError={true}>
                       <AppLayout><FraudInvestigation /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -308,7 +308,7 @@ const App = () => (
                 
                 <Route path="/forgery-detection" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["fraud.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','fraud_investigator','auditor']} permissions={["fraud.view"]} showError={true}>
                       <AppLayout><ForgeryDetection /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -316,7 +316,7 @@ const App = () => (
                 
                 <Route path="/customers" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["customers.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','support_agent']} permissions={["customers.view"]} showError={true}>
                       <AppLayout><Customers /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -324,7 +324,7 @@ const App = () => (
                 
                 <Route path="/technicians" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["technicians.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["technicians.view"]} showError={true}>
                       <AppLayout><Technicians /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -332,7 +332,7 @@ const App = () => (
                 
                 <Route path="/equipment" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["equipment.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','technician','partner_admin']} permissions={["equipment.view"]} showError={true}>
                       <AppLayout><Equipment /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -340,7 +340,7 @@ const App = () => (
                 
                 <Route path="/contracts" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["contracts.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["contracts.view"]} showError={true}>
                       <AppLayout><Contracts /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -348,7 +348,7 @@ const App = () => (
                 
                 <Route path="/customer-portal" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["portal.access"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','customer']} permissions={["portal.access"]} showError={true}>
                       <AppLayout><CustomerPortal /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -356,7 +356,7 @@ const App = () => (
                 
                 <Route path="/predictive-maintenance" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["maintenance.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','ops_manager']} permissions={["maintenance.view"]} showError={true}>
                       <AppLayout><PredictiveMaintenance /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -364,7 +364,7 @@ const App = () => (
                 
                 <Route path="/partner-portal" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["partners.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin','partner_admin']} permissions={["partners.view"]} showError={true}>
                       <AppLayout><PartnerPortal /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -372,7 +372,7 @@ const App = () => (
                 
                 <Route path="/documents" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["documents.view"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin']} permissions={["documents.view"]} showError={true}>
                       <AppLayout><Documents /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>
@@ -380,7 +380,7 @@ const App = () => (
                 
                 <Route path="/templates" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["admin.config"]} showError={true}>
+                    <RoleGuard roles={['sys_admin','tenant_admin']} permissions={["admin.config"]} showError={true}>
                       <AppLayout><Templates /></AppLayout>
                     </RoleGuard>
                   </ProtectedRoute>

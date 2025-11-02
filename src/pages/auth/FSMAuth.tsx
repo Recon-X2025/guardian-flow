@@ -1,37 +1,61 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import ModularAuthLayout from "@/components/auth/ModularAuthLayout";
 import EnhancedAuthForm from "@/components/auth/EnhancedAuthForm";
 import { AUTH_MODULES } from "@/config/authConfig";
-import { useRBAC } from "@/contexts/RBACContext";
+import { useRBAC, type AppRole } from "@/contexts/RBACContext";
 import { logAuthEvent } from "@/hooks/useAuthAudit";
-import { getRedirectRoute } from "@/utils/getRedirectRoute";
+import { getModuleAwareRedirect, MODULE_RELEVANT_ROLES } from "@/lib/authRedirects";
+import { SeedAccountsButton } from "@/components/SeedAccountsButton";
+import { ModuleSandboxProvider } from "@/components/ModuleSandboxProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function FSMAuth() {
   const navigate = useNavigate();
   const config = AUTH_MODULES.fsm;
-  const { roles, loading, refreshRoles } = useRBAC();
+  const { hasRole } = useRBAC();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
     logAuthEvent('auth_success', config.module);
-    
-    // Refresh roles after successful sign-in
-    await refreshRoles();
-    
-    // Wait for RBAC to finish loading
-    let attempts = 0;
-    while ((loading || roles.length === 0) && attempts < 30) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
+    const allowed = MODULE_RELEVANT_ROLES.fsm.some((r) => hasRole(r as AppRole));
+    if (!allowed) {
+      toast.error('This account does not have access to Field Service Management. Please use a relevant role.');
+      await supabase.auth.signOut();
+      return;
     }
-    
-    // Get redirect route - ensure it goes to protected route with AppLayout
-    const redirectPath = getRedirectRoute(roles, 'fsm');
-    navigate(redirectPath);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      setAuthenticatedEmail(user.email);
+    }
+  };
+
+  const handleSelectAccount = (selectedEmail: string, selectedPassword: string) => {
+    setEmail(selectedEmail);
+    setPassword(selectedPassword);
   };
 
   return (
-    <ModularAuthLayout config={config} onTestAccountLogin={handleAuthSuccess}>
-      <EnhancedAuthForm config={config} onSuccess={handleAuthSuccess} />
+    <ModularAuthLayout config={config}>
+      <div className="space-y-6">
+        {authenticatedEmail && (
+          <ModuleSandboxProvider 
+            module="fsm" 
+            email={authenticatedEmail}
+            onSandboxReady={() => navigate(getModuleAwareRedirect('fsm', hasRole))}
+          />
+        )}
+        <SeedAccountsButton onSelectAccount={handleSelectAccount} module="fsm" />
+        <EnhancedAuthForm 
+          config={config} 
+          onSuccess={handleAuthSuccess}
+          initialEmail={email}
+          initialPassword={password}
+        />
+      </div>
     </ModularAuthLayout>
   );
 }
