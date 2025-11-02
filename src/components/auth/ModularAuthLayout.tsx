@@ -55,7 +55,7 @@ export default function ModularAuthLayout({ config, children, whiteLabel }: Modu
             {whiteLabel?.logoUrl ? (
               <img 
                 src={whiteLabel.logoUrl} 
-                alt="Logo" 
+                alt={`${whiteLabel?.companyName || config.name} logo`} 
                 className="w-16 h-16 object-contain"
               />
             ) : (
@@ -136,7 +136,7 @@ export default function ModularAuthLayout({ config, children, whiteLabel }: Modu
         {/* Auth Form Section */}
         <Card className="w-full max-w-md mx-auto shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl">Sign in to {config.name}</CardTitle>
+            <CardTitle className="text-2xl">{config.name}</CardTitle>
             <CardDescription>
               {config.tagline}
             </CardDescription>
