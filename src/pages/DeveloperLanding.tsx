@@ -67,12 +67,12 @@ export default function DeveloperLanding() {
           </div>
           
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Agentic AI for <br />
-            <span className="text-primary">Field Intelligence</span>
+            AI-Powered <br />
+            <span className="text-primary">Operational Intelligence Platform</span>
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Access powerful APIs for operations orchestration, fraud detection, finance management, and demand forecasting. Built for scale.
+            Access powerful APIs for industry-agnostic operations orchestration, fraud detection, finance management, and demand forecasting across any vertical. Built for scale.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">

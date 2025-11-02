@@ -32,7 +32,7 @@ export default function PendingValidation() {
           table: 'work_orders',
         },
         (payload) => {
-          console.log('Work order update detected:', payload);
+          // Work order update detected via real-time subscription
           loadData(); // Reload data when changes occur
         }
       )
@@ -44,7 +44,7 @@ export default function PendingValidation() {
           table: 'work_order_prechecks'
         },
         (payload) => {
-          console.log('Precheck update detected:', payload);
+          // Precheck update detected via real-time subscription
           loadData(); // Reload when prechecks update
         }
       )
@@ -117,7 +117,7 @@ export default function PendingValidation() {
 
       // If enabling, trigger immediate agent run
       if (enabled) {
-        console.log("Triggering immediate agent run...");
+        // Triggering immediate agent run for validation
         await supabase.functions.invoke("ops-agent-processor");
         toast({
           title: "Agent Processing",

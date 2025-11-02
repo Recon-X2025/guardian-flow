@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useEffect } from "react";
 import {
   Wrench,
   Clipboard,
@@ -44,6 +45,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useRBAC } from "@/contexts/RBACContext";
+import { useModuleContext } from "@/hooks/useModuleContext";
 import { LucideIcon } from "lucide-react";
 
 interface MenuItem {
@@ -141,7 +143,23 @@ const menuGroups: MenuGroup[] = [
 ];
 
 export function AppSidebar() {
-  const { hasAnyPermission, hasAnyRole, hasRole, isAdmin, loading } = useRBAC();
+  const { hasAnyPermission, hasAnyRole, hasRole, isAdmin, loading, permissions, hasPermission } = useRBAC();
+  const { moduleName, moduleId } = useModuleContext();
+  
+  // Debug: Log permissions on load
+  useEffect(() => {
+    if (import.meta.env.DEV && !loading) {
+      console.log('[AppSidebar] RBAC State:', {
+        permissionCount: permissions.length,
+        permissions: permissions.slice(0, 20), // Show first 20
+        hasWoRead: hasPermission('wo.read'),
+        hasFinanceView: hasPermission('finance.view'),
+        hasFraudView: hasPermission('fraud.view'),
+        moduleId,
+        moduleName
+      });
+    }
+  }, [loading, permissions.length, hasPermission, moduleId, moduleName]);
 
   const canAccessItem = (item: MenuItem): boolean => {
     // Dashboard, Settings, and Help & Training are accessible to all authenticated users
@@ -161,18 +179,62 @@ export function AppSidebar() {
 
     // Check permission-based access
     if (item.permissions && item.permissions.length > 0) {
-      return hasAnyPermission(item.permissions);
+      const hasAccess = hasAnyPermission(item.permissions);
+      
+      // Debug logging for troubleshooting
+      if (import.meta.env.DEV && !hasAccess && item.permissions.length > 0) {
+        console.log(`[AppSidebar] Access denied for "${item.title}" (${item.url}):`, {
+          requiredPermissions: item.permissions,
+          userPermissions: permissions.slice(0, 10), // Show first 10
+          hasRequired: item.permissions.map(p => ({
+            permission: p,
+            has: hasPermission(p)
+          }))
+        });
+      }
+      
+      return hasAccess;
     }
 
     // If no permissions or roles specified, deny access by default for security
     return false;
   };
 
+  // Check if item is Field Service Management related
+  const isFieldServiceItem = (item: MenuItem): boolean => {
+    const fieldServiceUrls = [
+      '/tickets', '/work-orders', '/photo-capture', '/service-orders',
+      '/pending-validation', '/scheduler', '/dispatch', '/route-optimization',
+      '/inventory', '/procurement', '/warranty', '/sapos'
+    ];
+    return fieldServiceUrls.some(url => item.url.startsWith(url));
+  };
+
+  // Check if user has field operations role
+  const isFieldOperationsRole = (): boolean => {
+    const fieldRoles = ['ops_manager', 'dispatcher', 'technician', 'partner_admin', 'partner_user'];
+    return hasAnyRole(fieldRoles as any);
+  };
+
   const getVisibleGroups = (): MenuGroup[] => {
+    // If user is logged into a non-FSM module (like /fraud, /analytics, etc.)
+    // AND they don't have a field operations role, hide FSM items
+    const hideFieldServiceItems = moduleId && moduleId !== 'fsm' && moduleId !== 'platform' && !isFieldOperationsRole();
+    
     return menuGroups
       .map((group) => ({
         ...group,
-        items: group.items.filter(canAccessItem),
+        items: group.items.filter(item => {
+          const hasPermission = canAccessItem(item);
+          if (!hasPermission) return false;
+          
+          // Hide FSM items when in non-FSM module for non-field-roles
+          if (hideFieldServiceItems && isFieldServiceItem(item)) {
+            return false;
+          }
+          
+          return true;
+        }),
       }))
       .filter((group) => group.items.length > 0);
   };
@@ -206,7 +268,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-bold text-sidebar-foreground">Guardian Flow</span>
-            <span className="text-xs text-muted-foreground">Field Service Platform</span>
+            <span className="text-xs text-muted-foreground">{moduleName}</span>
           </div>
         </div>
 

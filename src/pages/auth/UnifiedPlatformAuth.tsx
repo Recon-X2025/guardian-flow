@@ -4,27 +4,28 @@ import EnhancedAuthForm from "@/components/auth/EnhancedAuthForm";
 import { AUTH_MODULES } from "@/config/authConfig";
 import { useRBAC } from "@/contexts/RBACContext";
 import { logAuthEvent } from "@/hooks/useAuthAudit";
+import { getRedirectRoute } from "@/utils/getRedirectRoute";
 
 export default function UnifiedPlatformAuth() {
   const navigate = useNavigate();
   const config = AUTH_MODULES.platform;
-  const { hasRole } = useRBAC();
+  const { roles, loading, refreshRoles } = useRBAC();
 
-  const getRedirectRoute = () => {
-    if (hasRole('dispatcher') || hasRole('technician')) return '/work-orders';
-    if (hasRole('finance_manager')) return '/finance';
-    if (hasRole('fraud_investigator')) return '/modules/image-forensics';
-    if (hasRole('auditor')) return '/compliance-dashboard';
-    if (hasRole('customer')) return '/customer-portal';
-    return '/dashboard';
-  };
-
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     logAuthEvent('auth_success', config.module);
-    navigate(getRedirectRoute());
+    
+    // Refresh roles after successful sign-in
+    await refreshRoles();
+    // Wait a bit for roles to update
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Get redirect route based on user roles for platform module
+    const redirectPath = getRedirectRoute(roles, 'platform');
+    navigate(redirectPath);
   };
+  
   return (
-    <ModularAuthLayout config={config}>
+    <ModularAuthLayout config={config} onTestAccountLogin={handleAuthSuccess}>
       <EnhancedAuthForm config={config} onSuccess={handleAuthSuccess} />
     </ModularAuthLayout>
   );

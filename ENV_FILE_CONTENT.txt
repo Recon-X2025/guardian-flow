@@ -1,0 +1,33 @@
+COPY EVERYTHING BELOW INTO A FILE CALLED: .env.local
+======================================================
+
+VITE_SUPABASE_URL=https://srbvopyexztcoxcayydn.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYnZvcHlleHp0Y294Y2F5eWRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNjA3MTIsImV4cCI6MjA3NzYzNjcxMn0.Psr_YbtLcnAC6LCmNVEnopns4isndzCIIXDEY4MXy04
+
+
+EXACTLY WHAT TO DO:
+===================
+
+1. Open Notepad
+2. Copy the TWO lines above (starting with VITE_SUPABASE_URL)
+3. Paste into Notepad
+4. Click: File → Save As
+5. In "File name" type: .env.local
+6. Change "Save as type" to: All Files
+7. Navigate to: C:\Users\Karthik's PC\guardian-flow
+8. Click Save
+9. Close Notepad
+
+THEN:
+-----
+1. In your terminal: Press Ctrl+C
+2. Type: npm run dev
+3. Wait for "VITE ready"
+4. Refresh browser
+5. Try logging in!
+
+
+THAT'S IT!
+==========
+After this, login will work!
+

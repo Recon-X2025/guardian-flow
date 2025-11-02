@@ -1,0 +1,50 @@
+HOW TO OPEN seed-accounts.html
+====================================
+
+METHOD 1 (EASIEST):
+-------------------
+1. Open File Explorer (Windows key + E)
+2. Go to: C:\Users\Karthik's PC\guardian-flow
+3. Find: seed-accounts.html
+4. DOUBLE-CLICK it
+5. It will open in your default browser
+
+
+METHOD 2 (If double-click doesn't work):
+-----------------------------------------
+1. Right-click on seed-accounts.html
+2. Click "Open with"
+3. Choose "Chrome" or "Edge" or "Firefox"
+4. Click OK
+
+
+METHOD 3 (Drag and Drop):
+--------------------------
+1. Open your web browser (Chrome/Edge/Firefox)
+2. Open File Explorer
+3. Drag seed-accounts.html into the browser window
+4. Drop it
+
+
+WHAT YOU'LL SEE:
+---------------
+You'll see a webpage with:
+- Title: "Seed Test Accounts"
+- A green button: "Create All Test Accounts"
+- Click that button!
+- Wait 30 seconds
+- See messages showing accounts being created
+
+
+AFTER IT'S DONE:
+---------------
+You can log in to your app with:
+- admin@techcorp.com / Admin123!
+- oem1.admin@client.com / Client123!
+- admin@servicepro.com / Partner123!
+
+
+IF YOU HAVE TROUBLE:
+-------------------
+Just tell me and I'll help!
+

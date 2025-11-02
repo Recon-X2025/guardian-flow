@@ -294,121 +294,239 @@ export default function Landing() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Transparent Pricing</h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Flexible bundles and modular pricing to fit your organization
+              Unified platform infrastructure + modular add-ons. Pay only for what you need.
             </p>
           </div>
 
-          {/* Pricing Tiers */}
-          <div className="grid gap-8 lg:grid-cols-3 mb-12">
+          {/* Pricing Tiers - Good-Better-Best Model */}
+          <div className="grid gap-8 lg:grid-cols-4 mb-12">
+            {/* Starter - Good */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-2xl">Starter</CardTitle>
-                <CardDescription>Essential field service capabilities</CardDescription>
+                <CardDescription>Core features for small teams</CardDescription>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">$2,500</span>
-                  <span className="text-muted-foreground">/month</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">$12</span>
+                    <span className="text-muted-foreground text-sm">/user/month</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Perfect for small teams and pilots</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Field Service Management</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Customer Portal</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Basic Analytics</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Up to 50 active users</span>
-                  </li>
-                </ul>
-                <Button className="w-full" onClick={() => navigate("/auth")}>
-                  Get Started
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">CORE FEATURES</p>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Platform infrastructure ($12/user)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Basic modules available as add-ons</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Email support</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Standard security & RBAC</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">MODULES</p>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Pay-per-module pricing</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Pay-as-you-go options</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Ideal for:</p>
+                  <p className="text-xs">Small teams (1-25 users), pilot projects, testing</p>
+                </div>
+                <Button className="w-full" onClick={() => navigate("/pricing-calculator")}>
+                  Calculate Price
                 </Button>
               </CardContent>
             </Card>
 
+            {/* Professional - Better (Most Popular) */}
             <Card className="border-primary shadow-lg">
               <CardHeader>
                 <div className="inline-block px-3 py-1 text-xs font-semibold bg-primary text-primary-foreground rounded-full mb-2">
                   Most Popular
                 </div>
                 <CardTitle className="text-2xl">Professional</CardTitle>
-                <CardDescription>Complete operational suite</CardDescription>
+                <CardDescription>Advanced capabilities for growing businesses</CardDescription>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">$6,000</span>
-                  <span className="text-muted-foreground">/month</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">$25</span>
+                    <span className="text-muted-foreground text-sm">/user/month</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Best value for growing teams</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>All Starter features</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Asset Lifecycle Management</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>AI Forecasting & Scheduling</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Advanced Analytics & BI</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Up to 200 active users</span>
-                  </li>
-                </ul>
-                <Button className="w-full" onClick={() => navigate("/auth")}>
-                  Get Started
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">INCLUDES EVERYTHING IN STARTER</p>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Platform infrastructure ($12/user)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>+ Additional $13/user for advanced modules</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Priority email support</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Multi-module discounts</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Advanced analytics & reporting</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Ideal for:</p>
+                  <p className="text-xs">Growing businesses (26-200 users), established operations</p>
+                </div>
+                <Button className="w-full" onClick={() => navigate("/pricing-calculator")}>
+                  Calculate Price
                 </Button>
               </CardContent>
             </Card>
 
+            {/* Business - Best */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">Enterprise</CardTitle>
-                <CardDescription>Full platform with all capabilities</CardDescription>
+                <CardTitle className="text-2xl">Business</CardTitle>
+                <CardDescription>Complete enterprise operations suite</CardDescription>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">$12,000</span>
-                  <span className="text-muted-foreground">/month</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">$50</span>
+                    <span className="text-muted-foreground text-sm">/user/month</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Comprehensive solution for established companies</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>All Professional features</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Fraud Detection & Compliance</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Marketplace & Extensions</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>White-label options</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                    <span>Unlimited users</span>
-                  </li>
-                </ul>
-                <Button className="w-full" onClick={() => navigate("/auth")}>
-                  Contact Sales
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">INCLUDES EVERYTHING IN PROFESSIONAL</p>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Platform infrastructure ($12/user)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>+ Advanced modules included</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Phone + email support</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Full compliance & audit features</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Volume discounts available</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Custom integrations support</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Ideal for:</p>
+                  <p className="text-xs">Established companies (201-500 users), multi-module needs</p>
+                </div>
+                <Button className="w-full" onClick={() => navigate("/pricing-calculator")}>
+                  Calculate Price
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Enterprise - Custom */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">Enterprise</CardTitle>
+                <CardDescription>Fully customized operations platform</CardDescription>
+                <div className="mt-4">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">From $150</span>
+                    <span className="text-muted-foreground text-sm">/user/month</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Custom pricing with volume discounts</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">INCLUDES EVERYTHING IN BUSINESS</p>
+                    <ul className="space-y-2 text-sm">
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>All modules included</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>White-label & private deployment options</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Dedicated support & SLA guarantees</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Custom integrations & workflows</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Advanced compliance packages</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <ArrowRight className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <span>Volume discounts for 500+ users</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Ideal for:</p>
+                  <p className="text-xs">Large enterprises (500+ users) with unique requirements and compliance needs</p>
+                </div>
+                <Button className="w-full" onClick={() => navigate("/pricing-calculator")}>
+                  Calculate Price
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-2" 
+                  onClick={() => navigate("/contact")}
+                >
+                  Contact Sales for Custom Quote
                 </Button>
               </CardContent>
             </Card>
@@ -417,27 +535,64 @@ export default function Landing() {
           {/* Pricing Details */}
           <Card className="bg-muted/50">
             <CardHeader>
-              <CardTitle>Flexible Pricing Options</CardTitle>
+              <CardTitle>Flexible Pricing Models</CardTitle>
               <CardDescription>
-                Additional modules and volume discounts available
+                Choose the pricing model that works best for your organization
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4 text-sm">
+              <div className="grid sm:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <h4 className="font-semibold mb-2">Multi-Module Discounts</h4>
-                  <ul className="space-y-1 text-muted-foreground">
-                    <li>• 3-4 modules: 10% discount</li>
-                    <li>• 5-6 modules: 15% discount</li>
-                    <li>• 7+ modules: 25% discount</li>
+                  <h4 className="font-semibold mb-2">Subscription Model</h4>
+                  <p className="text-muted-foreground mb-2">
+                    Fixed monthly fee per user. Best for predictable usage.
+                  </p>
+                  <ul className="space-y-1 text-muted-foreground text-xs">
+                    <li>• Platform: $15/user/month</li>
+                    <li>• Modules: Base + per-user pricing</li>
+                    <li>• Predictable monthly costs</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-2">Billing Frequency Discounts</h4>
+                  <h4 className="font-semibold mb-2">Pay-As-You-Go</h4>
+                  <p className="text-muted-foreground mb-2">
+                    Pay only for operations you use. Best for variable workloads.
+                  </p>
+                  <ul className="space-y-1 text-muted-foreground text-xs">
+                    <li>• Platform: $5/user/month</li>
+                    <li>• Usage-based charges</li>
+                    <li>• Scale with your operations</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Hybrid Model</h4>
+                  <p className="text-muted-foreground mb-2">
+                    Combine subscriptions + usage. Best for mixed workloads.
+                  </p>
+                  <ul className="space-y-1 text-muted-foreground text-xs">
+                    <li>• Core modules: Subscription</li>
+                    <li>• High-volume ops: Pay-per-use</li>
+                    <li>• Discounted usage rates</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4 text-sm pt-4 border-t">
+                <div>
+                  <h4 className="font-semibold mb-2">Volume Discounts</h4>
                   <ul className="space-y-1 text-muted-foreground">
-                    <li>• Quarterly: 5-7% discount</li>
-                    <li>• Annual: 15-20% discount</li>
-                    <li>• 3-year: 25-30% discount</li>
+                    <li>• Multi-module: Up to 25% discount</li>
+                    <li>• Annual billing: Up to 18% discount</li>
+                    <li>• Enterprise: Custom pricing</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">All Modules Available</h4>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>• Field Service Management</li>
+                    <li>• Asset Lifecycle Management</li>
+                    <li>• AI Forecasting & Scheduling</li>
+                    <li>• Fraud Detection & Compliance</li>
+                    <li>• And more...</li>
                   </ul>
                 </div>
               </div>
@@ -446,7 +601,7 @@ export default function Landing() {
                 className="w-full"
                 onClick={() => navigate("/pricing-calculator")}
               >
-                Build Custom Bundle
+                Use Pricing Calculator
               </Button>
             </CardContent>
           </Card>

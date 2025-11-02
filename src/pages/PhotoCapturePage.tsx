@@ -62,7 +62,7 @@ export default function PhotoCapturePage() {
   };
 
   const handleComplete = (payload: any) => {
-    console.log("Photos validated:", payload);
+    // Photos validated and sent for processing
     toast({
       title: "Stage Complete",
       description: `${stage} photos validated successfully`,

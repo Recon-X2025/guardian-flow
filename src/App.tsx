@@ -3,12 +3,12 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RBACProvider } from "@/contexts/RBACContext";
+import { IndustryTerminologyProvider } from "@/contexts/IndustryTerminologyContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleGuard } from "@/components/RoleGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AccessDenied } from "@/components/AccessDenied";
 import { AppLayout } from "@/components/AppLayout";
-import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Tickets from "./pages/Tickets";
 import WorkOrders from "./pages/WorkOrders";
@@ -101,6 +101,9 @@ import NLPQueryInterface from "./pages/NLPQueryInterface";
 import CustomReportBuilder from "./pages/CustomReportBuilder";
 import MaintenanceCalendar from "./pages/MaintenanceCalendar";
 import { Toaster } from '@/components/ui/sonner';
+import PlanSelector from '@/components/PlanSelector';
+import ModulePicker from '@/components/ModulePicker';
+import CompanyOnboarding from '@/components/CompanyOnboarding';
 
 const queryClient = new QueryClient();
 
@@ -111,7 +114,8 @@ const App = () => (
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>
             <RBACProvider>
-              <Routes>
+              <IndustryTerminologyProvider>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/pricing-calculator" element={<PricingCalculator />} />
@@ -143,6 +147,12 @@ const App = () => (
                 <Route path="/auth/analytics" element={<AnalyticsAuth />} />
                 <Route path="/auth/customer" element={<CustomerAuth />} />
                 <Route path="/auth/training" element={<TrainingAuth />} />
+                
+                {/* Onboarding Routes */}
+                <Route path="/auth/select-plan" element={<PlanSelector />} />
+                <Route path="/auth/select-modules" element={<ModulePicker />} />
+                <Route path="/auth/onboarding" element={<CompanyOnboarding />} />
+                
                 <Route path="/developer" element={<DeveloperLanding />} />
 
                 {/* Protected Routes */}
@@ -472,7 +482,7 @@ const App = () => (
                 
                 <Route path="/analytics-platform" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={["analytics:view"]} showError={true}>
+                    <RoleGuard permissions={["analytics.view"]} showError={true}>
                       <AnalyticsPlatform />
                     </RoleGuard>
                   </ProtectedRoute>
@@ -624,14 +634,6 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
-                <Route path="/analytics-platform" element={
-                  <ProtectedRoute>
-                    <RoleGuard permissions={["audit.read"]} showError={true}>
-                      <AnalyticsPlatform />
-                    </RoleGuard>
-                  </ProtectedRoute>
-                } />
-                
                 <Route path="/analytics-platform-auth" element={<AnalyticsPlatformAuth />} />
                 
                 <Route path="/admin" element={
@@ -646,6 +648,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster richColors position="top-right" />
+              </IndustryTerminologyProvider>
             </RBACProvider>
           </AuthProvider>
         </ThemeProvider>

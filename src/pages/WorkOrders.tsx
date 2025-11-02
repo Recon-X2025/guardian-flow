@@ -58,7 +58,7 @@ export default function WorkOrders() {
 
   const fetchWorkOrders = async () => {
     if (rbacLoading || (!isSysAdmin && !tenantId)) {
-      console.log('Waiting for RBAC context...');
+      // Waiting for RBAC context to load
       return;
     }
 
@@ -97,7 +97,6 @@ export default function WorkOrders() {
       if (countError) throw countError;
       
       setTotalCount(count || 0);
-      console.log('Total work orders:', count, 'Filter:', statusFilter || 'none');
 
       // Fetch paginated data
       const from = (currentPage - 1) * pageSize;
@@ -107,7 +106,6 @@ export default function WorkOrders() {
         .range(from, to);
 
       if (error) throw error;
-      console.log(`Page ${currentPage}: Fetched ${data?.length} of ${count} total`);
       setWorkOrders(data || []);
 
       // Auto-generate Offer AI offers for released/in_progress WOs lacking offers (max 3 per load)
@@ -118,18 +116,18 @@ export default function WorkOrders() {
         targets.forEach(async (wo: any) => {
           const customerId = wo.ticket?.customer_id;
           try {
-            console.log('Auto-generating Offer AI for WO:', wo.id);
+            // Auto-generating Offer AI for work order
             await supabase.functions.invoke('generate-offers', {
               body: { workOrderId: wo.id, customerId }
             });
             // Refresh this WO row to show offers soon after
             fetchWorkOrders();
           } catch (e) {
-            console.error('Auto Offer AI generation failed for WO', wo.id, e);
+            // Auto Offer AI generation failed (silently continue)
           }
         });
       } catch (e) {
-        console.error('Auto Offer AI batch error', e);
+        // Auto Offer AI batch error (silently continue)
       }
     } catch (error: any) {
       toast({
@@ -440,7 +438,7 @@ export default function WorkOrders() {
                         disabled={isCompleted}
                         title={isCompleted ? 'Disabled for completed work orders' : undefined}
                         onClick={() => {
-                          console.log('Offer AI button clicked for WO:', wo.id, 'Status:', wo.status);
+                          // Offer AI button clicked
                           if (wo.status === 'draft' || wo.status === 'pending_validation') {
                             toast({
                               title: 'Work order not ready',
@@ -450,7 +448,7 @@ export default function WorkOrders() {
                             return;
                           }
                           const customerId = wo.ticket?.customer_id;
-                          console.log('Customer ID:', customerId);
+                          // Processing customer data
                           setSelectedWO(wo.id);
                           setSelectedCustomerId(customerId || null);
                           setSaposDialogOpen(true);
@@ -468,7 +466,7 @@ export default function WorkOrders() {
                         disabled={isCompleted}
                         title={isCompleted ? 'Disabled for completed work orders' : undefined}
                         onClick={() => {
-                          console.log('Generate SO button clicked for WO:', wo.id, 'Status:', wo.status);
+                          // Generate Service Order button clicked
                           if (wo.status === 'draft' || wo.status === 'pending_validation') {
                             toast({
                               title: 'Work order not ready',

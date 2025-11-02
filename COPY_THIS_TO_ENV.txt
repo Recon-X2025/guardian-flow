@@ -1,0 +1,32 @@
+COPY THE BELOW TEXT INTO YOUR .env.local FILE:
+===============================================
+
+VITE_SUPABASE_URL=https://srbvopyexztcoxcayydn.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=
+
+
+
+
+WHAT TO DO:
+-----------
+1. Get your anon key from:
+   https://supabase.com/dashboard/project/srbvopyexztcoxcayydn/settings/api
+
+2. Look for the "anon" "public" key
+
+3. Copy it
+
+4. Paste it after the = sign above
+
+5. Save as: .env.local
+
+6. Restart your app (Ctrl+C, then npm run dev)
+
+
+OR TELL ME:
+-----------
+Just open your Supabase dashboard and tell me:
+- What you see on the API settings page
+- What keys are listed
+- I'll tell you which one to copy
+

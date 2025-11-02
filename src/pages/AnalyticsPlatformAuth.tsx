@@ -7,12 +7,15 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Database, Lock } from "lucide-react";
+import { useRBAC } from "@/contexts/RBACContext";
+import { getRedirectRoute } from "@/utils/getRedirectRoute";
 
 export default function AnalyticsPlatformAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { roles, loading: rbacLoading, refreshRoles } = useRBAC();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +29,20 @@ export default function AnalyticsPlatformAuth() {
 
       if (error) throw error;
 
+      // Refresh roles after sign-in
+      await refreshRoles();
+      
+      // Wait for RBAC to load
+      if (rbacLoading) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       toast.success("Successfully logged in to Analytics Platform");
-      navigate("/analytics-platform");
+      
+      // Get updated roles after refresh
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const redirectPath = getRedirectRoute(roles, 'analytics');
+      navigate(redirectPath);
     } catch (error: any) {
       toast.error(error.message || "Failed to login");
     } finally {
@@ -53,8 +68,13 @@ export default function AnalyticsPlatformAuth() {
       const { error } = await supabase.auth.signInWithPassword(credentials);
       if (error) throw error;
 
+      // Refresh roles after successful sign-in
+      await refreshRoles();
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       toast.success(`Logged in as ${role.replace('_', ' ')}`);
-      navigate("/analytics-platform");
+      const redirectPath = getRedirectRoute(roles, 'analytics');
+      navigate(redirectPath);
     } catch (error: any) {
       toast.error(error.message || "Failed to login");
     } finally {

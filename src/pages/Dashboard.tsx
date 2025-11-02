@@ -8,6 +8,7 @@ import { useRBAC } from '@/contexts/RBACContext';
 import { toast } from "sonner";
 import { DashboardStats, getRoleConfig } from "@/config/dashboardConfig";
 import { Badge } from "@/components/ui/badge";
+import TrialBanner from "@/components/TrialBanner";
 
 export default function Dashboard() {
   const { formatCurrency } = useCurrency();
@@ -65,8 +66,19 @@ export default function Dashboard() {
   }, [tenantId, isSysAdmin, rbacLoading]);
 
   const fetchDashboardData = async () => {
-    if (rbacLoading || (!isSysAdmin && !tenantId)) {
+    setLoading(true);
+    
+    // Only wait if RBAC is loading or if non-admin user doesn't have tenant
+    if (rbacLoading) {
       console.log('Waiting for RBAC context...');
+      setLoading(false);
+      return;
+    }
+    
+    // Non-admin users need tenant_id, but sys_admin can proceed without it
+    if (!isSysAdmin && !tenantId) {
+      console.log('Non-admin user needs tenant_id');
+      setLoading(false);
       return;
     }
 
@@ -296,6 +308,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <TrialBanner />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
@@ -409,7 +422,7 @@ export default function Dashboard() {
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             Platform Features
           </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">87 integrated modules for complete field service management</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">87+ integrated modules for complete operations intelligence</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">

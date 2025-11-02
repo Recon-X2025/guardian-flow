@@ -1,0 +1,32 @@
+UPDATE YOUR EXISTING .env FILE
+===============================
+
+YOU ALREADY HAVE A .env FILE!
+But it probably has old/empty values.
+
+DO THIS:
+
+1. RIGHT-CLICK on ".env" in File Explorer
+2. Click "Open with" → "Notepad"
+3. DELETE everything in the file
+4. Copy and paste these TWO lines:
+
+VITE_SUPABASE_URL=https://srbvopyexztcoxcayydn.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYnZvcHlleHp0Y294Y2F5eWRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNjA3MTIsImV4cCI6MjA3NzYzNjcxMn0.Psr_YbtLcnAC6LCmNVEnopns4isndzCIIXDEY4MXy04
+
+5. Click File → Save
+6. Close Notepad
+
+THEN RESTART YOUR APP:
+-----------------------
+1. Go to your terminal
+2. Press: Ctrl+C
+3. Type: npm run dev
+4. Wait for "VITE ready"
+5. Refresh browser
+6. Try logging in!
+
+
+THAT'S IT!
+==========
+

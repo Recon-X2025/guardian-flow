@@ -1,0 +1,31 @@
+REPLACE YOUR .env FILE WITH THIS:
+====================================
+
+VITE_SUPABASE_URL=https://srbvopyexztcoxcayydn.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYnZvcHlleHp0Y294Y2F5eWRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIwNjA3MTIsImV4cCI6MjA3NzYzNjcxMn0.Psr_YbtLcnAC6LCmNVEnopns4isndzCIIXDEY4MXy04
+
+
+EXACTLY WHAT TO DO:
+===================
+1. Open the .env file in Notepad
+2. DELETE all three old lines
+3. COPY the TWO lines above
+4. PASTE them in
+5. SAVE the file
+6. Close Notepad
+
+
+THEN:
+-----
+1. In terminal: Press Ctrl+C (to stop app)
+2. Type: npm run dev
+3. Wait for "VITE ready"
+4. Refresh browser
+5. LOGIN!
+
+
+THE PROBLEM:
+============
+Your .env had old project IDs.
+Now it's using the new project where all your data is!
+

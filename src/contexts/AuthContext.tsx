@@ -20,8 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener FIRST
+    // 🔴 DEBUG BREAKPOINT: Set here to inspect auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // 🔴 DEBUG BREAKPOINT: Inspect event type ('SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED', etc.)
+        // 🔴 WATCH: event, session, session?.user
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -29,7 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
+    // 🔴 DEBUG BREAKPOINT: Set here to inspect initial session check on app load
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // 🔴 DEBUG BREAKPOINT: Inspect existing session on app initialization
+      // 🔴 WATCH: session, session?.user, session?.access_token
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -39,14 +45,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // 🔴 DEBUG BREAKPOINT: Set here to debug sign-in attempts
+    // 🔴 WATCH: email, password (be careful with sensitive data in production)
     try {
+      // 🔴 DEBUG BREAKPOINT: Set here before the API call
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
+      // 🔴 DEBUG BREAKPOINT: Set here after the API call to inspect error or success
+      // 🔴 WATCH: error, error?.message, error?.status
       return { error };
     } catch (error: any) {
+      // 🔴 DEBUG BREAKPOINT: Set here to catch unexpected sign-in errors
+      // 🔴 WATCH: error, error?.message
       return { error };
     }
   };
@@ -73,7 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // 🔴 DEBUG BREAKPOINT: Set here to debug sign-out flow
+    // 🔴 WATCH: user, session
     await supabase.auth.signOut();
+    // 🔴 DEBUG BREAKPOINT: Set here after sign-out to verify session cleared
     window.location.href = '/auth';
   };
 

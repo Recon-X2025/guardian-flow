@@ -3,8 +3,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { UserMenu } from "@/components/UserMenu";
+import { useModuleContext } from "@/hooks/useModuleContext";
 
 export function AppLayout({ children }: { children: ReactNode }) {
+  const { moduleName } = useModuleContext();
+  
   return (
     <TooltipProvider>
       <SidebarProvider>
@@ -17,7 +20,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <div className="flex items-center gap-1 sm:gap-2">
                   <span className="text-xs sm:text-sm font-semibold">Guardian Flow</span>
                   <span className="text-xs text-muted-foreground hidden md:inline">
-                    Enterprise Field Service Platform
+                    {moduleName}
                   </span>
                 </div>
               </div>

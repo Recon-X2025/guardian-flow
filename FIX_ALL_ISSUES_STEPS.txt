@@ -1,0 +1,74 @@
+FIX ALL ISSUES - COMPLETE CHECKLIST
+=====================================
+
+RUN THESE IN ORDER:
+
+
+STEP 1: Create Missing Tables
+-------------------------------
+1. Go to: https://supabase.com/dashboard/project/srbvopyexztcoxcayydn/sql/new
+2. Open: CREATE_MISSING_TABLES.sql
+3. Copy ALL content
+4. Paste and Run
+5. Should see: "✅ Notifications table created"
+
+
+STEP 2: Map Base Role Permissions (If not done yet)
+----------------------------------------------------
+1. Still in SQL editor
+2. Open: MAP_BASE_ROLE_PERMISSIONS.sql  
+3. Copy ALL content
+4. Paste and Run
+5. Check output shows permission counts per role
+
+
+STEP 3: Re-seed All Accounts
+-----------------------------
+1. Close seed-accounts.html if open
+2. Re-open: seed-accounts.html
+3. Click "Create All Test Accounts"
+4. Wait 2-3 minutes
+5. Should see: "✅ Created: ~50+ accounts"
+
+
+STEP 4: Clear Browser Cache
+----------------------------
+1. In Chrome: Press Ctrl+Shift+Delete
+2. Select "Cached images and files"
+3. Time range: "All time"
+4. Click "Clear data"
+
+
+STEP 5: Restart Your App
+------------------------
+1. In terminal: Press Ctrl+C (stop server)
+2. Type: npm run dev
+3. Wait for "VITE ready"
+
+
+STEP 6: Test Login
+------------------
+1. Go to: http://localhost:8088/auth
+2. Hard refresh: Ctrl+F5
+3. Login with: admin@techcorp.com / Admin123!
+
+
+WHAT SHOULD WORK NOW:
+====================
+✅ Login succeeds
+✅ Dashboard loads (even if empty - no more "Loading..." forever)
+✅ Sidebar shows menu items based on role
+✅ No 404 errors for notifications
+✅ Currency errors are silent (using fallback rates)
+
+
+IF STILL NOT WORKING:
+====================
+Check browser console:
+- If you see RBAC errors, check if MAP_BASE_ROLE_PERMISSIONS.sql ran
+- If you see "Waiting for RBAC context...", check if user has roles assigned
+- Share console errors and I'll help debug!
+
+
+YOU GOT THIS! 💪
+

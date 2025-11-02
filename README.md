@@ -1,8 +1,8 @@
-# Guardian Flow v6.0
+# Guardian Flow v6.1
 
-**Enterprise Field Service Intelligence Platform + PaaS**
+**AI-Powered Operational Intelligence Platform + PaaS**
 
-Guardian Flow is an AI-powered field service management platform that combines work order orchestration, fraud detection, financial reconciliation, and hierarchical forecasting. Now with **Platform-as-a-Service (PaaS)** capabilities enabling external developers to build on top of Guardian Flow.
+Guardian Flow is an industry-agnostic AI-powered operations platform that enables enterprises to orchestrate complex workflows, detect fraud, manage finances, and forecast demand across any vertical. Our **Platform-as-a-Service (PaaS)** capabilities enable external developers to build customized solutions on top of Guardian Flow.
 
 ## 🚀 v6.0 - PaaS Evolution
 
@@ -43,12 +43,14 @@ Guardian Flow is an AI-powered field service management platform that combines w
 - Daily reconciliation of API usage
 - Billing cycle tracking per tenant
 
-## Core Features (v5.0)
+## Core Features (v6.1)
+- **Industry-Agnostic Architecture**: Customizable for Healthcare, Manufacturing, Utilities, Logistics, Finance, Retail, and more
 - **Hierarchical Forecasting**: 7-level geographic intelligence
 - **AI Agents**: Autonomous operations with GPT/Gemini integration
 - **Fraud Detection**: ML-powered anomaly detection
 - **Financial Management**: Automated penalties & invoicing
 - **Multi-Tenant Architecture**: Complete data isolation
+- **Compliance Automation**: SOC 2, ISO 27001, HIPAA-ready
 
 ## Quick Start
 

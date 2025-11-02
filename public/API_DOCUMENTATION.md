@@ -1,7 +1,7 @@
 # Guardian Flow API Documentation
 
-**Version:** 6.0  
-**Last Updated:** October 2025
+**Version:** 6.1  
+**Last Updated:** November 1, 2025
 
 ---
 
@@ -559,6 +559,199 @@ No authentication required.
 - **Demo Data**: 10 pre-loaded work orders
 - **Full API Access**: All endpoints available
 - **Auto-Cleanup**: Expires after 7 days
+
+---
+
+## Webhooks
+
+Guardian Flow supports event-driven webhooks for real-time integrations. Receive notifications for key events across the platform.
+
+### Webhook System
+
+- **30+ Event Types**: Work orders, invoices, fraud alerts, compliance, and more
+- **HMAC Signatures**: Secure webhook verification
+- **Retry Mechanism**: Configurable exponential backoff
+- **Delivery Logs**: Complete audit trail
+- **Health Monitoring**: Track success rates and performance
+
+### Creating Webhooks
+
+**Endpoint**: `POST /functions/v1/webhook-delivery-manager`
+
+```json
+{
+  "action": "register_webhook",
+  "tenant_id": "your-tenant-uuid",
+  "name": "My Work Order Webhook",
+  "url": "https://example.com/webhook",
+  "events": [
+    "work_order.created",
+    "work_order.completed",
+    "invoice.paid"
+  ],
+  "headers": {
+    "X-Custom-Header": "value"
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "webhook": {
+    "id": "webhook-uuid",
+    "secret_key": "whsec_xxxxxxxxxxxxx",
+    "url": "https://example.com/webhook",
+    "events": ["work_order.created", ...]
+  }
+}
+```
+
+### Available Events
+
+#### Work Order Events
+- `work_order.created` - New work order created
+- `work_order.updated` - Work order modified
+- `work_order.assigned` - Assigned to technician
+- `work_order.completed` - Work completed
+- `work_order.cancelled` - Work cancelled
+
+#### Invoice Events
+- `invoice.created` - Invoice generated
+- `invoice.sent` - Invoice sent to customer
+- `invoice.paid` - Payment received
+- `invoice.overdue` - Payment overdue
+
+#### Fraud & Compliance Events
+- `fraud.alert` - Fraud detected
+- `fraud.confirmed` - Fraud confirmed
+- `fraud.dismissed` - False positive
+- `penalty.applied` - Penalty charged
+- `penalty.disputed` - Penalty disputed
+- `compliance.review_due` - Compliance review due
+- `compliance.violation_detected` - Violation detected
+
+#### Service Order Events
+- `service_order.generated` - SO document created
+- `service_order.signed` - Digitally signed
+
+#### Schedule Events
+- `schedule.created` - Schedule created
+- `schedule.updated` - Schedule modified
+
+#### User & Tenant Events
+- `user.created` - New user account
+- `user.role_changed` - Role modified
+- `tenant.created` - New organization
+- `tenant.subscription_changed` - Plan changed
+
+#### API Events
+- `api.quota_exceeded` - API limit reached
+- `api.rate_limit_hit` - Rate limit triggered
+
+#### Maintenance Events
+- `maintenance.scheduled` - Maintenance scheduled
+- `maintenance.completed` - Maintenance done
+
+#### Quality Events
+- `quality.issue_detected` - Quality problem found
+
+#### Document Events
+- `document.uploaded` - Document uploaded
+- `document.extracted` - OCR completed
+
+See webhook_event_catalog table for complete list.
+
+### Webhook Payload Format
+
+All webhook payloads follow this structure:
+
+```json
+{
+  "event": "work_order.created",
+  "timestamp": "2025-11-01T12:00:00Z",
+  "tenant_id": "tenant-uuid",
+  "data": {
+    "id": "wo-uuid",
+    "work_order_number": "WO-2025-001",
+    "status": "draft",
+    "customer_id": "customer-uuid",
+    "assigned_to": "technician-uuid"
+  }
+}
+```
+
+### Webhook Security
+
+Webhooks are secured with HMAC signatures:
+
+**Header**: `X-Guardian-Signature`
+
+**Verification**:
+```javascript
+const crypto = require('crypto');
+
+const signature = req.headers['x-guardian-signature'];
+const payload = req.body;
+const secret = 'your_webhook_secret';
+
+const hmac = crypto.createHmac('sha256', secret);
+const digest = hmac.update(JSON.stringify(payload)).digest('hex');
+
+if (signature !== digest) {
+  // Invalid signature, reject request
+  return 401;
+}
+```
+
+### Webhook Retry Logic
+
+Failed webhooks are retried with exponential backoff:
+
+- **Attempt 1**: Immediate
+- **Attempt 2**: 1 second delay
+- **Attempt 3**: 2 seconds
+- **Attempt 4**: 4 seconds
+- **Attempt 5**: 8 seconds
+
+Maximum retry delay: 60 seconds
+
+### Webhook Management
+
+**List Webhooks**:
+```bash
+# Query webhooks table via Supabase client
+SELECT * FROM webhooks WHERE tenant_id = 'your-tenant-uuid'
+```
+
+**Update Webhook**:
+```json
+{
+  "action": "update_webhook",
+  "webhook_id": "webhook-uuid",
+  "active": false  // Disable webhook
+}
+```
+
+**View Webhook Logs**:
+```bash
+SELECT * FROM webhook_logs 
+WHERE webhook_id = 'webhook-uuid' 
+ORDER BY triggered_at DESC
+```
+
+### Testing Webhooks
+
+Use the test mode in Developer Console to send sample payloads:
+
+```json
+{
+  "action": "test_webhook",
+  "webhook_id": "webhook-uuid",
+  "event_type": "work_order.created"
+}
+```
 
 ---
 

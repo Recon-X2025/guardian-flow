@@ -96,7 +96,7 @@ export default function Auth() {
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold">Guardian Flow</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Enterprise Field Service Platform</p>
+            <p className="text-sm sm:text-base text-muted-foreground">AI-Powered Operational Intelligence Platform</p>
           </div>
 
         <Tabs defaultValue="login" className="w-full">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AuthBrandingConfig } from "@/config/authConfig";
 import { Shield, Info, HelpCircle, Mail, Phone } from "lucide-react";
 import { logAuthEvent } from "@/hooks/useAuthAudit";
+import TestAccountSelector from "./TestAccountSelector";
 
 type ModularAuthLayoutProps = {
   config: AuthBrandingConfig;
@@ -14,9 +15,10 @@ type ModularAuthLayoutProps = {
     logoUrl?: string;
     companyName?: string;
   };
+  onTestAccountLogin?: () => void;
 };
 
-export default function ModularAuthLayout({ config, children, whiteLabel }: ModularAuthLayoutProps) {
+export default function ModularAuthLayout({ config, children, whiteLabel, onTestAccountLogin }: ModularAuthLayoutProps) {
   const Icon = config.icon;
 
   // SEO metadata and audit logging (non-PII)
@@ -152,6 +154,9 @@ export default function ModularAuthLayout({ config, children, whiteLabel }: Modu
             )}
             
             {children}
+            
+            {/* Test Account Selector (development only) */}
+            <TestAccountSelector onLogin={onTestAccountLogin} moduleId={config.module} />
             
             {config.legalNotice && (
               <p className="text-xs text-center text-muted-foreground mt-4">

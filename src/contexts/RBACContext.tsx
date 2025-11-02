@@ -18,7 +18,14 @@ export type AppRole =
   | 'ml_ops'
   | 'billing_agent'
   | 'auditor'
-  | 'guest';
+  | 'guest'
+  | 'client_admin'
+  | 'client_operations_manager'
+  | 'client_finance_manager'
+  | 'client_compliance_officer'
+  | 'client_procurement_manager'
+  | 'client_executive'
+  | 'client_fraud_manager';
 
 interface UserRole {
   id: string;
@@ -60,23 +67,6 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Call backend auth/me endpoint for server-validated context
-      const { data, error } = await supabase.functions.invoke('auth-me', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) {
-        console.error('auth-me error:', error);
-        // Don't throw - just log and continue with empty permissions
-        setRoles([]);
-        setPermissions([]);
-        setTenantId(null);
-        setLoading(false);
-        return;
-      }
-
       // Fetch full user_roles with metadata for client use
       const { data: userRoles, error: rolesError } = await supabase
         .from('user_roles')
@@ -84,14 +74,84 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', user.id);
 
       if (rolesError) {
-        console.error('roles fetch error:', rolesError);
+        console.error('❌ Roles fetch error:', rolesError);
         setRoles([]);
-        setPermissions(data?.permissions || []);
-        setTenantId(data?.tenant_id || null);
+        setPermissions([]);
+        setTenantId(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Loaded user roles:', userRoles?.length || 0, 'roles');
+      if (userRoles && userRoles.length > 0) {
+        console.log('📋 User roles:', userRoles.map(r => r.role));
+      }
+      setRoles(userRoles || []);
+
+      // Fetch permissions for the user's roles
+      if (userRoles && userRoles.length > 0) {
+        const roleNames = userRoles.map(r => r.role);
+        console.log('🔍 Fetching permissions for roles:', roleNames);
+        
+        // Fetch role_permissions
+        const { data: rolePerms, error: permsError } = await supabase
+          .from('role_permissions')
+          .select('permission_id')
+          .in('role', roleNames as any);
+
+        if (permsError) {
+          console.error('❌ Permissions fetch error:', permsError);
+          console.error('Error details:', {
+            message: permsError.message,
+            details: permsError.details,
+            hint: permsError.hint,
+            roles: roleNames
+          });
+          setPermissions([]);
+        } else {
+          console.log('🔍 Fetched role_permissions:', rolePerms?.length || 0);
+          
+          // Get unique permission IDs
+          const permissionIds = [...new Set(rolePerms?.map(rp => rp.permission_id).filter(Boolean) || [])];
+          console.log('🔍 Unique permission IDs:', permissionIds.length);
+          
+          // Fetch permission names
+          const { data: permsData, error: permsNameError } = await supabase
+            .from('permissions')
+            .select('name')
+            .in('id', permissionIds);
+
+          if (permsNameError) {
+            console.error('❌ Permission names fetch error:', permsNameError);
+            setPermissions([]);
+          } else {
+            const permissions = permsData?.map(p => p.name) || [];
+            
+            console.log('✅ Loaded permissions:', permissions.length, 'permissions');
+            console.log('📋 ALL permissions:', permissions);
+            setPermissions(permissions);
+          }
+        }
       } else {
-        setRoles(userRoles || []);
-        setPermissions(data?.permissions || []);
-        setTenantId(data?.tenant_id || null);
+        console.warn('⚠️ No user roles found for user:', user.id);
+        setPermissions([]);
+      }
+
+      // Set tenant_id from first role or profile
+      const tenantId = userRoles?.[0]?.tenant_id || null;
+      setTenantId(tenantId);
+
+      // If tenant_id not in roles, fetch from profile
+      if (!tenantId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.tenant_id) {
+          setTenantId(profile.tenant_id);
+        }
       }
     } catch (error) {
       console.error('Error fetching roles/permissions:', error);
@@ -126,6 +186,10 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = hasAnyRole(['sys_admin', 'tenant_admin']);
   const isTenantAdmin = hasRole('tenant_admin');
 
+  const refreshRoles = async (): Promise<void> => {
+    await fetchRolesAndPermissions();
+  };
+
   const value: RBACContextType = {
     roles,
     permissions,
@@ -137,7 +201,7 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
     hasAnyPermission,
     isAdmin,
     isTenantAdmin,
-    refreshRoles: fetchRolesAndPermissions,
+    refreshRoles,
   };
 
   return <RBACContext.Provider value={value}>{children}</RBACContext.Provider>;

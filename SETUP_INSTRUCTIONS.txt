@@ -1,0 +1,52 @@
+COMPLETE SETUP INSTRUCTIONS
+=============================
+
+IN YOUR TERMINAL, TYPE THESE COMMANDS ONE AT A TIME:
+
+
+1. FIRST TIME SETUP (Only if you haven't done this before):
+-------------------------------------------------------------
+   cd "C:\Users\Karthik's PC\guardian-flow"
+   npm install
+
+   (Wait for this to finish - takes 1-2 minutes)
+
+
+2. START THE APP:
+-----------------
+   npm run dev
+
+   (Wait for "VITE v5.4.19 ready in ... ms")
+
+
+3. OPEN IN BROWSER:
+-------------------
+   Open Chrome/Edge
+   Go to: http://localhost:8088/auth
+
+
+4. TRY LOGGING IN:
+------------------
+   Email: admin@techcorp.com
+   Password: Admin123!
+
+
+WHAT npm install DOES:
+---------------------
+Downloads all the code libraries the app needs.
+You only need to do this ONCE.
+If you already did it before, skip this step.
+
+
+CHECK IF YOU NEED npm install:
+------------------------------
+Look in: C:\Users\Karthik's PC\guardian-flow
+Do you see a folder called "node_modules"?
+- If YES: Skip npm install, just run "npm run dev"
+- If NO: Run "npm install" first
+
+
+NEED HELP?
+----------
+Tell me what happens when you run the commands!
+

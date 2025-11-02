@@ -32,6 +32,7 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
     unitPrice: item?.unit_price || 0,
     deliveryDate: new Date(Date.now() + (item?.lead_time_days || 7) * 24 * 60 * 60 * 1000),
     notes: '',
+    supplierId: null as string | null,
   });
 
   const totalAmount = formData.quantity * formData.unitPrice;
@@ -46,12 +47,30 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
       return;
     }
 
+    if (formData.unitPrice <= 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Unit price must be greater than 0',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!item?.id) {
+      toast({
+        title: 'Validation Error',
+        description: 'Invalid item selected',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await supabase.functions.invoke('create-purchase-order', {
         body: {
           itemId: item.id,
-          supplierId: null, // TODO: Add supplier selection
+          supplierId: formData.supplierId || null, // Supplier selection can be added later if supplier table exists
           quantity: formData.quantity,
           unitPrice: formData.unitPrice,
           deliveryDate: formData.deliveryDate.toISOString(),
@@ -68,10 +87,11 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create purchase order';
       toast({
         title: 'Error',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

@@ -65,7 +65,11 @@ export default function EnhancedAuthForm({ config, onSuccess }: EnhancedAuthForm
       if (error) throw error;
 
       toast.success("Welcome back!");
+      
+      // Call onSuccess callback which will handle role-based redirect
       if (onSuccess) {
+        // Small delay to ensure auth state updates before redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
         onSuccess();
       } else {
         navigate("/dashboard");
@@ -107,8 +111,10 @@ export default function EnhancedAuthForm({ config, onSuccess }: EnhancedAuthForm
 
       if (error) throw error;
 
-      toast.success("Account created! Please check your email to verify.");
-      setActiveTab("signin");
+      toast.success("Account created successfully!");
+      
+      // Navigate to plan selection after successful signup
+      navigate("/auth/select-plan");
     } catch (error: any) {
       console.error("Sign up error:", error);
       toast.error(error.message || "Failed to create account");

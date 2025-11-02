@@ -1,0 +1,54 @@
+FINAL SETUP STEPS TO GET EVERYTHING WORKING
+============================================
+
+You're almost there! Follow these in order:
+
+
+STEP 1: Run MAP_BASE_ROLE_PERMISSIONS.sql
+------------------------------------------
+1. Go to: https://supabase.com/dashboard/project/srbvopyexztcoxcayydn/sql/new
+2. Open: MAP_BASE_ROLE_PERMISSIONS.sql
+3. Copy ALL content
+4. Paste into SQL Editor
+5. Click "Run"
+6. Should take 10-20 seconds
+
+
+STEP 2: Re-run seed-accounts.html
+----------------------------------
+1. Close your browser tab (if seed-accounts.html is still open)
+2. Open: seed-accounts.html again (double-click it)
+3. Click "Create All Test Accounts"
+4. Wait 2-3 minutes
+5. You should see: "✅ Created: ~50 accounts" (the rest are "already exist")
+
+
+STEP 3: Refresh Your App
+-------------------------
+1. Go to: http://localhost:8088/auth
+2. Press Ctrl+F5 (hard refresh)
+3. Try logging in with: admin@techcorp.com / Admin123!
+
+
+WHAT SHOULD HAPPEN NOW:
+=======================
+✅ Login succeeds
+✅ Dashboard loads (shows stats/cards)
+✅ Sidebar shows ALL menu items based on your role
+✅ No "Loading dashboard..." forever
+
+
+IF STILL NOT WORKING:
+=====================
+Tell me what error you see, and I'll help debug!
+
+
+THINGS TO CHECK:
+================
+- In Supabase Dashboard, go to: Project Settings → API
+- Make sure "Enable RLS" is ON for all tables
+- Run VERIFY_ACCOUNTS.sql to see if all accounts are there
+
+
+YOU'RE SO CLOSE! 🎯
+

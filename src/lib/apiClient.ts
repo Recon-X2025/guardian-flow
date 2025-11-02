@@ -51,7 +51,10 @@ async function retryWithBackoff<T>(
       const delay = baseDelay * Math.pow(2, attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
       
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      // Retry attempt (logging only in development)
+      if (import.meta.env.DEV) {
+        console.debug(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      }
     }
   }
   

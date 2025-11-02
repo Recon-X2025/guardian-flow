@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seed Test Accounts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        pre {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🌱 Seed Test Accounts</h1>
+        <p>Click the button below to create all test accounts for Guardian Flow.</p>
+        <button onclick="seedAccounts()" id="seedBtn">Create All Test Accounts</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://srbvopyexztcoxcayydn.supabase.co';
+        const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyYnZvcHlleHp0Y294Y2F5eWRuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjA2MDcxMiwiZXhwIjoyMDc3NjM2NzEyfQ.lY4Ubv3k8lL8rTfmzWckyhxQObhQSB1D3UgVCZcGpQ4';
+
+        // Generate all test accounts dynamically
+        function generateTestAccounts() {
+            const accounts = [
+                // Core platform accounts
+                { email: 'admin@techcorp.com', password: 'Admin123!', fullName: 'System Admin', role: 'sys_admin', tenantSlug: null },
+
+                // Operations Manager Module
+                { email: 'ops@techcorp.com', password: 'Ops123!', fullName: 'Operations Manager', role: 'ops_manager', tenantSlug: null },
+                { email: 'ops.sla@techcorp.com', password: 'Ops123!', fullName: 'Ops SLA Monitor', role: 'ops_manager', tenantSlug: null },
+                { email: 'ops.dispatch@techcorp.com', password: 'Ops123!', fullName: 'Ops Dispatcher', role: 'ops_manager', tenantSlug: null },
+                { email: 'ops.reports@techcorp.com', password: 'Ops123!', fullName: 'Ops Report Analyst', role: 'ops_manager', tenantSlug: null },
+
+                // Finance Manager Module
+                { email: 'finance@techcorp.com', password: 'Finance123!', fullName: 'Finance Manager', role: 'finance_manager', tenantSlug: null },
+                { email: 'finance.invoicing@techcorp.com', password: 'Finance123!', fullName: 'Finance Invoicing', role: 'finance_manager', tenantSlug: null },
+                { email: 'finance.forecast@techcorp.com', password: 'Finance123!', fullName: 'Finance Forecast Analyst', role: 'finance_manager', tenantSlug: null },
+                { email: 'finance.disputes@techcorp.com', password: 'Finance123!', fullName: 'Finance Dispute Resolver', role: 'finance_manager', tenantSlug: null },
+
+                // Compliance/Audit Module
+                { email: 'auditor@techcorp.com', password: 'Auditor123!', fullName: 'Auditor', role: 'auditor', tenantSlug: null },
+                { email: 'auditor.evidence@techcorp.com', password: 'Auditor123!', fullName: 'Auditor Evidence', role: 'auditor', tenantSlug: null },
+                { email: 'auditor.vuln@techcorp.com', password: 'Auditor123!', fullName: 'Auditor Vulnerability', role: 'auditor', tenantSlug: null },
+                { email: 'auditor.logs@techcorp.com', password: 'Auditor123!', fullName: 'Auditor Log Reviewer', role: 'auditor', tenantSlug: null },
+
+                // Fraud Investigator Module
+                { email: 'fraud@techcorp.com', password: 'Fraud123!', fullName: 'Fraud Investigator', role: 'fraud_investigator', tenantSlug: null },
+                { email: 'fraud.anomaly@techcorp.com', password: 'Fraud123!', fullName: 'Fraud Anomaly Analyst', role: 'fraud_investigator', tenantSlug: null },
+                { email: 'fraud.cases@techcorp.com', password: 'Fraud123!', fullName: 'Fraud Case Manager', role: 'fraud_investigator', tenantSlug: null },
+
+                // Technician Module
+                { email: 'tech.mobile@techcorp.com', password: 'Tech123!', fullName: 'Tech Mobile User', role: 'technician', tenantSlug: null },
+                { email: 'tech.photos@techcorp.com', password: 'Tech123!', fullName: 'Tech Photo Specialist', role: 'technician', tenantSlug: null },
+                { email: 'tech.complete@techcorp.com', password: 'Tech123!', fullName: 'Tech Completion Specialist', role: 'technician', tenantSlug: null },
+
+                // System Administrator Module
+                { email: 'admin.rbac@techcorp.com', password: 'Admin123!', fullName: 'Admin RBAC Manager', role: 'sys_admin', tenantSlug: null },
+                { email: 'admin.jit@techcorp.com', password: 'Admin123!', fullName: 'Admin JIT Access', role: 'sys_admin', tenantSlug: null },
+                { email: 'admin.health@techcorp.com', password: 'Admin123!', fullName: 'Admin System Monitor', role: 'sys_admin', tenantSlug: null },
+
+                // Product Owner / Developer Module
+                { email: 'product.api@techcorp.com', password: 'Product123!', fullName: 'Product API Specialist', role: 'product_owner', tenantSlug: null },
+                { email: 'product.webhooks@techcorp.com', password: 'Product123!', fullName: 'Product Webhook Manager', role: 'product_owner', tenantSlug: null },
+                { email: 'product.marketplace@techcorp.com', password: 'Product123!', fullName: 'Product Marketplace Publisher', role: 'product_owner', tenantSlug: null },
+
+                // Support roles
+                { email: 'dispatch@techcorp.com', password: 'Dispatch123!', fullName: 'Dispatcher', role: 'dispatcher', tenantSlug: null },
+                { email: 'customer@example.com', password: 'Customer123!', fullName: 'Customer User', role: 'customer', tenantSlug: null },
+                { email: 'mlops@techcorp.com', password: 'MLOps123!', fullName: 'ML Operations', role: 'ml_ops', tenantSlug: null },
+                { email: 'billing@techcorp.com', password: 'Billing123!', fullName: 'Billing Agent', role: 'billing_agent', tenantSlug: null },
+                { email: 'support@techcorp.com', password: 'Support123!', fullName: 'Support Agent', role: 'support_agent', tenantSlug: null },
+
+                // CLIENT ROLES
+                { email: 'oem1.admin@client.com', password: 'Client123!', fullName: 'OEM Client 1 Admin', role: 'client_admin', tenantSlug: 'oem-client-1' },
+                { email: 'oem1.ops@client.com', password: 'Client123!', fullName: 'OEM Client 1 Operations Manager', role: 'client_operations_manager', tenantSlug: 'oem-client-1' },
+                { email: 'oem1.finance@client.com', password: 'Client123!', fullName: 'OEM Client 1 Finance Manager', role: 'client_finance_manager', tenantSlug: 'oem-client-1' },
+                { email: 'oem1.procurement@client.com', password: 'Client123!', fullName: 'OEM Client 1 Procurement Manager', role: 'client_procurement_manager', tenantSlug: 'oem-client-1' },
+                { email: 'oem2.admin@client.com', password: 'Client123!', fullName: 'OEM Client 2 Admin', role: 'client_admin', tenantSlug: 'oem-client-2' },
+                { email: 'oem2.ops@client.com', password: 'Client123!', fullName: 'OEM Client 2 Operations', role: 'client_operations_manager', tenantSlug: 'oem-client-2' },
+                { email: 'oem2.compliance@client.com', password: 'Client123!', fullName: 'OEM Client 2 Compliance Officer', role: 'client_compliance_officer', tenantSlug: 'oem-client-2' },
+                { email: 'insurance1.admin@client.com', password: 'Client123!', fullName: 'Insurance Client 1 Admin', role: 'client_admin', tenantSlug: 'insurance-client-1' },
+                { email: 'insurance1.fraud@client.com', password: 'Client123!', fullName: 'Insurance Client 1 Fraud Manager', role: 'client_fraud_manager', tenantSlug: 'insurance-client-1' },
+                { email: 'insurance1.compliance@client.com', password: 'Client123!', fullName: 'Insurance Client 1 Compliance Officer', role: 'client_compliance_officer', tenantSlug: 'insurance-client-1' },
+                { email: 'oem2.executive@client.com', password: 'Client123!', fullName: 'OEM Client 2 Executive', role: 'client_executive', tenantSlug: 'oem-client-2' },
+                { email: 'telecom1.admin@client.com', password: 'Client123!', fullName: 'Telecom Client 1 Admin', role: 'client_admin', tenantSlug: 'telecom-client-1' },
+                { email: 'telecom1.ops@client.com', password: 'Client123!', fullName: 'Telecom Client 1 Operations', role: 'client_operations_manager', tenantSlug: 'telecom-client-1' },
+                { email: 'telecom1.finance@client.com', password: 'Client123!', fullName: 'Telecom Client 1 Finance Manager', role: 'client_finance_manager', tenantSlug: 'telecom-client-1' },
+                { email: 'retail1.admin@client.com', password: 'Client123!', fullName: 'Retail Client 1 Admin', role: 'client_admin', tenantSlug: 'retail-client-1' },
+                { email: 'retail1.ops@client.com', password: 'Client123!', fullName: 'Retail Client 1 Operations', role: 'client_operations_manager', tenantSlug: 'retail-client-1' },
+                { email: 'retail1.procurement@client.com', password: 'Client123!', fullName: 'Retail Client 1 Procurement', role: 'client_procurement_manager', tenantSlug: 'retail-client-1' },
+                { email: 'healthcare1.admin@client.com', password: 'Client123!', fullName: 'Healthcare Client 1 Admin', role: 'client_admin', tenantSlug: 'healthcare-client-1' },
+                { email: 'healthcare1.compliance@client.com', password: 'Client123!', fullName: 'Healthcare Client 1 Compliance Officer', role: 'client_compliance_officer', tenantSlug: 'healthcare-client-1' },
+                { email: 'healthcare1.executive@client.com', password: 'Client123!', fullName: 'Healthcare Client 1 Executive', role: 'client_executive', tenantSlug: 'healthcare-client-1' },
+            ];
+
+            // Add partner accounts
+            const partners = [
+                { name: 'ServicePro', slug: 'servicepro', domain: 'servicepro.com' },
+                { name: 'TechField', slug: 'techfield', domain: 'techfield.com' },
+                { name: 'RepairHub', slug: 'repairhub', domain: 'repairhub.com' },
+                { name: 'FixIt', slug: 'fixit', domain: 'fixit.com' },
+            ];
+
+            partners.forEach(partner => {
+                accounts.push({ email: `admin@${partner.domain}`, password: 'Partner123!', fullName: `${partner.name} Admin`, role: 'partner_admin', tenantSlug: partner.slug });
+                for (let i = 1; i <= 40; i++) {
+                    accounts.push({ email: `engineer${i}@${partner.domain}`, password: 'Tech123!', fullName: `${partner.name} Engineer ${i}`, role: 'technician', tenantSlug: partner.slug });
+                }
+            });
+
+            return accounts;
+        }
+
+        const TEST_ACCOUNTS = generateTestAccounts();
+
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `<pre>${message}</pre>`;
+            status.appendChild(div);
+            status.scrollTop = status.scrollHeight;
+            console.log(message);
+        }
+
+        async function createUser(account, tenantMap) {
+            try {
+                const tenantId = account.tenantSlug ? tenantMap.get(account.tenantSlug) : null;
+
+                const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                        'apikey': SERVICE_ROLE_KEY,
+                    },
+                    body: JSON.stringify({
+                        email: account.email,
+                        password: account.password,
+                        email_confirm: true,
+                        user_metadata: {
+                            full_name: account.fullName,
+                            tenant_slug: account.tenantSlug,
+                        },
+                    }),
+                });
+
+                if (!authResponse.ok) {
+                    const error = await authResponse.json();
+                    if (error.message?.includes('already registered')) {
+                        log(`✓ Already exists: ${account.email}`, 'info');
+                        return { status: 'existing', email: account.email };
+                    }
+                    throw new Error(`Auth error: ${error.message || JSON.stringify(error)}`);
+                }
+
+                const authData = await authResponse.json();
+                log(`✓ Created: ${account.email}`, 'success');
+
+                // Update profile
+                const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${authData.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Prefer': 'return=representation',
+                    },
+                    body: JSON.stringify({
+                        full_name: account.fullName,
+                        tenant_id: tenantId,
+                    }),
+                });
+
+                // Create role assignment
+                const roleResponse = await fetch(`${SUPABASE_URL}/rest/v1/user_roles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                        'apikey': SERVICE_ROLE_KEY,
+                        'Prefer': 'return=representation',
+                    },
+                    body: JSON.stringify({
+                        user_id: authData.id,
+                        role: account.role,
+                        tenant_id: tenantId,
+                    }),
+                });
+
+                return { status: 'created', email: account.email };
+            } catch (error) {
+                log(`✗ Failed: ${account.email} - ${error.message}`, 'error');
+                return { status: 'error', email: account.email, error: error.message };
+            }
+        }
+
+        async function createTenant(name, slug) {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/tenants`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                    'apikey': SERVICE_ROLE_KEY,
+                    'Prefer': 'return=representation',
+                },
+                body: JSON.stringify({ name, slug }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return data[0];
+            } else {
+                const error = await response.json();
+                if (error.message?.includes('duplicate')) {
+                    log(`Tenant already exists: ${slug}`, 'info');
+                    return null;
+                }
+                throw new Error(`Failed to create tenant: ${error.message}`);
+            }
+        }
+
+        async function seedAccounts() {
+            const btn = document.getElementById('seedBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating Accounts...';
+
+            document.getElementById('status').innerHTML = '';
+            log('🚀 Starting account seeding...\n');
+
+            try {
+                // Step 1: Create tenants
+                log('📦 Creating tenants...');
+                const tenants = [
+                    { name: 'ServicePro Partners', slug: 'servicepro' },
+                    { name: 'TechField Solutions', slug: 'techfield' },
+                    { name: 'RepairHub Network', slug: 'repairhub' },
+                    { name: 'FixIt Partners', slug: 'fixit' },
+                    { name: 'OEM Client 1', slug: 'oem-client-1' },
+                    { name: 'OEM Client 2', slug: 'oem-client-2' },
+                    { name: 'Insurance Client 1', slug: 'insurance-client-1' },
+                    { name: 'Telecom Client 1', slug: 'telecom-client-1' },
+                    { name: 'Retail Client 1', slug: 'retail-client-1' },
+                    { name: 'Healthcare Client 1', slug: 'healthcare-client-1' },
+                ];
+
+                const tenantMap = new Map();
+                for (const tenant of tenants) {
+                    try {
+                        const tenantData = await createTenant(tenant.name, tenant.slug);
+                        if (tenantData) {
+                            tenantMap.set(tenant.slug, tenantData.id);
+                            log(`✓ Created tenant: ${tenant.name}`, 'success');
+                        }
+                    } catch (error) {
+                        log(`✗ Failed to create tenant ${tenant.slug}: ${error.message}`, 'error');
+                    }
+                }
+
+                // Fetch existing tenants
+                const existingTenantsResponse = await fetch(`${SUPABASE_URL}/rest/v1/tenants?select=id,slug`, {
+                    headers: {
+                        'Authorization': `Bearer ${SERVICE_ROLE_KEY}`,
+                        'apikey': SERVICE_ROLE_KEY,
+                    },
+                });
+
+                if (existingTenantsResponse.ok) {
+                    const existingTenants = await existingTenantsResponse.json();
+                    existingTenants.forEach(t => tenantMap.set(t.slug, t.id));
+                }
+
+                log('\n👥 Creating user accounts...\n');
+
+                // Step 2: Create users
+                const results = {
+                    created: [],
+                    existing: [],
+                    errors: [],
+                };
+
+                for (const account of TEST_ACCOUNTS) {
+                    const result = await createUser(account, tenantMap);
+                    if (result.status === 'created') {
+                        results.created.push(account.email);
+                    } else if (result.status === 'existing') {
+                        results.existing.push(account.email);
+                    } else {
+                        results.errors.push({ email: account.email, error: result.error });
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                // Summary
+                log('\n' + '='.repeat(60), 'info');
+                log('📊 SUMMARY', 'info');
+                log('='.repeat(60), 'info');
+                log(`✅ Created: ${results.created.length} accounts`, results.created.length > 0 ? 'success' : 'info');
+                log(`ℹ️  Existing: ${results.existing.length} accounts`, 'info');
+                log(`❌ Errors: ${results.errors.length} accounts`, results.errors.length > 0 ? 'error' : 'info');
+                log('\n🎉 Seeding complete!', 'success');
+
+                if (results.errors.length > 0) {
+                    log('\nError details:', 'error');
+                    results.errors.forEach(e => log(`  - ${e.email}: ${e.error}`, 'error'));
+                }
+
+                log('\n✅ You can now test login at your app!', 'success');
+            } catch (error) {
+                log(`\n❌ Fatal error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create All Test Accounts';
+            }
+        }
+    </script>
+</body>
+
+</html>

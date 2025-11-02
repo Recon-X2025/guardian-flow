@@ -50,32 +50,64 @@ export default function AdvancedComplianceModule() {
 
   const loadComplianceData = async () => {
     try {
-      // For now, show placeholder data since tables don't exist yet
-      // TODO: Uncomment when compliance tables are created
-      /*
-      const { data: controlsData } = await supabase
-        .from("compliance_controls")
-        .select("*")
-        .eq("framework", selectedFramework)
-        .order("control_id");
-
-      if (controlsData) {
-        setControls(controlsData);
-        calculateComplianceScore(controlsData);
-      }
-
-      const { data: evidenceData } = await supabase
-        .from("compliance_evidence")
-        .select("*")
-        .order("collected_at", { ascending: false })
-        .limit(50);
-
-      if (evidenceData) {
-        setEvidence(evidenceData);
-      }
-      */
+      // Check if compliance tables exist, otherwise use placeholder data
+      // Note: Compliance tables (compliance_controls, compliance_evidence) need to be created
+      // in the database schema before uncommenting the following code
       
-      // Placeholder data
+      try {
+        // Query compliance controls - Supabase type inference can cause deep instantiation errors
+        // @ts-expect-error - Known Supabase type inference limitation with complex queries
+        const response = await supabase
+          .from("compliance_controls")
+          .select("*")
+          .eq("framework", selectedFramework)
+          .order("control_id");
+        const controlsData = response.data as any[] | null;
+        const controlsError = response.error;
+
+        if (!controlsError && controlsData && controlsData.length > 0) {
+          // Map database schema to expected type structure
+          const mappedControls: ComplianceControl[] = controlsData.map((control: any) => ({
+            id: control.id,
+            framework: selectedFramework,
+            control_id: control.control_id || control.id,
+            title: control.title || 'Untitled Control',
+            description: control.description || '',
+            status: control.status || 'not_applicable',
+            evidence_count: control.evidence_count || 0,
+            last_reviewed: control.last_reviewed || control.updated_at || new Date().toISOString(),
+          }));
+          
+          setControls(mappedControls);
+          calculateComplianceScore(mappedControls);
+          
+          const { data: evidenceData } = await supabase
+            .from("compliance_evidence")
+            .select("*")
+            .order("collected_at", { ascending: false })
+            .limit(50);
+
+          if (evidenceData) {
+            // Map database schema to expected type structure
+            const mappedEvidence: ComplianceEvidence[] = evidenceData.map((ev: any) => ({
+              id: ev.id,
+              control_id: ev.control_id,
+              type: ev.type || 'document',
+              description: ev.description || ev.notes || '',
+              collected_at: ev.collected_at || ev.record_date || new Date().toISOString(),
+              verified: ev.verified !== undefined ? ev.verified : ev.status === 'verified',
+            }));
+            setEvidence(mappedEvidence);
+          }
+          
+          return; // Exit early if real data exists
+        }
+      } catch (tableError) {
+        // Tables don't exist yet, fall through to placeholder data
+        console.warn("Compliance tables not available, using placeholder data:", tableError);
+      }
+      
+      // Placeholder data when tables don't exist
       const placeholderControls: ComplianceControl[] = [
         {
           id: "1",

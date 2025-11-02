@@ -1,0 +1,86 @@
+HOW TO START YOUR APP
+======================
+
+The terminal isn't working, but you can start your app easily!
+
+
+METHOD 1: Using Command Prompt (CMD)
+-------------------------------------
+1. Press Windows key + R
+2. Type: cmd
+3. Press Enter
+4. Type these commands (one at a time):
+
+   cd "C:\Users\Karthik's PC\guardian-flow"
+   npm run dev
+
+5. Wait for it to say "Local: http://localhost:5173"
+6. Open that URL in your browser
+
+
+METHOD 2: Using PowerShell
+---------------------------
+1. Press Windows key + X
+2. Click "Windows PowerShell" or "Terminal"
+3. Type these commands (one at a time):
+
+   cd "C:\Users\Karthik's PC\guardian-flow"
+   npm run dev
+
+4. Wait for it to say "Local: http://localhost:5173"
+5. Open that URL in your browser
+
+
+METHOD 3: Using File Explorer
+------------------------------
+1. Open File Explorer
+2. Go to: C:\Users\Karthik's PC\guardian-flow
+3. Click in the address bar (where it shows the path)
+4. Type: cmd
+5. Press Enter
+6. A command window will open in that folder
+7. Type: npm run dev
+8. Wait for it to say "Local: http://localhost:5173"
+9. Open that URL in your browser
+
+
+WHAT YOU'LL SEE:
+---------------
+After running npm run dev, you'll see something like:
+
+  VITE v5.0.0  ready in 1234 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h to show help
+
+This means your app is running!
+
+
+THEN:
+----
+1. Open Chrome/Edge
+2. Go to: http://localhost:5173/auth
+3. Try logging in with: admin@techcorp.com / Admin123!
+
+
+IF YOU GET ERRORS:
+-----------------
+- "npm is not recognized": Node.js not installed
+  - Download from: https://nodejs.org
+  - Install it, then try again
+
+- "Port already in use": Something is using port 5173
+  - Close any other terminal windows
+  - Try again
+
+- "Cannot find package.json": Wrong folder
+  - Make sure you're in: C:\Users\Karthik's PC\guardian-flow
+  - Type: cd "C:\Users\Karthik's PC\guardian-flow"
+  - Then: npm run dev
+
+
+NEED HELP?
+---------
+Just tell me what error you see and I'll help!
+
