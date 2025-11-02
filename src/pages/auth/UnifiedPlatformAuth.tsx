@@ -7,6 +7,7 @@ import { useRBAC } from "@/contexts/RBACContext";
 import { logAuthEvent } from "@/hooks/useAuthAudit";
 import { getModuleAwareRedirect } from "@/lib/authRedirects";
 import { SeedAccountsButton } from "@/components/SeedAccountsButton";
+import { toast } from "sonner";
 
 export default function UnifiedPlatformAuth() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function UnifiedPlatformAuth() {
 
   const handleAuthSuccess = () => {
     logAuthEvent('auth_success', config.module);
+    // Platform allows all roles – send to module-aware redirect for platform
     navigate(getModuleAwareRedirect('platform', hasRole));
   };
 

@@ -136,9 +136,9 @@ export default function ModularAuthLayout({ config, children, whiteLabel }: Modu
         {/* Auth Form Section */}
         <Card className="w-full max-w-md mx-auto shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl">Sign In</CardTitle>
+            <CardTitle className="text-2xl">Sign in to {config.name}</CardTitle>
             <CardDescription>
-              Access your {config.name} account
+              {config.tagline}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

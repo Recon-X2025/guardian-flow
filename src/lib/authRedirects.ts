@@ -64,7 +64,6 @@ export function getModuleAwareRedirect(
       // Fraud & Compliance module
       if (hasRole('fraud_investigator')) return '/modules/image-forensics';
       if (hasRole('auditor')) return '/compliance-dashboard';
-      if (hasRole('finance_manager')) return '/fraud-investigation';
       return '/modules/image-forensics';
     
     case 'marketplace':

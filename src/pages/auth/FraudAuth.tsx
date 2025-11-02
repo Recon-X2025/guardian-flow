@@ -3,10 +3,12 @@ import { useState } from "react";
 import ModularAuthLayout from "@/components/auth/ModularAuthLayout";
 import EnhancedAuthForm from "@/components/auth/EnhancedAuthForm";
 import { AUTH_MODULES } from "@/config/authConfig";
-import { useRBAC } from "@/contexts/RBACContext";
+import { useRBAC, type AppRole } from "@/contexts/RBACContext";
 import { logAuthEvent } from "@/hooks/useAuthAudit";
-import { getModuleAwareRedirect } from "@/lib/authRedirects";
+import { getModuleAwareRedirect, MODULE_RELEVANT_ROLES } from "@/lib/authRedirects";
 import { SeedAccountsButton } from "@/components/SeedAccountsButton";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function FraudAuth() {
   const navigate = useNavigate();
@@ -15,8 +17,14 @@ export default function FraudAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     logAuthEvent('auth_success', config.module);
+    const allowed = MODULE_RELEVANT_ROLES.fraud.some((r) => hasRole(r as AppRole));
+    if (!allowed) {
+      toast.error('This account does not have access to Fraud Detection & Compliance. Please use a relevant role.');
+      await supabase.auth.signOut();
+      return; // stay on this page
+    }
     navigate(getModuleAwareRedirect('fraud', hasRole));
   };
 
