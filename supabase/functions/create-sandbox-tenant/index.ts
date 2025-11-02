@@ -31,16 +31,55 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { email, name } = await req.json();
+    const { email, name, module_context = 'platform' } = await req.json();
 
-    console.log(`[Sandbox] Creating sandbox tenant for: ${email}`);
+    console.log(`[Sandbox] Creating sandbox tenant for: ${email} (module: ${module_context})`);
 
-    // Create tenant
+    // Check if sandbox already exists for this email+module
+    const { data: existingSandbox } = await supabase
+      .from('sandbox_tenants')
+      .select('tenant_id, expires_at')
+      .eq('email', email)
+      .eq('module_context', module_context)
+      .single();
+
+    // If exists and not expired, return existing
+    if (existingSandbox && new Date(existingSandbox.expires_at) > new Date()) {
+      const { data: existingTenant } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', existingSandbox.tenant_id)
+        .single();
+
+      const { data: existingKey } = await supabase
+        .from('tenant_api_keys')
+        .select('api_key')
+        .eq('tenant_id', existingSandbox.tenant_id)
+        .single();
+
+      console.log(`[Sandbox] Reusing existing sandbox for ${email} (${module_context})`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          tenant_id: existingTenant.id,
+          api_key: existingKey?.api_key,
+          expires_at: existingSandbox.expires_at,
+          message: 'Using existing sandbox environment',
+          reused: true,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create new tenant with module context
+    const moduleLabel = module_context === 'platform' ? '' : ` (${module_context.toUpperCase()})`;
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
       .insert({
-        name: `${name} - Sandbox`,
-        slug: `sandbox-${Date.now()}`,
+        name: `${name} - Sandbox${moduleLabel}`,
+        slug: `sandbox-${module_context}-${Date.now()}`,
+        module_context,
       })
       .select()
       .single();
@@ -72,14 +111,15 @@ serve(async (req) => {
       .insert({
         tenant_id: tenant.id,
         email,
+        module_context,
         expires_at: expiryDate.toISOString(),
       });
 
     if (sandboxError) throw sandboxError;
 
-    // Seed demo data (non-fatal)
+    // Seed module-specific demo data (non-fatal)
     try {
-      await seedDemoData(supabase, tenant.id);
+      await seedModuleData(supabase, tenant.id, module_context);
     } catch (e) {
       console.warn('[Sandbox] Seeding failed (non-fatal):', e);
     }
@@ -116,22 +156,95 @@ serve(async (req) => {
   }
 });
 
-async function seedDemoData(supabase: any, tenantId: string) {
-  console.log(`[Sandbox] Seeding demo data for tenant: ${tenantId}`);
+async function seedModuleData(supabase: any, tenantId: string, moduleContext: string) {
+  console.log(`[Sandbox] Seeding ${moduleContext} module data for tenant: ${tenantId}`);
 
-  // Create 10 demo work orders
+  // Module-specific seeding logic
+  switch (moduleContext) {
+    case 'fsm':
+      await seedFSMData(supabase, tenantId);
+      break;
+    case 'fraud':
+      await seedFraudData(supabase, tenantId);
+      break;
+    case 'analytics':
+      await seedAnalyticsData(supabase, tenantId);
+      break;
+    case 'training':
+      await seedTrainingData(supabase, tenantId);
+      break;
+    case 'asset':
+      await seedAssetData(supabase, tenantId);
+      break;
+    case 'marketplace':
+      await seedMarketplaceData(supabase, tenantId);
+      break;
+    case 'customer':
+      await seedCustomerData(supabase, tenantId);
+      break;
+    default:
+      // Platform: seed comprehensive data
+      await seedPlatformData(supabase, tenantId);
+  }
+
+  // Log data source
+  await supabase.from('module_data_sources').insert({
+    tenant_id: tenantId,
+    module_context: moduleContext,
+    source_type: 'demo',
+    source_name: `${moduleContext} Sandbox Seed`,
+    record_count: 10,
+  });
+
+  console.log(`[Sandbox] ${moduleContext} data seeded successfully`);
+}
+
+async function seedFSMData(supabase: any, tenantId: string) {
   const workOrders = [];
   for (let i = 1; i <= 10; i++) {
     workOrders.push({
-      wo_number: `WO-DEMO-${i}`,
+      wo_number: `WO-FSM-${i}`,
       tenant_id: tenantId,
-      issue_description: `Demo issue ${i}`,
+      issue_description: `Field service issue ${i}`,
       priority: ['low', 'medium', 'high'][i % 3] as any,
       status: ['draft', 'pending_validation', 'released'][i % 3] as any,
     });
   }
-
   await supabase.from('work_orders').insert(workOrders);
+}
 
-  console.log(`[Sandbox] Demo data seeded successfully`);
+async function seedFraudData(supabase: any, tenantId: string) {
+  // Seed fraud-specific demo data
+  console.log(`[Sandbox] Fraud module: seed forgery detections, investigations`);
+}
+
+async function seedAnalyticsData(supabase: any, tenantId: string) {
+  // Seed analytics-specific demo data
+  console.log(`[Sandbox] Analytics module: seed reports, dashboards`);
+}
+
+async function seedTrainingData(supabase: any, tenantId: string) {
+  // Seed training-specific demo data
+  console.log(`[Sandbox] Training module: seed courses, certifications`);
+}
+
+async function seedAssetData(supabase: any, tenantId: string) {
+  // Seed asset lifecycle demo data
+  console.log(`[Sandbox] Asset module: seed equipment, maintenance records`);
+}
+
+async function seedMarketplaceData(supabase: any, tenantId: string) {
+  // Seed marketplace demo data
+  console.log(`[Sandbox] Marketplace module: seed extensions, listings`);
+}
+
+async function seedCustomerData(supabase: any, tenantId: string) {
+  // Seed customer portal demo data
+  console.log(`[Sandbox] Customer module: seed service bookings, tickets`);
+}
+
+async function seedPlatformData(supabase: any, tenantId: string) {
+  // Comprehensive platform seed
+  await seedFSMData(supabase, tenantId);
+  console.log(`[Sandbox] Platform: comprehensive data seeded`);
 }

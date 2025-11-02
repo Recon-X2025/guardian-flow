@@ -7,6 +7,7 @@ import { useRBAC, type AppRole } from "@/contexts/RBACContext";
 import { logAuthEvent } from "@/hooks/useAuthAudit";
 import { getModuleAwareRedirect, MODULE_RELEVANT_ROLES } from "@/lib/authRedirects";
 import { SeedAccountsButton } from "@/components/SeedAccountsButton";
+import { ModuleSandboxProvider } from "@/components/ModuleSandboxProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,8 +17,13 @@ export default function MarketplaceAuth() {
   const { hasRole } = useRBAC();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      setAuthenticatedEmail(user.email);
+    }
     logAuthEvent('auth_success', config.module);
     const allowed = MODULE_RELEVANT_ROLES.marketplace.some((r) => hasRole(r as AppRole));
     if (!allowed) {
@@ -36,6 +42,13 @@ export default function MarketplaceAuth() {
   return (
     <ModularAuthLayout config={config}>
       <div className="space-y-6">
+        {authenticatedEmail && (
+          <ModuleSandboxProvider 
+            module="marketplace" 
+            email={authenticatedEmail}
+            onSandboxReady={() => navigate(getModuleAwareRedirect('marketplace', hasRole))}
+          />
+        )}
         <SeedAccountsButton onSelectAccount={handleSelectAccount} module="marketplace" />
         <EnhancedAuthForm 
           config={config} 
