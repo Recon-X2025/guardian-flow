@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import {
   Dialog,
   DialogContent,
@@ -31,11 +31,12 @@ export function MFADialog({ open, onOpenChange, actionType, onVerified }: MFADia
   const requestMFA = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('request-mfa', {
+      const result = await apiClient.functions.invoke('request-mfa', {
         body: { actionType }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+      const data = result.data;
 
       setTokenId(data.token_id);
       setDemoToken(data.demo_token); // DEMO ONLY - remove in production
@@ -62,11 +63,14 @@ export function MFADialog({ open, onOpenChange, actionType, onVerified }: MFADia
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('verify-mfa', {
+      const result = await apiClient.functions.invoke('verify-mfa', {
         body: { tokenId, token }
       });
 
-      if (error || !data.verified) {
+      if (result.error) throw result.error;
+      const data = result.data;
+
+      if (!data.verified) {
         throw new Error('Invalid or expired token');
       }
 

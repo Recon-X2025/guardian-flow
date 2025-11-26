@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface ModuleSandboxProviderProps {
@@ -9,59 +10,41 @@ interface ModuleSandboxProviderProps {
 }
 
 export function ModuleSandboxProvider({ module, email, onSandboxReady }: ModuleSandboxProviderProps) {
+  const { user } = useAuth();
+
   useEffect(() => {
     const setupModuleSandbox = async () => {
       try {
-        const INTERNAL_SECRET = import.meta.env.VITE_INTERNAL_API_SECRET;
-        
-        if (!INTERNAL_SECRET) {
-          console.warn('[ModuleSandbox] No internal secret configured');
+        if (!user) {
+          console.warn('[ModuleSandbox] No user authenticated');
           return;
         }
 
-        const { data, error } = await supabase.functions.invoke('create-sandbox-tenant', {
-          body: {
-            email,
-            name: `${module.toUpperCase()} User`,
-            module_context: module,
-          },
-          headers: {
-            'x-internal-secret': INTERNAL_SECRET,
-          },
+        // Update user's current module context using direct API call
+        const response = await apiClient.request('/api/db/profiles/' + user.id, {
+          method: 'PATCH',
+          body: JSON.stringify({ current_module_context: module })
         });
-
-        if (error) throw error;
-
-        if (data?.success) {
-          console.log(`[ModuleSandbox] Sandbox ready for ${module}:`, data.tenant_id);
+        
+        if (response.error) {
+          console.warn('[ModuleSandbox] Failed to update module context:', response.error);
+        } else {
+          console.log(`[ModuleSandbox] Module context updated to ${module} for user:`, user.id);
+          toast.success(`${module.toUpperCase()} module context set`);
           
-          // Update user's current module context
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from('profiles')
-              .update({ current_module_context: module })
-              .eq('id', user.id);
-          }
-
-          if (data.reused) {
-            toast.info(`Using your existing ${module} sandbox environment`);
-          } else {
-            toast.success(`${module.toUpperCase()} sandbox environment ready!`);
-          }
-
-          onSandboxReady?.(data.tenant_id);
+          // Call onSandboxReady with user.id as tenant_id
+          onSandboxReady?.(user.id);
         }
       } catch (err) {
         console.error('[ModuleSandbox] Setup failed:', err);
-        toast.error(`Failed to setup ${module} sandbox environment`);
+        toast.error(`Failed to setup ${module} module context`);
       }
     };
 
-    if (email && module !== 'platform') {
+    if (email && module !== 'platform' && user) {
       setupModuleSandbox();
     }
-  }, [module, email, onSandboxReady]);
+  }, [module, email, user, onSandboxReady]);
 
   return null;
 }

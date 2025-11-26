@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, TrendingUp, Users, Package, Sparkles } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface OPCVData {
@@ -35,15 +35,15 @@ export function OperationalCommandView() {
   const fetchOPCVData = async () => {
     try {
       console.log('[OPCV Client] Fetching data...');
-      const { data: response, error } = await supabase.functions.invoke('opcv-summary');
+      const result = await apiClient.functions.invoke('opcv-summary');
 
-      if (error) {
-        console.error('[OPCV Client] Invoke error:', error);
-        throw error;
+      if (result.error) {
+        console.error('[OPCV Client] Invoke error:', result.error);
+        throw result.error;
       }
 
-      console.log('[OPCV Client] Response received:', response);
-      setData(response);
+      console.log('[OPCV Client] Response received:', result.data);
+      setData(result.data);
     } catch (error) {
       console.error('[OPCV Client] Failed to fetch OPCV data:', error);
     } finally {

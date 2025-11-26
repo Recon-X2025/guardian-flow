@@ -8,7 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface WarrantyDialogProps {
@@ -51,12 +51,12 @@ export function WarrantyDialog({ open, onOpenChange, warranty, onSuccess }: Warr
 
       if (warranty?.id) {
         // Update existing warranty
-        const { error } = await supabase
-          .from('warranty_records')
+        const updateResult = apiClient.from('warranty_records')
           .update(warrantyData)
           .eq('id', warranty.id);
+        const result = await updateResult;
 
-        if (error) throw error;
+        if (result.error) throw result.error;
 
         toast({
           title: 'Warranty Updated',
@@ -64,11 +64,10 @@ export function WarrantyDialog({ open, onOpenChange, warranty, onSuccess }: Warr
         });
       } else {
         // Create new warranty
-        const { error } = await supabase
-          .from('warranty_records')
-          .insert(warrantyData);
+        const insertResult = apiClient.from('warranty_records').insert(warrantyData);
+        const result = await insertResult;
 
-        if (error) throw error;
+        if (result.error) throw result.error;
 
         toast({
           title: 'Warranty Created',

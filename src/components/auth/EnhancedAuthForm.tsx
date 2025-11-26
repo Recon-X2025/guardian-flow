@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Eye, EyeOff, AlertCircle, KeyRound, Mail, Lock, CheckCircle2, XCircle } from "lucide-react";
 import { AuthBrandingConfig } from "@/config/authConfig";
@@ -19,6 +19,7 @@ type EnhancedAuthFormProps = {
 
 export default function EnhancedAuthForm({ config, onSuccess, initialEmail = "", initialPassword = "" }: EnhancedAuthFormProps) {
   const navigate = useNavigate();
+  const { signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
@@ -73,12 +74,9 @@ export default function EnhancedAuthForm({ config, onSuccess, initialEmail = "",
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
+      const result = await signIn(formData.email, formData.password);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast.success("Welcome back!");
       if (onSuccess) {
@@ -111,19 +109,14 @@ export default function EnhancedAuthForm({ config, onSuccess, initialEmail = "",
     setIsLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      // Extract full name from email (or use email as fallback)
+      const fullName = formData.email.split('@')[0];
       
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
-      });
+      const result = await signUp(formData.email, formData.password, fullName);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
-      toast.success("Account created! Please check your email to verify.");
+      toast.success("Account created successfully!");
       setActiveTab("signin");
     } catch (error: any) {
       console.error("Sign up error:", error);
@@ -141,12 +134,14 @@ export default function EnhancedAuthForm({ config, onSuccess, initialEmail = "",
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-        redirectTo: `${window.location.origin}/auth`
-      });
-
-      if (error) throw error;
-      toast.success("Password reset email sent!");
+      // Password reset functionality - would need backend endpoint
+      // For now, show a message that this feature needs backend implementation
+      toast.info("Password reset functionality requires backend implementation");
+      // TODO: Implement password reset endpoint
+      // await apiClient.request('/api/auth/reset-password', {
+      //   method: 'POST',
+      //   body: JSON.stringify({ email: formData.email })
+      // });
     } catch (error: any) {
       console.error("Password reset error:", error);
       toast.error(error.message || "Failed to send reset email");

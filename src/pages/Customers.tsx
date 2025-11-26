@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -27,22 +27,31 @@ export default function Customers() {
     queryKey: ['customers', searchTerm, tenantId, isSysAdmin],
     enabled: !rbacLoading && (isSysAdmin || !!tenantId),
     queryFn: async () => {
-      let query = supabase
+      let query = apiClient
         .from('customers')
         .select('*')
-        .order('created_at', { ascending: false }) as any;
+        .order('created_at', { ascending: false });
 
       // Only sys_admin sees all customers, others filtered by tenant
       if (!isSysAdmin && tenantId) {
         query = query.eq('tenant_id', tenantId);
       }
 
+      // Note: apiClient doesn't support .or() with ilike, so we'll filter client-side for search
+      const result = await query;
+      if (result.error) throw result.error;
+      
+      let data = result.data || [];
       if (searchTerm) {
-        query = query.or(`company_name.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+        const searchLower = searchTerm.toLowerCase();
+        data = data.filter((c: any) => 
+          c.company_name?.toLowerCase().includes(searchLower) ||
+          c.first_name?.toLowerCase().includes(searchLower) ||
+          c.last_name?.toLowerCase().includes(searchLower) ||
+          c.email?.toLowerCase().includes(searchLower)
+        );
       }
-
-      const { data, error } = await query;
-      if (error) throw error;
+      
       return data;
     }
   });

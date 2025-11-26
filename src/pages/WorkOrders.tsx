@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen, Edit } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useRBAC } from '@/contexts/RBACContext';
 import { useActionPermissions } from '@/hooks/useActionPermissions';
@@ -66,19 +66,8 @@ export default function WorkOrders() {
       setLoading(true);
       
       // Build query with status filter and tenant isolation - only sys_admin sees ALL data
-      let countQuery = supabase
-        .from('work_orders')
-        .select('*', { count: 'exact', head: true }) as any;
-      
-      let dataQuery = supabase
-        .from('work_orders')
-        .select(`
-          *,
-          ticket:tickets(*, customer_id),
-          technician:profiles(full_name),
-          sapos_offers(id, title, price, status, offer_type)
-        `)
-        .order('created_at', { ascending: false}) as any;
+      let countQuery = apiClient.from('work_orders').select('*');
+      let dataQuery = apiClient.from('work_orders').select('*').order('created_at', { ascending: false });
 
       // Apply tenant filter for everyone except sys_admin
       if (!isSysAdmin && tenantId) {
@@ -88,27 +77,59 @@ export default function WorkOrders() {
 
       // Apply status filter if selected
       if (statusFilter) {
-        countQuery = countQuery.eq('status', statusFilter as any);
-        dataQuery = dataQuery.eq('status', statusFilter as any);
+        countQuery = countQuery.eq('status', statusFilter);
+        dataQuery = dataQuery.eq('status', statusFilter);
       }
 
       // Get total count
-      const { count, error: countError } = await countQuery;
-      if (countError) throw countError;
+      const countResult = await countQuery;
+      const count = countResult.data?.length || 0;
+      if (countResult.error) throw countResult.error;
       
-      setTotalCount(count || 0);
+      setTotalCount(count);
       console.log('Total work orders:', count, 'Filter:', statusFilter || 'none');
 
       // Fetch paginated data
       const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
+      const to = from + pageSize;
       
-      const { data, error } = await dataQuery
-        .range(from, to);
+      const result = await dataQuery.range(from, to);
 
-      if (error) throw error;
-      console.log(`Page ${currentPage}: Fetched ${data?.length} of ${count} total`);
-      setWorkOrders(data || []);
+      if (result.error) throw result.error;
+      const data = result.data || [];
+      
+      // Fetch related data separately (apiClient doesn't support joins)
+      const enrichedData = await Promise.all(data.map(async (wo: any) => {
+        // Fetch ticket
+        const ticketResult = await apiClient.from('tickets')
+          .select('*, customer_id')
+          .eq('id', wo.ticket_id)
+          .single()
+          .catch(() => ({ data: null }));
+        
+        // Fetch technician
+        const techResult = await apiClient.from('profiles')
+          .select('full_name')
+          .eq('id', wo.technician_id)
+          .single()
+          .catch(() => ({ data: null }));
+        
+        // Fetch offers
+        const offersResult = await apiClient.from('sapos_offers')
+          .select('id, title, price, status, offer_type')
+          .eq('work_order_id', wo.id)
+          .catch(() => ({ data: [] }));
+        
+        return {
+          ...wo,
+          ticket: ticketResult.data,
+          technician: techResult.data ? { full_name: techResult.data.full_name } : null,
+          sapos_offers: offersResult.data || []
+        };
+      }));
+      
+      console.log(`Page ${currentPage}: Fetched ${enrichedData.length} of ${count} total`);
+      setWorkOrders(enrichedData);
 
       // Auto-generate Offer AI offers for released/in_progress WOs lacking offers (max 3 per load)
       try {
@@ -119,7 +140,7 @@ export default function WorkOrders() {
           const customerId = wo.ticket?.customer_id;
           try {
             console.log('Auto-generating Offer AI for WO:', wo.id);
-            await supabase.functions.invoke('generate-offers', {
+            await apiClient.functions.invoke('generate-offers', {
               body: { workOrderId: wo.id, customerId }
             });
             // Refresh this WO row to show offers soon after

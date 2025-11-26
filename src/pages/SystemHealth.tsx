@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -10,9 +10,9 @@ export default function SystemHealth() {
   const { data: healthMetrics, isLoading } = useQuery({
     queryKey: ['system-health'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('health-monitor');
-      if (error) throw error;
-      return data;
+      const result = await apiClient.functions.invoke('health-monitor');
+      if (result.error) throw result.error;
+      return result.data;
     },
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -25,7 +25,7 @@ export default function SystemHealth() {
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(50);
-      if (error) throw error;
+      if (result.error) throw result.error;
       return (data as any[])?.reverse();
     },
   });

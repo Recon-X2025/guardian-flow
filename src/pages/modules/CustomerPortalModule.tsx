@@ -13,7 +13,7 @@ export default function CustomerPortalModule() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Button onClick={() => navigate("/auth")}>Get Started</Button>
+          <Button onClick={() => navigate("/auth/customer")}>Get Started</Button>
         </div>
       </header>
 
@@ -111,7 +111,7 @@ export default function CustomerPortalModule() {
         </Card>
 
         <div className="mt-8 flex justify-center">
-          <Button size="lg" onClick={() => navigate("/auth")}>
+          <Button size="lg" onClick={() => navigate("/auth/customer")}>
             Start Using Customer Portal
           </Button>
         </div>

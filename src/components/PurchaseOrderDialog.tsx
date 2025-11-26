@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 
@@ -48,7 +48,7 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
 
     setLoading(true);
     try {
-      const response = await supabase.functions.invoke('create-purchase-order', {
+      const response = await apiClient.functions.invoke('create-purchase-order', {
         body: {
           itemId: item.id,
           supplierId: null, // TODO: Add supplier selection

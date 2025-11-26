@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -23,23 +23,25 @@ export function TriggerPrecheckDialog({ open, onOpenChange, workOrderId, onSucce
     setResults(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('precheck-orchestrator', {
+      const result = await apiClient.functions.invoke('precheck-orchestrator', {
         body: { workOrderId }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
+      const data = result.data;
       setResults(data);
 
-      if (data.can_release) {
+      if (data?.can_release) {
         // Update work order status
-        await supabase
+        await apiClient
           .from('work_orders')
           .update({ 
             status: 'pending_validation',
             released_at: new Date().toISOString()
           })
-          .eq('id', workOrderId);
+          .eq('id', workOrderId)
+          .then();
 
         toast({
           title: 'Precheck Passed',

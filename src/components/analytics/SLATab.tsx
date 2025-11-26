@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { EnhancedSLATab } from './EnhancedSLATab';
@@ -19,9 +19,10 @@ export function SLATabLegacy() {
 
   const fetchSLAMetrics = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from('work_orders')
-        .select('status, completed_at, created_at');
+        .select('status, completed_at, created_at')
+        .then();
 
       if (data) {
         const total = data.length;

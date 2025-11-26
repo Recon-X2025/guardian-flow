@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/contexts/RBACContext';
+import { getModuleAwareRedirect } from '@/lib/authRedirects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,9 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wrench, Loader2, Shield, CheckCircle2 } from 'lucide-react';
 import { SeedAccountsButton } from '@/components/SeedAccountsButton';
+import { toast } from 'sonner';
 
 export default function Auth() {
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, session } = useAuth();
+  const { loading: rbacLoading, hasRole } = useRBAC();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
@@ -19,10 +23,35 @@ export default function Auth() {
   const [signupForm, setSignupForm] = useState({ email: '', password: '', fullName: '', confirmPassword: '' });
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    console.log('Auth.tsx useEffect - user:', !!user, 'session:', !!session, 'rbacLoading:', rbacLoading, 'pathname:', window.location.pathname);
+    
+    // Don't redirect if we're on a module-specific auth page (like /customer-portal/auth)
+    // Let the module's auth component handle its own redirect
+    const pathname = window.location.pathname;
+    if (pathname !== '/auth' && pathname !== '/auth/platform') {
+      console.log('Auth.tsx: Not on /auth or /auth/platform, skipping redirect');
+      return;
     }
-  }, [user, navigate]);
+    
+    if (user && session && !rbacLoading) {
+      // Wait for RBAC to finish loading before navigating
+      // Use role-based redirect instead of hardcoding dashboard
+      const timer = setTimeout(() => {
+        console.log('Auth.tsx: All conditions met, determining redirect...');
+        try {
+          const redirectPath = getModuleAwareRedirect('platform', hasRole);
+          console.log('Auth.tsx: Navigating to', redirectPath, 'based on roles');
+          navigate(redirectPath, { replace: true });
+        } catch (error) {
+          console.error('Auth.tsx: Error determining redirect:', error);
+          // Fallback to dashboard if redirect logic fails
+          console.log('Auth.tsx: Fallback to dashboard');
+          navigate('/dashboard', { replace: true });
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, session, rbacLoading, navigate, hasRole]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +63,18 @@ export default function Auth() {
       
       if (error) {
         console.error('Login error:', error);
-        // Notification suppressed to avoid hook conflicts; can re-enable later via Sonner toast
+        const errorMessage = error.message || 'Invalid email or password';
+        toast.error(errorMessage);
+        setLoading(false);
+        return;
       }
-    } catch (error) {
+      
+      // Login successful - navigation will happen via useEffect when user/session are set
+      console.log('Login successful, waiting for navigation...');
+      toast.success('Login successful!');
+    } catch (error: any) {
       console.error('Unexpected login error:', error);
+      toast.error(error?.message || 'An unexpected error occurred during login');
     } finally {
       setLoading(false);
     }
@@ -66,12 +103,15 @@ export default function Auth() {
       
       if (error) {
         console.error('Signup error:', error);
-        console.error('Signup failed:', error?.message || 'An error occurred during signup');
+        const errorMessage = error.message || 'An error occurred during signup';
+        toast.error(errorMessage);
       } else {
-        // Success notification suppressed
-        console.info('Account created. Logging in...');
+        toast.success('Account created successfully! Logging in...');
         // Auto-login after signup
-        await signIn(signupForm.email, signupForm.password);
+        const { error: loginError } = await signIn(signupForm.email, signupForm.password);
+        if (loginError) {
+          toast.error(loginError.message || 'Failed to login after signup');
+        }
       }
     } catch (error) {
       console.error('Unexpected signup error:', error);

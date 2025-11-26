@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,11 @@ export function AnalyticsSecurity() {
   const { data: workspaces } = useQuery({
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: { action: "list" },
       });
-      if (error) throw error;
-      return data.workspaces || [];
+      if (result.error) throw result.error;
+      return result.data?.workspaces || [];
     },
   });
 

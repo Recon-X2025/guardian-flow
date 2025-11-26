@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -62,15 +62,15 @@ export function EditWorkOrderDialog({ open, onOpenChange, workOrder, onSuccess }
         return;
       }
 
-      const { error } = await supabase
-        .from('work_orders')
+      const updateResult = apiClient.from('work_orders')
         .update({
           part_status: partStatus,
           part_notes: partNotes,
         })
         .eq('id', workOrder.id);
+      const result = await updateResult;
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: 'Work Order Updated',

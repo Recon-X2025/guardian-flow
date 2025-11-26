@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Bot, Play, Pause, Activity, Target, Zap, TrendingUp, AlertTriangle } from "lucide-react";
 import {
@@ -54,7 +54,7 @@ const AgentDashboard = () => {
         .select('*')
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setAgents((data || []) as Agent[]);
       if (data && data.length > 0) {
         setSelectedAgent(data[0] as Agent);
@@ -73,14 +73,14 @@ const AgentDashboard = () => {
 
   const loadAgentStatus = async (agentId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('agent-orchestrator', {
+      const result = await apiClient.functions.invoke('agent-orchestrator', {
         body: {
           action: 'get_agent_status',
           parameters: { agent_id: agentId }
         }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setAgentStatus(data.status);
       setRecentActions(data.recent_actions || []);
     } catch (error: any) {
@@ -93,14 +93,14 @@ const AgentDashboard = () => {
     const action = newStatus === 'active' ? 'activate_agent' : 'deactivate_agent';
 
     try {
-      const { error } = await supabase.functions.invoke('agent-orchestrator', {
+      const result = await apiClient.functions.invoke('agent-orchestrator', {
         body: {
           action: action,
           parameters: { agent_id: agentId }
         }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: `Agent ${newStatus === 'active' ? 'Activated' : 'Deactivated'}`,

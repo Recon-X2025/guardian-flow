@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -18,11 +18,12 @@ export function FinancialTab() {
 
   const fetchFinancialData = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from('invoices')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(50)
+        .then();
 
       if (data) {
         setInvoices(data);

@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -38,6 +39,7 @@ import PlatformMetrics from "./pages/PlatformMetrics";
 import AnalyticsIntegrations from "./pages/AnalyticsIntegrations";
 import Observability from "./pages/Observability";
 import KnowledgeBase from "./pages/KnowledgeBase";
+import FAQPage from "./pages/FAQPage";
 import Assistant from "./pages/Assistant";
 import ModelOrchestration from "./pages/ModelOrchestration";
 import HelpTraining from "./pages/HelpTraining";
@@ -132,9 +134,7 @@ const App = () => (
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 
-                {/* Authentication Routes - Unified & Module-Specific */}
-                <Route path="/auth" element={<UnifiedPlatformAuth />} />
-                <Route path="/auth/platform" element={<UnifiedPlatformAuth />} />
+                {/* Authentication Routes - Module-Specific FIRST (more specific routes before generic) */}
                 <Route path="/auth/fsm" element={<FSMAuth />} />
                 <Route path="/auth/asset" element={<AssetAuth />} />
                 <Route path="/auth/forecasting" element={<ForecastingAuth />} />
@@ -143,6 +143,9 @@ const App = () => (
                 <Route path="/auth/analytics" element={<AnalyticsAuth />} />
                 <Route path="/auth/customer" element={<CustomerAuth />} />
                 <Route path="/auth/training" element={<TrainingAuth />} />
+                <Route path="/auth/platform" element={<UnifiedPlatformAuth />} />
+                {/* Generic /auth route must come LAST */}
+                <Route path="/auth" element={<UnifiedPlatformAuth />} />
                 <Route path="/developer" element={<DeveloperLanding />} />
 
                 {/* Protected Routes */}
@@ -336,6 +339,9 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 
+                {/* Customer Portal Auth - Module-specific route */}
+                <Route path="/customer-portal/auth" element={<CustomerAuth />} />
+                
                 <Route path="/customer-portal" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','customer']} permissions={["portal.access"]} showError={true}>
@@ -389,6 +395,12 @@ const App = () => (
                     <RoleGuard permissions={["admin.config"]} showError={true}>
                       <AppLayout><KnowledgeBase /></AppLayout>
                     </RoleGuard>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/faq" element={
+                  <ProtectedRoute>
+                    <AppLayout><FAQPage /></AppLayout>
                   </ProtectedRoute>
                 } />
 

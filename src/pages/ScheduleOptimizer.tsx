@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +29,8 @@ export default function ScheduleOptimizer() {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(10);
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
 
@@ -47,20 +47,20 @@ export default function ScheduleOptimizer() {
         `)
         .eq('optimization_run_id', currentRunId!)
         .order('scheduled_start', { ascending: true });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
 
   const handleOptimize = async () => {
     setOptimizing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuth();
       if (!user) throw new Error('Not authenticated');
 
       const dateStr = selectedDate.toISOString().split('T')[0];
 
-      const { data, error } = await supabase.functions.invoke('schedule-optimizer', {
+      const result = await apiClient.functions.invoke('schedule-optimizer', {
         body: {
           tenantId: user.user_metadata.tenant_id,
           date: dateStr,
@@ -72,7 +72,7 @@ export default function ScheduleOptimizer() {
         }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       setCurrentRunId(data.runId);
       refetchRuns();

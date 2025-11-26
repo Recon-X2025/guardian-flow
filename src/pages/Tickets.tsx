@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Search, Clock, CheckCircle2, AlertCircle, Briefcase, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { CreateWorkOrderDialog } from "@/components/CreateWorkOrderDialog";
 import { TicketDetailsDialog } from "@/components/TicketDetailsDialog";
 import { useActionPermissions } from "@/hooks/useActionPermissions";
@@ -38,22 +38,28 @@ export default function Tickets() {
 
   const fetchTickets = async () => {
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select(`
-          *,
-          work_orders!inner(
-            id,
-            wo_number,
-            status,
-            part_status,
-            completed_at
-          )
-        `)
+      // Fetch tickets
+      const ticketsResult = await apiClient.from('tickets')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setTickets(data || []);
+      if (ticketsResult.error) throw ticketsResult.error;
+      const ticketsData = ticketsResult.data || [];
+
+      // Fetch related work orders for each ticket
+      const enrichedTickets = await Promise.all(ticketsData.map(async (ticket: any) => {
+        const woResult = await apiClient.from('work_orders')
+          .select('id, wo_number, status, part_status, completed_at')
+          .eq('ticket_id', ticket.id)
+          .catch(() => ({ data: [] }));
+        
+        return {
+          ...ticket,
+          work_orders: woResult.data || []
+        };
+      }));
+
+      setTickets(enrichedTickets);
     } catch (error: any) {
       toast({
         title: 'Error loading tickets',
@@ -86,17 +92,16 @@ export default function Tickets() {
     e.preventDefault();
     
     try {
-      const { error } = await supabase
-        .from('tickets')
-        .insert({
-          unit_serial: formData.unitSerial,
-          customer_name: formData.customer,
-          site_address: formData.siteAddress,
-          symptom: formData.symptom,
-          status: 'open',
-        });
-
-      if (error) throw error;
+      const insertResult = apiClient.from('tickets').insert({
+        unit_serial: formData.unitSerial,
+        customer_name: formData.customer,
+        site_address: formData.siteAddress,
+        symptom: formData.symptom,
+        status: 'open',
+      });
+      
+      const result = await insertResult;
+      if (result.error) throw result.error;
 
       toast({
         title: "Ticket created",

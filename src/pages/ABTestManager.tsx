@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -18,7 +18,7 @@ export default function ABTestManager() {
         .from('ab_test_experiments' as any)
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (result.error) throw result.error;
       return data as any[];
     },
   });
@@ -27,11 +27,11 @@ export default function ABTestManager() {
     queryKey: ['ab-results', selectedExperiment],
     queryFn: async () => {
       if (!selectedExperiment) return null;
-      const { data, error } = await supabase.functions.invoke('ab-test-manager', {
+      const result = await apiClient.functions.invoke('ab-test-manager', {
         body: { action: 'get_results', experiment_id: selectedExperiment },
       });
-      if (error) throw error;
-      return data.stats;
+      if (result.error) throw result.error;
+      return result.data?.stats;
     },
     enabled: !!selectedExperiment,
   });

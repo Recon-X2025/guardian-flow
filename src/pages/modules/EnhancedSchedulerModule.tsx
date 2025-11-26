@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { 
   Calendar as CalendarIcon, 
@@ -103,7 +103,7 @@ export default function EnhancedSchedulerModule() {
   const optimizeSchedule = async () => {
     setIsOptimizing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("optimize-schedule", {
+      const result = await apiClient.functions.invoke("optimize-schedule", {
         body: {
           date: date?.toISOString(),
           technicians,
@@ -111,7 +111,7 @@ export default function EnhancedSchedulerModule() {
         }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       setOptimization(data);
       toast.success("Schedule optimized successfully!");

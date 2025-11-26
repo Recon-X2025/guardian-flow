@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +19,8 @@ export default function TrainingPlatform() {
         .select('*')
         .eq('is_published', true)
         .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
 
@@ -34,8 +34,8 @@ export default function TrainingPlatform() {
           training_courses (*)
         `)
         .order('enrolled_at', { ascending: false });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
 
@@ -49,18 +49,18 @@ export default function TrainingPlatform() {
           training_courses (title)
         `)
         .order('issued_at', { ascending: false });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
 
   const { data: recommendations } = useQuery({
     queryKey: ['ai-recommendations'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuth();
       if (!user) return [];
       
-      const { data, error } = await supabase.functions.invoke('training-ai-recommend', {
+      const result = await apiClient.functions.invoke('training-ai-recommend', {
         body: { userId: user.id }
       });
       
@@ -68,17 +68,17 @@ export default function TrainingPlatform() {
         console.error('AI recommendations error:', error);
         return [];
       }
-      return data.recommendations || [];
+      return result.data?.recommendations || [];
     },
   });
 
   const handleEnroll = async (courseId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('training-course-manager', {
+      const result = await apiClient.functions.invoke('training-course-manager', {
         body: { action: 'enroll', courseId }
       });
       
-      if (error) throw error;
+      if (result.error) throw result.error;
       
       toast({
         title: "Enrolled Successfully",

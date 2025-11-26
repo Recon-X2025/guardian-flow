@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,21 +25,21 @@ export function AnalyticsAnomalies({ workspaceId }: { workspaceId: string }) {
   const { data: anomalies } = useQuery({
     queryKey: ["analytics-anomalies", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-anomaly-detector", {
+      const result = await apiClient.functions.invoke("analytics-anomaly-detector", {
         body: { action: "get_anomalies", payload: { workspaceId } }
       });
-      if (error) throw error;
-      return data.anomalies || [];
+      if (result.error) throw result.error;
+      return result.data?.anomalies || [];
     }
   });
 
   const acknowledgeMutation = useMutation({
     mutationFn: async ({ anomalyId, notes }: { anomalyId: string; notes: string }) => {
-      const { data, error } = await supabase.functions.invoke("analytics-anomaly-detector", {
+      const result = await apiClient.functions.invoke("analytics-anomaly-detector", {
         body: { action: "acknowledge_anomaly", payload: { anomalyId, notes } }
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analytics-anomalies"] });

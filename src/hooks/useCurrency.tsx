@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type CurrencyInfo = {
   code: string;
@@ -51,6 +52,8 @@ const FALLBACK_RATES: ExchangeRates = {
 };
 
 export function useCurrency() {
+  const { user } = useAuth(); // Must be declared before useEffects that use it
+  
   const [currencyInfo, setCurrencyInfo] = useState<CurrencyInfo>({
     code: 'USD',
     symbol: '$',
@@ -60,42 +63,40 @@ export function useCurrency() {
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>(FALLBACK_RATES);
   const [ratesLoading, setRatesLoading] = useState(false);
 
-  useEffect(() => {
-    fetchUserCurrency();
-    fetchExchangeRates();
-  }, []);
-
-  useEffect(() => {
-    // Refresh rates when currency changes
-    if (currencyInfo.code !== 'USD') {
-      fetchExchangeRates();
-    }
-  }, [currencyInfo.code]);
-
   const fetchUserCurrency = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('country, currency')
-        .eq('id', user.id)
-        .single();
+      // Try to fetch profile, but handle gracefully if columns don't exist
+      try {
+        const result = await apiClient.from('profiles')
+          .select('country, currency')
+          .eq('id', user.id);
 
-      if (profile) {
-        const countryCode = profile.country || 'US';
-        const currencyCode = profile.currency || CURRENCY_MAP[countryCode]?.code || 'USD';
-        const symbol = CURRENCY_MAP[countryCode]?.symbol || '$';
+        if (result.error) {
+          console.warn('Error fetching profile, using defaults:', result.error);
+          setLoading(false);
+          return;
+        }
 
-        setCurrencyInfo({
-          code: currencyCode,
-          symbol: symbol,
-          country: countryCode,
-        });
+        const profile = Array.isArray(result.data) ? result.data[0] : result.data;
+        if (profile && (profile.country || profile.currency)) {
+          const countryCode = profile.country || 'US';
+          const currencyCode = profile.currency || CURRENCY_MAP[countryCode]?.code || 'USD';
+          const symbol = CURRENCY_MAP[countryCode]?.symbol || '$';
+
+          setCurrencyInfo({
+            code: currencyCode,
+            symbol: symbol,
+            country: countryCode,
+          });
+        }
+      } catch (error) {
+        // If columns don't exist or query fails, use defaults
+        console.warn('Profile query failed, using default currency:', error);
       }
     } catch (error) {
       console.error('Error fetching currency:', error);
@@ -107,22 +108,23 @@ export function useCurrency() {
   const fetchExchangeRates = async () => {
     setRatesLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-exchange-rates', {
+      // Try to fetch from API, but fallback to hardcoded rates if not available
+      const response = await apiClient.functions.invoke('get-exchange-rates', {
         body: { 
           baseCurrency: 'USD',
           targetCurrencies: Object.values(CURRENCY_MAP).map(c => c.code)
         }
       });
 
-      if (error) {
-        console.warn('Exchange rate API error, using fallback rates:', error);
+      if (response.error) {
+        console.warn('Exchange rate API error, using fallback rates:', response.error);
         setExchangeRates(FALLBACK_RATES);
         return;
       }
       
-      if (data?.rates) {
-        console.log('Exchange rates loaded:', data.rates);
-        setExchangeRates(data.rates);
+      if (response.data?.rates) {
+        console.log('Exchange rates loaded:', response.data.rates);
+        setExchangeRates(response.data.rates);
       } else {
         console.warn('No rates in response, using fallback rates');
         setExchangeRates(FALLBACK_RATES);
@@ -180,18 +182,18 @@ export function useCurrency() {
 
   const updateCurrency = async (country: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) return { success: false, error: 'Not authenticated' };
 
       const newCurrency = CURRENCY_MAP[country] || { code: 'USD', symbol: '$' };
 
-      const { error } = await supabase
-        .from('profiles')
+      const result = await apiClient.from('profiles')
         .update({
           country: country,
           currency: newCurrency.code,
         })
         .eq('id', user.id);
+      
+      const error = result.error;
 
       if (error) throw error;
 
@@ -210,6 +212,22 @@ export function useCurrency() {
       return { success: false, error: error.message };
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchUserCurrency();
+      fetchExchangeRates();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    // Refresh rates when currency changes
+    if (currencyInfo.code !== 'USD') {
+      fetchExchangeRates();
+    }
+  }, [currencyInfo.code]);
 
   return {
     currencyInfo,

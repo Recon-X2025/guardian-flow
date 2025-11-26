@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package } from 'lucide-react';
@@ -15,10 +15,11 @@ export function InventoryTab() {
 
   const fetchInventory = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from('inventory_items')
         .select('*')
-        .order('sku');
+        .order('sku')
+        .then();
 
       if (data) {
         setInventory(data);

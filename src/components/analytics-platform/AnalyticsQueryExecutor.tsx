@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Play, Download, Code, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 export function AnalyticsQueryExecutor() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
@@ -19,11 +19,11 @@ export function AnalyticsQueryExecutor() {
   const { data: workspaces } = useQuery({
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: { action: "list" },
       });
-      if (error) throw error;
-      return data.workspaces || [];
+      if (result.error) throw result.error;
+      return result.data?.workspaces || [];
     },
   });
 
@@ -31,11 +31,11 @@ export function AnalyticsQueryExecutor() {
     queryKey: ["analytics-data-sources", selectedWorkspace],
     enabled: !!selectedWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-data-source-manager", {
+      const result = await apiClient.functions.invoke("analytics-data-source-manager", {
         body: { action: "list", payload: { workspace_id: selectedWorkspace } },
       });
-      if (error) throw error;
-      return data.data_sources || [];
+      if (result.error) throw result.error;
+      return result.data?.data_sources || [];
     },
   });
 

@@ -52,15 +52,52 @@ Guardian Flow is an AI-powered field service management platform that combines w
 
 ## Quick Start
 
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
+- npm or yarn
+
+### Setup
+
+1. **Install PostgreSQL** (see `server/README.md` for details)
+2. **Set up database:**
+   ```bash
+   createdb guardianflow
+   psql -U postgres -d guardianflow -f server/scripts/init-db.sql
+   ```
+3. **Configure environment:**
+   ```bash
+   # Frontend
+   cp .env.example .env
+   # Edit .env: VITE_API_URL=http://localhost:3001
+   
+   # Backend
+   cd server
+   cp .env.example .env
+   # Edit .env with database credentials
+   ```
+4. **Start backend:**
+   ```bash
+   cd server
+   npm install
+   npm run migrate
+   npm run dev
+   ```
+5. **Start frontend:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+
 ### For Developers
 1. Go to `/developer` to create a sandbox tenant
 2. Receive your `api_key` and `tenant_id`
-3. Make API calls to `/functions/v1/api-gateway`
+3. Make API calls to `/api/functions/api-gateway`
 4. Monitor usage at `/developer-console`
 
 **API Example**:
 ```bash
-curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+curl -X POST http://localhost:3001/api/functions/api-gateway \
   -H "x-api-key: YOUR_KEY" \
   -H "x-tenant-id: YOUR_TENANT" \
   -H "Content-Type: application/json" \
@@ -70,7 +107,9 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **Backend**: Express.js + PostgreSQL (local/Vultr)
+- **Database**: PostgreSQL (localhost for development, Vultr for production)
+- **Authentication**: JWT-based auth
 - **AI**: Lovable AI Gateway (Gemini/GPT models)
 - **PaaS**: API Gateway + Multi-tenant billing
 - **Testing**: Playwright E2E
@@ -94,10 +133,15 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 
 ## Security
 
-- Row-Level Security (RLS) on all tables
+- JWT-based authentication
 - API key authentication with rate limiting
 - Multi-Factor Auth (MFA) for sensitive operations
 - Complete audit logging
+- Application-level access control (replaces RLS)
+
+## Migration from Supabase
+
+This project has been migrated from Supabase to local PostgreSQL. See `MIGRATION_GUIDE.md` for details.
 
 ## License
 

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
 
 export function useOfflineSync() {
+  const { user } = useAuth();
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
@@ -29,10 +31,10 @@ export function useOfflineSync() {
   useEffect(() => {
     const checkPending = async () => {
       try {
-        const { data } = await supabase.functions.invoke('offline-sync-processor', {
+        const result = await apiClient.functions.invoke('offline-sync-processor', {
           body: { action: 'get_pending' }
         });
-        setPendingCount(data?.queueItems?.length || 0);
+        setPendingCount(result.data?.queueItems?.length || 0);
       } catch (_) {
         // Silent fail
       }
@@ -50,19 +52,18 @@ export function useOfflineSync() {
     payload: any
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase.from('offline_sync_queue').insert({
+      const result = await apiClient.from('offline_sync_queue').insert({
         user_id: user.id,
-        tenant_id: user.user_metadata.tenant_id,
+        tenant_id: (user as any).user_metadata?.tenant_id,
         entity_type: entityType,
         entity_id: entityId,
         operation,
         payload,
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setPendingCount(prev => prev + 1);
 
       // Auto-sync if online
@@ -81,9 +82,10 @@ export function useOfflineSync() {
     try {
       setStatus('syncing');
 
-      const { data: pending } = await supabase.functions.invoke('offline-sync-processor', {
+      const pendingResult = await apiClient.functions.invoke('offline-sync-processor', {
         body: { action: 'get_pending' }
       });
+      const pending = pendingResult.data;
 
       if (!pending?.queueItems?.length) {
         setStatus('synced');
@@ -91,12 +93,13 @@ export function useOfflineSync() {
         return;
       }
 
-      const { data: results } = await supabase.functions.invoke('offline-sync-processor', {
+      const resultsResult = await apiClient.functions.invoke('offline-sync-processor', {
         body: {
           action: 'sync',
           queueItems: pending.queueItems
         }
       });
+      const results = resultsResult.data;
 
       const failedCount = results?.results?.filter((r: any) => r.status === 'failed').length || 0;
       setPendingCount(failedCount);

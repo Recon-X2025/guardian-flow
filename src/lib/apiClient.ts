@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export interface ApiError {
   code: string;
@@ -72,7 +72,7 @@ export async function invokeEdgeFunction<T = any>(
   const { body, headers, retries = 3 } = options;
   
   return retryWithBackoff(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = await apiClient.getSession();
     
     if (!session) {
       throw new UnauthorizedError({
@@ -82,7 +82,7 @@ export async function invokeEdgeFunction<T = any>(
       });
     }
 
-    const response = await supabase.functions.invoke(functionName, {
+    const response = await apiClient.functions.invoke(functionName, {
       body,
       headers: {
         Authorization: `Bearer ${session.access_token}`,

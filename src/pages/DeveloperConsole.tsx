@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,7 +23,7 @@ export default function DeveloperConsole() {
   }, []);
 
   const checkAccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user } = useAuth();
     if (!user) {
       navigate('/auth');
       return;

@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Loader2 } from 'lucide-react';
 
 interface AddPenaltyRuleDialogProps {
@@ -37,7 +37,7 @@ export function AddPenaltyRuleDialog({ open, onOpenChange, onSuccess }: AddPenal
     setLoading(true);
 
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('penalty_matrix')
         .insert({
           penalty_code: formData.penaltyCode,
@@ -51,7 +51,8 @@ export function AddPenaltyRuleDialog({ open, onOpenChange, onSuccess }: AddPenal
           dispute_allowed: formData.disputeAllowed,
           mfa_required: formData.mfaRequired,
           active: true,
-        });
+        })
+        .then();
 
       if (error) throw error;
 

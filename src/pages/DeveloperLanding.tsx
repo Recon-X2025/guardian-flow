@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,11 +27,11 @@ export default function DeveloperLanding() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-sandbox-tenant', {
+      const result = await apiClient.functions.invoke('create-sandbox-tenant', {
         body: { email, name }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Sandbox Created!",

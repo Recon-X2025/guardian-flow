@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { AlertTriangle, Shield, Activity } from 'lucide-react';
 
 interface SecurityMetrics {
@@ -32,8 +32,8 @@ export function SecurityDashboard() {
 
   const fetchSecurityMetrics = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('security-monitor');
-      if (error) throw error;
+      const result = await apiClient.functions.invoke('security-monitor');
+      if (result.error) throw result.error;
       setMetrics(data);
     } catch (error) {
       console.error('Failed to fetch security metrics:', error);

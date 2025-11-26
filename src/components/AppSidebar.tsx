@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   Wrench,
   Clipboard,
@@ -43,7 +43,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useState, useEffect } from "react";
 import { useRBAC } from "@/contexts/RBACContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { MODULE_RELEVANT_ROLES, type AuthModule } from "@/lib/authRedirects";
+import { apiClient } from "@/integrations/api/client";
 import { LucideIcon } from "lucide-react";
 
 interface MenuItem {
@@ -140,8 +144,64 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
+// Map URLs to modules for filtering
+const URL_TO_MODULE: Record<string, AuthModule> = {
+  '/equipment': 'asset',
+  '/equipment/': 'asset',
+  '/work-orders': 'fsm',
+  '/work-orders/': 'fsm',
+  '/dispatch': 'fsm',
+  '/scheduler': 'fsm',
+  '/pending-validation': 'fsm',
+  '/forecast': 'forecasting',
+  '/forecast/': 'forecasting',
+  '/fraud': 'fraud',
+  '/forgery-detection': 'fraud',
+  '/anomaly': 'fraud',
+  '/marketplace': 'marketplace',
+  '/marketplace-management': 'marketplace',
+  '/analytics': 'analytics',
+  '/analytics-platform': 'analytics',
+  '/customer-portal': 'customer',
+  '/customers': 'customer',
+  '/knowledge-base': 'training',
+  '/training-platform': 'training',
+};
+
 export function AppSidebar() {
-  const { hasAnyPermission, hasAnyRole, hasRole, isAdmin, loading } = useRBAC();
+  const { hasAnyPermission, hasAnyRole, hasRole, isAdmin, loading, roles } = useRBAC();
+  const { user } = useAuth();
+  const location = useLocation();
+  const [currentModule, setCurrentModule] = useState<AuthModule | null>(null);
+
+  // Get current module from URL or user profile
+  useEffect(() => {
+    const path = location.pathname;
+    const moduleFromUrl = URL_TO_MODULE[path] || URL_TO_MODULE[path + '/'];
+    
+    if (moduleFromUrl) {
+      setCurrentModule(moduleFromUrl);
+    } else if (user) {
+      // Try to get from profile
+      apiClient.from('profiles')
+        .select('current_module_context')
+        .eq('id', user.id)
+        .single()
+        .then((result) => {
+          if (result.data?.current_module_context) {
+            setCurrentModule(result.data.current_module_context as AuthModule);
+          } else {
+            setCurrentModule('platform');
+          }
+        })
+        .catch(() => {
+          // Default to platform if no module context
+          setCurrentModule('platform');
+        });
+    } else {
+      setCurrentModule('platform');
+    }
+  }, [user, location.pathname]);
 
   const canAccessItem = (item: MenuItem): boolean => {
     // Dashboard, Settings, and Help & Training are accessible to all authenticated users
@@ -152,6 +212,31 @@ export function AppSidebar() {
     // sys_admin can see everything
     if (hasRole('sys_admin')) {
       return true;
+    }
+
+    // If we have a module context (not platform), filter by module-relevant roles
+    // Only show items that belong to the current module OR items user has access to in other modules
+    if (currentModule && currentModule !== 'platform') {
+      const itemModule = URL_TO_MODULE[item.url] || URL_TO_MODULE[item.url + '/'];
+      
+      // If item belongs to a different module, check if user has access to that module
+      if (itemModule && itemModule !== currentModule) {
+        const itemModuleRoles = MODULE_RELEVANT_ROLES[itemModule] || [];
+        const hasAccessToItemModule = itemModuleRoles.some(role => hasRole(role as any));
+        // Only show if user has explicit access to that module
+        if (!hasAccessToItemModule) {
+          return false;
+        }
+      }
+      
+      // For items in the current module, check if user has relevant role
+      if (itemModule === currentModule) {
+        const moduleRoles = MODULE_RELEVANT_ROLES[currentModule] || [];
+        const hasModuleRole = moduleRoles.some(role => hasRole(role as any));
+        if (!hasModuleRole) {
+          return false;
+        }
+      }
     }
 
     // Check role-based access first (more specific)

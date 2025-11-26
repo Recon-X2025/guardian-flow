@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/integrations/api/client';
+import { toast } from '@/components/ui/sonner';
 import { Loader2, Users, Check, AlertCircle, LogIn } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +63,6 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
   const [showAccounts, setShowAccounts] = useState(false);
-  const { toast } = useToast();
 
   // Filter accounts based on module using centralized role mapping
   const relevantRoles = MODULE_RELEVANT_ROLES[module];
@@ -71,36 +70,115 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
     relevantRoles.includes(account.role)
   );
 
+  const handleDeleteAccounts = async () => {
+    if (!confirm('Are you sure you want to delete ALL test accounts? This action cannot be undone.')) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('Deleting test accounts...');
+      const response = await apiClient.functions.invoke('delete-test-accounts');
+      console.log('Delete response:', response);
+      
+      if (response.error) {
+        console.error('Delete error:', response.error);
+        throw new Error(response.error.message || 'Failed to delete test accounts');
+      }
+      
+      // Handle different response structures
+      const deletedCount = response.data?.results?.deleted?.length || 
+                           response.data?.deleted?.length || 
+                           (Array.isArray(response.data?.deleted) ? response.data.deleted.length : 0) ||
+                           0;
+      
+      console.log('Deleted count:', deletedCount, 'Response data:', response.data);
+      
+      toast.success('Test accounts deleted', {
+        description: `Deleted ${deletedCount} accounts.`,
+      });
+      
+      // Clear the result state
+      setResult(null);
+    } catch (error: any) {
+      console.error('Delete accounts error:', error);
+      toast.error('Error deleting accounts', {
+        description: error.message || 'An unexpected error occurred',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetRBAC = async () => {
+    if (!confirm('Are you sure you want to clear ALL RBAC roles? This will remove all user role assignments.')) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('Resetting RBAC...');
+      const response = await apiClient.functions.invoke('reset-rbac');
+      console.log('Reset RBAC response:', response);
+      
+      if (response.error) {
+        console.error('Reset RBAC error:', response.error);
+        throw new Error(response.error.message || 'Failed to reset RBAC');
+      }
+      
+      toast.success('RBAC reset', {
+        description: response.data?.message || 'All user roles have been cleared.',
+      });
+    } catch (error: any) {
+      console.error('Reset RBAC error:', error);
+      toast.error('Error resetting RBAC', {
+        description: error.message || 'An unexpected error occurred',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSeedAccounts = async () => {
     setLoading(true);
     setResult(null);
 
     try {
       console.log('Invoking seed-test-accounts...');
-      const { data, error } = await supabase.functions.invoke('seed-test-accounts');
+      const response = await apiClient.functions.invoke('seed-test-accounts');
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to invoke seed-test-accounts function');
+      if (response.error) {
+        console.error('API error:', response.error);
+        throw new Error(response.error.message || 'Failed to invoke seed-test-accounts function');
       }
 
-      if (!data) {
+      if (!response.data) {
         throw new Error('No data returned from seed-test-accounts');
       }
 
-      console.log('Seed result:', data);
-      setResult(data.results);
-      toast({
-        title: 'Test accounts seeded',
-        description: `Created ${data.results?.created?.length || 0} new accounts. ${data.results?.existing?.length || 0} already existed.`,
+      console.log('Seed result:', response.data);
+      
+      // Handle response structure: backend returns { success, message, results, accounts }
+      const results = response.data?.results || response.data;
+      console.log('Setting result:', results);
+      
+      const createdCount = results?.created?.length || 0;
+      const existingCount = results?.existing?.length || 0;
+      
+      console.log('Created:', createdCount, 'Existing:', existingCount);
+      
+      // Set result state
+      setResult(results);
+      
+      // Show toast notification
+      toast.success('Test accounts seeded', {
+        description: `Created ${createdCount} new accounts. ${existingCount} already existed.`,
       });
     } catch (error) {
       console.error('Error seeding accounts:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      toast({
-        title: 'Error seeding accounts',
+      toast.error('Error seeding accounts', {
         description: errorMessage,
-        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -121,7 +199,37 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={handleDeleteAccounts}
+            disabled={loading}
+            variant="destructive"
+            size="sm"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete All Test Accounts'
+            )}
+          </Button>
+          <Button
+            onClick={handleResetRBAC}
+            disabled={loading}
+            variant="destructive"
+            size="sm"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Resetting...
+              </>
+            ) : (
+              'Clear RBAC'
+            )}
+          </Button>
           <Button
             onClick={handleSeedAccounts}
             disabled={loading}
@@ -136,13 +244,14 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
             ) : (
               <>
                 <Users className="mr-2 h-4 w-4" />
-                Create All Accounts
+                Seed New Accounts
               </>
             )}
           </Button>
           <Button
             onClick={() => setShowAccounts(!showAccounts)}
             variant="outline"
+            size="sm"
           >
             {showAccounts ? 'Hide' : 'Show'} Accounts
           </Button>
@@ -150,7 +259,7 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
 
         {result && (
           <div className="space-y-2">
-            {result.created.length > 0 && (
+            {result.created && Array.isArray(result.created) && result.created.length > 0 && (
               <Alert>
                 <Check className="h-4 w-4" />
                 <AlertDescription>
@@ -164,7 +273,7 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
               </Alert>
             )}
 
-            {result.existing.length > 0 && (
+            {result.existing && Array.isArray(result.existing) && result.existing.length > 0 && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -178,15 +287,15 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
               </Alert>
             )}
 
-            {result.errors.length > 0 && (
+            {result.errors && Array.isArray(result.errors) && result.errors.length > 0 && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <strong>Errors ({result.errors.length}):</strong>
                   <ul className="mt-2 space-y-1 text-sm">
-                    {result.errors.map((err) => (
-                      <li key={err.email}>
-                        • {err.email}: {err.error}
+                    {result.errors.map((err, idx) => (
+                      <li key={err.email || idx}>
+                        • {err.email || 'Unknown'}: {err.error || 'Unknown error'}
                       </li>
                     ))}
                   </ul>
@@ -208,8 +317,7 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
                   onClick={() => {
                     if (onSelectAccount) {
                       onSelectAccount(account.email, account.password);
-                      toast({
-                        title: 'Login credentials filled',
+                      toast.success('Login credentials filled', {
                         description: `Click "Sign In" to login as ${account.name}`,
                       });
                     }

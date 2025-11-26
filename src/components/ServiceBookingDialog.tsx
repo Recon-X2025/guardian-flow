@@ -4,14 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export function ServiceBookingDialog({ open, onOpenChange }: any) {
   const [formData, setFormData] = useState({ title: '', description: '', priority: 'medium' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await supabase.functions.invoke('customer-book-service', { body: formData });
+    await apiClient.functions.invoke('customer-book-service', { body: formData });
     onOpenChange(false);
   };
 

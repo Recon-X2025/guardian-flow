@@ -25,7 +25,7 @@ import {
   AlertCircle,
   FileImage
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ForgeryDetection() {
@@ -119,7 +119,7 @@ export default function ForgeryDetection() {
 
       const woIds = recentWOs.map(wo => wo.id);
 
-      const { data, error } = await supabase.functions.invoke('process-forgery-batch', {
+      const result = await apiClient.functions.invoke('process-forgery-batch', {
         body: {
           job_name: `Batch detection ${new Date().toLocaleDateString()}`,
           work_order_ids: woIds,
@@ -127,7 +127,7 @@ export default function ForgeryDetection() {
         }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Batch job started",

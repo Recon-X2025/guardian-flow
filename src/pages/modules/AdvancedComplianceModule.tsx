@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { 
   Shield, 
@@ -118,11 +118,11 @@ export default function AdvancedComplianceModule() {
   const collectEvidence = async () => {
     setIsCollecting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("collect-compliance-evidence", {
+      const result = await apiClient.functions.invoke("collect-compliance-evidence", {
         body: { framework: selectedFramework }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast.success(`Collected ${data.evidenceCount} new evidence items`);
       loadComplianceData();
@@ -136,11 +136,11 @@ export default function AdvancedComplianceModule() {
 
   const generateAuditReport = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("generate-compliance-report", {
+      const result = await apiClient.functions.invoke("generate-compliance-report", {
         body: { framework: selectedFramework }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       // Download report
       const blob = new Blob([data.reportData], { type: "application/pdf" });

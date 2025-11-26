@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,11 +28,11 @@ export default function MaintenanceCalendar() {
   const { data: schedules } = useQuery({
     queryKey: ['maintenance-schedules'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('asset-maintenance-scheduler', {
+      const result = await apiClient.functions.invoke('asset-maintenance-scheduler', {
         body: { action: 'list_schedules' },
       });
-      if (error) throw error;
-      return data.schedules || [];
+      if (result.error) throw result.error;
+      return result.data?.schedules || [];
     },
   });
 
@@ -43,7 +43,7 @@ export default function MaintenanceCalendar() {
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 90);
 
-      const { data, error } = await supabase.functions.invoke('asset-maintenance-scheduler', {
+      const result = await apiClient.functions.invoke('asset-maintenance-scheduler', {
         body: {
           action: 'list_events',
           data: {
@@ -52,8 +52,8 @@ export default function MaintenanceCalendar() {
           },
         },
       });
-      if (error) throw error;
-      return data.events || [];
+      if (result.error) throw result.error;
+      return result.data?.events || [];
     },
   });
 
@@ -64,18 +64,18 @@ export default function MaintenanceCalendar() {
         .from('equipment')
         .select('id, name, model, serial_number')
         .order('name');
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
   });
 
   const createScheduleMutation = useMutation({
     mutationFn: async (scheduleData: any) => {
-      const { data, error } = await supabase.functions.invoke('asset-maintenance-scheduler', {
+      const result = await apiClient.functions.invoke('asset-maintenance-scheduler', {
         body: { action: 'create_schedule', data: scheduleData },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-schedules'] });
@@ -90,11 +90,11 @@ export default function MaintenanceCalendar() {
 
   const completeEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      const { data, error } = await supabase.functions.invoke('asset-maintenance-scheduler', {
+      const result = await apiClient.functions.invoke('asset-maintenance-scheduler', {
         body: { action: 'complete_event', event_id: eventId },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-events'] });

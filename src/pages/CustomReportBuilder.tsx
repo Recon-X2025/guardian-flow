@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,21 +35,21 @@ export default function CustomReportBuilder() {
   const { data: reports, isLoading } = useQuery({
     queryKey: ['custom-reports'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke('custom-report-builder', {
         body: { action: 'list' },
       });
-      if (error) throw error;
-      return data.reports || [];
+      if (result.error) throw result.error;
+      return result.data?.reports || [];
     },
   });
 
   const createReportMutation = useMutation({
     mutationFn: async (reportData: any) => {
-      const { data, error } = await supabase.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke('custom-report-builder', {
         body: { action: 'create', data: reportData },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-reports'] });
@@ -63,11 +63,11 @@ export default function CustomReportBuilder() {
 
   const executeReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
-      const { data, error } = await supabase.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke('custom-report-builder', {
         body: { action: 'execute', report_id: reportId },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: (data) => {
       setReportResults(data.results || []);
@@ -80,10 +80,10 @@ export default function CustomReportBuilder() {
 
   const deleteReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
-      const { error } = await supabase.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke('custom-report-builder', {
         body: { action: 'delete', report_id: reportId },
       });
-      if (error) throw error;
+      if (result.error) throw result.error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['custom-reports'] });
@@ -116,10 +116,10 @@ export default function CustomReportBuilder() {
 
   const handleExportReport = async (reportId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke('custom-report-builder', {
         body: { action: 'export', report_id: reportId, format: 'csv' },
       });
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       const blob = new Blob([data], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);

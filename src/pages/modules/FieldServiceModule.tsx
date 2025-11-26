@@ -6,6 +6,11 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 export default function FieldServiceModule() {
   const navigate = useNavigate();
 
+  const handleGetStarted = () => {
+    console.log('FieldServiceModule: Get Started clicked, navigating to /auth/fsm');
+    navigate("/auth/fsm", { replace: false });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur">
@@ -13,7 +18,7 @@ export default function FieldServiceModule() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <Button onClick={() => navigate("/auth")}>Get Started</Button>
+          <Button onClick={handleGetStarted}>Get Started</Button>
         </div>
       </header>
 
@@ -111,7 +116,7 @@ export default function FieldServiceModule() {
         </Card>
 
         <div className="mt-8 flex justify-center">
-          <Button size="lg" onClick={() => navigate("/auth")}>
+          <Button size="lg" onClick={handleGetStarted}>
             Start Using Field Service Management
           </Button>
         </div>

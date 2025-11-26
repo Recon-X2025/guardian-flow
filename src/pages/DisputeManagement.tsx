@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,17 +28,17 @@ export default function DisputeManagement() {
           profiles(full_name, email)
         `)
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (result.error) throw result.error;
       return data as any[];
     },
   });
 
   const updateDisputeMutation = useMutation({
     mutationFn: async ({ id, status, resolution }: any) => {
-      const { error } = await supabase.functions.invoke('dispute-manager', {
+      const result = await apiClient.functions.invoke('dispute-manager', {
         body: { action: 'update', dispute_id: id, status, resolution },
       });
-      if (error) throw error;
+      if (result.error) throw result.error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disputes'] });

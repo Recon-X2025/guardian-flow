@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { Database, Lock } from "lucide-react";
 
@@ -19,12 +19,9 @@ export default function AnalyticsPlatformAuth() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await signIn(email, password);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast.success("Successfully logged in to Analytics Platform");
       navigate("/analytics-platform");
@@ -50,8 +47,8 @@ export default function AnalyticsPlatformAuth() {
     if (!credentials) return;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword(credentials);
-      if (error) throw error;
+      const result = await apiClient.auth.signIn(credentials);
+      if (result.error) throw result.error;
 
       toast.success(`Logged in as ${role.replace('_', ' ')}`);
       navigate("/analytics-platform");

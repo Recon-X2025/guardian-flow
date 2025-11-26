@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Database, TrendingUp, Package, Settings } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -42,7 +42,7 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
 
   const handleCreate = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: {
           action: "create",
           payload: {
@@ -55,7 +55,7 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
         },
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast.success("Workspace created successfully");
       setOpen(false);

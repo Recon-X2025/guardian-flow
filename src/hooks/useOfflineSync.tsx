@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface QueuedAction {
@@ -49,14 +49,14 @@ export function useOfflineSync() {
     // Store in IndexedDB or local queue
     setQueue(prev => [...prev, action]);
 
-    // Also store in Supabase offline_queue table
+    // Also store in offline_queue table
     if (isOnline) {
-      await (supabase as any).from('offline_queue').insert({
+      await apiClient.from('offline_queue').insert({
         user_id: user.id,
         action_type: actionType,
         resource_type: resourceType,
         payload,
-      });
+      }).then();
     }
   }, [user, isOnline]);
 
@@ -65,13 +65,14 @@ export function useOfflineSync() {
 
     setSyncing(true);
     try {
-      // Fetch unsynced actions from Supabase
-      const { data: unsyncedActions } = await (supabase as any)
+      // Fetch unsynced actions from offline_queue
+      const { data: unsyncedActions } = await apiClient
         .from('offline_queue')
         .select('*')
         .eq('user_id', user.id)
         .eq('synced', false)
-        .order('created_at', { ascending: true });
+        .order('created_at')
+        .then();
 
       if (!unsyncedActions || unsyncedActions.length === 0) {
         setSyncing(false);
@@ -84,22 +85,24 @@ export function useOfflineSync() {
           await processAction(action);
           
           // Mark as synced
-          await (supabase as any)
+          await apiClient
             .from('offline_queue')
             .update({ synced: true })
-            .eq('id', action.id);
+            .eq('id', action.id)
+            .then();
 
         } catch (error) {
           console.error('Failed to sync action:', error);
           
           // Increment sync attempts
-          await (supabase as any)
+          await apiClient
             .from('offline_queue')
             .update({
               sync_attempts: (action.sync_attempts || 0) + 1,
               last_sync_attempt: new Date().toISOString(),
             })
-            .eq('id', action.id);
+            .eq('id', action.id)
+            .then();
         }
       }
 
@@ -115,13 +118,13 @@ export function useOfflineSync() {
 
     switch (action_type) {
       case 'create':
-        await (supabase as any).from(resource_type).insert(payload);
+        await apiClient.from(resource_type).insert(payload).then();
         break;
       case 'update':
-        await (supabase as any).from(resource_type).update(payload.data).eq('id', payload.id);
+        await apiClient.from(resource_type).update(payload.data).eq('id', payload.id).then();
         break;
       case 'delete':
-        await (supabase as any).from(resource_type).delete().eq('id', payload.id);
+        await apiClient.from(resource_type).delete().eq('id', payload.id).then();
         break;
       default:
         throw new Error(`Unknown action type: ${action_type}`);

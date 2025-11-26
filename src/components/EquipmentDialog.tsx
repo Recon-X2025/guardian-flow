@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export function EquipmentDialog({ open, onOpenChange, equipment, onSuccess }: any) {
   const [formData, setFormData] = useState(equipment || {});
@@ -11,9 +11,10 @@ export function EquipmentDialog({ open, onOpenChange, equipment, onSuccess }: an
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (equipment) {
-      await supabase.from('equipment').update(formData).eq('id', equipment.id);
+      const updateResult = apiClient.from('equipment').update(formData).eq('id', equipment.id);
+      await updateResult;
     } else {
-      await supabase.functions.invoke('equipment-register', { body: formData });
+      await apiClient.functions.invoke('equipment-register', { body: formData });
     }
     onSuccess();
   };

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shield, AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Badge } from "@/components/ui/badge";
 
 interface MFAOverrideDialogProps {
@@ -39,7 +39,7 @@ export default function MFAOverrideDialog({
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-override-request', {
+      const result = await apiClient.functions.invoke('create-override-request', {
         body: {
           requiredAction,
           justification,
@@ -47,7 +47,7 @@ export default function MFAOverrideDialog({
         },
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Override request submitted",

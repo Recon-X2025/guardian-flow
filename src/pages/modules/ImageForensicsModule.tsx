@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { 
   Image as ImageIcon, 
@@ -63,9 +63,13 @@ export default function ImageForensicsModule() {
 
         // Upload to storage
         const fileName = `forensics/${Date.now()}-${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("document-templates")
-          .upload(fileName, file);
+        // Note: Storage upload needs to be handled via API endpoint
+        // For now, we'll use a function invoke to handle file upload
+        const uploadResult = await apiClient.functions.invoke('upload-image', {
+          body: { file: file, bucket: 'forensics', fileName: fileName }
+        });
+        const uploadData = uploadResult.data;
+        const uploadError = uploadResult.error;
 
         if (uploadError) {
           console.error("Upload error:", uploadError);
@@ -73,7 +77,7 @@ export default function ImageForensicsModule() {
         }
 
         // Invoke forensics analysis edge function
-        const { data, error } = await supabase.functions.invoke("analyze-image-forensics", {
+        const result = await apiClient.functions.invoke("analyze-image-forensics", {
           body: { 
             filePath: fileName,
             fileName: file.name

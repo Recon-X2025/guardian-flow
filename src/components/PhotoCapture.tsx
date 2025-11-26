@@ -3,7 +3,7 @@ import { Camera, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 
 type PhotoRole = "context_wide" | "pre_closeup" | "serial" | "replacement_part";
 
@@ -50,6 +50,21 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
   });
   
   const [submitting, setSubmitting] = useState(false);
+  const [validating, setValidating] = useState<Record<PhotoRole, boolean>>({
+    context_wide: false,
+    pre_closeup: false,
+    serial: false,
+    replacement_part: false,
+  });
+  const [validationResults, setValidationResults] = useState<Record<PhotoRole, {
+    validated: boolean;
+    error?: string;
+  }>>({
+    context_wide: { validated: false },
+    pre_closeup: { validated: false },
+    serial: { validated: false },
+    replacement_part: { validated: false },
+  });
   const isComplete = requiredRoles.every((r) => files[r].file !== null);
 
   const computeHash = async (file: File): Promise<string> => {
@@ -96,10 +111,62 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
       [role]: { file, preview, hash },
     }));
 
+    // Automatically validate photo when captured
+    await validatePhoto(role, file, hash);
+
     toast({
       title: "Photo captured",
       description: `${roleLabels[role].title} uploaded successfully`,
     });
+  };
+
+  const validatePhoto = async (role: PhotoRole, file: File, hash: string) => {
+    setValidating((prev) => ({ ...prev, [role]: true }));
+    setValidationResults((prev) => ({
+      ...prev,
+      [role]: { validated: false },
+    }));
+
+    try {
+      const gps = await getGeo();
+      const imageEntry = {
+        id: `photo_${Date.now()}_${role}`,
+        role,
+        hash,
+        gps: gps || null,
+        captured_at: new Date().toISOString(),
+        filename: file.name,
+      };
+
+      // Validate single photo (quick validation)
+      // For full validation, we still need all 4 photos
+      // This is a preview validation to catch obvious issues
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Photo exceeds 10MB limit');
+      }
+
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Invalid file type');
+      }
+
+      // Mark as validated (full validation happens on submit)
+      setValidationResults((prev) => ({
+        ...prev,
+        [role]: { validated: true },
+      }));
+    } catch (error: any) {
+      setValidationResults((prev) => ({
+        ...prev,
+        [role]: { validated: false, error: error.message },
+      }));
+      toast({
+        title: "Validation failed",
+        description: `${roleLabels[role].title}: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setValidating((prev) => ({ ...prev, [role]: false }));
+    }
   };
 
   const getGeo = async (): Promise<{ lat: number; lon: number } | null> => {
@@ -134,8 +201,8 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
         });
       }
 
-      // Call the validate-photos edge function
-      const { data, error } = await supabase.functions.invoke('validate-photos', {
+      // Call the validate-photos endpoint
+      const result = await apiClient.functions.invoke('validate-photos', {
         body: {
           woId: workOrderId || 'demo',
           stage,
@@ -143,14 +210,57 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
         },
       });
 
-      if (error) throw error;
+      if (result.error) {
+        // Handle validation errors with detailed feedback
+        const errorMessage = result.error.message || 'Validation failed';
+        const errorData = result.error as any;
+        const errorDetails = errorData.details || errorData.error || '';
+        
+        toast({
+          title: "Validation failed",
+          description: errorMessage + (errorDetails ? `: ${errorDetails}` : ''),
+          variant: "destructive",
+        });
 
-      toast({
-        title: "Photos validated",
-        description: "All required photos have been captured and validated successfully",
-      });
+        // Update validation results to show errors
+        if (errorData.missing_roles) {
+          errorData.missing_roles.forEach((role: PhotoRole) => {
+            setValidationResults((prev) => ({
+              ...prev,
+              [role]: { validated: false, error: 'Missing required photo' },
+            }));
+          });
+        }
 
-      onComplete?.(data);
+        throw result.error;
+      }
+
+      // Check validation result
+      const data = result.data;
+      if (data && data.photos_validated) {
+        toast({
+          title: "Photos validated",
+          description: "All required photos have been captured and validated successfully",
+        });
+
+        // Update all validation results to success
+        requiredRoles.forEach((role) => {
+          setValidationResults((prev) => ({
+            ...prev,
+            [role]: { validated: true },
+          }));
+        });
+
+        onComplete?.(data);
+      } else {
+        const errorMsg = data?.error || data?.message || 'Validation failed';
+        toast({
+          title: "Validation failed",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        throw new Error(errorMsg);
+      }
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -187,9 +297,15 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
                     {roleLabels[role].description}
                   </p>
                 </div>
-                {files[role].file && (
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                )}
+                {validating[role] ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                ) : validationResults[role].validated ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                ) : validationResults[role].error ? (
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                ) : files[role].file ? (
+                  <CheckCircle2 className="h-5 w-5 text-gray-400" />
+                ) : null}
               </div>
 
               {files[role].preview ? (
@@ -197,16 +313,44 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
                   <img
                     src={files[role].preview!}
                     alt={roleLabels[role].title}
-                    className="w-full h-32 object-cover rounded"
+                    className={`w-full h-32 object-cover rounded ${
+                      validationResults[role].error ? 'ring-2 ring-red-500' : 
+                      validationResults[role].validated ? 'ring-2 ring-green-500' : ''
+                    }`}
                   />
+                  {validationResults[role].error && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1 rounded-b">
+                      {validationResults[role].error}
+                    </div>
+                  )}
                   <Button
                     variant="destructive"
                     size="sm"
                     className="absolute top-2 right-2"
-                    onClick={() => handleFile(role, null)}
+                    onClick={() => {
+                      handleFile(role, null);
+                      setValidationResults((prev) => ({
+                        ...prev,
+                        [role]: { validated: false },
+                      }));
+                    }}
                   >
                     Remove
                   </Button>
+                  {validationResults[role].error && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-2 left-2"
+                      onClick={() => {
+                        if (files[role].file && files[role].hash) {
+                          validatePhoto(role, files[role].file!, files[role].hash!);
+                        }
+                      }}
+                    >
+                      Retry
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <label className="block mt-3">

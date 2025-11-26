@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OperationalCommandView } from '@/components/OperationalCommandView';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -15,11 +15,12 @@ export function OperationalTab() {
 
   const fetchTrendData = async () => {
     try {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from('work_orders')
         .select('created_at')
         .gte('created_at', new Date(Date.now() - 30*24*60*60*1000).toISOString())
-        .order('created_at');
+        .order('created_at')
+        .then();
 
       if (data) {
         const dailyCounts = data.reduce((acc: any, wo) => {

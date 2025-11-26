@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, Clock, AlertCircle, Sparkles, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { TriggerPrecheckDialog } from '@/components/TriggerPrecheckDialog';
 
@@ -22,7 +22,8 @@ export default function PendingValidation() {
     loadData();
 
     // Real-time subscription for work order updates
-    const channel = supabase
+    // Using WebSocket for real-time updates
+    const channel = apiClient
       .channel('pending-validation-updates')
       .on(
         'postgres_changes',
@@ -51,7 +52,7 @@ export default function PendingValidation() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, []);
 
@@ -60,29 +61,22 @@ export default function PendingValidation() {
       setLoading(true);
       
       // Load pending work orders (including recently released ones for visibility)
-      const { data: wos, error: woError } = await supabase
-        .from('work_orders')
-        .select(`
-          *,
-          ticket:tickets(*),
-          technician:profiles(full_name),
-          work_order_prechecks(*)
-        `)
+      const woResult = await apiClient.from('work_orders')
+        .select('*')
         .in('status', ['pending_validation', 'draft', 'assigned'])
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (woError) throw woError;
-      setWorkOrders(wos || []);
+      if (woResult.error) throw woResult.error;
+      setWorkOrders(woResult.data || []);
 
       // Load agent toggle
-      const { data: toggle } = await supabase
-        .from('feature_toggles')
+      const toggleResult = await apiClient.from('feature_toggles')
         .select('enabled')
         .eq('feature_key', 'agent_ops_autonomous')
         .single();
       
-      setAgentEnabled(toggle?.enabled || false);
+      setAgentEnabled(toggleResult.data?.enabled || false);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -118,7 +112,7 @@ export default function PendingValidation() {
       // If enabling, trigger immediate agent run
       if (enabled) {
         console.log("Triggering immediate agent run...");
-        await supabase.functions.invoke("ops-agent-processor");
+        await apiClient.functions.invoke("ops-agent-processor");
         toast({
           title: "Agent Processing",
           description: "Running initial precheck and release cycle...",
@@ -135,11 +129,11 @@ export default function PendingValidation() {
 
   const releaseToField = async (woId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('release-work-order', {
+      const result = await apiClient.functions.invoke('release-work-order', {
         body: { workOrderId: woId }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Released to Field",

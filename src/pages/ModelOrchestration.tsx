@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Database, Cpu, Workflow, Shield, Activity, TrendingUp, Zap, CheckCircle2, AlertTriangle } from "lucide-react";
 import {
@@ -66,8 +66,8 @@ const ModelOrchestration = () => {
 
   const detectSystem = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('system-detect', {});
-      if (error) throw error;
+      const result = await apiClient.functions.invoke('system-detect', {});
+      if (result.error) throw result.error;
       
       toast({
         title: "System Detection Complete",
@@ -91,7 +91,7 @@ const ModelOrchestration = () => {
         .update({ enabled: !currentEnabled })
         .eq('feature_key', featureKey);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Feature Updated",

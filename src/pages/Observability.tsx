@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Activity, Search, AlertTriangle, CheckCircle2, Clock, Eye } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { FullTracesDialog } from '@/components/FullTracesDialog';
 
@@ -248,7 +248,7 @@ export default function Observability() {
               <div className="text-sm">
                 <p className="font-medium text-foreground">Current Implementation</p>
                 <p className="text-xs text-muted-foreground">
-                  This page provides audit logs, system metrics, and correlation ID tracking using Lovable Cloud infrastructure. 
+                  This page provides audit logs, system metrics, and correlation ID tracking. 
                   For production-scale monitoring with Prometheus, Grafana, and Jaeger, see{' '}
                   <code className="px-1 py-0.5 rounded bg-card">docs/INFRASTRUCTURE_REQUIREMENTS.md</code>.
                 </p>

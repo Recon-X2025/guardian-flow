@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Database, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
-import { invokeEdgeFunction, handleApiError } from '@/lib/apiClient';
-import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/integrations/api/client';
+import { toast } from '@/components/ui/sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -20,7 +20,6 @@ interface SeedResults {
 export function SeedDemoDataButton() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [results, setResults] = useState<SeedResults | null>(null);
-  const { toast } = useToast();
 
   const seedDemoData = async () => {
     setIsSeeding(true);
@@ -29,23 +28,25 @@ export function SeedDemoDataButton() {
     try {
       console.log('[SeedDemo] Starting seed operation...');
       
-      const data = await invokeEdgeFunction<{
-        success: boolean;
-        results: SeedResults;
-      }>('seed-demo-data', {
+      const result = await apiClient.functions.invoke('seed-demo-data', {
         body: {},
       });
 
-      console.log('[SeedDemo] Success:', data);
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to seed demo data');
+      }
 
-      setResults(data.results);
-      toast({
-        title: 'Demo data seeded successfully!',
+      console.log('[SeedDemo] Success:', result.data);
+
+      setResults(result.data?.results || null);
+      toast.success('Demo data seeded successfully!', {
         description: 'Created customers, technicians, equipment, invoices, penalties, photo validations, and forecasts',
       });
     } catch (error: any) {
       console.error('[SeedDemo] Seed demo data error:', error);
-      handleApiError(error, toast);
+      toast.error('Error seeding demo data', {
+        description: error.message || 'An unexpected error occurred',
+      });
     } finally {
       setIsSeeding(false);
     }

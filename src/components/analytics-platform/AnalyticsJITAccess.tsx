@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,11 @@ export function AnalyticsJITAccess() {
   const { data: workspaces } = useQuery({
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: { action: "list" },
       });
-      if (error) throw error;
-      return data.workspaces || [];
+      if (result.error) throw result.error;
+      return result.data?.workspaces || [];
     },
   });
 
@@ -32,21 +32,21 @@ export function AnalyticsJITAccess() {
     queryKey: ["analytics-jit-requests", selectedWorkspace],
     enabled: !!selectedWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-jit-access", {
+      const result = await apiClient.functions.invoke("analytics-jit-access", {
         body: { action: "list_requests", payload: { workspace_id: selectedWorkspace } },
       });
-      if (error) throw error;
-      return data.requests || [];
+      if (result.error) throw result.error;
+      return result.data?.requests || [];
     },
   });
 
   const requestMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const { data, error } = await supabase.functions.invoke("analytics-jit-access", {
+      const result = await apiClient.functions.invoke("analytics-jit-access", {
         body: { action: "request_access", payload },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analytics-jit-requests"] });
@@ -57,11 +57,11 @@ export function AnalyticsJITAccess() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.functions.invoke("analytics-jit-access", {
+      const result = await apiClient.functions.invoke("analytics-jit-access", {
         body: { action: "approve_request", payload: { id } },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analytics-jit-requests"] });
@@ -71,11 +71,11 @@ export function AnalyticsJITAccess() {
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await supabase.functions.invoke("analytics-jit-access", {
+      const result = await apiClient.functions.invoke("analytics-jit-access", {
         body: { action: "reject_request", payload: { id } },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analytics-jit-requests"] });

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ShoppingCart, Package, AlertTriangle, TrendingUp, Search } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 import { PurchaseOrderDialog } from '@/components/PurchaseOrderDialog';
@@ -25,13 +25,22 @@ export default function Procurement() {
 
   const fetchData = async () => {
     try {
-      const [itemsData, stockData] = await Promise.all([
-        supabase.from('inventory_items').select('*').order('sku'),
-        supabase.from('stock_levels').select('*, item:inventory_items(*)').order('updated_at', { ascending: false })
+      const [itemsResult, stockResult] = await Promise.all([
+        apiClient.from('inventory_items').select('*').order('sku'),
+        apiClient.from('stock_levels').select('*').order('updated_at', { ascending: false })
       ]);
 
-      if (itemsData.error) throw itemsData.error;
-      if (stockData.error) throw stockData.error;
+      if (itemsResult.error) throw itemsResult.error;
+      if (stockResult.error) throw stockResult.error;
+      
+      const itemsData = { data: itemsResult.data || [] };
+      const stockData = { data: stockResult.data || [] };
+      
+      // Merge stock levels with items
+      const stockWithItems = stockData.data.map((stock: any) => ({
+        ...stock,
+        item: itemsData.data.find((item: any) => item.id === stock.item_id)
+      }));
 
       setItems(itemsData.data || []);
       setStockLevels(stockData.data || []);

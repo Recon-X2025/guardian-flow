@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ export default function ServiceOrders() {
         .select('*, work_orders(wo_number, cost_to_customer)')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setServiceOrders(data || []);
     } catch (error: any) {
       toast({
@@ -57,7 +57,7 @@ export default function ServiceOrders() {
         .in('status', ['in_progress', 'pending_validation'])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setWorkOrders(data || []);
     } catch (error: any) {
       toast({
@@ -71,11 +71,11 @@ export default function ServiceOrders() {
   const generateSO = async (workOrderId: string) => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-service-order', {
+      const result = await apiClient.functions.invoke('generate-service-order', {
         body: { workOrderId }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Service Order Generated",

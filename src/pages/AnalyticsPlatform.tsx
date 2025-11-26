@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { AppLayout } from "@/components/AppLayout";
 import { Database, Shield, Key, FileCheck, Clock, AlertTriangle, Brain, Code } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { AnalyticsWorkspaces } from "@/components/analytics-platform/AnalyticsWorkspaces";
 import { AnalyticsDataSources } from "@/components/analytics-platform/AnalyticsDataSources";
@@ -25,11 +25,11 @@ export default function AnalyticsPlatform() {
   const { data: workspaces, isLoading } = useQuery({
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: { action: "list" },
       });
-      if (error) throw error;
-      return data.workspaces || [];
+      if (result.error) throw result.error;
+      return result.data?.workspaces || [];
     },
   });
 

@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, CheckCircle2 } from "lucide-react";
 
 interface FraudFeedbackDialogProps {
@@ -22,6 +23,7 @@ export function FraudFeedbackDialog({
   onSuccess,
 }: FraudFeedbackDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [label, setLabel] = useState<'true_positive' | 'false_positive' | 'uncertain'>('true_positive');
   const [confidence, setConfidence] = useState<'low' | 'medium' | 'high'>('medium');
@@ -32,14 +34,12 @@ export function FraudFeedbackDialog({
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Submit feedback (note: types will be regenerated after migration)
-      const { error } = await supabase
+      // Submit feedback
+      const { error } = await apiClient
         .from('fraud_feedback' as any)
         .insert({
           alert_id: alertId,
@@ -48,7 +48,8 @@ export function FraudFeedbackDialog({
           confidence,
           feedback_notes: feedbackNotes,
           verified: false
-        } as any);
+        } as any)
+        .then();
 
       if (error) throw error;
 

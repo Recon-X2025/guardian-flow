@@ -3,19 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export function TechnicianDialog({ open, onOpenChange, technician, onSuccess }: any) {
   const [formData, setFormData] = useState(technician || {});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (technician) {
-      await supabase.from('technicians').update(formData).eq('id', technician.id);
-    } else {
-      await supabase.from('technicians').insert(formData);
+    try {
+      if (technician) {
+        await apiClient.from('technicians').update(formData).eq('id', technician.id).then();
+      } else {
+        await apiClient.from('technicians').insert(formData).then();
+      }
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error saving technician:', error);
     }
-    onSuccess();
   };
 
   return (

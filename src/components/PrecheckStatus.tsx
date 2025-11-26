@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,14 +22,15 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
 
   const fetchPrecheck = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('work_order_prechecks')
         .select('*')
         .eq('work_order_id', workOrderId)
-        .single();
+        .limit(1)
+        .then();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setPrecheck(data);
+      if (error) throw error;
+      setPrecheck(data?.[0] || null);
     } catch (error: any) {
       console.error('Precheck fetch error:', error);
     }
@@ -42,18 +43,19 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
   const runPrecheck = async () => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke('precheck-orchestrator', {
+      const result = await apiClient.functions.invoke('precheck-orchestrator', {
         body: { workOrderId }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
+      const data = result.data;
       toast({
-        title: data.can_release ? "Precheck Passed" : "Precheck Failed",
-        description: data.can_release 
+        title: data?.can_release ? "Precheck Passed" : "Precheck Failed",
+        description: data?.can_release 
           ? "Work order is ready for release"
           : "Some checks failed - review results",
-        variant: data.can_release ? "default" : "destructive",
+        variant: data?.can_release ? "default" : "destructive",
       });
 
       fetchPrecheck();
@@ -70,7 +72,7 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
 
   const handleMFAVerified = async (tokenId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('work_order_prechecks')
         .update({
           inventory_status: 'overridden',
@@ -79,7 +81,8 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
           override_reason: overrideReason,
           override_mfa_token: tokenId
         })
-        .eq('work_order_id', workOrderId);
+        .eq('work_order_id', workOrderId)
+        .then();
 
       if (error) throw error;
 

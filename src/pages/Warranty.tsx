@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Shield, CheckCircle2, XCircle, AlertCircle, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { WarrantyDialog } from '@/components/WarrantyDialog';
 
@@ -22,13 +22,13 @@ export default function Warranty() {
 
   const fetchWarranties = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await apiClient
         .from('warranty_records')
         .select('*')
         .order('warranty_end', { ascending: false });
 
-      if (error) throw error;
-      setWarranties(data || []);
+      if (result.error) throw result.error;
+      setWarranties(result.data || []);
     } catch (error: any) {
       toast({
         title: 'Error loading warranties',
@@ -51,7 +51,7 @@ export default function Warranty() {
     }
 
     try {
-      const response = await supabase.functions.invoke('check-warranty', {
+      const response = await apiClient.functions.invoke('check-warranty', {
         body: { unitSerial: searchSerial, parts: ['PC-PSU-550W', 'PR-TONER-BK', 'PC-FAN-120MM'] }
       });
 

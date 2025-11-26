@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,32 +13,32 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
   const { data: qualityRules } = useQuery({
     queryKey: ["analytics-quality-rules", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-data-quality", {
+      const result = await apiClient.functions.invoke("analytics-data-quality", {
         body: { action: "get_rules", payload: { workspaceId } }
       });
-      if (error) throw error;
-      return data.rules || [];
+      if (result.error) throw result.error;
+      return result.data?.rules || [];
     }
   });
 
   const { data: qualityResults } = useQuery({
     queryKey: ["analytics-quality-results", workspaceId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-data-quality", {
+      const result = await apiClient.functions.invoke("analytics-data-quality", {
         body: { action: "get_quality_results", payload: { workspaceId } }
       });
-      if (error) throw error;
-      return data.results || [];
+      if (result.error) throw result.error;
+      return result.data?.results || [];
     }
   });
 
   const runCheckMutation = useMutation({
     mutationFn: async (ruleId: string) => {
-      const { data, error } = await supabase.functions.invoke("analytics-data-quality", {
+      const result = await apiClient.functions.invoke("analytics-data-quality", {
         body: { action: "run_quality_check", payload: { ruleId } }
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analytics-quality-results"] });

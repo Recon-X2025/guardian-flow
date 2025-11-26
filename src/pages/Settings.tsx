@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shield, UserPlus, Search, Trash2, Globe, User } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppRole, useRBAC } from '@/contexts/RBACContext';
@@ -46,23 +46,23 @@ export default function Settings() {
 
   const fetchProfiles = async () => {
     try {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
+      const profilesResult = await apiClient.from('profiles')
         .select('*')
         .order('full_name');
 
-      if (profilesError) throw profilesError;
+      if (profilesResult.error) throw profilesResult.error;
+      const profilesData = profilesResult.data || [];
 
       // Fetch roles for each profile
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
+      const rolesResult = await apiClient.from('user_roles')
         .select('*');
 
-      if (rolesError) throw rolesError;
+      if (rolesResult.error) throw rolesResult.error;
+      const rolesData = rolesResult.data || [];
 
-      const profilesWithRoles = profilesData?.map(profile => ({
+      const profilesWithRoles = profilesData.map(profile => ({
         ...profile,
-        roles: rolesData?.filter(r => r.user_id === profile.id) || []
+        roles: rolesData.filter(r => r.user_id === profile.id)
       })) || [];
 
       setProfiles(profilesWithRoles);
@@ -88,12 +88,12 @@ export default function Settings() {
     }
 
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert([{
-          user_id: selectedProfile,
-          role: selectedRole,
-        }]);
+      const insertResult = apiClient.from('user_roles').insert([{
+        user_id: selectedProfile,
+        role: selectedRole,
+      }]);
+      const result = await insertResult;
+      const error = result.error;
 
       if (error) throw error;
 
@@ -116,10 +116,11 @@ export default function Settings() {
 
   const removeRole = async (userId: string, roleId: string) => {
     try {
-      const { error } = await supabase
-        .from('user_roles')
+      const deleteResult = apiClient.from('user_roles')
         .delete()
         .eq('id', roleId);
+      const result = await deleteResult;
+      const error = result.error;
 
       if (error) throw error;
 

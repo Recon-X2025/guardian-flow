@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, AlertTriangle, DollarSign, Shield } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { AddPenaltyRuleDialog } from '@/components/AddPenaltyRuleDialog';
 import { PenaltyDetailsDialog } from '@/components/PenaltyDetailsDialog';

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,11 +20,11 @@ export function AnalyticsPipelines() {
   const { data: workspaces } = useQuery({
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: { action: "list" },
       });
-      if (error) throw error;
-      return data.workspaces || [];
+      if (result.error) throw result.error;
+      return result.data?.workspaces || [];
     },
   });
 
@@ -32,11 +32,11 @@ export function AnalyticsPipelines() {
     queryKey: ["analytics-data-sources", selectedWorkspace],
     enabled: !!selectedWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-data-source-manager", {
+      const result = await apiClient.functions.invoke("analytics-data-source-manager", {
         body: { action: "list", payload: { workspace_id: selectedWorkspace } },
       });
-      if (error) throw error;
-      return data.data_sources || [];
+      if (result.error) throw result.error;
+      return result.data?.data_sources || [];
     },
   });
 
@@ -44,21 +44,21 @@ export function AnalyticsPipelines() {
     queryKey: ["analytics-pipelines", selectedWorkspace],
     enabled: !!selectedWorkspace,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-pipeline-executor", {
+      const result = await apiClient.functions.invoke("analytics-pipeline-executor", {
         body: { action: "list_pipelines", payload: { workspace_id: selectedWorkspace } },
       });
-      if (error) throw error;
-      return data.pipelines || [];
+      if (result.error) throw result.error;
+      return result.data?.pipelines || [];
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const { data, error } = await supabase.functions.invoke("analytics-pipeline-executor", {
+      const result = await apiClient.functions.invoke("analytics-pipeline-executor", {
         body: { action: "create", payload },
       });
-      if (error) throw error;
-      return data;
+      if (result.error) throw result.error;
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analytics-pipelines"] });

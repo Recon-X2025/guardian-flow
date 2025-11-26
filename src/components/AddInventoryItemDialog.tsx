@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Loader2 } from 'lucide-react';
 
 interface AddInventoryItemDialogProps {
@@ -31,7 +31,7 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSuccess }: AddInv
     setLoading(true);
 
     try {
-      const { error: itemError } = await supabase
+      const { error: itemError } = await apiClient
         .from('inventory_items')
         .insert({
           sku: formData.sku,
@@ -39,7 +39,8 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSuccess }: AddInv
           unit_price: parseFloat(formData.unitPrice) || 0,
           lead_time_days: parseInt(formData.leadTimeDays) || 0,
           consumable: formData.consumable,
-        });
+        })
+        .then();
 
       if (itemError) throw itemError;
 

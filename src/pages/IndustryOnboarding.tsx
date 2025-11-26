@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -110,7 +110,7 @@ export default function IndustryOnboarding() {
 
     setIsSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = useAuth();
       if (!user) throw new Error("Not authenticated");
 
       // Update tenant with industry configuration
@@ -133,7 +133,7 @@ export default function IndustryOnboarding() {
       if (tenantError) throw tenantError;
 
       // Create industry-specific workflow templates
-      await supabase.functions.invoke("setup-industry-workflows", {
+      await apiClient.functions.invoke("setup-industry-workflows", {
         body: { 
           tenantId: profile.tenant_id, 
           industry: selectedIndustry 

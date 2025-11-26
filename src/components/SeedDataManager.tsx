@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { toast } from '@/components/ui/sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -23,42 +23,47 @@ export function SeedDataManager() {
   const handleSeed = async () => {
     setLoading(true);
     try {
-      const { data: profile } = await supabase
+      const { data: profileList } = await apiClient
         .from('profiles')
         .select('tenant_id')
-        .single();
+        .limit(1)
+        .then();
 
-      if (!profile?.tenant_id) {
+      const profile = profileList?.[0];
+      const tenantId = profile?.tenant_id || null;
+
+      if (!tenantId) {
         toast.error('No tenant found');
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('seed-validated-data', {
+      const result = await apiClient.functions.invoke('seed-validated-data', {
         body: {
-          tenantId: profile.tenant_id,
+          tenantId,
           seedType,
           counts,
           includeCompliance: true,
         },
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
-      if (data.success) {
+      const data = result.data;
+      if (data?.success) {
         toast.success('Data seeded successfully', {
-          description: `Created ${Object.entries(data.entitiesCreated)
+          description: `Created ${Object.entries(data.entitiesCreated || {})
             .map(([k, v]) => `${v} ${k}`)
             .join(', ')}`,
         });
 
-        if (data.validation.warnings.length > 0) {
+        if (data.validation?.warnings?.length > 0) {
           toast.warning('Validation warnings', {
             description: data.validation.warnings.join(', '),
           });
         }
       } else {
         toast.error('Seeding failed', {
-          description: data.validation.errors.join(', '),
+          description: data?.validation?.errors?.join(', ') || 'Unknown error',
         });
       }
     } catch (error: any) {

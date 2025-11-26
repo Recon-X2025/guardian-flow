@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -69,10 +69,11 @@ export function EnhancedSLATab() {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysAgo);
 
-    const { data: workOrders } = await supabase
+    const { data: workOrders } = await apiClient
       .from('work_orders')
       .select('*')
-      .gte('created_at', startDate.toISOString());
+      .gte('created_at', startDate.toISOString())
+      .then();
 
     if (workOrders) {
       const total = workOrders.length;
@@ -116,7 +117,7 @@ export function EnhancedSLATab() {
   };
 
   const fetchViolations = async () => {
-    let query = supabase
+    let query = apiClient
       .from('sla_violations' as any)
       .select('*')
       .order('detected_at', { ascending: false })
@@ -126,7 +127,7 @@ export function EnhancedSLATab() {
       query = query.eq('severity', filterSeverity);
     }
 
-    const { data } = await query;
+    const { data } = await query.then();
     if (data) setViolations(data as any);
   };
 
@@ -135,10 +136,11 @@ export function EnhancedSLATab() {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysAgo);
 
-    const { data: workOrders } = await supabase
+    const { data: workOrders } = await apiClient
       .from('work_orders')
       .select('created_at, completed_at, status')
-      .gte('created_at', startDate.toISOString());
+      .gte('created_at', startDate.toISOString())
+      .then();
 
     if (workOrders) {
       const dailyData: any = {};
@@ -170,10 +172,10 @@ export function EnhancedSLATab() {
 
   const fetchPredictions = async () => {
     try {
-      const { data } = await supabase.functions.invoke('predict-sla-breach', {
+      const result = await apiClient.functions.invoke('predict-sla-breach', {
         body: { timeframe: timeRange }
       });
-      if (data) setPredictionData(data);
+      if (result.data) setPredictionData(result.data);
     } catch (error) {
       console.error('Prediction fetch failed:', error);
     }

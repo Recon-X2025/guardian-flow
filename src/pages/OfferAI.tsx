@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ export default function OfferAI() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setOffers(data || []);
     } catch (error: any) {
       toast({
@@ -49,7 +49,7 @@ export default function OfferAI() {
         .in('status', ['in_progress', 'pending_validation'])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
       setWorkOrders(data || []);
     } catch (error: any) {
       toast({
@@ -63,11 +63,11 @@ export default function OfferAI() {
   const generateOffers = async (workOrderId: string) => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-offers', {
+      const result = await apiClient.functions.invoke('generate-offers', {
         body: { workOrderId, customerId: 'demo-customer' }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: "Offers generated",
@@ -93,7 +93,7 @@ export default function OfferAI() {
         .update({ status: 'accepted' })
         .eq('id', offerId);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({ title: "Offer accepted", description: "Quote will be generated" });
       fetchOffers();

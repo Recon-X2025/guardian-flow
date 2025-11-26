@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export function CustomerDialog({ open, onOpenChange, customer, onSuccess }: any) {
   const [formData, setFormData] = useState(customer || {});
@@ -12,9 +12,10 @@ export function CustomerDialog({ open, onOpenChange, customer, onSuccess }: any)
     e.preventDefault();
     
     if (customer) {
-      await supabase.from('customers').update(formData).eq('id', customer.id);
+      const updateResult = apiClient.from('customers').update(formData).eq('id', customer.id);
+      await updateResult;
     } else {
-      await supabase.functions.invoke('customer-create', { body: formData });
+      await apiClient.functions.invoke('customer-create', { body: formData });
     }
     
     onSuccess();

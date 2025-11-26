@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { TrendingUp, DollarSign, Package, AlertCircle, Database, Activity, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -33,6 +34,7 @@ interface SeedProgress {
 
 export default function ForecastCenter() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -86,119 +88,162 @@ export default function ForecastCenter() {
   }, [selectedCountry, selectedRegion, selectedState, selectedCity, selectedHub, selectedPinCode, forecastWindow]);
 
   const loadGeography = async () => {
-    const { data } = await supabase
-      .from('geography_hierarchy')
-      .select('*')
-      .order('country');
-    
-    if (data) {
-      const uniqueCountries = [...new Set(data.map(g => g.country))].filter(Boolean);
-      if (uniqueCountries.length === 0) {
-        setCountries(FALLBACK.countries.map(c => ({ name: c })));
+    try {
+      const result = await apiClient.from('geography_hierarchy')
+        .select('*')
+        .order('country');
+      
+      const data = result.data;
+      console.log('Geography data loaded:', data?.length || 0, 'records');
+      
+      if (data && data.length > 0) {
+        const uniqueCountries = [...new Set(data.map(g => g.country))].filter(Boolean);
+        if (uniqueCountries.length === 0) {
+          setCountries(FALLBACK.countries.map(c => ({ name: c })));
+        } else {
+          const countryItems = uniqueCountries.map(c => ({ name: c }));
+          setCountries(countryItems);
+          // Auto-select first country to trigger cascade
+          if (!selectedCountry && countryItems.length > 0) {
+            setSelectedCountry(countryItems[0].name);
+            loadRegions(countryItems[0].name);
+          }
+        }
       } else {
-        setCountries(uniqueCountries.map(c => ({ name: c })));
+        setCountries(FALLBACK.countries.map(c => ({ name: c })));
       }
-    } else {
+    } catch (error) {
+      console.error('Error loading geography:', error);
       setCountries(FALLBACK.countries.map(c => ({ name: c })));
     }
   };
 
   const loadRegions = async (country: string) => {
-    const { data } = await supabase
-      .from('geography_hierarchy')
-      .select('region')
-      .eq('country', country);
-    
-    if (data) {
-      const uniqueRegions = [...new Set(data.map(g => g.region))].filter(Boolean);
-      if (uniqueRegions.length === 0) {
-        setRegions(FALLBACK.regions.map(r => ({ name: r })));
+    try {
+      const result = await apiClient.from('geography_hierarchy')
+        .select('region')
+        .eq('country', country);
+      
+      const data = result.data;
+      
+      if (data && data.length > 0) {
+        const uniqueRegions = [...new Set(data.map(g => g.region))].filter(Boolean);
+        if (uniqueRegions.length === 0) {
+          setRegions(FALLBACK.regions.map(r => ({ name: r })));
+        } else {
+          setRegions(uniqueRegions.map(r => ({ name: r })));
+        }
       } else {
-        setRegions(uniqueRegions.map(r => ({ name: r })));
+        setRegions(FALLBACK.regions.map(r => ({ name: r })));
       }
-    } else {
+    } catch (error) {
+      console.warn('Error loading regions:', error);
       setRegions(FALLBACK.regions.map(r => ({ name: r })));
     }
   };
 
   const loadStates = async (country: string, region: string) => {
-    const { data } = await supabase
-      .from('geography_hierarchy')
-      .select('state')
-      .eq('country', country)
-      .eq('region', region);
-    
-    if (data) {
-      const uniqueStates = [...new Set(data.map(g => g.state))].filter(Boolean);
-      if (uniqueStates.length === 0) {
-        setStates(FALLBACK.states.map(s => ({ name: s })));
+    try {
+      const result = await apiClient.from('geography_hierarchy')
+        .select('state')
+        .eq('country', country)
+        .eq('region', region);
+      
+      const data = result.data;
+      
+      if (data && data.length > 0) {
+        const uniqueStates = [...new Set(data.map(g => g.state))].filter(Boolean);
+        if (uniqueStates.length === 0) {
+          setStates(FALLBACK.states.map(s => ({ name: s })));
+        } else {
+          setStates(uniqueStates.map(s => ({ name: s })));
+        }
       } else {
-        setStates(uniqueStates.map(s => ({ name: s })));
+        setStates(FALLBACK.states.map(s => ({ name: s })));
       }
-    } else {
+    } catch (error) {
+      console.warn('Error loading states:', error);
       setStates(FALLBACK.states.map(s => ({ name: s })));
     }
   };
 
   const loadCities = async (country: string, region: string, state: string) => {
-    const { data } = await supabase
-      .from('geography_hierarchy')
-      .select('city')
-      .eq('country', country)
-      .eq('region', region)
-      .eq('state', state);
-    
-    if (data) {
-      const uniqueCities = [...new Set(data.map(g => g.city))].filter(Boolean);
-      if (uniqueCities.length === 0) {
-        setCities(FALLBACK.cities.map(c => ({ name: c })));
+    try {
+      const result = await apiClient.from('geography_hierarchy')
+        .select('city')
+        .eq('country', country)
+        .eq('region', region)
+        .eq('state', state);
+      
+      const data = result.data;
+      
+      if (data && data.length > 0) {
+        const uniqueCities = [...new Set(data.map(g => g.city))].filter(Boolean);
+        if (uniqueCities.length === 0) {
+          setCities(FALLBACK.cities.map(c => ({ name: c })));
+        } else {
+          setCities(uniqueCities.map(c => ({ name: c })));
+        }
       } else {
-        setCities(uniqueCities.map(c => ({ name: c })));
+        setCities(FALLBACK.cities.map(c => ({ name: c })));
       }
-    } else {
+    } catch (error) {
+      console.warn('Error loading cities:', error);
       setCities(FALLBACK.cities.map(c => ({ name: c })));
     }
   };
 
   const loadHubs = async (country: string, region: string, state: string, city: string) => {
-    const { data } = await supabase
-      .from('geography_hierarchy')
-      .select('partner_hub')
-      .eq('country', country)
-      .eq('region', region)
-      .eq('state', state)
-      .eq('city', city);
-    
-    if (data) {
-      const uniqueHubs = [...new Set(data.map(g => g.partner_hub))].filter(Boolean);
-      if (uniqueHubs.length === 0) {
-        setHubs(FALLBACK.hubs.map(h => ({ name: h })));
+    try {
+      const result = await apiClient.from('geography_hierarchy')
+        .select('partner_hub')
+        .eq('country', country)
+        .eq('region', region)
+        .eq('state', state)
+        .eq('city', city);
+      
+      const data = result.data;
+      
+      if (data && data.length > 0) {
+        const uniqueHubs = [...new Set(data.map(g => g.partner_hub))].filter(Boolean);
+        if (uniqueHubs.length === 0) {
+          setHubs(FALLBACK.hubs.map(h => ({ name: h })));
+        } else {
+          setHubs(uniqueHubs.map(h => ({ name: h })));
+        }
       } else {
-        setHubs(uniqueHubs.map(h => ({ name: h })));
+        setHubs(FALLBACK.hubs.map(h => ({ name: h })));
       }
-    } else {
+    } catch (error) {
+      console.warn('Error loading hubs:', error);
       setHubs(FALLBACK.hubs.map(h => ({ name: h })));
     }
   };
 
   const loadPinCodes = async (country: string, region: string, state: string, city: string, hub: string) => {
-    const { data } = await supabase
-      .from('geography_hierarchy')
-      .select('pin_code')
-      .eq('country', country)
-      .eq('region', region)
-      .eq('state', state)
-      .eq('city', city)
-      .eq('partner_hub', hub);
-    
-    if (data) {
-      const uniquePinCodes = [...new Set(data.map(g => g.pin_code))].filter(Boolean);
-      if (uniquePinCodes.length === 0) {
-        setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
+    try {
+      const result = await apiClient.from('geography_hierarchy')
+        .select('pin_code')
+        .eq('country', country)
+        .eq('region', region)
+        .eq('state', state)
+        .eq('city', city)
+        .eq('partner_hub', hub);
+      
+      const data = result.data;
+      
+      if (data && data.length > 0) {
+        const uniquePinCodes = [...new Set(data.map(g => g.pin_code))].filter(Boolean);
+        if (uniquePinCodes.length === 0) {
+          setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
+        } else {
+          setPinCodes(uniquePinCodes.map(p => ({ name: p })));
+        }
       } else {
-        setPinCodes(uniquePinCodes.map(p => ({ name: p })));
+        setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
       }
-    } else {
+    } catch (error) {
+      console.warn('Error loading pin codes:', error);
       setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
     }
   };
@@ -207,16 +252,15 @@ export default function ForecastCenter() {
     try {
       const days = forecastWindow === 'short' ? 30 : forecastWindow === 'mid' ? 90 : 365;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user?.id)
-        .maybeSingle();
-      const tenantId = profile?.tenant_id || user?.id;
+      if (!user) {
+        setForecastData([]);
+        setMetrics({ volume: 0, revenue: 0, spend: 0, confidence: 0 });
+        return;
+      }
+
+      const tenantId = user.id; // Use user.id as tenant_id
       
-      let query = supabase
-        .from('forecast_outputs')
+      let query = apiClient.from('forecast_outputs')
         .select('*')
         .eq('tenant_id', tenantId)
         .eq('forecast_type', 'volume')
@@ -238,13 +282,12 @@ export default function ForecastCenter() {
         query = query.eq('geography_level', 'country').eq('country', selectedCountry);
       } else {
         // Default to country level when nothing is selected
-        const baseCountry = countries.length > 0 ? countries[0].name : 'US';
+        const baseCountry = countries.length > 0 ? countries[0].name : 'India';
         query = query.eq('geography_level', 'country').eq('country', baseCountry);
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const result = await query;
+      const data = result.data;
 
       if (data && data.length > 0) {
         setForecastData(data.map(d => ({
@@ -288,19 +331,15 @@ export default function ForecastCenter() {
 
   const loadActuals = async () => {
     try {
+      if (!user) return;
+
       const startDate = new Date();
       startDate.setMonth(startDate.getMonth() - 12);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user?.id)
-        .maybeSingle();
-      const tenantId = profile?.tenant_id || user?.id;
+      const tenantId = user.id;
 
       // Build query with conditional filters
-      let q: any = supabase.from('work_orders')
+      let q: any = apiClient.from('work_orders')
         .select('created_at')
         .gte('created_at', startDate.toISOString());
       
@@ -312,7 +351,8 @@ export default function ForecastCenter() {
       else if (selectedRegion) q = q.eq('region', selectedRegion);
       else if (selectedCountry) q = q.eq('country', selectedCountry);
       
-      const { data } = await q;
+      const result = await q;
+      const data = result.data;
 
       if (data) {
         const monthlyActuals = data.reduce((acc: Record<string, number>, wo: { created_at: string }) => {
@@ -337,22 +377,20 @@ export default function ForecastCenter() {
     setSeedProgress({ status: 'starting', message: 'Initializing India data seed...' });
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single();
+      // Get tenant_id from user context (or use user.id as fallback)
+      const tenantId = user.id; // TODO: Get from profile if available
 
       setSeedProgress({ status: 'generating', message: 'Generating 12 months of synthetic data...' });
 
-      const { data, error } = await supabase.functions.invoke('seed-india-data', {
-        body: { tenant_id: profile?.tenant_id || user.id }
+      const result = await apiClient.functions.invoke('seed-india-data', {
+        body: { tenant_id: tenantId }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+      
+      const data = result.data;
 
       setSeedProgress({ 
         status: 'completed', 
@@ -386,23 +424,18 @@ export default function ForecastCenter() {
   const generateForecasts = async () => {
     setGenerating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .maybeSingle();
-      const tenantId = profile?.tenant_id || user.id;
+      const tenantId = user.id;
 
-      const { data, error } = await supabase.functions.invoke('run-forecast-now', {
+      const result = await apiClient.functions.invoke('run-forecast-now', {
         body: {
           tenant_id: tenantId,
           geography_levels: ['country', 'region', 'state', 'city', 'partner_hub', 'pin_code']
         }
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+      const data = result.data;
 
       toast({
         title: 'Forecast Generation Started',
@@ -426,14 +459,16 @@ export default function ForecastCenter() {
 
   const loadSystemMetrics = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-forecast-metrics', {
+      if (!user) return;
+
+      const result = await apiClient.functions.invoke('get-forecast-metrics', {
         body: {
-          tenant_id: (await supabase.auth.getUser()).data.user?.id
+          tenant_id: user.id
         }
       });
 
-      if (error) throw error;
-      setSystemMetrics(data);
+      if (result.error) throw result.error;
+      setSystemMetrics(result.data);
     } catch (error: any) {
       console.error('Error loading metrics:', error);
     }

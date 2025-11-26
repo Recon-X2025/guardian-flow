@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,12 +34,12 @@ export default function NLPQueryExecutor() {
     setResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('nlp-query-executor', {
+      const result = await apiClient.functions.invoke('nlp-query-executor', {
         body: { naturalQuery: query }
       });
 
-      if (error) {
-        if (error.message?.includes('Rate limit')) {
+      if (result.error) {
+        if (result.error.message?.includes('Rate limit')) {
           toast({
             title: "Rate Limit Exceeded",
             description: "Please wait a moment before trying again",
@@ -47,14 +47,15 @@ export default function NLPQueryExecutor() {
           });
           return;
         }
-        throw error;
+        throw result.error;
       }
 
+      const data = result.data;
       setResult(data);
 
       toast({
         title: "Query Executed",
-        description: `Returned ${data.rowCount} rows in ${data.executionTime}ms`,
+        description: `Returned ${data?.rowCount || 0} rows in ${data?.executionTime || 0}ms`,
       });
     } catch (error) {
       console.error('Query error:', error);

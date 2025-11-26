@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Package, AlertTriangle, TrendingUp } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 import { AddInventoryItemDialog } from '@/components/AddInventoryItemDialog';
@@ -25,28 +25,45 @@ export default function Inventory() {
 
   const fetchInventory = async () => {
     try {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select(`
-          *,
-          stock_levels(*)
-        `)
-        .or(
-          'sku.ilike.PC-%,sku.ilike.PR-%,sku.ilike.PRN-%,sku.ilike.MFP-%,' +
-          'description.ilike.%printer%,description.ilike.%toner%,description.ilike.%ink%,' +
-          'description.ilike.%cartridge%,description.ilike.%drum%,description.ilike.%laser%,' +
-          'description.ilike.%desktop%,description.ilike.%laptop%,description.ilike.%monitor%'
-        )
-        .not('description', 'ilike', '%HVAC%')
-        .not('sku', 'ilike', '%HVAC%')
-        .not('sku', 'ilike', 'ELEC-%')
-        .not('sku', 'ilike', 'PLMB-%')
-        .not('sku', 'ilike', 'COMP-%')
-        .not('sku', 'ilike', 'REF-%')
+      // Fetch inventory items (apiClient doesn't support complex .or() and .not() filters)
+      const itemsResult = await apiClient.from('inventory_items')
+        .select('*')
         .order('description', { ascending: true });
-
-      if (error) throw error;
-      setInventoryItems(data || []);
+      
+      if (itemsResult.error) throw itemsResult.error;
+      let items = itemsResult.data || [];
+      
+      // Filter client-side for complex conditions
+      items = items.filter((item: any) => {
+        const sku = item.sku?.toLowerCase() || '';
+        const desc = item.description?.toLowerCase() || '';
+        
+        // Include items matching patterns
+        const matchesInclude = 
+          sku.startsWith('pc-') || sku.startsWith('pr-') || sku.startsWith('prn-') || sku.startsWith('mfp-') ||
+          desc.includes('printer') || desc.includes('toner') || desc.includes('ink') ||
+          desc.includes('cartridge') || desc.includes('drum') || desc.includes('laser') ||
+          desc.includes('desktop') || desc.includes('laptop') || desc.includes('monitor');
+        
+        // Exclude items matching patterns
+        const matchesExclude = 
+          desc.includes('hvac') || sku.includes('hvac') || 
+          sku.startsWith('elec-') || sku.startsWith('plmb-') || 
+          sku.startsWith('comp-') || sku.startsWith('ref-');
+        
+        return matchesInclude && !matchesExclude;
+      });
+      
+      // Fetch stock levels separately and merge
+      const stockResult = await apiClient.from('stock_levels').select('*');
+      const stockLevels = stockResult.data || [];
+      
+      const itemsWithStock = items.map((item: any) => ({
+        ...item,
+        stock_levels: stockLevels.filter((sl: any) => sl.item_id === item.id)
+      }));
+      
+      setInventoryItems(itemsWithStock);
     } catch (error: any) {
       toast({
         title: 'Error loading inventory',

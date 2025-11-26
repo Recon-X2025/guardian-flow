@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 
 export function ContractDialog({ open, onOpenChange, contract, onSuccess }: any) {
   const [formData, setFormData] = useState(contract || {});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await supabase.functions.invoke('contract-create', { body: { contract: formData, line_items: [] } });
+    await apiClient.functions.invoke('contract-create', { body: { contract: formData, line_items: [] } });
     onSuccess();
   };
 

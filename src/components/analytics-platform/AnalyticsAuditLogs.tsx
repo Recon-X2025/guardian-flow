@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +17,11 @@ export function AnalyticsAuditLogs() {
   const { data: workspaces } = useQuery({
     queryKey: ["analytics-workspaces"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("analytics-workspace-manager", {
+      const result = await apiClient.functions.invoke("analytics-workspace-manager", {
         body: { action: "list" },
       });
-      if (error) throw error;
-      return data.workspaces || [];
+      if (result.error) throw result.error;
+      return result.data?.workspaces || [];
     },
   });
 
@@ -30,11 +30,11 @@ export function AnalyticsAuditLogs() {
     enabled: !!selectedWorkspace,
     queryFn: async () => {
       // Using edge function to avoid type issues
-      const { data, error } = await supabase.rpc('get_analytics_audit_logs' as any, {
-        p_workspace_id: selectedWorkspace
+      const result = await apiClient.functions.invoke('get-analytics-audit-logs', {
+        body: { workspace_id: selectedWorkspace }
       });
       
-      if (error) {
+      if (result.error || !result.data) {
         // Fallback to mock data during development
         return [
           {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle, Navigation, EyeOff } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { GeoCheckInDialog } from '@/components/GeoCheckInDialog';
 import { useActionPermissions } from '@/hooks/useActionPermissions';

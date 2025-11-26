@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, CreditCard, TrendingUp, AlertCircle, DollarSign, CheckCircle2, Clock } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 
@@ -20,16 +20,18 @@ export default function Payments() {
 
   const fetchPendingPayments = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await apiClient
         .from('invoices')
         .select(`
           *,
           work_order:work_orders(wo_number, ticket:tickets(customer_name, unit_serial))
         `)
         .in('status', ['draft', 'sent', 'overdue'])
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .then();
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+      const { data } = result;
       
       // If no data, use mock data
       if (!data || data.length === 0) {
@@ -84,7 +86,7 @@ export default function Payments() {
 
   const handleProcessPayment = async (invoiceId: string) => {
     try {
-      const response = await supabase.functions.invoke('process-invoice-payment', {
+      const response = await apiClient.functions.invoke('process-invoice-payment', {
         body: {
           invoiceId,
           paymentMethod: 'credit_card',

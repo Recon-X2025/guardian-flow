@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 interface SLARiskIndicatorProps {
@@ -13,37 +13,32 @@ export function SLARiskIndicator({ workOrderId }: SLARiskIndicatorProps) {
 
   useEffect(() => {
     fetchPrediction();
-    const subscription = supabase
-      .channel(`sla_prediction_${workOrderId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sla_predictions',
-          filter: `work_order_id=eq.${workOrderId}`,
-        },
-        (payload) => {
-          setPrediction(payload.new);
-        }
-      )
+    // Set up real-time subscription using apiClient
+    const channel = apiClient.channel(`sla_prediction_${workOrderId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'sla_predictions',
+        filter: `work_order_id=eq.${workOrderId}`,
+      }, (payload: any) => {
+        setPrediction(payload.new);
+      })
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      apiClient.removeChannel(channel);
     };
   }, [workOrderId]);
 
   const fetchPrediction = async () => {
-    const { data } = await (supabase as any)
-      .from('sla_predictions')
+    const result = await apiClient.from('sla_predictions')
       .select('*')
       .eq('work_order_id', workOrderId)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
-    if (data) setPrediction(data);
+    if (result.data) setPrediction(result.data);
   };
 
   if (!prediction) return null;

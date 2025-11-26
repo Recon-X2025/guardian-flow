@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrency } from '@/hooks/useCurrency';
 import { InvoiceDetailDialog } from '@/components/InvoiceDetailDialog';
+import { ComprehensiveInvoiceDetailDialog } from '@/components/ComprehensiveInvoiceDetailDialog';
+import { InvoiceFormDialog } from '@/components/InvoiceFormDialog';
 import { useActionPermissions } from '@/hooks/useActionPermissions';
 import jsPDF from 'jspdf';
 
@@ -19,6 +21,7 @@ export default function Invoicing() {
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
   const invoicePerms = useActionPermissions('invoices');
   const isViewOnly = !invoicePerms.create && !invoicePerms.edit && !invoicePerms.execute;
 
@@ -28,13 +31,14 @@ export default function Invoicing() {
 
   const fetchInvoices = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('invoices')
         .select(`
           *,
           work_order:work_orders(wo_number, ticket:tickets(customer_name, unit_serial))
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .then();
 
       if (error) throw error;
       
@@ -199,6 +203,12 @@ export default function Invoicing() {
           <h1 className="text-3xl font-bold text-foreground">Invoicing</h1>
           <p className="text-muted-foreground">Manage customer invoices and payments</p>
         </div>
+        {!isViewOnly && invoicePerms.create && (
+          <Button onClick={() => setInvoiceFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Invoice
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -272,6 +282,19 @@ export default function Invoicing() {
                         {getStatusIcon(invoice.status)}
                         <span className="ml-1">{invoice.status}</span>
                       </Badge>
+                      {invoice.payment_status && (
+                        <Badge 
+                          variant="outline" 
+                          className={
+                            invoice.payment_status === 'paid' ? 'bg-green-100 text-green-800 border-green-200' :
+                            invoice.payment_status === 'partial' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                            invoice.payment_status === 'failed' ? 'bg-red-100 text-red-800 border-red-200' :
+                            'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          }
+                        >
+                          Payment: {invoice.payment_status}
+                        </Badge>
+                      )}
                       {invoice.penalties && Number(invoice.penalties) > 0 && (
                         <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
                           Penalties: {formatCurrency(Number(invoice.penalties))}
@@ -295,9 +318,17 @@ export default function Invoicing() {
                     {invoice.hold_reason && (
                       <p className="text-xs text-warning">Hold Reason: {invoice.hold_reason}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      Created: {new Date(invoice.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex gap-4 text-xs text-muted-foreground">
+                      <span>Created: {new Date(invoice.created_at).toLocaleDateString()}</span>
+                      {invoice.payment_received_at && (
+                        <span>Paid: {new Date(invoice.payment_received_at).toLocaleDateString()}</span>
+                      )}
+                      {invoice.payment_amount !== undefined && Number(invoice.payment_amount) > 0 && (
+                        <span className="text-green-600 font-medium">
+                          Paid: {formatCurrency(Number(invoice.payment_amount))}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     {invoicePerms.view && (
@@ -347,10 +378,27 @@ export default function Invoicing() {
         </CardContent>
       </Card>
 
-      <InvoiceDetailDialog
-        open={invoiceDialogOpen}
-        onOpenChange={setInvoiceDialogOpen}
-        invoice={selectedInvoice}
+      {/* Use ComprehensiveInvoiceDetailDialog for invoices with comprehensive data, fallback to basic dialog */}
+      {selectedInvoice?.invoice_data || selectedInvoice?.supplier_data ? (
+        <ComprehensiveInvoiceDetailDialog
+          open={invoiceDialogOpen}
+          onOpenChange={setInvoiceDialogOpen}
+          invoice={selectedInvoice}
+        />
+      ) : (
+        <InvoiceDetailDialog
+          open={invoiceDialogOpen}
+          onOpenChange={setInvoiceDialogOpen}
+          invoice={selectedInvoice}
+        />
+      )}
+
+      <InvoiceFormDialog
+        open={invoiceFormOpen}
+        onOpenChange={setInvoiceFormOpen}
+        onSuccess={() => {
+          fetchInvoices();
+        }}
       />
     </div>
   );

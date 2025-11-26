@@ -147,7 +147,7 @@ export default function Assistant() {
                 <p className="font-semibold mb-2">Generation Phase</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Prompt augmentation with retrieved context</li>
-                  <li>• Model selection (Gemini 2.5 Flash via Lovable AI)</li>
+                  <li>• Model selection (Gemini 2.5 Flash)</li>
                   <li>• Citation extraction and linking</li>
                   <li>• Provenance tracking (model_version, prompt_id)</li>
                 </ul>

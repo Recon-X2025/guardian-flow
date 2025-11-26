@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MapPin, Navigation, Loader2, CheckCircle } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 

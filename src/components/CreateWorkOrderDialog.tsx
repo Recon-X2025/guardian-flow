@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Loader2 } from 'lucide-react';
 
 interface CreateWorkOrderDialogProps {
@@ -29,25 +29,27 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
   const fetchTechnicians = async () => {
     try {
       // Get users with technician role
-      const { data: techRoles, error: rolesError } = await supabase
+      const { data: techRoles, error: rolesError } = await apiClient
         .from('user_roles')
         .select('user_id')
-        .eq('role', 'technician');
+        .eq('role', 'technician')
+        .then();
 
       if (rolesError) throw rolesError;
 
-      const techIds = techRoles?.map(r => r.user_id) || [];
+      const techIds = techRoles?.map((r: any) => r.user_id) || [];
 
       if (techIds.length === 0) {
         setTechnicians([]);
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('profiles')
         .select('id, full_name, email')
         .in('id', techIds)
-        .limit(50);
+        .limit(50)
+        .then();
 
       if (error) throw error;
       setTechnicians(data || []);
@@ -68,16 +70,17 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
 
     setLoading(true);
     try {
-      // Generate WO number
+      // Generate WO number - get count from work orders
       const year = new Date().getFullYear();
-      const { count } = await supabase
+      const { data: existingWOs } = await apiClient
         .from('work_orders')
-        .select('*', { count: 'exact', head: true });
+        .select('wo_number')
+        .then();
       
-      const woNumber = `WO-${year}-${String((count || 0) + 1).padStart(4, '0')}`;
+      const woNumber = `WO-${year}-${String((existingWOs?.length || 0) + 1).padStart(4, '0')}`;
 
       // Create work order
-      const { data: woData, error: woError } = await supabase
+      const { data: woData, error: woError } = await apiClient
         .from('work_orders')
         .insert({
           wo_number: woNumber,
@@ -88,30 +91,35 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
           parts_reserved: false,
           cost_to_customer: 0,
         })
-        .select()
-        .single();
+        .then();
 
-      if (woError) throw woError;
+      if (woError || !woData) {
+        throw woError || new Error('Failed to create work order');
+      }
+
+      const createdWO = Array.isArray(woData) ? woData[0] : woData;
 
       // Update ticket status
-      await supabase
+      await apiClient
         .from('tickets')
         .update({ status: 'assigned' })
-        .eq('id', ticketId);
+        .eq('id', ticketId)
+        .then();
 
       // Create precheck record
-      await supabase
+      await apiClient
         .from('work_order_prechecks')
         .insert({
-          work_order_id: woData.id,
+          work_order_id: createdWO.id,
           inventory_status: 'pending',
           warranty_status: 'pending',
           photo_status: 'pending',
-        });
+        })
+        .then();
 
       // Automatically trigger precheck orchestration
-      const { error: precheckError } = await supabase.functions.invoke('precheck-orchestrator', {
-        body: { workOrderId: woData.id }
+      const { error: precheckError } = await apiClient.functions.invoke('precheck-orchestrator', {
+        body: { workOrderId: createdWO.id }
       });
 
       if (precheckError) {

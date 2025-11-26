@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface StockAdjustmentDialogProps {
@@ -38,7 +38,7 @@ export function StockAdjustmentDialog({ open, onOpenChange, item, stockLevel, on
 
     setLoading(true);
     try {
-      const response = await supabase.functions.invoke('adjust-inventory-stock', {
+      const response = await apiClient.functions.invoke('adjust-inventory-stock', {
         body: {
           itemId: item.id,
           locationId: stockLevel.location_id,
@@ -50,6 +50,7 @@ export function StockAdjustmentDialog({ open, onOpenChange, item, stockLevel, on
       });
 
       if (response.error) throw response.error;
+      // Response data is in response.data
 
       toast({
         title: 'Stock Adjusted',

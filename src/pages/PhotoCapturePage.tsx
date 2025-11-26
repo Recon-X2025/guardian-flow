@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import PhotoCapture from "@/components/PhotoCapture";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,14 +17,15 @@ export default function PhotoCapturePage() {
 
   const fetchValidations = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await apiClient
         .from('photo_validations')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(10)
+        .then();
 
-      if (error) throw error;
-      setValidations(data || []);
+      if (result.error) throw result.error;
+      setValidations(result.data || []);
     } catch (error: any) {
       toast({
         title: "Error loading validations",
@@ -41,16 +42,17 @@ export default function PhotoCapturePage() {
 
   const fetchWorkOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await apiClient
         .from('work_orders')
         .select('id, wo_number, status')
         .in('status', ['draft', 'in_progress', 'pending_validation'])
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .then();
 
-      if (error) throw error;
-      setWorkOrders(data || []);
-      if (data && data.length > 0) {
-        setSelectedWO(data[0].id);
+      if (result.error) throw result.error;
+      setWorkOrders(result.data || []);
+      if (result.data && result.data.length > 0) {
+        setSelectedWO(result.data[0].id);
       }
     } catch (error: any) {
       toast({

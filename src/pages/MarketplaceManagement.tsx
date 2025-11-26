@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,41 +12,61 @@ export default function MarketplaceManagement() {
   const { data: extensions = [] } = useQuery({
     queryKey: ["marketplace-extensions"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const result = await apiClient
         .from("marketplace_extensions")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+      if (result.error) throw result.error;
+      return result.data || [];
     },
   });
 
   const { data: installations = [] } = useQuery({
     queryKey: ["extension-installations"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch installations and extensions separately (apiClient doesn't support joins)
+      const installResult = await apiClient
         .from("extension_installations")
-        .select("*, extension:marketplace_extensions(*)")
+        .select("*")
         .order("installed_at", { ascending: false })
         .limit(20);
 
-      if (error) throw error;
-      return data || [];
+      if (installResult.error) throw installResult.error;
+      const installations = installResult.data || [];
+      
+      // Fetch extensions separately and merge
+      const extResult = await apiClient.from("marketplace_extensions").select("*");
+      const extensions = extResult.data || [];
+      
+      return installations.map((inst: any) => ({
+        ...inst,
+        extension: extensions.find((ext: any) => ext.id === inst.extension_id)
+      }));
     },
   });
 
   const { data: transactions = [] } = useQuery({
     queryKey: ["marketplace-transactions"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch transactions and extensions separately (apiClient doesn't support joins)
+      const transResult = await apiClient
         .from("marketplace_transactions")
-        .select("*, extension:marketplace_extensions(*)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (error) throw error;
-      return data || [];
+      if (transResult.error) throw transResult.error;
+      const transactions = transResult.data || [];
+      
+      // Fetch extensions separately and merge
+      const extResult = await apiClient.from("marketplace_extensions").select("*");
+      const extensions = extResult.data || [];
+      
+      return transactions.map((trans: any) => ({
+        ...trans,
+        extension: extensions.find((ext: any) => ext.id === trans.extension_id)
+      }));
     },
   });
 

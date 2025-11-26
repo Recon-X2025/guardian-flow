@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -28,17 +28,18 @@ export function GenerateOfferDialog({ open, onOpenChange, workOrderId, customerI
     console.log('Generating Offer AI offers for:', { workOrderId, customerId });
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-offers', {
+      const result = await apiClient.functions.invoke('generate-offers', {
         body: { workOrderId, customerId: customerId || 'demo-customer' }
       });
 
-      console.log('Offer AI generation response:', { data, error });
+      console.log('Offer AI generation response:', result);
 
-      if (error) {
-        console.error('Offer AI generation error:', error);
-        throw error;
+      if (result.error) {
+        console.error('Offer AI generation error:', result.error);
+        throw result.error;
       }
 
+      const data = result.data;
       toast({
         title: 'Offer AI Generated',
         description: `Generated ${data?.offers?.length || 0} contextual offers`,

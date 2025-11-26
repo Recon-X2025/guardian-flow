@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Upload, Eye, Download, History, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -33,13 +33,25 @@ export default function Templates() {
 
   const fetchTemplates = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch templates and versions separately (apiClient doesn't support joins)
+      const templatesResult = await apiClient
         .from('document_templates')
-        .select('*, template_versions(count)')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setTemplates(data || []);
+      if (templatesResult.error) throw templatesResult.error;
+      const templatesData = templatesResult.data || [];
+      
+      // Fetch template versions separately and merge
+      const versionsResult = await apiClient.from('template_versions').select('*');
+      const versions = versionsResult.data || [];
+      
+      const templatesWithCounts = templatesData.map((template: any) => ({
+        ...template,
+        template_versions: [{ count: versions.filter((v: any) => v.template_id === template.id).length }]
+      }));
+      
+      setTemplates(templatesWithCounts);
     } catch (error: any) {
       toast({
         title: 'Error loading templates',
@@ -98,11 +110,11 @@ export default function Templates() {
       formData.append('preview_data', JSON.stringify({}));
 
       // Upload via edge function
-      const { data, error } = await supabase.functions.invoke('template-upload', {
+      const result = await apiClient.functions.invoke('template-upload', {
         body: formData,
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({
         title: 'Template uploaded',

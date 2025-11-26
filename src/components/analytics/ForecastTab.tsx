@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -35,17 +36,19 @@ export function ForecastTab() {
       const future = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
 
       // Resolve tenant for RLS-scoped reads
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase
+      const { user } = useAuth();
+      if (!user) return;
+      
+      const profileResult = await apiClient
         .from('profiles')
         .select('tenant_id')
-        .eq('id', user?.id)
-        .maybeSingle();
-      const tenantId = profile?.tenant_id || user?.id || null;
+        .eq('id', user.id)
+        .single();
+      const tenantId = profileResult.data?.tenant_id || user.id || null;
 
       console.log('[ForecastTab] Querying forecasts from', today, 'to', future, 'tenant', tenantId);
 
-      let forecastQuery = supabase.from('forecast_outputs')
+      let forecastQuery = apiClient.from('forecast_outputs')
         .select('target_date, value, forecast_type')
         .gte('target_date', today)
         .lte('target_date', future);
@@ -54,23 +57,26 @@ export function ForecastTab() {
         forecastQuery = forecastQuery.eq('tenant_id', tenantId);
       }
       
-      const { data: forecasts, error: forecastError } = await forecastQuery.order('target_date');
+      const forecastResult = await forecastQuery.order('target_date');
 
-      if (forecastError) {
-        console.error('[ForecastTab] Forecast query error:', forecastError);
-        throw forecastError;
+      if (forecastResult.error) {
+        console.error('[ForecastTab] Forecast query error:', forecastResult.error);
+        throw forecastResult.error;
       }
+      const forecasts = forecastResult.data || [];
 
-      console.log('[ForecastTab] Fetched forecasts:', forecasts?.length || 0);
+      console.log('[ForecastTab] Fetched forecasts:', forecasts.length);
 
       // Get actual work orders for comparison (past 90 days)
       const past90Days = new Date(Date.now() - 90*24*60*60*1000).toISOString();
       
-      const actualsResult = tenantId
-        ? await (supabase.from('work_orders') as any).select('created_at').gte('created_at', past90Days).eq('tenant_id', tenantId).order('created_at')
-        : await (supabase.from('work_orders') as any).select('created_at').gte('created_at', past90Days).order('created_at');
+      let actualsQuery = apiClient.from('work_orders').select('created_at').gte('created_at', past90Days);
+      if (tenantId) {
+        actualsQuery = actualsQuery.eq('tenant_id', tenantId);
+      }
+      const actualsResult = await actualsQuery.order('created_at');
       
-      const actuals = actualsResult.data;
+      const actuals = actualsResult.data || [];
       const actualsError = actualsResult.error;
 
       if (actualsError) {

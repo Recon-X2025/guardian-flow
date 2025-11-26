@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { apiClient } from '@/integrations/api/client';
 import { Loader2, FileText, Download } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
@@ -22,31 +22,36 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
     console.log('Generating Service Order for:', workOrderId);
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-service-order', {
+      const result = await apiClient.functions.invoke('generate-service-order', {
         body: { workOrderId, templateId: null }
       });
 
-      console.log('SO generation response:', { data, error });
+      console.log('SO generation response:', result);
 
-      if (error) {
-        console.error('SO generation error:', error);
-        throw error;
+      if (result.error) {
+        console.error('SO generation error:', result.error);
+        throw result.error;
       }
 
-      setServiceOrder(data.serviceOrder);
+      if (!result.data?.serviceOrder) {
+        throw new Error('Service order generation returned no data');
+      }
+
+      setServiceOrder(result.data.serviceOrder);
 
       // Update work order status
-      await supabase
+      await apiClient
         .from('work_orders')
         .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', workOrderId);
+        .eq('id', workOrderId)
+        .then();
 
       // Generate invoice
-      await generateInvoice(workOrderId, data.serviceOrder.id);
+      await generateInvoice(workOrderId, result.data.serviceOrder.id);
 
       toast({
         title: 'Service Order Generated',
-        description: `${data.serviceOrder.so_number} created successfully`,
+        description: `${result.data.serviceOrder.so_number} created successfully`,
       });
 
       onSuccess();
@@ -65,42 +70,60 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
   const generateInvoice = async (woId: string, soId: string) => {
     try {
       // Get work order details
-      const { data: wo } = await supabase
+      const { data: woList } = await apiClient
         .from('work_orders')
-        .select('*, tickets(*)')
+        .select('*')
         .eq('id', woId)
-        .single();
+        .limit(1)
+        .then();
 
+      const wo = woList?.[0];
       if (!wo) return;
 
+      // Get ticket details if available
+      let ticket: any = null;
+      if (wo.ticket_id) {
+        const { data: tickets } = await apiClient
+          .from('tickets')
+          .select('*')
+          .eq('id', wo.ticket_id)
+          .limit(1)
+          .then();
+        ticket = tickets?.[0];
+      }
+
       // Get penalties
-      const { data: penalties } = await supabase
+      const { data: penalties } = await apiClient
         .from('penalty_applications')
         .select('*')
-        .eq('work_order_id', woId);
+        .eq('work_order_id', woId)
+        .then();
 
-      const penaltyTotal = penalties?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+      const penaltyTotal = penalties?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
       const subtotal = Number(wo.cost_to_customer) || 0;
       const totalAmount = subtotal - penaltyTotal;
 
+      // Get invoice count
       const year = new Date().getFullYear();
-      const { count } = await supabase
+      const { data: existingInvoices } = await apiClient
         .from('invoices')
-        .select('*', { count: 'exact', head: true });
+        .select('invoice_number')
+        .then();
 
-      const invoiceNumber = `INV-${year}-${String((count || 0) + 1).padStart(4, '0')}`;
+      const invoiceNumber = `INV-${year}-${String((existingInvoices?.length || 0) + 1).padStart(4, '0')}`;
 
-      await supabase
+      await apiClient
         .from('invoices')
         .insert({
           invoice_number: invoiceNumber,
           work_order_id: woId,
-          customer_id: wo.tickets?.customer_id,
+          customer_id: ticket?.customer_id || null,
           subtotal: subtotal,
           penalties: penaltyTotal,
           total_amount: totalAmount,
           status: 'sent',
-        });
+        })
+        .then();
 
       console.log(`Invoice ${invoiceNumber} generated for WO ${wo.wo_number}`);
     } catch (error) {
