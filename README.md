@@ -1,4 +1,8 @@
-# Guardian Flow v6.0
+# Guardian Flow
+
+**Modular Enterprise Operations Platform**
+
+> Complete build documentation: See [docs/INDEX.md](docs/INDEX.md) for all documentation. v6.0
 
 **Enterprise Field Service Intelligence Platform + PaaS**
 
