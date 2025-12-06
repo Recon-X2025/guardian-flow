@@ -995,6 +995,443 @@ router.post('/seed-demo-data', optionalAuth, async (req, res) => {
   }
 });
 
+/**
+ * Seed comprehensive editable test data
+ * POST /api/functions/seed-test-data
+ * Creates customers, equipment, tickets, work orders, inventory, and invoices
+ */
+router.post('/seed-test-data', optionalAuth, async (req, res) => {
+  try {
+    const results = {
+      customers: 0,
+      equipment: 0,
+      tickets: 0,
+      workOrders: 0,
+      inventory: 0,
+      invoices: 0,
+      errors: []
+    };
+
+    // Get or create a default tenant
+    let tenantId = null;
+    try {
+      const existingTenant = await getOne('SELECT id FROM tenants LIMIT 1');
+      if (existingTenant) {
+        tenantId = existingTenant.id;
+      } else {
+        // Create default tenant
+        const tenantResult = await query(
+          `INSERT INTO tenants (name, slug, settings, created_at)
+           VALUES ($1, $2, $3, now())
+           RETURNING id`,
+          ['Test Organization', 'test-org', '{}']
+        );
+        tenantId = tenantResult.rows[0].id;
+      }
+    } catch (e) {
+      // tenants table might not exist, use null
+      console.warn('Tenants table not found, proceeding without tenant_id');
+    }
+
+    // Get existing users for assignments
+    const users = await getMany('SELECT id, email FROM users LIMIT 20');
+    const technicians = await getMany(
+      `SELECT u.id, u.email, u.full_name 
+       FROM users u 
+       JOIN user_roles ur ON u.id = ur.user_id 
+       WHERE ur.role = 'technician' 
+       LIMIT 10`
+    );
+    const managers = await getMany(
+      `SELECT u.id, u.email, u.full_name 
+       FROM users u 
+       JOIN user_roles ur ON u.id = ur.user_id 
+       WHERE ur.role IN ('admin', 'manager') 
+       LIMIT 5`
+    );
+
+    // Sample customer data
+    const customerData = [
+      { name: 'Acme Corporation', email: 'contact@acme.com', phone: '+1-555-0101', address: { street: '123 Business Ave', city: 'San Francisco', state: 'CA', zip: '94102' } },
+      { name: 'TechStart Inc', email: 'info@techstart.com', phone: '+1-555-0102', address: { street: '456 Innovation Blvd', city: 'Austin', state: 'TX', zip: '78701' } },
+      { name: 'Global Manufacturing', email: 'support@globalmfg.com', phone: '+1-555-0103', address: { street: '789 Industrial Way', city: 'Chicago', state: 'IL', zip: '60601' } },
+      { name: 'Retail Solutions LLC', email: 'help@retailsolutions.com', phone: '+1-555-0104', address: { street: '321 Commerce St', city: 'New York', state: 'NY', zip: '10001' } },
+      { name: 'Healthcare Systems', email: 'admin@healthcare.com', phone: '+1-555-0105', address: { street: '654 Medical Dr', city: 'Boston', state: 'MA', zip: '02101' } },
+      { name: 'Education First', email: 'contact@edfirst.org', phone: '+1-555-0106', address: { street: '987 Campus Rd', city: 'Seattle', state: 'WA', zip: '98101' } },
+      { name: 'Finance Partners', email: 'info@financepartners.com', phone: '+1-555-0107', address: { street: '147 Wall St', city: 'New York', state: 'NY', zip: '10005' } },
+      { name: 'Logistics Pro', email: 'support@logisticspro.com', phone: '+1-555-0108', address: { street: '258 Shipping Ln', city: 'Miami', state: 'FL', zip: '33101' } },
+    ];
+
+    // Create customers - try different table structures
+    const createdCustomers = [];
+    for (const customer of customerData) {
+      try {
+        // Try with 'name' column first
+        let result;
+        try {
+          result = await query(
+            `INSERT INTO customers (tenant_id, name, email, phone, address, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, now(), now())
+             ON CONFLICT DO NOTHING
+             RETURNING id, name`,
+            [tenantId, customer.name, customer.email, customer.phone, JSON.stringify(customer.address)]
+          );
+        } catch (e) {
+          // Try with company_name, first_name, last_name structure
+          const nameParts = customer.name.split(' ');
+          const firstName = nameParts[0] || customer.name;
+          const lastName = nameParts.slice(1).join(' ') || '';
+          result = await query(
+            `INSERT INTO customers (tenant_id, company_name, first_name, last_name, email, phone, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, now(), now())
+             ON CONFLICT DO NOTHING
+             RETURNING id, COALESCE(company_name, first_name || ' ' || last_name) as name`,
+            [tenantId, customer.name, firstName, lastName, customer.email, customer.phone]
+          );
+        }
+        
+        if (result.rows.length > 0) {
+          createdCustomers.push({ id: result.rows[0].id, name: result.rows[0].name });
+          results.customers++;
+        } else {
+          // Try to get existing customer
+          const existing = await getOne(
+            `SELECT id, COALESCE(name, company_name, first_name || ' ' || last_name) as name 
+             FROM customers WHERE email = $1`, 
+            [customer.email]
+          );
+          if (existing) {
+            createdCustomers.push(existing);
+          }
+        }
+      } catch (e) {
+        console.warn(`Error creating customer ${customer.name}:`, e.message);
+        results.errors.push({ type: 'customer', name: customer.name, error: e.message });
+      }
+    }
+
+    // Sample equipment data
+    const equipmentModels = [
+      { manufacturer: 'Dell', model: 'OptiPlex 7090', category: 'Desktop PC' },
+      { manufacturer: 'HP', model: 'EliteBook 850', category: 'Laptop' },
+      { manufacturer: 'Canon', model: 'imageRUNNER ADVANCE C5535i', category: 'Printer' },
+      { manufacturer: 'Epson', model: 'WorkForce Pro WF-7820', category: 'Printer' },
+      { manufacturer: 'Lenovo', model: 'ThinkPad X1 Carbon', category: 'Laptop' },
+      { manufacturer: 'Apple', model: 'MacBook Pro 16"', category: 'Laptop' },
+      { manufacturer: 'Brother', model: 'MFC-L8900CDW', category: 'Printer' },
+      { manufacturer: 'Xerox', model: 'VersaLink C405', category: 'Printer' },
+    ];
+
+    // Create equipment
+    const createdEquipment = [];
+    for (let i = 0; i < createdCustomers.length && i < equipmentModels.length * 2; i++) {
+      const customer = createdCustomers[i % createdCustomers.length];
+      const model = equipmentModels[i % equipmentModels.length];
+      const serialNumber = `${model.manufacturer.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 900000) + 100000}`;
+      
+      try {
+        const installDate = new Date();
+        installDate.setMonth(installDate.getMonth() - Math.floor(Math.random() * 24));
+        const warrantyDate = new Date(installDate);
+        warrantyDate.setFullYear(warrantyDate.getFullYear() + 3);
+
+        const result = await query(
+          `INSERT INTO equipment (tenant_id, customer_id, serial_number, model, manufacturer, installation_date, warranty_expiry, specifications, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
+           ON CONFLICT DO NOTHING
+           RETURNING id, serial_number`,
+          [
+            tenantId,
+            customer.id,
+            serialNumber,
+            model.model,
+            model.manufacturer,
+            installDate.toISOString().split('T')[0],
+            warrantyDate.toISOString().split('T')[0],
+            JSON.stringify({ category: model.category, color: 'Black', weight: '5kg' })
+          ]
+        );
+        if (result.rows.length > 0) {
+          createdEquipment.push({ id: result.rows[0].id, serial: result.rows[0].serial_number, customerId: customer.id });
+          results.equipment++;
+        }
+      } catch (e) {
+        console.warn(`Error creating equipment:`, e.message);
+        results.errors.push({ type: 'equipment', serial: serialNumber, error: e.message });
+      }
+    }
+
+    // Sample ticket symptoms
+    const symptoms = [
+      'Printer not printing, shows error code E-05',
+      'Computer won\'t boot, blue screen error',
+      'Display flickering intermittently',
+      'Network connectivity issues',
+      'Slow performance, frequent freezing',
+      'Hard drive making clicking sounds',
+      'Printer paper jam in tray 2',
+      'Keyboard keys not responding',
+      'Battery not holding charge',
+      'Fan running loudly',
+    ];
+
+    // Create tickets
+    const createdTickets = [];
+    for (let i = 0; i < 15; i++) {
+      const customer = createdCustomers[Math.floor(Math.random() * createdCustomers.length)];
+      const equipment = createdEquipment.filter(eq => eq.customerId === customer.id);
+      const unitSerial = equipment.length > 0 ? equipment[Math.floor(Math.random() * equipment.length)].serial : `UNIT-${Math.floor(Math.random() * 10000)}`;
+      const symptom = symptoms[Math.floor(Math.random() * symptoms.length)];
+      const statuses = ['open', 'assigned', 'in_progress', 'completed'];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+      try {
+        // Try with ticket_status enum, fallback to text
+        let result;
+        try {
+          result = await query(
+            `INSERT INTO tickets (tenant_id, unit_serial, customer_id, customer_name, site_address, symptom, status, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7::ticket_status, now(), now())
+             RETURNING id, status`,
+            [
+              tenantId,
+              unitSerial,
+              customer.id,
+              customer.name,
+              JSON.stringify({ address: '123 Main St', city: 'San Francisco', state: 'CA' }),
+              symptom,
+              status
+            ]
+          );
+        } catch (e) {
+          // Fallback to text status
+          result = await query(
+            `INSERT INTO tickets (tenant_id, unit_serial, customer_id, customer_name, site_address, symptom, status, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())
+             RETURNING id, status`,
+            [
+              tenantId,
+              unitSerial,
+              customer.id,
+              customer.name,
+              typeof customer.address === 'string' ? customer.address : JSON.stringify({ address: '123 Main St', city: 'San Francisco', state: 'CA' }),
+              symptom,
+              status
+            ]
+          );
+        }
+        if (result.rows.length > 0) {
+          createdTickets.push({ id: result.rows[0].id, status: result.rows[0].status, customerId: customer.id });
+          results.tickets++;
+        }
+      } catch (e) {
+        console.warn(`Error creating ticket:`, e.message);
+        results.errors.push({ type: 'ticket', error: e.message });
+      }
+    }
+
+    // Create work orders
+    const workOrderStatuses = ['draft', 'pending_validation', 'released', 'assigned', 'in_progress', 'completed', 'cancelled'];
+    const priorities = ['low', 'medium', 'high', 'critical'];
+    const workOrderTitles = [
+      'Replace faulty hard drive',
+      'Fix printer paper feed mechanism',
+      'Upgrade RAM memory',
+      'Replace broken display screen',
+      'Clean and service equipment',
+      'Install software updates',
+      'Replace keyboard',
+      'Fix network card issue',
+      'Replace power supply unit',
+      'Diagnose and repair motherboard',
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const ticket = createdTickets.length > 0 ? createdTickets[Math.floor(Math.random() * createdTickets.length)] : null;
+      const customer = createdCustomers[Math.floor(Math.random() * createdCustomers.length)];
+      const equipment = createdEquipment.find(eq => eq.customerId === customer.id) || createdEquipment[0];
+      const status = workOrderStatuses[Math.floor(Math.random() * workOrderStatuses.length)];
+      const priority = priorities[Math.floor(Math.random() * priorities.length)];
+      const technician = technicians.length > 0 ? technicians[Math.floor(Math.random() * technicians.length)].id : null;
+      const manager = managers.length > 0 ? managers[Math.floor(Math.random() * managers.length)].id : null;
+
+      const now = new Date();
+      const scheduledStart = new Date(now);
+      scheduledStart.setDate(scheduledStart.getDate() + Math.floor(Math.random() * 7));
+      const scheduledEnd = new Date(scheduledStart);
+      scheduledEnd.setHours(scheduledEnd.getHours() + 2 + Math.floor(Math.random() * 4));
+
+      let actualStart = null;
+      let actualEnd = null;
+      if (['in_progress', 'completed'].includes(status)) {
+        actualStart = new Date(scheduledStart);
+        actualStart.setMinutes(actualStart.getMinutes() + Math.floor(Math.random() * 30));
+      }
+      if (status === 'completed') {
+        actualEnd = new Date(actualStart);
+        actualEnd.setHours(actualEnd.getHours() + 1 + Math.floor(Math.random() * 3));
+      }
+
+      try {
+        const woNumber = `WO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 90000) + 10000)}`;
+        // Try with full schema, fallback to minimal
+        let result;
+        try {
+          result = await query(
+            `INSERT INTO work_orders (
+              tenant_id, wo_number, title, description, status, priority,
+              customer_id, equipment_id, assigned_technician_id, created_by,
+              scheduled_start, scheduled_end, actual_start, actual_end,
+              parts_reserved, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, now(), now())
+            ON CONFLICT DO NOTHING
+            RETURNING id, wo_number`,
+            [
+              tenantId,
+              woNumber,
+              workOrderTitles[Math.floor(Math.random() * workOrderTitles.length)],
+              `Service request for ${equipment?.serial || 'equipment'}. Customer reported issue that needs attention.`,
+              status,
+              priority,
+              ticket?.customerId || customer.id,
+              equipment?.id || null,
+              technician,
+              manager,
+              scheduledStart.toISOString(),
+              scheduledEnd.toISOString(),
+              actualStart?.toISOString() || null,
+              actualEnd?.toISOString() || null,
+              status === 'released' || status === 'assigned' || status === 'in_progress'
+            ]
+          );
+        } catch (e) {
+          // Fallback to minimal work_orders structure (from seed-india-data)
+          result = await query(
+            `INSERT INTO work_orders (
+              tenant_id, wo_number, product_category, country, region, state, 
+              district, city, partner_hub, pin_code, status, created_at, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), now())
+            ON CONFLICT DO NOTHING
+            RETURNING id, wo_number`,
+            [
+              tenantId,
+              woNumber,
+              'PC',
+              'USA',
+              'West',
+              'CA',
+              'San Francisco',
+              'San Francisco',
+              'SF-HUB-1',
+              '94102',
+              status
+            ]
+          );
+        }
+        if (result.rows.length > 0) {
+          results.workOrders++;
+        }
+      } catch (e) {
+        console.warn(`Error creating work order:`, e.message);
+        results.errors.push({ type: 'work_order', error: e.message });
+      }
+    }
+
+    // Create inventory items
+    const inventoryItems = [
+      { part_number: 'HDD-1TB-SSD', description: '1TB Solid State Drive', quantity: 25, unit_cost: 89.99, location: 'Warehouse A, Shelf 12' },
+      { part_number: 'RAM-16GB-DDR4', description: '16GB DDR4 RAM Module', quantity: 40, unit_cost: 65.50, location: 'Warehouse A, Shelf 8' },
+      { part_number: 'PRT-PAPER-TRAY', description: 'Printer Paper Tray Assembly', quantity: 15, unit_cost: 45.00, location: 'Warehouse B, Shelf 5' },
+      { part_number: 'LCD-15.6-1080P', description: '15.6" 1080p LCD Display', quantity: 12, unit_cost: 125.00, location: 'Warehouse A, Shelf 20' },
+      { part_number: 'KB-WIRELESS', description: 'Wireless Keyboard', quantity: 30, unit_cost: 35.99, location: 'Warehouse B, Shelf 10' },
+      { part_number: 'PSU-500W', description: '500W Power Supply Unit', quantity: 18, unit_cost: 55.75, location: 'Warehouse A, Shelf 15' },
+      { part_number: 'FAN-CPU-COOLER', description: 'CPU Cooler Fan', quantity: 22, unit_cost: 28.50, location: 'Warehouse B, Shelf 7' },
+      { part_number: 'CABLE-USB-C', description: 'USB-C Cable 6ft', quantity: 50, unit_cost: 12.99, location: 'Warehouse B, Shelf 3' },
+    ];
+
+    for (const item of inventoryItems) {
+      try {
+        await query(
+          `INSERT INTO inventory (tenant_id, part_number, description, quantity, unit_cost, location, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, now(), now())
+           ON CONFLICT DO NOTHING`,
+          [tenantId, item.part_number, item.description, item.quantity, item.unit_cost, item.location]
+        );
+        results.inventory++;
+      } catch (e) {
+        console.warn(`Error creating inventory item ${item.part_number}:`, e.message);
+        results.errors.push({ type: 'inventory', part: item.part_number, error: e.message });
+      }
+    }
+
+    // Create some invoices
+    const completedWorkOrders = await getMany(
+      `SELECT id, customer_id, wo_number 
+       FROM work_orders 
+       WHERE status = 'completed' 
+       LIMIT 10`
+    );
+
+    for (const wo of completedWorkOrders) {
+      try {
+        const customer = await getOne('SELECT id, name FROM customers WHERE id = $1', [wo.customer_id]);
+        if (customer) {
+          const subtotal = 150 + Math.floor(Math.random() * 350);
+          const tax = Math.round(subtotal * 0.08 * 100) / 100;
+          const total = subtotal + tax;
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 30);
+
+          const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+          await query(
+            `INSERT INTO invoices (tenant_id, invoice_number, customer_id, subtotal, tax, total, currency, due_date, status, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now())
+             ON CONFLICT DO NOTHING`,
+            [
+              tenantId,
+              invoiceNumber,
+              customer.id,
+              subtotal,
+              tax,
+              total,
+              'USD',
+              dueDate.toISOString().split('T')[0],
+              ['draft', 'sent', 'paid'][Math.floor(Math.random() * 3)]
+            ]
+          );
+          results.invoices++;
+        }
+      } catch (e) {
+        console.warn(`Error creating invoice:`, e.message);
+        results.errors.push({ type: 'invoice', error: e.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Test data seeded successfully',
+      results,
+      summary: {
+        customers: results.customers,
+        equipment: results.equipment,
+        tickets: results.tickets,
+        workOrders: results.workOrders,
+        inventory: results.inventory,
+        invoices: results.invoices,
+        errors: results.errors.length
+      }
+    });
+  } catch (error) {
+    console.error('Seed test data error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to seed test data',
+      success: false
+    });
+  }
+});
+
 // Forecast generation endpoint
 router.post('/run-forecast-now', authenticateToken, async (req, res) => {
   try {

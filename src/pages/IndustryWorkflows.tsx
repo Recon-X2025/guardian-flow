@@ -22,15 +22,20 @@ export default function IndustryWorkflows() {
   const { data: workflows = [], isLoading } = useQuery({
     queryKey: ["workflow-templates", selectedIndustry],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("workflow_templates" as any)
-        .select("*")
-        .eq("industry_type", selectedIndustry)
-        .eq("active", true)
-        .order("created_at", { ascending: false }) as any;
-
-      if (error) throw error;
-      return data || [];
+      try {
+        const response = await apiClient.post("/db/query", {
+          table: "workflow_templates",
+          where: {
+            industry: selectedIndustry,
+            is_active: true
+          },
+          orderBy: "created_at DESC"
+        });
+        return response.data || [];
+      } catch (error) {
+        console.error("Error fetching workflow templates:", error);
+        return [];
+      }
     },
   });
 
@@ -159,13 +164,14 @@ export default function IndustryWorkflows() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {workflow.steps?.length || 0} steps
+                        {workflow.workflow_definition?.steps?.length || 0} steps
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {Object.keys(workflow.compliance_requirements || {}).length > 0 ? (
+                      {workflow.workflow_definition?.compliance_requirements && 
+                       Object.keys(workflow.workflow_definition.compliance_requirements).length > 0 ? (
                         <Badge variant="secondary">
-                          {Object.keys(workflow.compliance_requirements).length} requirements
+                          {Object.keys(workflow.workflow_definition.compliance_requirements).length} requirements
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">None</span>
@@ -175,7 +181,7 @@ export default function IndustryWorkflows() {
                       <Badge variant="outline">{workflow.version}</Badge>
                     </TableCell>
                     <TableCell>
-                      {workflow.active ? (
+                      {workflow.is_active ? (
                         <Badge className="bg-green-500">Active</Badge>
                       ) : (
                         <Badge variant="secondary">Inactive</Badge>
