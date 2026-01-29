@@ -17,6 +17,8 @@ import pool from './db/client.js';
 import { authenticateToken } from './middleware/auth.js';
 import WebSocketManager from './websocket/server.js';
 import { correlationId } from './middleware/correlationId.js';
+import { metricsMiddleware } from './metrics/middleware.js';
+import metricsRoutes from './routes/metrics.js';
 
 dotenv.config();
 
@@ -29,8 +31,9 @@ const startTime = Date.now();
 const wsManager = new WebSocketManager(server);
 export { wsManager };
 
-// Correlation ID
+// Correlation ID and metrics
 app.use(correlationId);
+app.use(metricsMiddleware);
 
 // Security headers
 app.use((req, res, next) => {
@@ -44,16 +47,31 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS
+// CORS — strict in production
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:8080'];
+
+if (isProduction && !process.env.FRONTEND_URL) {
+  logger.error('FRONTEND_URL must be set in production for CORS');
+  process.exit(1);
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:8080'],
+  origin: (origin, callback) => {
+    if (!origin && !isProduction) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    logger.warn('CORS blocked', { origin });
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
+  maxAge: 86400,
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting (disabled in development/test to avoid interfering with test suites)
-const isProduction = process.env.NODE_ENV === 'production';
 const noOp = (req, res, next) => next();
 const generalLimiter = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 1000, standardHeaders: true, legacyHeaders: false }) : noOp;
 const authLimiter = isProduction ? rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { error: 'Too many auth attempts, try again later' } }) : noOp;
@@ -91,6 +109,7 @@ app.use('/api/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/faqs', faqsRoutes);
 app.use('/api/ml/train', mlTrainLimiter);
 app.use('/api/ml', mlRoutesFactory(pool));
+app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
 app.use('/api/v1', (req, res, next) => {

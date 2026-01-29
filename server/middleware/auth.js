@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import { getOne, getMany } from '../db/query.js';
 import logger from '../utils/logger.js';
+import { isTokenRevoked, isUserTokenRevokedBefore } from '../db/tokenBlacklist.js';
 
 // Fail fast in production if no JWT secret configured
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
@@ -26,7 +28,15 @@ export async function authenticateToken(req, res, next) {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    
+
+    // Check token revocation
+    if (decoded.jti && await isTokenRevoked(decoded.jti)) {
+      return res.status(401).json({ error: 'Token has been revoked' });
+    }
+    if (decoded.iat && await isUserTokenRevokedBefore(decoded.userId, decoded.iat)) {
+      return res.status(401).json({ error: 'All sessions have been revoked' });
+    }
+
     // Get user from database
     const user = await getOne(
       `SELECT id, email, full_name, phone, created_at 
@@ -57,8 +67,9 @@ export async function authenticateToken(req, res, next) {
 
     req.user = {
       ...user,
-      roles: roles.map(r => r.role), // Keep original roles
-      mappedRoles: mappedRoles, // Add mapped roles for RBAC
+      roles: roles.map(r => r.role),
+      mappedRoles: mappedRoles,
+      tokenData: { jti: decoded.jti, exp: decoded.exp, iat: decoded.iat },
     };
 
     next();
@@ -78,7 +89,8 @@ export async function authenticateToken(req, res, next) {
  * Generate JWT token for user
  */
 export function generateToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '1h' });
+  const jti = randomUUID();
+  return jwt.sign({ userId, jti }, JWT_SECRET, { expiresIn: '1h' });
 }
 
 export { JWT_SECRET };

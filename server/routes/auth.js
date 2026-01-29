@@ -4,6 +4,10 @@ import { randomUUID, createHash } from 'crypto';
 import { getOne, getMany, query, transaction } from '../db/query.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
+import { sendPasswordResetEmail } from '../services/email.js';
+import { revokeAccessToken, revokeAllUserTokens } from '../db/tokenBlacklist.js';
+import { validate } from '../middleware/validate.js';
+import { signupSchema, signinSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema } from '../schemas/auth.js';
 
 const router = express.Router();
 
@@ -61,7 +65,7 @@ async function createRefreshToken(userId) {
 /**
  * Sign up new user
  */
-router.post('/signup', async (req, res) => {
+router.post('/signup', validate(signupSchema), async (req, res) => {
   try {
     const { email, password, fullName } = req.body;
 
@@ -133,7 +137,7 @@ router.post('/signup', async (req, res) => {
 /**
  * Sign in
  */
-router.post('/signin', async (req, res) => {
+router.post('/signin', validate(signinSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -386,7 +390,7 @@ function generatePermissionsFromRoles(roles) {
 /**
  * Refresh access token using refresh token
  */
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', validate(refreshSchema), async (req, res) => {
   try {
     const { refresh_token } = req.body;
     if (!refresh_token) {
@@ -435,7 +439,7 @@ router.post('/refresh', async (req, res) => {
 /**
  * Forgot password — generate reset token
  */
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -464,12 +468,19 @@ router.post('/forgot-password', async (req, res) => {
 
     logger.info('Password reset requested', { userId: user.id });
 
-    // In production, send email with resetToken. For now, return it directly.
-    res.json({
-      message: 'If that email exists, a reset link has been sent',
-      reset_token: resetToken, // Remove this in production — send via email instead
-      expires_at: expiresAt.toISOString(),
+    // Send email (falls back to logging in dev)
+    const emailResult = await sendPasswordResetEmail(email, resetToken).catch(err => {
+      logger.error('Email send failed', { error: err.message });
+      return { success: false };
     });
+
+    const response = { message: 'If that email exists, a reset link has been sent' };
+    // Only expose token in dev mode (no email configured)
+    if (emailResult?.mode === 'dev') {
+      response.reset_token = resetToken;
+      response.expires_at = expiresAt.toISOString();
+    }
+    res.json(response);
   } catch (error) {
     logger.error('Forgot password error', { error: error.message });
     res.status(500).json({ error: 'Failed to process password reset' });
@@ -479,7 +490,7 @@ router.post('/forgot-password', async (req, res) => {
 /**
  * Reset password using reset token
  */
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', validate(resetPasswordSchema), async (req, res) => {
   try {
     const { token, new_password } = req.body;
     if (!token || !new_password) {
@@ -532,6 +543,27 @@ router.post('/signout', authenticateToken, async (req, res) => {
     res.json({ message: 'Signed out successfully' });
   } catch (error) {
     res.json({ message: 'Signed out successfully' });
+  }
+});
+
+/**
+ * Sign out from all devices — revoke all tokens
+ */
+router.post('/signout-all', authenticateToken, async (req, res) => {
+  try {
+    // Revoke current access token
+    if (req.user.tokenData?.jti) {
+      await revokeAccessToken(req.user.tokenData.jti, req.user.id, req.user.tokenData.exp, 'signout_all');
+    }
+    // Revoke all future tokens issued before now
+    await revokeAllUserTokens(req.user.id);
+    // Delete all refresh tokens
+    await query('DELETE FROM refresh_tokens WHERE user_id = $1', [req.user.id]).catch(() => {});
+    logger.info('User signed out from all devices', { userId: req.user.id });
+    res.json({ message: 'Signed out from all devices' });
+  } catch (error) {
+    logger.error('Signout-all error', { error: error.message });
+    res.status(500).json({ error: 'Failed to sign out from all devices' });
   }
 });
 
