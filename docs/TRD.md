@@ -1,6 +1,6 @@
 # Guardian Flow — Technical Requirements Document (TRD)
 
-**Version:** 6.0
+**Version:** 6.1
 **Date:** January 29, 2026
 **Author:** Engineering Team
 **Status:** Active
@@ -128,14 +128,20 @@ canAccessItem(item): boolean {
 
 ```
 server/
-├── server.js              # Express app setup, middleware, route mounting
+├── server.js              # Express app setup, middleware, route mounting, graceful shutdown
+├── config/
+│   ├── dbValidation.js    # DB credential validation (rejects defaults in production)
+│   └── secrets.js         # Multi-provider secrets loading (AWS/GCP/env)
 ├── db/
-│   └── client.js          # PostgreSQL connection pool (pg)
+│   ├── client.js          # PostgreSQL connection pool (pg) with SSL
+│   ├── query.js           # Query helpers (getOne, getMany, transaction)
+│   └── tokenBlacklist.js  # JWT revocation (in-memory + DB)
 ├── routes/
-│   ├── auth.js            # Authentication routes
+│   ├── auth.js            # Auth routes (signup, signin, refresh, password reset, signout-all)
 │   ├── ml.js              # ML training, prediction, anomaly detection
+│   ├── metrics.js         # Prometheus + JSON metrics endpoints
 │   ├── payments.js        # Payment gateway integration
-│   ├── functions.js       # Edge function proxy
+│   ├── functions.js       # Edge function proxy (SQL injection protected)
 │   ├── knowledge-base.js  # KB CRUD
 │   └── faqs.js            # FAQ endpoints
 ├── ml/
@@ -145,20 +151,47 @@ server/
 │   ├── forecasting.js     # Holt-Winters forecasting
 │   ├── anomaly.js         # Statistical anomaly detection
 │   └── orchestrator.js    # Training pipeline & model storage
-└── middleware/
-    └── (rate limiting, CORS, error handling)
+├── middleware/
+│   ├── auth.js            # JWT verification with JTI blacklist check
+│   ├── correlationId.js   # X-Request-Id generation
+│   └── validate.js        # Zod schema validation middleware
+├── schemas/
+│   └── auth.js            # Zod schemas for auth endpoints
+├── metrics/
+│   ├── collector.js       # Prometheus-compatible metrics collection
+│   └── middleware.js      # Per-request metrics recording
+├── services/
+│   ├── email.js           # Nodemailer SMTP (password reset emails)
+│   └── cache.js           # Redis + in-memory cache abstraction
+├── utils/
+│   ├── logger.js          # Structured JSON logging
+│   └── errorHandler.js    # Express error middleware
+├── migrations/            # SQL migrations (tracked in schema_migrations)
+├── scripts/
+│   ├── migrate.js         # Migration runner
+│   ├── backup-database.sh # pg_dump backup with retention
+│   └── restore-database.sh # Database restore from backup
+└── websocket/
+    └── server.js          # WebSocket manager
 ```
 
 ### 3.2 Middleware Stack
 
 ```javascript
-app.use(cors({ origin: ['http://localhost:5176', ...], credentials: true }));
+// Middleware execution order:
+app.use(correlationId);                    // X-Request-Id generation
+app.use(metricsMiddleware);                // Prometheus metrics collection
+app.use(securityHeaders);                  // X-Content-Type-Options, X-Frame-Options, HSTS, etc.
+app.use(cors({ origin: fn, credentials: true })); // Function-based origin validation
 app.use(express.json({ limit: '10mb' }));
-app.use(rateLimit({ windowMs: 15*60*1000, max: 1000 }));
-app.use('/api/auth', authRoutes);
+app.use('/api/', generalLimiter);          // 1000 req/15min (production only)
+app.use('/api/auth', authLimiter, authRoutes);    // 20 req/15min
+app.use('/api/ml/train', mlTrainLimiter);         // 10 req/15min
 app.use('/api/ml', mlRoutesFactory(pool));
 app.use('/api/payments', paymentRoutes);
+app.use('/metrics', metricsRoutes);        // Prometheus + JSON metrics
 // ... additional routes
+app.use(errorHandler);
 ```
 
 ### 3.3 Database Connection
@@ -166,12 +199,23 @@ app.use('/api/payments', paymentRoutes);
 ```javascript
 // server/db/client.js
 import pg from 'pg';
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 20,
-  idleTimeoutMillis: 30000,
-});
+import { validateDatabaseCredentials } from '../config/dbValidation.js';
+
+validateDatabaseCredentials(); // Rejects default creds in production
+
+const poolConfig = {
+  host: process.env.DB_HOST, port: process.env.DB_PORT,
+  database: process.env.DB_NAME, user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  max: 20, idleTimeoutMillis: 30000, connectionTimeoutMillis: 2000,
+};
+
+// SSL enforced in production
+if (process.env.NODE_ENV === 'production' && process.env.DB_SSL !== 'false') {
+  poolConfig.ssl = { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' };
+}
+
+const pool = new pg.Pool(poolConfig);
 ```
 
 ### 3.4 WebSocket Server
@@ -492,13 +536,16 @@ These functions load trained model weights from the database and perform lightwe
 ### 7.1 Authentication Flow
 
 ```
-1. Client POST /api/auth/signin { email, password }
+1. Client POST /api/auth/signin { email, password } (Zod-validated)
 2. Server: query users table, bcrypt.compare(password, hash)
-3. Server: generate JWT { userId, email, role, tenantId } (7-day expiry)
-4. Client: store token in localStorage
-5. Client: attach token to all requests (Authorization: Bearer <token>)
-6. Server: verify JWT on protected endpoints
-7. Session restore: POST /api/auth/me with existing token
+3. Server: generate access_token (1h, includes JTI) + refresh_token (30d, SHA-256 hashed in DB)
+4. Client: store tokens in localStorage
+5. Client: attach access_token to all requests (Authorization: Bearer <token>)
+6. Server: verify JWT → check JTI blacklist → check user revocation timestamp
+7. On 401 (expired): POST /api/auth/refresh { refresh_token } → new rotated pair
+8. Session restore: POST /api/auth/me with existing access_token
+9. Password reset: POST /api/auth/forgot-password → email via nodemailer SMTP
+10. Token revocation: POST /api/auth/signout-all → blacklists JTI + revokes all refresh tokens
 ```
 
 ### 7.2 JWT Payload
@@ -506,13 +553,18 @@ These functions load trained model weights from the database and perform lightwe
 ```json
 {
   "userId": "uuid",
-  "email": "user@example.com",
-  "role": "sys_admin",
-  "tenantId": "uuid",
+  "jti": "uuid",
   "iat": 1706500000,
-  "exp": 1707104800
+  "exp": 1706503600
 }
 ```
+
+### 7.3 Token Revocation
+
+- **Individual:** JTI stored in `token_blacklist` table + in-memory Set cache
+- **All sessions:** Timestamp in `user_token_revocations` table; tokens issued before timestamp are rejected
+- **Refresh tokens:** Deleted from `refresh_tokens` table on signout
+- **Cleanup:** Expired blacklist entries auto-purged
 
 ### 7.3 RBAC Implementation
 
@@ -639,18 +691,31 @@ class RazorpayGateway extends PaymentGateway { ... }
 ### 9.4 Load Test Configuration
 
 ```javascript
-// tests/load/stress-test.js (k6)
+// tests/load/production-load.js (k6) — sustained production traffic
 export const options = {
   stages: [
-    { duration: '10s', target: 10 },   // Ramp up
-    { duration: '20s', target: 30 },   // Increase
-    { duration: '10s', target: 50 },   // Peak
-    { duration: '20s', target: 30 },   // Cool down
-    { duration: '10s', target: 0 },    // Ramp down
+    { duration: '1m', target: 100 },
+    { duration: '3m', target: 500 },   // Production load
+    { duration: '2m', target: 500 },
+    { duration: '1m', target: 0 },
   ],
   thresholds: {
-    'errors': ['rate<0.01'],
-    'http_req_duration': ['p(95)<3000'],
+    http_req_duration: ['p(95)<500', 'p(99)<1000'],
+    http_req_failed: ['rate<0.01'],
+  },
+};
+
+// tests/load/spike-test.js (k6) — sudden traffic spike
+export const options = {
+  stages: [
+    { duration: '10s', target: 100 },
+    { duration: '30s', target: 2000 },  // Spike
+    { duration: '1m', target: 2000 },
+    { duration: '10s', target: 0 },
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<2000'],
+    http_req_failed: ['rate<0.05'],
   },
 };
 ```
@@ -684,55 +749,64 @@ cd server && node server.js    # Port 3001
 supabase functions serve       # Local Deno runtime
 ```
 
-### 10.2 Production Environment
+### 10.2 Production Environment (Docker Compose)
 
-| Component | Infrastructure |
-|-----------|---------------|
-| Frontend | Static build (Vite) → CDN/Vultr |
-| Backend | Node.js 18+ → Vultr VPS |
-| Database | PostgreSQL 14+ → Supabase/Vultr |
-| Edge Functions | Supabase Edge (Deno) |
-| Storage | Supabase Storage |
-
-### 10.3 Environment Variables
-
-```bash
-# Database
-DATABASE_URL=postgresql://...
-
-# Supabase
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-
-# AI/ML
-GEMINI_API_KEY=...
-OPENAI_API_KEY=...
-
-# Payments
-STRIPE_SECRET_KEY=sk_...
-PAYPAL_CLIENT_ID=...
-PAYPAL_CLIENT_SECRET=...
-RAZORPAY_KEY_ID=rzp_...
-RAZORPAY_KEY_SECRET=...
-
-# Auth
-JWT_SECRET=...
+```yaml
+services:
+  nginx:        # TLS termination, static CDN, reverse proxy (ports 80/443)
+  server:       # Express API (port 3001, internal)
+  postgres:     # PostgreSQL 14 with health checks and persistent volume
+  backup:       # Automated daily pg_dump backups with retention
+  redis:        # Optional shared cache for multi-instance deployments
 ```
 
-### 10.4 Build & Deploy
+### 10.3 Production Environment (AWS)
+
+| Component | AWS Service |
+|-----------|------------|
+| Compute | ECS Fargate (2 instances, auto-scaling) |
+| Load Balancer | ALB with HTTPS (ACM certificate) |
+| Database | RDS PostgreSQL 14 (7-day automated backups) |
+| CDN | CloudFront (1-year cache for static assets) |
+| Secrets | Secrets Manager (DB password, JWT secret) |
+| Logs | CloudWatch (30-day retention) |
+| Networking | VPC with public/private subnets, NAT gateway |
+| IaC | Terraform (infrastructure/terraform/aws/) |
+
+### 10.4 Environment Variables
+
+See `.env.production.example` for the full list. Key categories:
+- **Required:** JWT_SECRET, DB_HOST/USER/PASSWORD, FRONTEND_URL
+- **Email:** SMTP_HOST/PORT/USER/PASSWORD/FROM
+- **Optional:** REDIS_URL, SECRETS_PROVIDER, SENTRY_DSN, S3_BACKUP_BUCKET
+
+### 10.5 Build & Deploy
 
 ```bash
-# Build frontend
-npm run build                  # Output: dist/
+# Docker Compose (production)
+docker compose up -d
 
-# Build check
-npx tsc --noEmit              # TypeScript validation
+# AWS Terraform
+cd infrastructure/terraform/aws
+terraform init && terraform apply
 
 # Run all tests
-npx playwright test            # E2E
-npx jest tests/api/            # API
-npx k6 run tests/load/stress-test.js  # Load
+npx playwright test tests/e2e/     # E2E (91 tests)
+npx vitest run tests/api/          # API (25 tests)
+k6 run tests/load/production-load.js  # Production load (500 VUs)
+
+# Database
+cd server && npm run migrate       # Run migrations
+./scripts/backup-database.sh       # Manual backup
 ```
+
+### 10.6 Monitoring
+
+| Endpoint | Format | Content |
+|----------|--------|---------|
+| `/api/health` | JSON | Database status, uptime, version |
+| `/metrics` | Prometheus text | Request counts, durations, DB pool, memory |
+| `/metrics/json` | JSON | Same data for custom dashboards |
 
 ---
 
@@ -741,30 +815,41 @@ npx k6 run tests/load/stress-test.js  # Load
 ### 11.1 Authentication Security
 
 - Passwords hashed with bcrypt (10 salt rounds)
-- JWT tokens with 7-day expiry (no refresh token — stateless)
+- Access tokens: 1h expiry with JTI for revocation
+- Refresh tokens: 30-day expiry, SHA-256 hashed in DB, rotated on use
+- Token blacklist: in-memory cache + PostgreSQL table for JTI-based revocation
+- Signout-all: revokes all sessions via user_token_revocations timestamp
+- JWT_SECRET: required in production, fail-fast if missing
 - MFA support for sensitive operations
-- Rate limiting: 1000 requests per 15-minute window
+- Password reset via email (nodemailer SMTP, token hidden in production responses)
+- Rate limiting: auth (20/15min), ML training (10/15min), general (1000/15min)
 
 ### 11.2 Input Validation
 
-- Zod schema validation on all form inputs
-- DOMPurify for HTML sanitization
+- Zod schema validation on all auth API endpoints (signup, signin, refresh, forgot-password, reset-password)
+- DOMPurify for HTML sanitization (frontend)
 - Parameterized SQL queries (no string interpolation)
+- SQL injection prevention: table/column whitelist for dynamic offline sync queries
 - Express JSON body limit (10MB)
+- DB credential validation: rejects default usernames/passwords in production, enforces 16+ char passwords
 
 ### 11.3 Access Control
 
 - Route-level: ProtectedRoute + RoleGuard
-- API-level: JWT verification middleware
+- API-level: JWT verification middleware with blacklist check
 - Database-level: tenant_id isolation
 - Default-deny: sidebar items without explicit permissions are hidden
 
 ### 11.4 Data Protection
 
-- SSL/TLS for database connections
-- CORS whitelist for allowed origins
+- nginx TLS 1.2/1.3 termination with strong cipher suite
+- Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, CSP
+- SSL/TLS for database connections (enforced in production)
+- CORS: function-based origin validation, FRONTEND_URL required in production
+- Secrets management: AWS/GCP provider abstraction, env var fallback
 - No secrets in client-side code
 - Audit logging for all state-changing operations
+- Automated daily database backups with 7-day retention
 
 ---
 
@@ -818,11 +903,14 @@ npx k6 run tests/load/stress-test.js  # Load
 | pg | 8.17.2 | PostgreSQL driver |
 | jsonwebtoken | 9.0.2 | JWT auth |
 | bcryptjs | 2.4.3 | Password hashing |
+| nodemailer | latest | Email delivery (SMTP) |
 | ws | 8.16.0 | WebSocket |
 | simple-statistics | 7.8.8 | Statistical calculations |
 | express-rate-limit | 7.1.5 | Rate limiting |
 | multer | 1.4.5 | File uploads |
 | cors | 2.8.5 | Cross-origin requests |
+| zod | (shared) | API input validation |
+| redis | (optional) | Distributed cache |
 
 ### 13.3 Testing
 

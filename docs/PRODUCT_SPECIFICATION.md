@@ -1,6 +1,6 @@
 # Guardian Flow — Product Specification
 
-**Version:** 6.0
+**Version:** 6.1
 **Date:** January 29, 2026
 **Classification:** Internal
 
@@ -24,13 +24,22 @@ The platform serves organizations managing field service operations — from dis
 | State Management | TanStack React Query 5.83, React Context |
 | Routing | React Router DOM 6.30 |
 | Backend API | Express.js 4.18, Node.js 18+ |
-| Database | PostgreSQL 14+ |
+| Database | PostgreSQL 14+ (SSL in production) |
 | Edge Functions | Supabase Deno Runtime (131 functions) |
-| Authentication | JWT (7-day tokens), bcryptjs, MFA |
+| Authentication | JWT (1h access + 30-day refresh tokens), bcryptjs, MFA |
+| Token Security | JTI-based revocation, blacklist table, signout-all |
+| Email | Nodemailer (SMTP), password reset delivery |
 | Real-Time | WebSocket (ws 8.16) |
 | ML/AI | Custom JS models (logistic regression, Holt-Winters, statistical anomaly detection) |
 | LLM Integration | Google Gemini 2.5 Flash, OpenAI (fallback) |
 | Payments | Stripe, PayPal, Razorpay |
+| Reverse Proxy | nginx (TLS 1.2/1.3 termination, static asset CDN) |
+| Monitoring | Prometheus-compatible /metrics endpoint, structured JSON logging |
+| Caching | Optional Redis (falls back to in-memory) |
+| Infrastructure | AWS Terraform (VPC, RDS, ECS Fargate, ALB, CloudFront, Secrets Manager) |
+| CI/CD | GitHub Actions (API + E2E tests) |
+| Containerization | Docker (multi-stage), Docker Compose (nginx, server, postgres, backup, redis) |
+| Input Validation | Zod schemas on API endpoints |
 | Testing | Playwright 1.58, Jest 30.2, Vitest 1.6, k6 |
 | PDF/Reports | jsPDF 3.0 |
 | Charts | Recharts 3.3 |
@@ -42,6 +51,11 @@ The platform serves organizations managing field service operations — from dis
 │                     CLIENT (Browser)                        │
 │   React SPA → Vite Dev Server (:5176) / Static Build       │
 └──────────────────────┬──────────────────────────────────────┘
+                       │ HTTPS
+              ┌────────▼────────┐
+              │  nginx (:443)   │  TLS termination, static CDN,
+              │  Reverse Proxy  │  rate limiting, gzip
+              └────────┬────────┘
                        │
           ┌────────────┼────────────────┐
           │            │                │
@@ -49,17 +63,19 @@ The platform serves organizations managing field service operations — from dis
 ┌──────────────┐ ┌───────────┐ ┌──────────────────┐
 │ Express API  │ │ Supabase  │ │ Supabase Edge    │
 │ (:3001)      │ │ Auth/DB   │ │ Functions (131)  │
-│ - ML routes  │ │ - RLS     │ │ - Business logic │
-│ - Auth       │ │ - Storage │ │ - Agents         │
+│ - Auth+JWT   │ │ - RLS     │ │ - Business logic │
+│ - ML/AI      │ │ - Storage │ │ - Agents         │
 │ - Payments   │ │           │ │ - Workflows      │
+│ - Metrics    │ │           │ │                  │
 └──────┬───────┘ └─────┬─────┘ └────────┬─────────┘
        │               │                │
        └───────────────┼────────────────┘
                        ▼
-              ┌─────────────────┐
-              │  PostgreSQL 14+ │
-              │  25+ tables     │
-              └─────────────────┘
+              ┌─────────────────┐     ┌──────────┐
+              │  PostgreSQL 14+ │     │  Redis   │
+              │  30+ tables     │     │ (optional)│
+              │  SSL, backups   │     │  cache   │
+              └─────────────────┘     └──────────┘
 ```
 
 ---
@@ -216,11 +232,14 @@ The codebase is organized into 12 domains under `src/domains/`:
 
 ### 6.1 Authentication Flow
 
-1. User submits credentials → Express `/api/auth/signin`
+1. User submits credentials → Express `/api/auth/signin` (Zod-validated)
 2. Server validates against PostgreSQL `users` table (bcrypt)
-3. JWT issued (7-day expiry) → stored in localStorage
-4. Session restored on app load via `/api/auth/me`
-5. MFA available for sensitive operations
+3. Access token (1h, includes JTI) + refresh token (30d, SHA-256 hashed in DB) issued
+4. On access token expiry → `POST /api/auth/refresh` with refresh token → new rotated pair
+5. Session restored on app load via `/api/auth/me`
+6. Password reset via email (`POST /api/auth/forgot-password` → nodemailer SMTP)
+7. Token revocation: individual (`/signout`) or all sessions (`/signout-all`) via JTI blacklist
+8. MFA available for sensitive operations
 
 ### 6.2 Role-Based Access Control
 
@@ -324,12 +343,16 @@ Organized into functional groups:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/auth/signup` | User registration |
-| POST | `/api/auth/signin` | Authentication |
+| POST | `/api/auth/signup` | User registration (Zod-validated) |
+| POST | `/api/auth/signin` | Authentication (Zod-validated) |
 | POST | `/api/auth/me` | Current user + RBAC |
+| POST | `/api/auth/refresh` | Rotate access + refresh tokens |
+| POST | `/api/auth/forgot-password` | Request password reset email |
+| POST | `/api/auth/reset-password` | Reset password with token |
+| POST | `/api/auth/signout` | Invalidate refresh tokens |
+| POST | `/api/auth/signout-all` | Revoke all tokens (JTI blacklist) |
 | POST | `/api/auth/request-mfa` | Request MFA code |
 | POST | `/api/auth/verify-mfa` | Verify MFA code |
-| POST | `/api/auth/logout` | Logout |
 | GET | `/api/ml/models` | List trained models |
 | GET | `/api/ml/models/:id` | Get model details |
 | POST | `/api/ml/train/failure` | Train equipment failure model |
@@ -346,6 +369,9 @@ Organized into functional groups:
 | POST | `/api/payments/confirm-payment` | Confirm payment |
 | POST | `/api/payments/refund` | Process refund |
 | POST | `/api/functions/:name` | Edge function proxy |
+| GET | `/api/health` | Health check (DB status, uptime, version) |
+| GET | `/metrics` | Prometheus-compatible metrics |
+| GET | `/metrics/json` | JSON metrics for dashboards |
 
 ---
 
@@ -354,10 +380,13 @@ Organized into functional groups:
 | Suite | Framework | Tests | Coverage |
 |-------|-----------|-------|----------|
 | E2E | Playwright (Chromium) | 91 | All pages, auth, navigation, RBAC |
-| API | Jest + Supertest | 25 | Auth, database, endpoints |
-| Load | k6 | 50 VUs, 700+ iterations | Throughput, latency, error rates |
+| API | Vitest | 25 | Auth, database, endpoints |
+| Load (basic) | k6 | 50 VUs, 700+ iterations | Throughput, latency, error rates |
+| Load (production) | k6 | 500 VUs | Sustained production traffic simulation |
+| Load (spike) | k6 | 2000 VUs | Sudden traffic spike resilience |
 | Component | Vitest + React Testing Library | 5+ | Key UI components |
 | ML Stress | Custom (curl) | 300 requests | All ML endpoints |
+| CI/CD | GitHub Actions | Auto | API + E2E on push/PR to main |
 
 ---
 
