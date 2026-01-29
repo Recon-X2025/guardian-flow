@@ -49,31 +49,66 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Simple ML logic: Predict breach based on age and priority
+    // Load trained logistic regression model weights
+    const { data: model } = await supabase
+      .from('ml_models')
+      .select('hyperparameters')
+      .eq('model_type', 'sla_breach')
+      .eq('status', 'deployed')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const mlWeights = model?.hyperparameters;
+    const priorityMap: Record<string, number> = { urgent: 4, high: 3, medium: 2, low: 1 };
+
     const now = Date.now();
-    const predictions = workOrders.map(wo => {
-      const age = now - new Date(wo.created_at).getTime();
-      const ageInDays = age / (1000 * 60 * 60 * 24);
-      
-      // Risk calculation based on age and priority
-      let riskScore = 0;
-      if (ageInDays > 5) riskScore += 30;
-      if (ageInDays > 6) riskScore += 30;
-      if (wo.priority === 'urgent') riskScore += 20;
-      if (wo.priority === 'high') riskScore += 10;
-      if (!wo.technician_id) riskScore += 20;
-      
-      const breachProbability = Math.min(riskScore, 95);
+    const predictions = workOrders.map((wo: any) => {
+      const createdAt = new Date(wo.created_at);
+      const ageHours = (now - createdAt.getTime()) / 3600000;
+      const ageInDays = ageHours / 24;
+      const priority = wo.priority || wo.repair_type || 'medium';
+
+      let breachProbability: number;
+      let method: string;
+
+      if (mlWeights?.weights) {
+        // --- Real ML: Logistic regression inference ---
+        const features = [
+          ageHours,
+          priorityMap[priority] || 2,
+          wo.technician_id ? 1 : 0,
+          createdAt.getDay(),
+          createdAt.getHours(),
+        ];
+        const normalized = features.map((v: number, i: number) =>
+          (v - (mlWeights.featureMeans?.[i] || 0)) / (mlWeights.featureStds?.[i] || 1)
+        );
+        const z = mlWeights.weights.reduce((s: number, wt: number, i: number) => s + wt * normalized[i], 0) + mlWeights.bias;
+        breachProbability = Math.round((1 / (1 + Math.exp(-z))) * 100);
+        method = 'logistic_regression';
+      } else {
+        // --- Fallback: heuristic point scoring ---
+        let riskScore = 0;
+        if (ageInDays > 5) riskScore += 30;
+        if (ageInDays > 6) riskScore += 30;
+        if (priority === 'urgent') riskScore += 20;
+        if (priority === 'high') riskScore += 10;
+        if (!wo.technician_id) riskScore += 20;
+        breachProbability = Math.min(riskScore, 95);
+        method = 'heuristic_fallback';
+      }
 
       return {
         workOrderId: wo.id,
-        workOrderNumber: wo.work_order_number,
+        workOrderNumber: wo.wo_number,
         age: ageInDays.toFixed(1),
-        priority: wo.priority,
+        priority,
         breachProbability,
         atRisk: breachProbability > 50,
         timeToBreachDays: Math.max(0, 7 - ageInDays).toFixed(1),
-        recommendedAction: breachProbability > 70 
+        method,
+        recommendedAction: breachProbability > 70
           ? 'Urgent: Assign technician immediately'
           : breachProbability > 50
           ? 'Prioritize assignment'

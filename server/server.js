@@ -10,6 +10,8 @@ import functionRoutes from './routes/functions.js';
 import paymentsRoutes from './routes/payments.js';
 import knowledgeBaseRoutes from './routes/knowledge-base.js';
 import faqsRoutes from './routes/faqs.js';
+import mlRoutesFactory from './routes/ml.js';
+import pool from './db/client.js';
 import { authenticateToken } from './middleware/auth.js';
 import WebSocketManager from './websocket/server.js';
 
@@ -44,6 +46,7 @@ app.use('/api/functions', functionRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/faqs', faqsRoutes);
+app.use('/api/ml', mlRoutesFactory(pool));
 
 // Fallback for unmigrated functions
 app.post('/api/functions/:functionName', authenticateToken, async (req, res) => {

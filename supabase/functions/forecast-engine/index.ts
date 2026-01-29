@@ -212,56 +212,69 @@ async function fetchFinancials(supabase: any, tenant_id: string, startDate: Date
 }
 
 function generateSimpleForecast(historical: any[], daysAhead: number, model: any) {
-  if (historical.length === 0) {
-    // Return naive forecast based on global average
+  const values = historical.map((h: any) => h.value);
+
+  // Try Holt-Winters if model has trained weights in config
+  const hw = model?.config;
+  if (hw?.alpha && hw?.level !== undefined && hw?.trend !== undefined && hw?.seasonal) {
+    return generateHoltWintersForecast(hw, daysAhead);
+  }
+
+  // Fallback: simple moving average + linear trend
+  if (values.length === 0) {
     const avg = 100;
-    const forecast = [];
+    const forecast: any[] = [];
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + 1);
-
     for (let i = 0; i < daysAhead; i++) {
       const forecastDate = new Date(startDate);
       forecastDate.setDate(forecastDate.getDate() + i);
-      forecast.push({
-        date: forecastDate.toISOString().split('T')[0],
-        value: avg,
-        lower: Math.round(avg * 0.8),
-        upper: Math.round(avg * 1.2)
-      });
+      forecast.push({ date: forecastDate.toISOString().split('T')[0], value: avg, lower: Math.round(avg * 0.8), upper: Math.round(avg * 1.2) });
     }
     return forecast;
   }
 
-  // Calculate simple moving average
-  const values = historical.map(h => h.value);
-  const avg = values.reduce((a, b) => a + b, 0) / values.length;
-  const stdDev = Math.sqrt(values.map(v => Math.pow(v - avg, 2)).reduce((a, b) => a + b, 0) / values.length);
+  const avg = values.reduce((a: number, b: number) => a + b, 0) / values.length;
+  const stdDev = Math.sqrt(values.map((v: number) => (v - avg) ** 2).reduce((a: number, b: number) => a + b, 0) / values.length);
+  const trend = values.length > 1 ? (values[values.length - 1] - values[0]) / values.length : 0;
 
-  // Calculate trend
-  const trend = values.length > 1 
-    ? (values[values.length - 1] - values[0]) / values.length 
-    : 0;
-
-  // Generate forecast points
-  const forecast = [];
+  const forecast: any[] = [];
   const startDate = new Date();
   startDate.setDate(startDate.getDate() + 1);
-
   for (let i = 0; i < daysAhead; i++) {
     const forecastDate = new Date(startDate);
     forecastDate.setDate(forecastDate.getDate() + i);
-    
     const value = avg + (trend * i);
-    const lower = value - (1.96 * stdDev);
-    const upper = value + (1.96 * stdDev);
+    forecast.push({
+      date: forecastDate.toISOString().split('T')[0],
+      value: Math.max(0, Math.round(value)),
+      lower: Math.max(0, Math.round(value - 1.96 * stdDev)),
+      upper: Math.round(value + 1.96 * stdDev)
+    });
+  }
+  return forecast;
+}
+
+function generateHoltWintersForecast(weights: any, horizon: number) {
+  const { level, trend, seasonal, seasonLength, residualStd } = weights;
+  const forecast: any[] = [];
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() + 1);
+
+  for (let h = 1; h <= horizon; h++) {
+    const forecastDate = new Date(startDate);
+    forecastDate.setDate(forecastDate.getDate() + h - 1);
+    const si = (h - 1) % (seasonLength || 1);
+    const seasonalComponent = seasonal?.[si] || 0;
+    const value = level + trend * h + seasonalComponent;
+    const errorMargin = 1.96 * (residualStd || 10) * Math.sqrt(h);
 
     forecast.push({
       date: forecastDate.toISOString().split('T')[0],
       value: Math.max(0, Math.round(value)),
-      lower: Math.max(0, Math.round(lower)),
-      upper: Math.round(upper)
+      lower: Math.max(0, Math.round(value - errorMargin)),
+      upper: Math.round(value + errorMargin),
     });
   }
-
   return forecast;
 }

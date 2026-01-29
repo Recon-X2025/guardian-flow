@@ -102,27 +102,58 @@ async function trainModel(supabase: any, modelId: string) {
     .update({ status: 'training' })
     .eq('id', modelId);
 
-  // Simulate training (in production, this would trigger actual ML training)
-  setTimeout(async () => {
-    const metrics = {
-      accuracy: 0.85 + Math.random() * 0.12,
-      precision: 0.82 + Math.random() * 0.15,
-      recall: 0.80 + Math.random() * 0.15,
-      f1_score: 0.83 + Math.random() * 0.12,
-      training_time_seconds: Math.floor(Math.random() * 300) + 60
+  // Get model details to determine type
+  const { data: modelData } = await supabase
+    .from('analytics_ml_models')
+    .select('model_type, config')
+    .eq('id', modelId)
+    .single();
+
+  const modelType = modelData?.model_type || 'classification';
+
+  // Call server ML API for real training
+  const SERVER_URL = Deno.env.get('SERVER_URL') || 'http://localhost:3001';
+  let trainEndpoint = '/api/ml/train/failure'; // default
+  if (modelType === 'time_series' || modelType === 'regression') {
+    trainEndpoint = '/api/ml/train/forecast';
+  } else if (modelType === 'sla' || modelType === 'sla_breach') {
+    trainEndpoint = '/api/ml/train/sla';
+  }
+
+  try {
+    const response = await fetch(`${SERVER_URL}${trainEndpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modelId, config: modelData?.config }),
+    });
+    const result = await response.json();
+
+    const metrics = result.metrics || result.testMetrics || {
+      accuracy: result.accuracy || 0,
+      precision: result.precision || 0,
+      recall: result.recall || 0,
+      f1_score: result.f1 || 0,
     };
 
     await supabase
       .from('analytics_ml_models')
       .update({
         status: 'trained',
-        metrics,
-        model_artifact_path: `/models/${modelId}/model.pkl`
+        metrics: { ...metrics, training_time_ms: result.trainingTimeMs, is_synthetic: result.isSynthetic },
+        updated_at: new Date().toISOString(),
       })
       .eq('id', modelId);
-  }, 5000);
 
-  return { message: 'Model training started', modelId };
+    return { message: 'Model training completed', modelId, metrics, trainingTimeMs: result.trainingTimeMs };
+  } catch (fetchError: any) {
+    // If server unavailable, update status to failed
+    await supabase
+      .from('analytics_ml_models')
+      .update({ status: 'failed', metrics: { error: fetchError.message } })
+      .eq('id', modelId);
+
+    return { message: 'Training failed — ML server unreachable', modelId, error: fetchError.message };
+  }
 }
 
 async function deployModel(supabase: any, modelId: string) {
@@ -142,12 +173,47 @@ async function deployModel(supabase: any, modelId: string) {
 }
 
 async function makePrediction(supabase: any, modelId: string, inputData: any) {
-  // Simulate prediction (in production, this would call actual ML model)
-  const prediction = {
-    class: Math.random() > 0.5 ? 'positive' : 'negative',
-    probability: 0.5 + Math.random() * 0.5,
-    confidence: 0.7 + Math.random() * 0.3
-  };
+  // Load model weights from ml_models or analytics_ml_models
+  const { data: model } = await supabase
+    .from('ml_models')
+    .select('hyperparameters, model_type')
+    .eq('status', 'deployed')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  let prediction: any;
+
+  if (model?.hyperparameters?.weights) {
+    // Real logistic regression inference
+    const w = model.hyperparameters;
+    const features = inputData.features || [];
+    const normalized = features.map((v: number, i: number) =>
+      (v - (w.featureMeans?.[i] || 0)) / (w.featureStds?.[i] || 1)
+    );
+    const z = w.weights.reduce((s: number, wt: number, i: number) => s + wt * normalized[i], 0) + w.bias;
+    const probability = 1 / (1 + Math.exp(-z));
+    prediction = {
+      class: probability > 0.5 ? 'positive' : 'negative',
+      probability,
+      confidence: Math.abs(probability - 0.5) * 2,
+      method: 'logistic_regression',
+    };
+  } else {
+    // Fallback: use server API
+    const SERVER_URL = Deno.env.get('SERVER_URL') || 'http://localhost:3001';
+    try {
+      const response = await fetch(`${SERVER_URL}/api/ml/predict/failure`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inputData),
+      });
+      prediction = await response.json();
+      prediction.method = 'server_api';
+    } catch {
+      prediction = { class: 'unknown', probability: 0.5, confidence: 0, method: 'unavailable' };
+    }
+  }
 
   // Store prediction
   await supabase
