@@ -49,3 +49,4 @@ test-results/
 # Misc
 .cache/
 .temp/
+bun.lockb
