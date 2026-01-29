@@ -48,7 +48,7 @@ async function runMigrations() {
       .replace(/auth\.users/g, 'users')
       .replace(/REFERENCES auth\.users\(id\)/g, 'REFERENCES users(id)')
       .replace(/CREATE TABLE public\./g, 'CREATE TABLE IF NOT EXISTS ')
-      .replace(/CREATE TABLE /g, 'CREATE TABLE IF NOT EXISTS ');
+      .replace(/CREATE TABLE (?!IF NOT EXISTS)/g, 'CREATE TABLE IF NOT EXISTS ');
 
     try {
       await pool.query('BEGIN');

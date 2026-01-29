@@ -2216,21 +2216,43 @@ router.post('/offline-sync-processor', authenticateToken, async (req, res) => {
     if (action === 'sync' && queueItems) {
       // Process sync items
       const results = [];
-      
+
+      // Whitelist allowed tables for offline sync to prevent SQL injection
+      const ALLOWED_SYNC_TABLES = new Set([
+        'tickets', 'work_orders', 'service_orders', 'equipment',
+        'inventory_items', 'invoices', 'quotes', 'customers',
+        'attachments', 'photo_validations', 'notes',
+      ]);
+      const ALLOWED_COLUMN_RE = /^[a-z_][a-z0-9_]*$/;
+
       for (const item of queueItems) {
         try {
+          // Validate entity_type against whitelist
+          if (!ALLOWED_SYNC_TABLES.has(item.entity_type)) {
+            results.push({ id: item.id, status: 'failed', error: `Table '${item.entity_type}' not allowed for sync` });
+            continue;
+          }
+
+          // Validate column names
+          const columns = Object.keys(item.payload || {});
+          const invalidCol = columns.find(c => !ALLOWED_COLUMN_RE.test(c));
+          if (invalidCol) {
+            results.push({ id: item.id, status: 'failed', error: `Invalid column name: ${invalidCol}` });
+            continue;
+          }
+
           // Process based on entity type and operation
           if (item.operation === 'create') {
             await query(
-              `INSERT INTO ${item.entity_type} (id, ${Object.keys(item.payload).join(', ')}, created_at)
-               VALUES (gen_random_uuid(), ${Object.keys(item.payload).map((_, i) => `$${i + 1}`).join(', ')}, now())`,
+              `INSERT INTO ${item.entity_type} (id, ${columns.join(', ')}, created_at)
+               VALUES (gen_random_uuid(), ${columns.map((_, i) => `$${i + 1}`).join(', ')}, now())`,
               Object.values(item.payload)
             );
           } else if (item.operation === 'update') {
             await query(
-              `UPDATE ${item.entity_type} 
-               SET ${Object.keys(item.payload).map((k, i) => `${k} = $${i + 1}`).join(', ')}
-               WHERE id = $${Object.keys(item.payload).length + 1}`,
+              `UPDATE ${item.entity_type}
+               SET ${columns.map((k, i) => `${k} = $${i + 1}`).join(', ')}
+               WHERE id = $${columns.length + 1}`,
               [...Object.values(item.payload), item.entity_id]
             );
           } else if (item.operation === 'delete') {

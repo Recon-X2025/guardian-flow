@@ -1,10 +1,62 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
 import { getOne, getMany, query, transaction } from '../db/query.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
+
+const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour (matches JWT)
+const REFRESH_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function hashToken(token) {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+async function ensureRefreshTokensTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL,
+      token_hash VARCHAR(255) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `).catch(() => {});
+}
+
+async function ensurePasswordResetTable() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL,
+      token_hash VARCHAR(255) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `).catch(() => {});
+}
+
+async function createRefreshToken(userId) {
+  await ensureRefreshTokensTable();
+  const refreshToken = randomUUID();
+  const hash = hashToken(refreshToken);
+  const expiresAt = new Date(Date.now() + REFRESH_EXPIRY_MS);
+  await query(
+    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+    [userId, hash, expiresAt]
+  );
+  // Clean up old tokens for this user (keep max 5)
+  await query(
+    `DELETE FROM refresh_tokens WHERE user_id = $1 AND id NOT IN (
+      SELECT id FROM refresh_tokens WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5
+    )`,
+    [userId]
+  ).catch(() => {});
+  return { refreshToken, expiresAt };
+}
 
 /**
  * Sign up new user
@@ -55,6 +107,9 @@ router.post('/signup', async (req, res) => {
     });
 
     const token = generateToken(userId);
+    const { refreshToken, expiresAt: refreshExpiresAt } = await createRefreshToken(userId);
+
+    logger.info('User signed up', { userId, email });
 
     res.json({
       user: {
@@ -64,11 +119,13 @@ router.post('/signup', async (req, res) => {
       },
       session: {
         access_token: token,
-        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        refresh_token: refreshToken,
+        expires_at: Date.now() + TOKEN_EXPIRY_MS,
+        refresh_expires_at: refreshExpiresAt.getTime(),
       },
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    logger.error('Signup error', { error: error.message });
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -109,6 +166,9 @@ router.post('/signin', async (req, res) => {
     );
 
     const token = generateToken(user.id);
+    const { refreshToken, expiresAt: refreshExpiresAt } = await createRefreshToken(user.id);
+
+    logger.info('User signed in', { userId: user.id, email: user.email });
 
     res.json({
       user: {
@@ -119,11 +179,13 @@ router.post('/signin', async (req, res) => {
       },
       session: {
         access_token: token,
-        expires_at: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        refresh_token: refreshToken,
+        expires_at: Date.now() + TOKEN_EXPIRY_MS,
+        refresh_expires_at: refreshExpiresAt.getTime(),
       },
     });
   } catch (error) {
-    console.error('Signin error:', error);
+    logger.error('Signin error', { error: error.message });
     res.status(500).json({ error: 'Failed to sign in' });
   }
 });
@@ -322,10 +384,155 @@ function generatePermissionsFromRoles(roles) {
 }
 
 /**
- * Sign out (client-side token removal, but we can track here if needed)
+ * Refresh access token using refresh token
  */
-router.post('/signout', authenticateToken, (req, res) => {
-  res.json({ message: 'Signed out successfully' });
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+    if (!refresh_token) {
+      return res.status(400).json({ error: 'Refresh token is required' });
+    }
+
+    await ensureRefreshTokensTable();
+    const hash = hashToken(refresh_token);
+
+    const stored = await getOne(
+      `SELECT id, user_id, expires_at FROM refresh_tokens WHERE token_hash = $1`,
+      [hash]
+    );
+
+    if (!stored || new Date(stored.expires_at) < new Date()) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+
+    // Verify user still active
+    const user = await getOne('SELECT id, email, active FROM users WHERE id = $1', [stored.user_id]);
+    if (!user || !user.active) {
+      return res.status(401).json({ error: 'User not found or inactive' });
+    }
+
+    // Delete old refresh token (rotation)
+    await query('DELETE FROM refresh_tokens WHERE id = $1', [stored.id]);
+
+    // Issue new tokens
+    const accessToken = generateToken(user.id);
+    const { refreshToken: newRefreshToken, expiresAt } = await createRefreshToken(user.id);
+
+    res.json({
+      session: {
+        access_token: accessToken,
+        refresh_token: newRefreshToken,
+        expires_at: Date.now() + TOKEN_EXPIRY_MS,
+        refresh_expires_at: expiresAt.getTime(),
+      },
+    });
+  } catch (error) {
+    logger.error('Token refresh error', { error: error.message });
+    res.status(500).json({ error: 'Failed to refresh token' });
+  }
+});
+
+/**
+ * Forgot password — generate reset token
+ */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await getOne('SELECT id FROM users WHERE email = $1 AND active = true', [email]);
+    if (!user) {
+      // Don't reveal whether user exists
+      return res.json({ message: 'If that email exists, a reset link has been sent' });
+    }
+
+    await ensurePasswordResetTable();
+
+    // Invalidate previous tokens
+    await query('UPDATE password_reset_tokens SET used = true WHERE user_id = $1 AND used = false', [user.id]);
+
+    const resetToken = randomUUID();
+    const hash = hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+      [user.id, hash, expiresAt]
+    );
+
+    logger.info('Password reset requested', { userId: user.id });
+
+    // In production, send email with resetToken. For now, return it directly.
+    res.json({
+      message: 'If that email exists, a reset link has been sent',
+      reset_token: resetToken, // Remove this in production — send via email instead
+      expires_at: expiresAt.toISOString(),
+    });
+  } catch (error) {
+    logger.error('Forgot password error', { error: error.message });
+    res.status(500).json({ error: 'Failed to process password reset' });
+  }
+});
+
+/**
+ * Reset password using reset token
+ */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, new_password } = req.body;
+    if (!token || !new_password) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    await ensurePasswordResetTable();
+    const hash = hashToken(token);
+
+    const stored = await getOne(
+      `SELECT id, user_id, expires_at, used FROM password_reset_tokens WHERE token_hash = $1`,
+      [hash]
+    );
+
+    if (!stored || stored.used || new Date(stored.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    // Hash new password and update user
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, stored.user_id]);
+
+    // Mark token as used
+    await query('UPDATE password_reset_tokens SET used = true WHERE id = $1', [stored.id]);
+
+    // Invalidate all refresh tokens for this user (force re-login)
+    await query('DELETE FROM refresh_tokens WHERE user_id = $1', [stored.user_id]).catch(() => {});
+
+    logger.info('Password reset completed', { userId: stored.user_id });
+
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (error) {
+    logger.error('Reset password error', { error: error.message });
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+/**
+ * Sign out — invalidate refresh token
+ */
+router.post('/signout', authenticateToken, async (req, res) => {
+  try {
+    // Delete all refresh tokens for this user
+    await query('DELETE FROM refresh_tokens WHERE user_id = $1', [req.user.id]).catch(() => {});
+    logger.info('User signed out', { userId: req.user.id });
+    res.json({ message: 'Signed out successfully' });
+  } catch (error) {
+    res.json({ message: 'Signed out successfully' });
+  }
 });
 
 /**

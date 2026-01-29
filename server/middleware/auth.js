@@ -1,5 +1,15 @@
 import jwt from 'jsonwebtoken';
 import { getOne, getMany } from '../db/query.js';
+import logger from '../utils/logger.js';
+
+// Fail fast in production if no JWT secret configured
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  logger.error('JWT_SECRET environment variable is required in production');
+  process.exit(1);
+}
+if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
+  logger.warn('Using default JWT secret — set JWT_SECRET env var for production');
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -68,8 +78,10 @@ export async function authenticateToken(req, res, next) {
  * Generate JWT token for user
  */
 export function generateToken(userId) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '1h' });
 }
+
+export { JWT_SECRET };
 
 /**
  * Optional auth - doesn't fail if no token
