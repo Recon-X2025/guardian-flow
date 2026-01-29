@@ -2,74 +2,74 @@ import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { RBACProvider } from "@/contexts/RBACContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { RoleGuard } from "@/components/RoleGuard";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AccessDenied } from "@/components/AccessDenied";
-import { AppLayout } from "@/components/AppLayout";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Tickets from "./pages/Tickets";
-import WorkOrders from "./pages/WorkOrders";
-import PendingValidation from "./pages/PendingValidation";
-import Inventory from "./pages/Inventory";
-import Warranty from "./pages/Warranty";
-import Penalties from "./pages/Penalties";
-import OfferAI from "./pages/OfferAI";
-import ServiceOrders from "./pages/ServiceOrders";
-import FraudInvestigation from "./pages/FraudInvestigation";
-import ForgeryDetection from "./pages/ForgeryDetection";
-import Finance from "./pages/Finance";
-import PhotoCapturePage from "./pages/PhotoCapturePage";
-import Quotes from "./pages/Quotes";
-import Scheduler from "./pages/Scheduler";
-import Dispatch from "./pages/Dispatch";
-import Procurement from "./pages/Procurement";
-import Settings from "./pages/Settings";
-import AdminConsole from "./pages/AdminConsole";
-import NotFound from "./pages/NotFound";
-import Invoicing from "./pages/Invoicing";
-import Payments from "./pages/Payments";
-import Analytics from "./pages/Analytics";
-import DeveloperConsole from "./pages/DeveloperConsole";
-import DeveloperLanding from "./pages/DeveloperLanding";
-import PlatformMetrics from "./pages/PlatformMetrics";
-import AnalyticsIntegrations from "./pages/AnalyticsIntegrations";
-import Observability from "./pages/Observability";
-import KnowledgeBase from "./pages/KnowledgeBase";
-import FAQPage from "./pages/FAQPage";
-import Assistant from "./pages/Assistant";
-import ModelOrchestration from "./pages/ModelOrchestration";
-import HelpTraining from "./pages/HelpTraining";
-import AnomalyDetection from "./pages/AnomalyDetection";
-import AgentDashboard from "./pages/AgentDashboard";
-import RAGEngine from "./pages/RAGEngine";
-import Prompts from "./pages/Prompts";
-import ForecastCenter from "./pages/ForecastCenter";
-import RouteOptimization from "./pages/RouteOptimization";
-import Customers from "./pages/Customers";
-import Technicians from "./pages/Technicians";
-import Equipment from "./pages/Equipment";
-import Contracts from "./pages/Contracts";
-import CustomerPortal from "./pages/CustomerPortal";
-import PredictiveMaintenance from "./pages/PredictiveMaintenance";
-import PartnerPortal from "./pages/PartnerPortal";
-import Documents from "./pages/Documents";
-import Webhooks from "./pages/Webhooks";
-import Marketplace from "./pages/Marketplace";
-import DisputeManagement from "./pages/DisputeManagement";
-import ABTestManager from "./pages/ABTestManager";
-import SystemHealth from "./pages/SystemHealth";
-import ComplianceDashboard from "./pages/ComplianceDashboard";
-import ComplianceCenter from "./pages/ComplianceCenter";
-import MarketplaceManagement from "./pages/MarketplaceManagement";
-import DeveloperPortal from "./pages/DeveloperPortal";
-import IndustryWorkflows from "./pages/IndustryWorkflows";
-import Templates from "./pages/Templates";
-import Landing from "./pages/Landing";
-import PricingCalculator from "./pages/PricingCalculator";
+import { AuthProvider } from "@/domains/auth/contexts/AuthContext";
+import { RBACProvider } from "@/domains/auth/contexts/RBACContext";
+import { ProtectedRoute } from "@/domains/auth/components/ProtectedRoute";
+import { RoleGuard } from "@/domains/auth/components/RoleGuard";
+import { ErrorBoundary } from "@/domains/shared/components/ErrorBoundary";
+import { AccessDenied } from "@/domains/auth/components/AccessDenied";
+import { AppLayout } from "@/domains/shared/components/AppLayout";
+import Auth from "@/domains/auth/pages/Auth";
+import Dashboard from "@/domains/shared/pages/Dashboard";
+import Tickets from "@/domains/tickets/pages/Tickets";
+import WorkOrders from "@/domains/workOrders/pages/WorkOrders";
+import PendingValidation from "@/domains/shared/pages/PendingValidation";
+import Inventory from "@/domains/inventory/pages/Inventory";
+import Warranty from "@/domains/financial/pages/Warranty";
+import Penalties from "@/domains/financial/pages/Penalties";
+import OfferAI from "@/domains/shared/pages/OfferAI";
+import ServiceOrders from "@/domains/workOrders/pages/ServiceOrders";
+import FraudInvestigation from "@/domains/fraud/pages/FraudInvestigation";
+import ForgeryDetection from "@/domains/fraud/pages/ForgeryDetection";
+import Finance from "@/domains/financial/pages/Finance";
+import PhotoCapturePage from "@/domains/shared/pages/PhotoCapturePage";
+import Quotes from "@/domains/financial/pages/Quotes";
+import Scheduler from "@/domains/workOrders/pages/Scheduler";
+import Dispatch from "@/domains/workOrders/pages/Dispatch";
+import Procurement from "@/domains/inventory/pages/Procurement";
+import Settings from "@/domains/shared/pages/Settings";
+import AdminConsole from "@/domains/shared/pages/AdminConsole";
+import NotFound from "@/domains/shared/pages/NotFound";
+import Invoicing from "@/domains/financial/pages/Invoicing";
+import Payments from "@/domains/financial/pages/Payments";
+import Analytics from "@/domains/analytics/pages/Analytics";
+import DeveloperConsole from "@/domains/shared/pages/DeveloperConsole";
+import DeveloperLanding from "@/domains/shared/pages/DeveloperLanding";
+import PlatformMetrics from "@/domains/analytics/pages/PlatformMetrics";
+import AnalyticsIntegrations from "@/domains/analytics/pages/AnalyticsIntegrations";
+import Observability from "@/domains/shared/pages/Observability";
+import KnowledgeBase from "@/domains/knowledge/pages/KnowledgeBase";
+import FAQPage from "@/domains/knowledge/pages/FAQPage";
+import Assistant from "@/domains/shared/pages/Assistant";
+import ModelOrchestration from "@/domains/shared/pages/ModelOrchestration";
+import HelpTraining from "@/domains/training/pages/HelpTraining";
+import AnomalyDetection from "@/domains/analytics/pages/AnomalyDetection";
+import AgentDashboard from "@/domains/shared/pages/AgentDashboard";
+import RAGEngine from "@/domains/knowledge/pages/RAGEngine";
+import Prompts from "@/domains/shared/pages/Prompts";
+import ForecastCenter from "@/domains/analytics/pages/ForecastCenter";
+import RouteOptimization from "@/domains/workOrders/pages/RouteOptimization";
+import Customers from "@/domains/customers/pages/Customers";
+import Technicians from "@/domains/shared/pages/Technicians";
+import Equipment from "@/domains/inventory/pages/Equipment";
+import Contracts from "@/domains/shared/pages/Contracts";
+import CustomerPortal from "@/domains/customers/pages/CustomerPortal";
+import PredictiveMaintenance from "@/domains/workOrders/pages/PredictiveMaintenance";
+import PartnerPortal from "@/domains/customers/pages/PartnerPortal";
+import Documents from "@/domains/shared/pages/Documents";
+import Webhooks from "@/domains/shared/pages/Webhooks";
+import Marketplace from "@/domains/marketplace/pages/Marketplace";
+import DisputeManagement from "@/domains/financial/pages/DisputeManagement";
+import ABTestManager from "@/domains/shared/pages/ABTestManager";
+import SystemHealth from "@/domains/shared/pages/SystemHealth";
+import ComplianceDashboard from "@/domains/fraud/pages/ComplianceDashboard";
+import ComplianceCenter from "@/domains/fraud/pages/ComplianceCenter";
+import MarketplaceManagement from "@/domains/marketplace/pages/MarketplaceManagement";
+import DeveloperPortal from "@/domains/shared/pages/DeveloperPortal";
+import IndustryWorkflows from "@/domains/shared/pages/IndustryWorkflows";
+import Templates from "@/domains/shared/pages/Templates";
+import Landing from "@/domains/shared/pages/Landing";
+import PricingCalculator from "@/domains/financial/pages/PricingCalculator";
 import FieldServiceModule from "./pages/modules/FieldServiceModule";
 import AssetLifecycleModule from "./pages/modules/AssetLifecycleModule";
 import AIForecastingModule from "./pages/modules/AIForecastingModule";
@@ -79,29 +79,29 @@ import AnalyticsBIModule from "./pages/modules/AnalyticsBIModule";
 import CustomerPortalModule from "./pages/modules/CustomerPortalModule";
 import VideoTrainingModule from "./pages/modules/VideoTrainingModule";
 import AnalyticsPlatformModule from "./pages/modules/AnalyticsPlatformModule";
-import Contact from "./pages/Contact";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import AnalyticsPlatform from "./pages/AnalyticsPlatform";
-import AnalyticsPlatformAuth from "./pages/AnalyticsPlatformAuth";
-import IndustryOnboarding from "./pages/IndustryOnboarding";
+import Contact from "@/domains/shared/pages/Contact";
+import Privacy from "@/domains/shared/pages/Privacy";
+import Terms from "@/domains/shared/pages/Terms";
+import AnalyticsPlatform from "@/domains/analytics/pages/AnalyticsPlatform";
+import AnalyticsPlatformAuth from "@/domains/analytics/pages/AnalyticsPlatformAuth";
+import IndustryOnboarding from "@/domains/shared/pages/IndustryOnboarding";
 import ImageForensicsModule from "./pages/modules/ImageForensicsModule";
 import EnhancedSchedulerModule from "./pages/modules/EnhancedSchedulerModule";
 import AdvancedComplianceModule from "./pages/modules/AdvancedComplianceModule";
-import UnifiedPlatformAuth from "./pages/auth/UnifiedPlatformAuth";
-import FSMAuth from "./pages/auth/FSMAuth";
-import AssetAuth from "./pages/auth/AssetAuth";
-import ForecastingAuth from "./pages/auth/ForecastingAuth";
-import FraudAuth from "./pages/auth/FraudAuth";
-import MarketplaceAuth from "./pages/auth/MarketplaceAuth";
-import AnalyticsAuth from "./pages/auth/AnalyticsAuth";
-import CustomerAuth from "./pages/auth/CustomerAuth";
-import TrainingAuth from "./pages/auth/TrainingAuth";
-import TrainingPlatform from "./pages/TrainingPlatform";
-import ScheduleOptimizer from "./pages/ScheduleOptimizer";
-import NLPQueryInterface from "./pages/NLPQueryInterface";
-import CustomReportBuilder from "./pages/CustomReportBuilder";
-import MaintenanceCalendar from "./pages/MaintenanceCalendar";
+import UnifiedPlatformAuth from "@/domains/auth/pages/auth/UnifiedPlatformAuth";
+import FSMAuth from "@/domains/auth/pages/auth/FSMAuth";
+import AssetAuth from "@/domains/auth/pages/auth/AssetAuth";
+import ForecastingAuth from "@/domains/auth/pages/auth/ForecastingAuth";
+import FraudAuth from "@/domains/auth/pages/auth/FraudAuth";
+import MarketplaceAuth from "@/domains/auth/pages/auth/MarketplaceAuth";
+import AnalyticsAuth from "@/domains/auth/pages/auth/AnalyticsAuth";
+import CustomerAuth from "@/domains/auth/pages/auth/CustomerAuth";
+import TrainingAuth from "@/domains/auth/pages/auth/TrainingAuth";
+import TrainingPlatform from "@/domains/training/pages/TrainingPlatform";
+import ScheduleOptimizer from "@/domains/workOrders/pages/ScheduleOptimizer";
+import NLPQueryInterface from "@/domains/shared/pages/NLPQueryInterface";
+import CustomReportBuilder from "@/domains/analytics/pages/CustomReportBuilder";
+import MaintenanceCalendar from "@/domains/workOrders/pages/MaintenanceCalendar";
 import { Toaster } from '@/components/ui/sonner';
 
 const queryClient = new QueryClient();
@@ -133,7 +133,7 @@ const App = () => (
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
-                
+
                 {/* Authentication Routes - Module-Specific FIRST (more specific routes before generic) */}
                 <Route path="/auth/fsm" element={<FSMAuth />} />
                 <Route path="/auth/asset" element={<AssetAuth />} />
@@ -154,7 +154,7 @@ const App = () => (
                     <AppLayout><Dashboard /></AppLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/tickets" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician','support_agent']} permissions={["ticket.read"]} showError={true}>
@@ -162,7 +162,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/work-orders" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician','partner_admin']} permissions={["wo.read"]} showError={true}>
@@ -170,7 +170,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/pending-validation" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.read"]} showError={true}>
@@ -178,7 +178,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/inventory" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','partner_admin']} permissions={["inventory.view"]} showError={true}>
@@ -186,7 +186,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/photo-capture" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician']} permissions={["attachment.upload"]} showError={true}>
@@ -194,7 +194,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/scheduler" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
@@ -202,7 +202,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dispatch" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
@@ -210,7 +210,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/route-optimization" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
@@ -218,7 +218,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/procurement" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager']} permissions={["inventory.procure"]} showError={true}>
@@ -226,7 +226,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/warranty" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','support_agent']} permissions={["warranty.view"]} showError={true}>
@@ -234,7 +234,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/quotes" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["quote.view"]} showError={true}>
@@ -242,7 +242,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/invoicing" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["invoice.view"]} showError={true}>
@@ -250,7 +250,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/payments" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["invoice.pay"]} showError={true}>
@@ -258,7 +258,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/finance" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
@@ -266,7 +266,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/penalties" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["penalty.calculate"]} showError={true}>
@@ -274,7 +274,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/sapos" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["sapos.view"]} showError={true}>
@@ -282,7 +282,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/service-orders" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher','technician']} permissions={["so.view"]} showError={true}>
@@ -290,7 +290,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/fraud" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','fraud_investigator','auditor']} permissions={["fraud.view"]} showError={true}>
@@ -298,7 +298,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/forgery-detection" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','fraud_investigator','auditor']} permissions={["fraud.view"]} showError={true}>
@@ -306,7 +306,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/customers" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','support_agent']} permissions={["customers.view"]} showError={true}>
@@ -314,7 +314,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/technicians" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["technicians.view"]} showError={true}>
@@ -322,7 +322,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/equipment" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','technician','partner_admin']} permissions={["equipment.view"]} showError={true}>
@@ -330,7 +330,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/contracts" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["contracts.view"]} showError={true}>
@@ -338,10 +338,10 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 {/* Customer Portal Auth - Module-specific route */}
                 <Route path="/customer-portal/auth" element={<CustomerAuth />} />
-                
+
                 <Route path="/customer-portal" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','customer']} permissions={["portal.access"]} showError={true}>
@@ -349,7 +349,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/predictive-maintenance" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','ops_manager']} permissions={["maintenance.view"]} showError={true}>
@@ -357,7 +357,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/partner-portal" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin','partner_admin']} permissions={["partners.view"]} showError={true}>
@@ -365,7 +365,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/documents" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin']} permissions={["documents.view"]} showError={true}>
@@ -373,7 +373,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/templates" element={
                   <ProtectedRoute>
                     <RoleGuard roles={['sys_admin','tenant_admin']} permissions={["admin.config"]} showError={true}>
@@ -381,7 +381,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/webhooks" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -389,7 +389,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/knowledge-base" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -425,7 +425,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/custom-reports" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
@@ -433,7 +433,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/maintenance-calendar" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["wo.assign"]} showError={true}>
@@ -441,7 +441,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/rag" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -449,7 +449,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/assistant" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -457,7 +457,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/models" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["mlops.view"]} showError={true}>
@@ -465,7 +465,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/prompts" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -473,7 +473,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/analytics" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
@@ -481,7 +481,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/analytics-platform" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["analytics:view"]} showError={true}>
@@ -489,7 +489,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/forecast" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
@@ -497,7 +497,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/anomaly" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["fraud.view"]} showError={true}>
@@ -505,7 +505,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/observability" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
@@ -513,7 +513,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/agent-dashboard" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -521,7 +521,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/developer-console" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -529,7 +529,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/platform-metrics" element={
                   <ProtectedRoute>
                     <RoleGuard roles={["sys_admin"]} showError={true}>
@@ -537,7 +537,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/analytics-integrations" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -545,25 +545,25 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/help" element={
                   <ProtectedRoute>
                     <AppLayout><HelpTraining /></AppLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/settings" element={
                   <ProtectedRoute>
                     <AppLayout><Settings /></AppLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/access-denied" element={
                   <ProtectedRoute>
                     <AppLayout><AccessDenied /></AppLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/marketplace" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -571,7 +571,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/disputes" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["finance.view"]} showError={true}>
@@ -579,7 +579,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/ab-tests" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["mlops.view"]} showError={true}>
@@ -587,7 +587,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/compliance" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["admin.config"]} showError={true}>
@@ -595,7 +595,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/compliance-dashboard" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
@@ -603,7 +603,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/system-health" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={["audit.read"]} showError={true}>
@@ -611,7 +611,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/marketplace-management" element={
                   <ProtectedRoute>
                     <RoleGuard roles={["sys_admin"]} showError={true}>
@@ -619,7 +619,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/developer-portal" element={
                   <ProtectedRoute>
                     <RoleGuard roles={["sys_admin", "tenant_admin", "partner_admin"]} showError={true}>
@@ -627,7 +627,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/industry-workflows" element={
                   <ProtectedRoute>
                     <RoleGuard roles={["sys_admin", "tenant_admin", "ops_manager"]} showError={true}>
@@ -635,17 +635,9 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
-                <Route path="/analytics-platform" element={
-                  <ProtectedRoute>
-                    <RoleGuard permissions={["audit.read"]} showError={true}>
-                      <AnalyticsPlatform />
-                    </RoleGuard>
-                  </ProtectedRoute>
-                } />
-                
+
                 <Route path="/analytics-platform-auth" element={<AnalyticsPlatformAuth />} />
-                
+
                 <Route path="/admin" element={
                   <ProtectedRoute>
                     <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
@@ -653,7 +645,7 @@ const App = () => (
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                
+
                 {/* Catch-all for 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
