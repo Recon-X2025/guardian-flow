@@ -164,7 +164,10 @@ async function trainSlaBreach(pool, config) {
     `INSERT INTO ml_models (id, tenant_id, model_name, model_type, framework, status,
      accuracy_score, precision_score, recall_score, f1_score, training_data_size,
      features, hyperparameters, created_at, updated_at)
-     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
+     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+     ON CONFLICT (model_name, tenant_id) DO UPDATE SET
+       status = $5, accuracy_score = $6, precision_score = $7, recall_score = $8,
+       f1_score = $9, training_data_size = $10, features = $11, hyperparameters = $12, updated_at = NOW()`,
     [
       config.tenantId || '00000000-0000-0000-0000-000000000000',
       'sla_breach_v1',
@@ -230,7 +233,11 @@ async function trainForecast(pool, config) {
   const weights = holtWintersTrain(data, seasonLength);
   const trainingTime = Date.now() - startTime;
 
-  // Store in forecast_models
+  // Store in forecast_models — delete old then insert to avoid duplicates
+  await pool.query(
+    `DELETE FROM forecast_models WHERE model_name = $1`,
+    [`${forecastType}_holt_winters`]
+  ).catch(() => {});
   await pool.query(
     `INSERT INTO forecast_models (id, model_type, model_name, algorithm, frequency, accuracy_score, config, created_at, updated_at)
      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())`,
