@@ -25,7 +25,7 @@ export { wsManager };
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || ['http://localhost:5175', 'http://localhost:8080'],
+  origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:8080'],
   credentials: true,
 }));
 app.use(express.json());
