@@ -60,6 +60,7 @@ export default function ForecastCenter() {
   const [forecastWindow, setForecastWindow] = useState<'short' | 'mid' | 'long'>('mid');
   const [forecastData, setForecastData] = useState<ForecastDataPoint[]>([]);
   const [actualsData, setActualsData] = useState<ActualsDataPoint[]>([]);
+  const [forecastExplanation, setForecastExplanation] = useState<string>('');
   const [metrics, setMetrics] = useState({
     volume: 0,
     revenue: 0,
@@ -290,6 +291,11 @@ export default function ForecastCenter() {
       const data = result.data;
 
       if (data && data.length > 0) {
+        // Extract AI explanation from first forecast record
+        const explanation = data.find(d => d.explanation)?.explanation;
+        if (explanation) setForecastExplanation(explanation);
+        else setForecastExplanation('');
+
         setForecastData(data.map(d => ({
           date: d.target_date,
           predicted: Number(d.value),
@@ -810,18 +816,29 @@ export default function ForecastCenter() {
         </CardHeader>
         <CardContent>
           {forecastData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={forecastData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="predicted" stroke="#8884d8" name="Predicted" />
-                <Line type="monotone" dataKey="lower" stroke="#82ca9d" strokeDasharray="5 5" name="Lower Bound" />
-                <Line type="monotone" dataKey="upper" stroke="#ffc658" strokeDasharray="5 5" name="Upper Bound" />
-              </LineChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={forecastData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="predicted" stroke="#8884d8" name="Predicted" />
+                  <Line type="monotone" dataKey="lower" stroke="#82ca9d" strokeDasharray="5 5" name="Lower Bound" />
+                  <Line type="monotone" dataKey="upper" stroke="#ffc658" strokeDasharray="5 5" name="Upper Bound" />
+                </LineChart>
+              </ResponsiveContainer>
+              {forecastExplanation && (
+                <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <p className="text-sm font-medium mb-1 flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    AI Forecast Analysis
+                  </p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{forecastExplanation}</p>
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex items-center justify-center h-64 text-muted-foreground">
               {loading ? 'Loading forecasts...' : 'No forecast data available. Select a geography or generate forecasts.'}

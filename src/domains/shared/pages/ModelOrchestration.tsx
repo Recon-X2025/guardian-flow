@@ -31,11 +31,11 @@ const ModelOrchestration = () => {
   const loadSystemStatus = async () => {
     try {
       const [configRes, modelsRes, workflowsRes, policiesRes, featuresRes] = await Promise.all([
-        (supabase as any).from('system_config').select('*'),
-        (supabase as any).from('model_registry').select('*').eq('active', true),
-        (supabase as any).from('workflow_definitions').select('*').eq('active', true),
-        (supabase as any).from('policy_registry').select('*').eq('active', true),
-        (supabase as any).from('feature_toggles').select('*')
+        (apiClient as any).from('system_config').select('*'),
+        (apiClient as any).from('model_registry').select('*').eq('active', true),
+        (apiClient as any).from('workflow_definitions').select('*').eq('active', true),
+        (apiClient as any).from('policy_registry').select('*').eq('active', true),
+        (apiClient as any).from('feature_toggles').select('*')
       ]);
 
       if (configRes.data) {
@@ -68,10 +68,10 @@ const ModelOrchestration = () => {
     try {
       const result = await apiClient.functions.invoke('system-detect', {});
       if (result.error) throw result.error;
-      
+
       toast({
         title: "System Detection Complete",
-        description: `Database mode: ${data.db_mode}`,
+        description: `Database mode: ${result.data?.db_mode}`,
       });
       
       loadSystemStatus();
@@ -86,12 +86,12 @@ const ModelOrchestration = () => {
 
   const toggleFeature = async (featureKey: string, currentEnabled: boolean) => {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (apiClient as any)
         .from('feature_toggles')
         .update({ enabled: !currentEnabled })
         .eq('feature_key', featureKey);
 
-      if (result.error) throw result.error;
+      if (error) throw error;
 
       toast({
         title: "Feature Updated",
@@ -138,7 +138,7 @@ const ModelOrchestration = () => {
             <Database className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <Badge variant={systemConfig.db_mode === 'SUPABASE_FULL' ? 'default' : 'secondary'}>
+            <Badge variant={systemConfig.db_mode === 'LOCAL_MONGODB' ? 'default' : 'secondary'}>
               {systemConfig.db_mode || 'RESTRICTED_DB'}
             </Badge>
             <p className="text-xs text-muted-foreground mt-2">
@@ -345,7 +345,7 @@ const ModelOrchestration = () => {
               <div>
                 <p className="font-medium text-sm">Auto-Detection</p>
                 <p className="text-xs text-muted-foreground">
-                  Automatically adapts to SUPABASE_FULL or RESTRICTED_DB mode
+                  Automatically adapts to LOCAL_MONGODB or RESTRICTED_DB mode
                 </p>
               </div>
             </div>

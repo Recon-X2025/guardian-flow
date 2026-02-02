@@ -24,13 +24,13 @@ export default function ScheduleOptimizer() {
   const { data: optimizationRuns, refetch: refetchRuns } = useQuery({
     queryKey: ['optimization-runs'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('schedule_optimization_runs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(10);
-      if (result.error) throw result.error;
-      return result.data;
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -38,7 +38,7 @@ export default function ScheduleOptimizer() {
     queryKey: ['optimized-assignments', currentRunId],
     enabled: !!currentRunId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('optimized_schedule_assignments')
         .select(`
           *,
@@ -47,39 +47,31 @@ export default function ScheduleOptimizer() {
         `)
         .eq('optimization_run_id', currentRunId!)
         .order('scheduled_start', { ascending: true });
-      if (result.error) throw result.error;
-      return result.data;
+      if (error) throw error;
+      return data;
     },
   });
 
   const handleOptimize = async () => {
     setOptimizing(true);
     try {
-      const { user } = useAuth();
-      if (!user) throw new Error('Not authenticated');
-
       const dateStr = selectedDate.toISOString().split('T')[0];
 
-      const result = await apiClient.functions.invoke('schedule-optimizer', {
+      const result = await apiClient.functions.invoke('optimize-schedule', {
         body: {
-          tenantId: user.user_metadata.tenant_id,
           date: dateStr,
-          constraints: {
-            maxWorkloadHours: 8,
-            allowOvertime: false,
-            prioritizeSkillMatch: true,
-          }
         }
       });
 
-      if (result.error) throw result.error;
+      if (result.error) throw new Error(result.error.message || 'Optimization failed');
 
-      setCurrentRunId(data.runId);
+      const data = result.data;
+      if (data?.runId) setCurrentRunId(data.runId);
       refetchRuns();
 
       toast({
         title: "Schedule Optimized",
-        description: `Generated ${data.assignmentsCount} optimized assignments`,
+        description: `Generated ${data?.assignmentsCount || 0} optimized assignments`,
       });
     } catch (error) {
       console.error('Optimization error:', error);
@@ -99,7 +91,7 @@ export default function ScheduleOptimizer() {
     try {
       // Apply optimized assignments to work orders
       for (const assignment of assignments) {
-        await supabase
+        await apiClient
           .from('work_orders')
           .update({
             assigned_to: assignment.technician_id,
@@ -111,7 +103,7 @@ export default function ScheduleOptimizer() {
       }
 
       // Mark assignments as applied
-      await supabase
+      await apiClient
         .from('optimized_schedule_assignments')
         .update({
           applied: true,
