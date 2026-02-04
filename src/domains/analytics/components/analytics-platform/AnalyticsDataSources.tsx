@@ -12,6 +12,35 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface DataSource {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  description?: string;
+  sync_schedule?: string;
+  last_sync_at?: string;
+}
+
+interface DataSourcePayload {
+  workspace_id: string;
+  type: FormDataEntryValue | null;
+  name: FormDataEntryValue | null;
+  description: FormDataEntryValue | null;
+  config: {
+    host: FormDataEntryValue | null;
+    port: FormDataEntryValue | null;
+    database: FormDataEntryValue | null;
+    username: FormDataEntryValue | null;
+  };
+  sync_schedule: FormDataEntryValue | null;
+}
+
 export function AnalyticsDataSources() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -41,7 +70,7 @@ export function AnalyticsDataSources() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: DataSourcePayload) => {
       const result = await apiClient.functions.invoke("analytics-data-source-manager", {
         body: { action: "create", payload },
       });
@@ -105,7 +134,7 @@ export function AnalyticsDataSources() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>
@@ -218,7 +247,7 @@ export function AnalyticsDataSources() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {dataSources?.map((source: any) => (
+          {dataSources?.map((source: DataSource) => (
             <Card key={source.id} className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">

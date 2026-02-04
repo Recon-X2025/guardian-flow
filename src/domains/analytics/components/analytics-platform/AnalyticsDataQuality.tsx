@@ -7,6 +7,26 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Play, Plus, TrendingUp, AlertCircle, CheckCircle } from "lucide-react";
 
+interface QualityRule {
+  id: string;
+  name: string;
+  description?: string;
+  severity: string;
+  is_active: boolean;
+  rule_type: string;
+  table_name: string;
+}
+
+interface QualityResult {
+  id: string;
+  rule?: { name: string };
+  passed: boolean;
+  score?: number;
+  records_tested: number;
+  records_failed: number;
+  execution_time: string;
+}
+
 export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
 
@@ -57,10 +77,10 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
   };
 
   const overallScore = qualityResults && qualityResults.length > 0
-    ? qualityResults.reduce((sum: number, r: any) => sum + (r.score || 0), 0) / qualityResults.length
+    ? qualityResults.reduce((sum: number, r: QualityResult) => sum + (r.score || 0), 0) / qualityResults.length
     : 0;
 
-  const passedChecks = qualityResults?.filter((r: any) => r.passed).length || 0;
+  const passedChecks = qualityResults?.filter((r: QualityResult) => r.passed).length || 0;
   const totalChecks = qualityResults?.length || 0;
 
   return (
@@ -86,7 +106,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{qualityRules?.filter((r: any) => r.is_active).length || 0}</div>
+            <div className="text-2xl font-bold">{qualityRules?.filter((r: QualityRule) => r.is_active).length || 0}</div>
             <p className="text-xs text-muted-foreground">
               {qualityRules?.length || 0} total rules
             </p>
@@ -123,7 +143,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {qualityRules?.map((rule: any) => (
+            {qualityRules?.map((rule: QualityRule) => (
               <div key={rule.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
@@ -162,7 +182,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {qualityResults?.slice(0, 10).map((result: any) => (
+            {qualityResults?.slice(0, 10).map((result: QualityResult) => (
               <div key={result.id} className="flex items-start justify-between p-3 border rounded">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

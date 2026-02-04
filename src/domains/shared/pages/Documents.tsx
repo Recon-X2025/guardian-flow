@@ -15,7 +15,7 @@ export default function Documents() {
   const { data: documents, isLoading } = useQuery({
     queryKey: ['documents', searchTerm],
     queryFn: async () => {
-      let query = supabase
+      let query = apiClient
         .from('documents')
         .select('*')
         .order('created_at', { ascending: false });

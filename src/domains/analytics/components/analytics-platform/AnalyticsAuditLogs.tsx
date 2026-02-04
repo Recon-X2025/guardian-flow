@@ -8,6 +8,25 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Search, Filter, Download, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface AuditLog {
+  id: string;
+  workspace_id: string;
+  user_email?: string;
+  user_id?: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  status: string;
+  created_at: string;
+  details?: Record<string, string | number | boolean>;
+  ip_address?: string;
+}
+
 export function AnalyticsAuditLogs() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,11 +118,11 @@ export function AnalyticsAuditLogs() {
           },
         ];
       }
-      return data || [];
+      return result.data || [];
     },
   });
 
-  const filteredLogs = auditLogs?.filter((log: any) => {
+  const filteredLogs = auditLogs?.filter((log: AuditLog) => {
     const matchesSearch = !searchQuery || 
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.user_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -136,7 +155,7 @@ export function AnalyticsAuditLogs() {
   const handleExport = () => {
     const csv = [
       ["Timestamp", "User", "Action", "Resource Type", "Resource ID", "Status", "IP Address"],
-      ...(filteredLogs?.map((log: any) => [
+      ...(filteredLogs?.map((log: AuditLog) => [
         new Date(log.created_at).toISOString(),
         log.user_email || "System",
         log.action,
@@ -165,7 +184,7 @@ export function AnalyticsAuditLogs() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>
@@ -239,7 +258,7 @@ export function AnalyticsAuditLogs() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {auditLogs?.filter((l: any) => l.status === 'success').length || 0}
+              {auditLogs?.filter((l: AuditLog) => l.status === 'success').length || 0}
             </div>
             <p className="text-xs text-muted-foreground">Operations</p>
           </CardContent>
@@ -252,7 +271,7 @@ export function AnalyticsAuditLogs() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {auditLogs?.filter((l: any) => l.status === 'failure').length || 0}
+              {auditLogs?.filter((l: AuditLog) => l.status === 'failure').length || 0}
             </div>
             <p className="text-xs text-muted-foreground">Operations</p>
           </CardContent>
@@ -265,7 +284,7 @@ export function AnalyticsAuditLogs() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Set(auditLogs?.map((l: any) => l.user_id)).size || 0}
+              {new Set(auditLogs?.map((l: AuditLog) => l.user_id)).size || 0}
             </div>
             <p className="text-xs text-muted-foreground">Active users</p>
           </CardContent>
@@ -285,7 +304,7 @@ export function AnalyticsAuditLogs() {
             <p className="text-center text-muted-foreground py-8">No audit logs found</p>
           ) : (
             <div className="space-y-2">
-              {filteredLogs?.map((log: any) => (
+              {filteredLogs?.map((log: AuditLog) => (
                 <div key={log.id} className="flex items-start gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex-shrink-0 mt-1">
                     {getStatusIcon(log.status)}

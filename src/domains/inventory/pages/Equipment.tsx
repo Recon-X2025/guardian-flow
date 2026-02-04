@@ -25,7 +25,7 @@ export default function Equipment() {
     queryKey: ['equipment', searchTerm, tenantId, isSysAdmin],
     enabled: !rbacLoading && (isSysAdmin || !!tenantId),
     queryFn: async () => {
-      let query = supabase
+      let query = apiClient
         .from('equipment')
         .select('*, customers(company_name, first_name, last_name)')
         .order('created_at', { ascending: false }) as any;

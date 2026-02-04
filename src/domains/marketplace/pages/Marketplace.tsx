@@ -15,7 +15,7 @@ export default function Marketplace() {
   const { data: extensions, isLoading } = useQuery({
     queryKey: ['marketplace-extensions'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (apiClient as any)
         .from('marketplace_extensions')
         .select('*')
         .eq('status', 'approved')
@@ -29,7 +29,7 @@ export default function Marketplace() {
   const { data: installed } = useQuery({
     queryKey: ['installed-extensions'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await (apiClient as any).functions.invoke('marketplace-extension-manager', {
         body: { action: 'list_installed' }
       });
       
@@ -40,7 +40,7 @@ export default function Marketplace() {
 
   const installMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { data, error } = await (supabase as any).functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await (apiClient as any).functions.invoke('marketplace-extension-manager', {
         body: { action: 'install', extensionId }
       });
       
@@ -65,7 +65,7 @@ export default function Marketplace() {
 
   const uninstallMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { data, error } = await (supabase as any).functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await (apiClient as any).functions.invoke('marketplace-extension-manager', {
         body: { action: 'uninstall', extensionId }
       });
       

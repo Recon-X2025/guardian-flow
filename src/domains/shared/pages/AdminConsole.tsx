@@ -120,7 +120,7 @@ export default function AdminConsole() {
   };
 
   const loadPlatformSettings = async () => {
-    let query = supabase
+    let query = apiClient
       .from('platform_settings' as any)
       .select('*')
       .order('created_at', { ascending: false }) as any;
@@ -137,7 +137,7 @@ export default function AdminConsole() {
 
   const loadBillingData = async () => {
     // Load billing plans
-    const { data: plans, error: plansError } = await supabase
+    const { data: plans, error: plansError } = await apiClient
       .from('billing_plans' as any)
       .select('*')
       .eq('is_active', true)
@@ -148,14 +148,14 @@ export default function AdminConsole() {
 
     // Load tenant subscription if tenant admin
     if (rbac.hasRole('tenant_admin')) {
-      const { data: profile } = await supabase
+      const { data: profile } = await apiClient
         .from('profiles')
         .select('tenant_id')
         .eq('id', user?.id)
         .single();
 
       if (profile?.tenant_id) {
-        const { data: subscription } = await supabase
+        const { data: subscription } = await apiClient
           .from('tenant_subscriptions' as any)
           .select('*, billing_plan:billing_plans(*)')
           .eq('tenant_id', profile.tenant_id)
@@ -167,7 +167,7 @@ export default function AdminConsole() {
   };
 
   const loadUsageAnalytics = async () => {
-    const { data: profile } = await supabase
+    const { data: profile } = await apiClient
       .from('profiles')
       .select('tenant_id')
       .eq('id', user?.id)
@@ -179,7 +179,7 @@ export default function AdminConsole() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('usage_analytics' as any)
       .select('*')
       .eq('tenant_id', profile.tenant_id)
@@ -204,7 +204,7 @@ export default function AdminConsole() {
   };
 
   const loadSystemHealth = async () => {
-    let query = supabase
+    let query = apiClient
       .from('system_health_metrics' as any)
       .select('*')
       .order('recorded_at', { ascending: false })
@@ -233,11 +233,11 @@ export default function AdminConsole() {
   };
 
   const loadUserStats = async () => {
-    let profilesQuery = supabase
+    let profilesQuery = apiClient
       .from('profiles')
       .select('*', { count: 'exact', head: true }) as any;
     
-    let rolesQuery = supabase
+    let rolesQuery = apiClient
       .from('user_roles')
       .select('role, tenant_id') as any;
     
@@ -262,7 +262,7 @@ export default function AdminConsole() {
   };
 
   const loadIntegrations = async () => {
-    const { data: profile } = await supabase
+    const { data: profile } = await apiClient
       .from('profiles')
       .select('tenant_id')
       .eq('id', user?.id)
@@ -270,7 +270,7 @@ export default function AdminConsole() {
 
     if (!profile?.tenant_id) return;
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('platform_integrations' as any)
       .select('*')
       .eq('tenant_id', profile.tenant_id)
@@ -290,14 +290,14 @@ export default function AdminConsole() {
       return;
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await apiClient
       .from('profiles')
       .select('tenant_id')
       .eq('id', user?.id)
       .single();
 
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('platform_settings' as any)
         .upsert({
           tenant_id: profile?.tenant_id,
@@ -336,7 +336,7 @@ export default function AdminConsole() {
       return;
     }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await apiClient
       .from('profiles')
       .select('tenant_id')
       .eq('id', user?.id)
@@ -354,7 +354,7 @@ export default function AdminConsole() {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('tenant_subscriptions' as any)
         .upsert({
           tenant_id: profile.tenant_id,
@@ -385,7 +385,7 @@ export default function AdminConsole() {
 
   const toggleIntegration = async (integrationId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('platform_integrations' as any)
         .update({ is_active: !currentStatus })
         .eq('id', integrationId);

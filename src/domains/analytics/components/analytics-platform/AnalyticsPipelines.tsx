@@ -12,6 +12,41 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Play, Plus, Pause, GitBranch, Clock } from "lucide-react";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface DataSource {
+  id: string;
+  name: string;
+}
+
+interface Pipeline {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  schedule?: string;
+  last_run_at?: string;
+}
+
+interface PipelinePayload {
+  workspace_id: string;
+  name: FormDataEntryValue | null;
+  description: FormDataEntryValue | null;
+  source_id: FormDataEntryValue | null;
+  config: {
+    transformations: Array<{
+      type: string;
+      condition?: string;
+      group_by?: string[];
+      metrics?: string[];
+    }>;
+  };
+  schedule: FormDataEntryValue | null;
+}
+
 export function AnalyticsPipelines() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -53,7 +88,7 @@ export function AnalyticsPipelines() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: PipelinePayload) => {
       const result = await apiClient.functions.invoke("analytics-pipeline-executor", {
         body: { action: "create", payload },
       });
@@ -94,7 +129,7 @@ export function AnalyticsPipelines() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>
@@ -130,7 +165,7 @@ export function AnalyticsPipelines() {
                     <SelectValue placeholder="Select source" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dataSources?.map((source: any) => (
+                    {dataSources?.map((source: DataSource) => (
                       <SelectItem key={source.id} value={source.id}>{source.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -177,7 +212,7 @@ export function AnalyticsPipelines() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {pipelines?.map((pipeline: any) => (
+          {pipelines?.map((pipeline: Pipeline) => (
             <Card key={pipeline.id} className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">

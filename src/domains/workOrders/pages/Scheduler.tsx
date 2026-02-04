@@ -19,12 +19,12 @@ export default function Scheduler() {
   const fetchData = async () => {
     try {
       const [woData, techData] = await Promise.all([
-        supabase
+        apiClient
           .from('work_orders')
           .select('*, ticket:tickets(*), technician:profiles(full_name)')
           .order('created_at', { ascending: false })
           .limit(20),
-        supabase
+        apiClient
           .from('profiles')
           .select('id, full_name, email, user_roles!user_roles_user_id_fkey!inner(role)')
           .eq('user_roles.role', 'technician')
@@ -49,7 +49,7 @@ export default function Scheduler() {
 
   const assignTechnician = async (workOrderId: string, technicianId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('work_orders')
         .update({ technician_id: technicianId })
         .eq('id', workOrderId);

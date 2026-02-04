@@ -13,6 +13,16 @@ export type ChartConfig = {
   } & ({ color?: string; theme?: never } | { color?: never; theme: Record<keyof typeof THEMES, string> });
 };
 
+// Types for chart tooltip and legend payloads
+interface ChartPayloadItem {
+  name?: string;
+  dataKey?: string;
+  value?: number | string;
+  color?: string;
+  fill?: string;
+  payload?: Record<string, string | number>;
+}
+
 type ChartContextProps = {
   config: ChartConfig;
 };
@@ -98,8 +108,8 @@ const ChartTooltipContent = React.forwardRef<
       indicator?: "line" | "dot" | "dashed";
       nameKey?: string;
       labelKey?: string;
-      payload?: any[];
-      label?: any;
+      payload?: ChartPayloadItem[];
+      label?: string | number;
     }
 >(
   (
@@ -232,7 +242,7 @@ const ChartLegend = RechartsPrimitive.Legend;
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    payload?: any[];
+    payload?: ChartPayloadItem[];
     verticalAlign?: "top" | "bottom";
     hideIcon?: boolean;
     nameKey?: string;

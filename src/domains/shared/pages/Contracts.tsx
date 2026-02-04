@@ -18,7 +18,7 @@ export default function Contracts() {
   const { data: contracts, isLoading, refetch } = useQuery({
     queryKey: ['contracts', searchTerm],
     queryFn: async () => {
-      let query = supabase
+      let query = apiClient
         .from('service_contracts')
         .select('*, customers(company_name, first_name, last_name)')
         .order('created_at', { ascending: false });

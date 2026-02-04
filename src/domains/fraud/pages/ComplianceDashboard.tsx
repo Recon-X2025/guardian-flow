@@ -9,7 +9,7 @@ export default function ComplianceDashboard() {
   const { data: auditLogs } = useQuery({
     queryKey: ['audit-logs'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -22,7 +22,7 @@ export default function ComplianceDashboard() {
   const { data: behaviorEvents } = useQuery({
     queryKey: ['user-behavior'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('user_behavior_events' as any)
         .select('*')
         .order('timestamp', { ascending: false })
@@ -35,7 +35,7 @@ export default function ComplianceDashboard() {
   const { data: complianceReports } = useQuery({
     queryKey: ['compliance-reports'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('compliance_reports' as any)
         .select('*')
         .order('generated_at', { ascending: false });

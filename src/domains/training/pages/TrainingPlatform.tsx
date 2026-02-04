@@ -14,7 +14,7 @@ export default function TrainingPlatform() {
   const { data: courses, isLoading: coursesLoading } = useQuery({
     queryKey: ['training-courses'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('training_courses')
         .select('*')
         .eq('is_published', true)
@@ -27,7 +27,7 @@ export default function TrainingPlatform() {
   const { data: enrollments } = useQuery({
     queryKey: ['my-enrollments'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('training_enrollments')
         .select(`
           *,
@@ -42,7 +42,7 @@ export default function TrainingPlatform() {
   const { data: certifications } = useQuery({
     queryKey: ['my-certificates'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('training_certifications')
         .select(`
           *,

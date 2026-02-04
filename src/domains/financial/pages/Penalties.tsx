@@ -23,7 +23,7 @@ export default function Penalties() {
 
   const fetchPenalties = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('penalty_matrix')
         .select('*')
         .eq('active', true)

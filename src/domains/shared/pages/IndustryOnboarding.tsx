@@ -114,7 +114,7 @@ export default function IndustryOnboarding() {
       if (!user) throw new Error("Not authenticated");
 
       // Update tenant with industry configuration
-      const { data: profile } = await supabase
+      const { data: profile } = await apiClient
         .from("profiles")
         .select("tenant_id")
         .eq("id", user.id)
@@ -122,7 +122,7 @@ export default function IndustryOnboarding() {
 
       if (!profile?.tenant_id) throw new Error("No tenant found");
 
-      const { error: tenantError } = await supabase
+      const { error: tenantError } = await apiClient
         .from("tenants")
         .update({
           industry_type: selectedIndustry,

@@ -9,6 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileCheck, Download, Shield, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
 export function AnalyticsCompliance() {
   const [selectedFramework, setSelectedFramework] = useState("soc2");
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
@@ -95,7 +100,7 @@ export function AnalyticsCompliance() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>

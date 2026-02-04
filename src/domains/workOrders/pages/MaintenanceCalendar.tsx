@@ -60,12 +60,12 @@ export default function MaintenanceCalendar() {
   const { data: assets } = useQuery({
     queryKey: ['equipment'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('equipment')
         .select('id, name, model, serial_number')
         .order('name');
-      if (result.error) throw result.error;
-      return result.data;
+      if (error) throw error;
+      return data;
     },
   });
 

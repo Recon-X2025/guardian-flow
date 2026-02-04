@@ -11,6 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Lock, Key, Shield, RefreshCw, Eye, EyeOff, Plus } from "lucide-react";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
 export function AnalyticsSecurity() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isKeyDialogOpen, setIsKeyDialogOpen] = useState(false);
@@ -109,7 +114,7 @@ export function AnalyticsSecurity() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>

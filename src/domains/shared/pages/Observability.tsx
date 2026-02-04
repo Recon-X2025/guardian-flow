@@ -27,7 +27,7 @@ export default function Observability() {
   const fetchObservabilityData = async () => {
     try {
       // Fetch recent audit logs
-      const { data: logs, error: logsError } = await supabase
+      const { data: logs, error: logsError } = await apiClient
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -41,7 +41,7 @@ export default function Observability() {
       const totalEvents = logs?.length || 0;
 
       // Count critical alerts (fraud alerts with high severity)
-      const { count: criticalCount } = await supabase
+      const { count: criticalCount } = await apiClient
         .from('fraud_alerts')
         .select('*', { count: 'exact', head: true })
         .eq('severity', 'high');

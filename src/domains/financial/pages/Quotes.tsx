@@ -30,7 +30,7 @@ export default function Quotes() {
   const fetchQuotes = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('quotes')
         .select('*, sapos_offers(title, price)')
         .order('created_at', { ascending: false });
@@ -54,7 +54,7 @@ export default function Quotes() {
 
   const createQuote = async () => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('quotes')
         .insert([{
           quote_number: formData.quote_number || `Q-${Date.now()}`,

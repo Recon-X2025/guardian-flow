@@ -10,7 +10,7 @@ export default function PartnerPortal() {
   const { data: partners } = useQuery({
     queryKey: ['partners'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('partners')
         .select('*')
         .eq('status', 'active')
@@ -24,7 +24,7 @@ export default function PartnerPortal() {
   const { data: commissions } = useQuery({
     queryKey: ['partner-commissions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('partner_commissions')
         .select('*, partners(company_name)')
         .order('created_at', { ascending: false })

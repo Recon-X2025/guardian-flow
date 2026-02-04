@@ -29,7 +29,7 @@ export default function Dispatch() {
 
   const fetchWorkOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('work_orders')
         .select('*, ticket:tickets(*), technician:profiles(full_name)')
         .in('status', ['pending_validation', 'in_progress'])
@@ -50,7 +50,7 @@ export default function Dispatch() {
 
   const updateStatus = async (woId: string, newStatus: 'completed' | 'in_progress') => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('work_orders')
         .update({ status: newStatus })
         .eq('id', woId);

@@ -11,7 +11,7 @@ export default function PredictiveMaintenance() {
   const { data: predictions, isLoading } = useQuery({
     queryKey: ['maintenance-predictions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('maintenance_predictions')
         .select('*, equipment(name, equipment_number, serial_number)')
         .order('failure_probability', { ascending: false })

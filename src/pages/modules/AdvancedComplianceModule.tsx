@@ -53,7 +53,7 @@ export default function AdvancedComplianceModule() {
       // For now, show placeholder data since tables don't exist yet
       // TODO: Uncomment when compliance tables are created
       /*
-      const { data: controlsData } = await supabase
+      const { data: controlsData } = await apiClient
         .from("compliance_controls")
         .select("*")
         .eq("framework", selectedFramework)
@@ -64,7 +64,7 @@ export default function AdvancedComplianceModule() {
         calculateComplianceScore(controlsData);
       }
 
-      const { data: evidenceData } = await supabase
+      const { data: evidenceData } = await apiClient
         .from("compliance_evidence")
         .select("*")
         .order("collected_at", { ascending: false })

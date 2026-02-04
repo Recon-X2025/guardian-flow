@@ -17,7 +17,7 @@ export default function OfferAI() {
   const fetchOffers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('sapos_offers')
         .select('*, work_orders(wo_number)')
         .order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export default function OfferAI() {
 
   const fetchWorkOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('work_orders')
         .select('id, wo_number, status')
         .in('status', ['in_progress', 'pending_validation'])
@@ -88,7 +88,7 @@ export default function OfferAI() {
 
   const acceptOffer = async (offerId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('sapos_offers')
         .update({ status: 'accepted' })
         .eq('id', offerId);
@@ -255,7 +255,7 @@ export default function OfferAI() {
                     <Button
                       variant="outline"
                       onClick={async () => {
-                        await supabase
+                        await apiClient
                           .from('sapos_offers')
                           .update({ status: 'declined' })
                           .eq('id', offer.id);

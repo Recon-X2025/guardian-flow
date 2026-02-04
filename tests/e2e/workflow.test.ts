@@ -10,7 +10,7 @@ async function login(page) {
   const passwordInput = page.locator('input[type="password"]').first();
   await emailInput.waitFor({ state: 'visible', timeout: 10000 });
   await emailInput.fill('admin@techcorp.com');
-  await passwordInput.fill('Admin123!');
+  await passwordInput.fill('TestAdmin123!');
   await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await page.waitForURL(/\/(dashboard|tickets|work-orders)/, { timeout: 15000 });
 }

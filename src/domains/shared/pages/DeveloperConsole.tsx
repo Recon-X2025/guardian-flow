@@ -30,7 +30,7 @@ export default function DeveloperConsole() {
     }
 
     // Get user profile and tenant
-    const { data: profile } = await supabase
+    const { data: profile } = await apiClient
       .from('profiles')
       .select('tenant_id')
       .eq('id', user.id)
@@ -54,7 +54,7 @@ export default function DeveloperConsole() {
     setLoading(true);
     try {
       // Load API keys
-      const { data: keys } = await supabase
+      const { data: keys } = await apiClient
         .from('tenant_api_keys')
         .select('*')
         .eq('tenant_id', tid)
@@ -66,7 +66,7 @@ export default function DeveloperConsole() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: usage } = await supabase
+      const { data: usage } = await apiClient
         .from('api_usage_logs')
         .select('endpoint, timestamp, status_code')
         .eq('tenant_id', tid)
@@ -78,7 +78,7 @@ export default function DeveloperConsole() {
       }
 
       // Load billing data
-      const { data: billing } = await supabase
+      const { data: billing } = await apiClient
         .from('billing_usage')
         .select('*')
         .eq('tenant_id', tid)
@@ -125,7 +125,7 @@ export default function DeveloperConsole() {
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('tenant_api_keys')
         .insert({
           tenant_id: tenantId,
@@ -154,7 +154,7 @@ export default function DeveloperConsole() {
 
   const revokeApiKey = async (keyId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('tenant_api_keys')
         .update({ status: 'revoked' })
         .eq('id', keyId);

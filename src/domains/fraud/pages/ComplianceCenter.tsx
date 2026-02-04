@@ -15,7 +15,7 @@ export default function ComplianceCenter() {
   const { data: frameworks, isLoading } = useQuery({
     queryKey: ['compliance-frameworks'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (apiClient as any)
         .from('compliance_frameworks')
         .select(`
           *,
@@ -32,7 +32,7 @@ export default function ComplianceCenter() {
 
   const collectEvidenceMutation = useMutation({
     mutationFn: async (frameworkId: string) => {
-      const { data, error } = await (supabase as any).functions.invoke('compliance-policy-enforcer', {
+      const { data, error } = await (apiClient as any).functions.invoke('compliance-policy-enforcer', {
         body: { action: 'collect_evidence', frameworkId }
       });
       
@@ -50,7 +50,7 @@ export default function ComplianceCenter() {
 
   const generateReportMutation = useMutation({
     mutationFn: async (frameworkId: string) => {
-      const { data, error } = await (supabase as any).functions.invoke('compliance-policy-enforcer', {
+      const { data, error } = await (apiClient as any).functions.invoke('compliance-policy-enforcer', {
         body: { action: 'generate_report', frameworkId }
       });
       

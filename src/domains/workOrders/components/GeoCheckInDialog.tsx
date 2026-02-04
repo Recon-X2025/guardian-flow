@@ -69,7 +69,7 @@ export function GeoCheckInDialog({
             check_out_at: new Date().toISOString(),
           };
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await apiClient
         .from('work_orders')
         .update(updateData)
         .eq('id', workOrderId);

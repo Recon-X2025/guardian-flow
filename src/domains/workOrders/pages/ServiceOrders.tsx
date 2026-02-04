@@ -26,7 +26,7 @@ export default function ServiceOrders() {
   const fetchServiceOrders = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('service_orders')
         .select('*, work_orders(wo_number, cost_to_customer)')
         .order('created_at', { ascending: false });
@@ -51,7 +51,7 @@ export default function ServiceOrders() {
 
   const fetchWorkOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('work_orders')
         .select('id, wo_number, status')
         .in('status', ['in_progress', 'pending_validation'])

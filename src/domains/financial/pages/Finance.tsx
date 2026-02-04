@@ -30,12 +30,12 @@ export default function Finance() {
     setLoading(true);
     try {
       // Build queries with tenant filtering - only sys_admin sees ALL data
-      let invoicesQuery = supabase
+      let invoicesQuery = apiClient
         .from('invoices')
         .select('*, work_orders(wo_number, tenant_id)')
         .order('created_at', { ascending: false }) as any;
       
-      let penaltiesQuery = supabase
+      let penaltiesQuery = apiClient
         .from('penalty_applications')
         .select('*, work_orders(wo_number, tenant_id)')
         .order('created_at', { ascending: false }) as any;

@@ -23,7 +23,7 @@ export default function FunctionTelemetry() {
   }, []);
 
   const fetchTelemetry = async () => {
-    const { data } = await (supabase as any)
+    const { data } = await (apiClient as any)
       .from('function_telemetry')
       .select('*')
       .order('created_at', { ascending: false })

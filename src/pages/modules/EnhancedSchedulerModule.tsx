@@ -60,8 +60,8 @@ export default function EnhancedSchedulerModule() {
   const loadScheduleData = async () => {
     try {
       // Load technicians
-      // @ts-ignore - Supabase type inference issue
-      const techResponse = await supabase
+      // @ts-ignore - API client type inference issue
+      const techResponse = await apiClient
         .from("technicians")
         .select("*")
         .eq("is_active", true);
@@ -77,8 +77,8 @@ export default function EnhancedSchedulerModule() {
       }
 
       // Load unscheduled work orders
-      // @ts-ignore - Supabase type inference issue
-      const woResponse = await supabase
+      // @ts-ignore - API client type inference issue
+      const woResponse = await apiClient
         .from("work_orders")
         .select("*")
         .in("status", ["draft", "released"])
@@ -129,7 +129,7 @@ export default function EnhancedSchedulerModule() {
   const applyOptimizedSchedule = async (opt: ScheduleOptimization) => {
     try {
       for (const assignment of opt.assignments) {
-        await supabase
+        await apiClient
           .from("work_orders")
           .update({
             assigned_to: assignment.technicianId,

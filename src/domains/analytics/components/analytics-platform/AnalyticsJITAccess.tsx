@@ -12,6 +12,33 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Shield, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface AccessRequest {
+  id: string;
+  resource_type: string;
+  resource_id?: string;
+  access_level: string;
+  justification: string;
+  status: string;
+  duration_hours: number;
+  expires_at?: string;
+  created_at: string;
+  approved_at?: string;
+}
+
+interface AccessRequestPayload {
+  workspace_id: string;
+  resource_type: FormDataEntryValue | null;
+  resource_id: FormDataEntryValue | null;
+  access_level: FormDataEntryValue | null;
+  justification: FormDataEntryValue | null;
+  duration_hours: number;
+}
+
 export function AnalyticsJITAccess() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isRequestOpen, setIsRequestOpen] = useState(false);
@@ -41,7 +68,7 @@ export function AnalyticsJITAccess() {
   });
 
   const requestMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: AccessRequestPayload) => {
       const result = await apiClient.functions.invoke("analytics-jit-access", {
         body: { action: "request_access", payload },
       });
@@ -105,8 +132,8 @@ export function AnalyticsJITAccess() {
     }
   };
 
-  const pending = requests?.filter((r: any) => r.status === 'pending').length || 0;
-  const approved = requests?.filter((r: any) => r.status === 'approved').length || 0;
+  const pending = requests?.filter((r: AccessRequest) => r.status === 'pending').length || 0;
+  const approved = requests?.filter((r: AccessRequest) => r.status === 'approved').length || 0;
 
   return (
     <div className="space-y-6">
@@ -158,7 +185,7 @@ export function AnalyticsJITAccess() {
                   <SelectValue placeholder="Select workspace" />
                 </SelectTrigger>
                 <SelectContent>
-                  {workspaces?.map((ws: any) => (
+                  {workspaces?.map((ws: Workspace) => (
                     <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -237,7 +264,7 @@ export function AnalyticsJITAccess() {
             ) : requests?.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No access requests found</p>
             ) : (
-              requests?.map((request: any) => (
+              requests?.map((request: AccessRequest) => (
                 <div key={request.id} className="flex items-start justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">

@@ -49,7 +49,7 @@ export default function RouteOptimization() {
       setLoading(true);
 
       // Load work orders that are released or in progress
-      const { data: wos, error: woError } = await supabase
+      const { data: wos, error: woError } = await apiClient
         .from('work_orders')
         .select(`
           *,
@@ -63,7 +63,7 @@ export default function RouteOptimization() {
       if (woError) throw woError;
 
       // Load technicians with active work orders
-      const { data: techs, error: techError } = await supabase
+      const { data: techs, error: techError } = await apiClient
         .from('profiles')
         .select('id, full_name')
         .in('id', [...new Set((wos || []).map((wo: any) => wo.technician_id).filter(Boolean))]);

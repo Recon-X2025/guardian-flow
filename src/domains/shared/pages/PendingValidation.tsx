@@ -90,7 +90,7 @@ export default function PendingValidation() {
 
   const toggleAgent = async (enabled: boolean) => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('feature_toggles')
         .update({ enabled })
         .eq('feature_key', 'agent_ops_autonomous');

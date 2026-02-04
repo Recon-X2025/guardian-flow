@@ -49,7 +49,7 @@ const AgentDashboard = () => {
 
   const loadAgents = async () => {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (apiClient as any)
         .from('agent_registry')
         .select('*')
         .order('created_at', { ascending: true });

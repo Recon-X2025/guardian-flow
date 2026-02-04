@@ -23,7 +23,7 @@ export default function FraudInvestigation() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('fraud_alerts')
         .select('*')
         .order('created_at', { ascending: false });
@@ -43,7 +43,7 @@ export default function FraudInvestigation() {
 
   const loadDetectionDetails = async (detectionId: string) => {
     try {
-      const { data: detection } = await (supabase as any)
+      const { data: detection } = await (apiClient as any)
         .from("forgery_detections")
         .select("*, fraud_alerts(*)")
         .eq("id", detectionId)
@@ -95,7 +95,7 @@ export default function FraudInvestigation() {
 
   const updateInvestigation = async (alertId: string, status: 'open' | 'in_progress' | 'resolved' | 'escalated') => {
     try {
-      const { error } = await supabase
+      const { error } = await apiClient
         .from('fraud_alerts')
         .update({
           investigation_status: status,

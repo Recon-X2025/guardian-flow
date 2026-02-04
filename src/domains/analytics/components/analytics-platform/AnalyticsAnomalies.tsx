@@ -17,9 +17,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface Anomaly {
+  id: string;
+  metric_name: string;
+  anomaly_type: string;
+  severity: string;
+  acknowledged: boolean;
+  expected_value?: number;
+  detected_value?: number;
+  deviation_score: number;
+  confidence_score: number;
+  detected_at: string;
+}
+
 export function AnalyticsAnomalies({ workspaceId }: { workspaceId: string }) {
   const queryClient = useQueryClient();
-  const [selectedAnomaly, setSelectedAnomaly] = useState<any>(null);
+  const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
 
   const { data: anomalies } = useQuery({
@@ -59,8 +72,8 @@ export function AnalyticsAnomalies({ workspaceId }: { workspaceId: string }) {
     }
   };
 
-  const unacknowledged = anomalies?.filter((a: any) => !a.acknowledged).length || 0;
-  const critical = anomalies?.filter((a: any) => a.severity === 'critical').length || 0;
+  const unacknowledged = anomalies?.filter((a: Anomaly) => !a.acknowledged).length || 0;
+  const critical = anomalies?.filter((a: Anomaly) => a.severity === 'critical').length || 0;
 
   return (
     <div className="space-y-6">
@@ -108,7 +121,7 @@ export function AnalyticsAnomalies({ workspaceId }: { workspaceId: string }) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {anomalies?.map((anomaly: any) => (
+            {anomalies?.map((anomaly: Anomaly) => (
               <div key={anomaly.id} className="flex items-start justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

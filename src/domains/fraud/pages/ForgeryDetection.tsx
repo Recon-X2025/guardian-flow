@@ -47,7 +47,7 @@ export default function ForgeryDetection() {
     setLoading(true);
     try {
       // Fetch detections (using any to bypass type checking until types regenerate)
-      let detectionQuery = (supabase as any)
+      let detectionQuery = (apiClient as any)
         .from('forgery_detections')
         .select('*, attachments(filename), work_orders(wo_number)')
         .order('created_at', { ascending: false })
@@ -61,7 +61,7 @@ export default function ForgeryDetection() {
       setDetections(detectionsData || []);
 
       // Fetch batch jobs
-      const { data: jobsData } = await (supabase as any)
+      const { data: jobsData } = await (apiClient as any)
         .from('forgery_batch_jobs')
         .select('*')
         .order('created_at', { ascending: false })
@@ -69,7 +69,7 @@ export default function ForgeryDetection() {
       setBatchJobs(jobsData || []);
 
       // Fetch active model metrics
-      const { data: metricsData } = await (supabase as any)
+      const { data: metricsData } = await (apiClient as any)
         .from('forgery_model_metrics')
         .select('*')
         .eq('is_active', true)
@@ -79,7 +79,7 @@ export default function ForgeryDetection() {
       setModelMetrics(metricsData);
 
       // Fetch active alerts
-      const { data: alertsData } = await (supabase as any)
+      const { data: alertsData } = await (apiClient as any)
         .from('forgery_monitoring_alerts')
         .select('*')
         .eq('status', 'active')
@@ -102,7 +102,7 @@ export default function ForgeryDetection() {
     setStartingBatch(true);
     try {
       // Get recent work orders with attachments
-      const { data: recentWOs } = await supabase
+      const { data: recentWOs } = await apiClient
         .from('work_orders')
         .select('id')
         .order('created_at', { ascending: false })

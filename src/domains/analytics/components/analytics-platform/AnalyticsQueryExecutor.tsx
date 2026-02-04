@@ -9,11 +9,28 @@ import { Play, Download, Code, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/integrations/api/client";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface DataSource {
+  id: string;
+  name: string;
+}
+
+interface QueryResults {
+  columns: string[];
+  rows: (string | number | boolean | null)[][];
+  execution_time_ms: number;
+  rows_affected: number;
+}
+
 export function AnalyticsQueryExecutor() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [selectedSource, setSelectedSource] = useState<string>("");
   const [query, setQuery] = useState("SELECT * FROM customers LIMIT 100;");
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<QueryResults | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
 
   const { data: workspaces } = useQuery({
@@ -78,7 +95,7 @@ export function AnalyticsQueryExecutor() {
 
     const csv = [
       results.columns.join(","),
-      ...results.rows.map((row: any[]) => row.map(cell => 
+      ...results.rows.map((row: (string | number | boolean | null)[]) => row.map(cell => 
         typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
       ).join(","))
     ].join("\n");
@@ -102,7 +119,7 @@ export function AnalyticsQueryExecutor() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>
@@ -113,7 +130,7 @@ export function AnalyticsQueryExecutor() {
               <SelectValue placeholder="Select data source" />
             </SelectTrigger>
             <SelectContent>
-              {dataSources?.map((source: any) => (
+              {dataSources?.map((source: DataSource) => (
                 <SelectItem key={source.id} value={source.id}>{source.name}</SelectItem>
               ))}
             </SelectContent>
@@ -202,7 +219,7 @@ export function AnalyticsQueryExecutor() {
                   </tr>
                 </thead>
                 <tbody>
-                  {results.rows.map((row: any[], i: number) => (
+                  {results.rows.map((row: (string | number | boolean | null)[], i: number) => (
                     <tr key={i} className="border-b hover:bg-muted/30">
                       {row.map((cell, j) => (
                         <td key={j} className="p-2">

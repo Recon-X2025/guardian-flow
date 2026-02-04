@@ -14,7 +14,7 @@ export default function ABTestManager() {
   const { data: experiments } = useQuery({
     queryKey: ['ab-experiments'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('ab_test_experiments' as any)
         .select('*')
         .order('created_at', { ascending: false });

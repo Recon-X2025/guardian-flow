@@ -23,9 +23,20 @@ import { Plus, Database, TrendingUp, Package, Settings } from "lucide-react";
 import { apiClient } from "@/integrations/api/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { LucideIcon } from "lucide-react";
+
+interface Workspace {
+  id: string;
+  name: string;
+  description?: string;
+  workspace_type: string;
+  status: string;
+  storage_quota_gb: number;
+  query_quota_per_day: number;
+}
 
 interface AnalyticsWorkspacesProps {
-  workspaces: any[];
+  workspaces: Workspace[];
   isLoading: boolean;
 }
 
@@ -67,12 +78,13 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
         query_quota_per_day: 10000,
       });
       queryClient.invalidateQueries({ queryKey: ["analytics-workspaces"] });
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create workspace");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create workspace";
+      toast.error(errorMessage);
     }
   };
 
-  const workspaceTypeIcons: Record<string, any> = {
+  const workspaceTypeIcons: Record<string, LucideIcon> = {
     financial_services: TrendingUp,
     retail: Package,
     telecommunications: Database,
@@ -181,7 +193,7 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {workspaces?.map((workspace: any) => {
+        {workspaces?.map((workspace: Workspace) => {
           const Icon = workspaceTypeIcons[workspace.workspace_type] || Database;
           return (
             <Card key={workspace.id} className="p-6 hover:shadow-lg transition-shadow">

@@ -14,6 +14,32 @@ import { toast } from "sonner";
 import { Brain, Play, Plus, TrendingUp, Activity } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
+interface Workspace {
+  id: string;
+  name: string;
+}
+
+interface MLModel {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  framework: string;
+  model_type: string;
+  version: string;
+  created_at: string;
+}
+
+interface MLModelPayload {
+  workspace_id: string;
+  name: FormDataEntryValue | null;
+  description: FormDataEntryValue | null;
+  model_type: FormDataEntryValue | null;
+  framework: FormDataEntryValue | null;
+  version: string;
+  config: Record<string, never>;
+}
+
 export function AnalyticsMLModels() {
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -43,7 +69,7 @@ export function AnalyticsMLModels() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: MLModelPayload) => {
       const result = await apiClient.functions.invoke("analytics-ml-orchestrator", {
         body: { action: "create", payload },
       });
@@ -115,7 +141,7 @@ export function AnalyticsMLModels() {
               <SelectValue placeholder="Select workspace" />
             </SelectTrigger>
             <SelectContent>
-              {workspaces?.map((ws: any) => (
+              {workspaces?.map((ws: Workspace) => (
                 <SelectItem key={ws.id} value={ws.id}>{ws.name}</SelectItem>
               ))}
             </SelectContent>
@@ -209,7 +235,7 @@ export function AnalyticsMLModels() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {models?.filter((m: any) => m.status === 'deployed').length || 0}
+              {models?.filter((m: MLModel) => m.status === 'deployed').length || 0}
             </div>
             <p className="text-xs text-muted-foreground">In production</p>
           </CardContent>
@@ -251,7 +277,7 @@ export function AnalyticsMLModels() {
             <p className="text-center text-muted-foreground py-8">No models found</p>
           ) : (
             <div className="space-y-3">
-              {models?.map((model: any) => (
+              {models?.map((model: MLModel) => (
                 <div key={model.id} className="flex items-start justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">

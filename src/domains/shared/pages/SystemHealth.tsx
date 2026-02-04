@@ -20,7 +20,7 @@ export default function SystemHealth() {
   const { data: historicalMetrics } = useQuery({
     queryKey: ['system-health-history'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('system_health_metrics' as any)
         .select('*')
         .order('timestamp', { ascending: false })

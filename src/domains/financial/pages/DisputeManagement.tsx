@@ -20,7 +20,7 @@ export default function DisputeManagement() {
   const { data: disputes, isLoading } = useQuery({
     queryKey: ['disputes'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await apiClient
         .from('disputes' as any)
         .select(`
           *,
