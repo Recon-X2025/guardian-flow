@@ -188,8 +188,59 @@ export default function PartnerPortal() {
         <TabsContent value="rules">
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">Commission Rules</h2>
-            <div className="text-center py-12 text-muted-foreground">
-              Commission rules management coming soon...
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="p-4 border-2 border-dashed">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Standard Commission</p>
+                      <p className="text-sm text-muted-foreground">Default tier</p>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">10%</div>
+                  <p className="text-sm text-muted-foreground mt-1">On all referred work orders</p>
+                </Card>
+                <Card className="p-4 border-2 border-dashed">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Premium Partner</p>
+                      <p className="text-sm text-muted-foreground">Volume tier</p>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">15%</div>
+                  <p className="text-sm text-muted-foreground mt-1">For 50+ referrals/month</p>
+                </Card>
+                <Card className="p-4 border-2 border-dashed">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Enterprise Partner</p>
+                      <p className="text-sm text-muted-foreground">Elite tier</p>
+                    </div>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-600">20%</div>
+                  <p className="text-sm text-muted-foreground mt-1">For strategic partners</p>
+                </Card>
+              </div>
+              <Card className="p-4 bg-muted/30">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4" /> Rule Details
+                </h3>
+                <ul className="text-sm space-y-2 text-muted-foreground">
+                  <li>• Commissions are calculated on the net work order value</li>
+                  <li>• Payments are processed monthly on the 15th</li>
+                  <li>• Minimum payout threshold: $100</li>
+                  <li>• Tier upgrades are evaluated quarterly based on performance</li>
+                </ul>
+              </Card>
             </div>
           </Card>
         </TabsContent>

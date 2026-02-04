@@ -202,9 +202,52 @@ export default function Technicians() {
 
         <TabsContent value="schedule">
           <Card className="p-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <p>Schedule view coming soon...</p>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Technician Schedules</h2>
+              <Badge variant="outline">Today: {new Date().toLocaleDateString()}</Badge>
             </div>
+            {technicians && technicians.length > 0 ? (
+              <div className="space-y-4">
+                {technicians.map((tech: any) => (
+                  <div key={tech.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Wrench className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{tech.full_name || `${tech.first_name || ''} ${tech.last_name || ''}`.trim() || 'Unknown'}</p>
+                          <p className="text-sm text-muted-foreground">{tech.email}</p>
+                        </div>
+                      </div>
+                      <Badge variant={tech.availability === 'available' ? 'default' : tech.availability === 'busy' ? 'secondary' : 'outline'}>
+                        {tech.availability || 'Unknown'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => (
+                        <div key={day} className={`text-center p-2 rounded text-xs ${idx < 5 ? 'bg-primary/10' : 'bg-muted'}`}>
+                          <div className="font-medium">{day}</div>
+                          <div className="text-muted-foreground">{idx < 5 ? '9-5' : 'Off'}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {tech.skills && tech.skills.length > 0 && (
+                      <div className="mt-3 flex gap-1 flex-wrap">
+                        {tech.skills.map((skill: string) => (
+                          <Badge key={skill} variant="outline" className="text-xs">{skill}</Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No technicians found. Add technicians to view their schedules.</p>
+              </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>

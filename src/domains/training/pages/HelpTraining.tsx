@@ -350,12 +350,30 @@ export default function HelpTraining() {
 
               <Card className="bg-muted/30">
                 <CardHeader>
-                  <CardTitle className="text-sm">📹 Video Upload Coming Soon</CardTitle>
+                  <CardTitle className="text-sm">📹 Additional Resources</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Training video content will be added here. Contact your administrator to upload module-specific training videos.
-                  </p>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 cursor-pointer">
+                    <div className="h-8 w-8 rounded bg-red-100 flex items-center justify-center text-red-600 text-xs font-bold">PDF</div>
+                    <div>
+                      <p className="text-sm font-medium">User Manual v2.0</p>
+                      <p className="text-xs text-muted-foreground">Complete platform guide</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 cursor-pointer">
+                    <div className="h-8 w-8 rounded bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">DOC</div>
+                    <div>
+                      <p className="text-sm font-medium">Quick Start Guide</p>
+                      <p className="text-xs text-muted-foreground">Get started in 5 minutes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 cursor-pointer">
+                    <div className="h-8 w-8 rounded bg-green-100 flex items-center justify-center text-green-600 text-xs font-bold">XLS</div>
+                    <div>
+                      <p className="text-sm font-medium">Keyboard Shortcuts</p>
+                      <p className="text-xs text-muted-foreground">Boost your productivity</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
