@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { useCurrency } from '@/domains/shared/hooks/useCurrency';
+
+interface Supplier {
+  id: string;
+  name: string;
+  lead_time_days: number;
+  rating: number;
+}
 
 interface PurchaseOrderDialogProps {
   open: boolean;
@@ -24,15 +32,55 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
-  
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
+
   const suggestedQty = (stockLevel?.min_threshold || 10) * 2;
-  
+
   const [formData, setFormData] = useState({
     quantity: suggestedQty,
     unitPrice: item?.unit_price || 0,
     deliveryDate: new Date(Date.now() + (item?.lead_time_days || 7) * 24 * 60 * 60 * 1000),
     notes: '',
   });
+
+  useEffect(() => {
+    if (open) {
+      loadSuppliers();
+    }
+  }, [open]);
+
+  const loadSuppliers = async () => {
+    try {
+      const { data, error } = await apiClient
+        .from('suppliers')
+        .select('id, name, lead_time_days, rating')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      if (data) {
+        setSuppliers(data as Supplier[]);
+        if (data.length > 0 && !selectedSupplier) {
+          setSelectedSupplier(data[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load suppliers:', error);
+    }
+  };
+
+  const handleSupplierChange = (supplierId: string) => {
+    setSelectedSupplier(supplierId);
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (supplier) {
+      // Update delivery date based on supplier's lead time
+      setFormData(prev => ({
+        ...prev,
+        deliveryDate: new Date(Date.now() + supplier.lead_time_days * 24 * 60 * 60 * 1000)
+      }));
+    }
+  };
 
   const totalAmount = formData.quantity * formData.unitPrice;
 
@@ -51,7 +99,7 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
       const response = await apiClient.functions.invoke('create-purchase-order', {
         body: {
           itemId: item.id,
-          supplierId: null, // TODO: Add supplier selection
+          supplierId: selectedSupplier || null,
           quantity: formData.quantity,
           unitPrice: formData.unitPrice,
           deliveryDate: formData.deliveryDate.toISOString(),
@@ -99,6 +147,22 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
               <Label className="text-sm text-muted-foreground">Min Threshold</Label>
               <p className="text-lg font-semibold">{stockLevel?.min_threshold || 10}</p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="supplier">Supplier *</Label>
+            <Select value={selectedSupplier} onValueChange={handleSupplierChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                {suppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name} ({supplier.lead_time_days} day lead time, ★{supplier.rating})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

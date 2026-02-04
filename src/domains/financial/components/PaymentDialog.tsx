@@ -20,7 +20,33 @@ interface PaymentGateway {
   testMode: boolean;
   supportedCurrencies: string[];
   supportedPaymentMethods: string[];
-  publicConfig?: any;
+  publicConfig?: Record<string, unknown>;
+}
+
+interface PaymentIntent {
+  clientSecret?: string;
+  paymentIntentId?: string;
+  publishableKey?: string;
+  orderId?: string;
+  keyId?: string;
+  amount?: number;
+  currency?: string;
+  approvalUrl?: string;
+  transactionId?: string;
+  instructions?: Record<string, unknown>;
+}
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+// Extend window interface for Stripe and Razorpay
+declare global {
+  interface Window {
+    Stripe?: (key: string) => unknown;
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
+  }
 }
 
 interface PaymentDialogProps {
@@ -41,7 +67,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
   const [loading, setLoading] = useState(false);
   const [gateways, setGateways] = useState<PaymentGateway[]>([]);
   const [selectedGateway, setSelectedGateway] = useState<string>('');
-  const [paymentIntent, setPaymentIntent] = useState<any>(null);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent | null>(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -61,7 +87,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
       if (response.data?.gateways?.length > 0) {
         setSelectedGateway(response.data.gateways[0].provider);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching gateways:', error);
     }
   };
@@ -95,7 +121,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
 
       if (response.error) throw response.error;
 
-      const intent = response.data;
+      const intent = response.data as PaymentIntent;
       setPaymentIntent(intent);
 
       // Handle gateway-specific payment flows
@@ -110,10 +136,10 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
       } else if (selectedGateway === 'manual' || selectedGateway === 'bank_transfer') {
         handleManualPayment(intent);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Payment Error',
-        description: error.message || 'Failed to initiate payment',
+        description: error instanceof Error ? error.message : 'Failed to initiate payment',
         variant: 'destructive',
       });
     } finally {
@@ -121,10 +147,10 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
     }
   };
 
-  const handleStripePayment = async (intent: any) => {
+  const handleStripePayment = async (intent: PaymentIntent) => {
     // Load Stripe.js dynamically if not already loaded
     try {
-      if (!(window as any).Stripe) {
+      if (!window.Stripe) {
         const script = document.createElement('script');
         script.src = 'https://js.stripe.com/v3/';
         script.async = true;
@@ -137,12 +163,11 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
         });
       }
 
-      const Stripe = (window as any).Stripe;
-      if (!intent.publishableKey) {
+      if (!window.Stripe || !intent.publishableKey) {
         throw new Error('Stripe publishable key not configured');
       }
 
-      const stripe = Stripe(intent.publishableKey);
+      window.Stripe(intent.publishableKey);
       
       // Redirect to Stripe Checkout or use Payment Element
       // For simplicity, we'll use a redirect-based approach
@@ -165,16 +190,16 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
       // Open Stripe Checkout (if you have a checkout session endpoint)
       // Or display card element for direct payment
       showStripeCardElement(intent);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Stripe Error',
-        description: error.message || 'Failed to initialize Stripe',
+        description: error instanceof Error ? error.message : 'Failed to initialize Stripe',
         variant: 'destructive',
       });
     }
   };
 
-  const showStripeCardElement = async (intent: any) => {
+  const showStripeCardElement = async (intent: PaymentIntent) => {
     // This would show Stripe Elements form
     // For now, we'll use a simplified flow that processes payment via backend
     toast({
@@ -187,10 +212,10 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
     setPaymentIntent(intent);
   };
 
-  const handleRazorpayPayment = async (intent: any) => {
+  const handleRazorpayPayment = async (intent: PaymentIntent) => {
     try {
       // Load Razorpay Checkout script dynamically if not already loaded
-      if (!(window as any).Razorpay) {
+      if (!window.Razorpay) {
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
@@ -203,9 +228,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
         });
       }
 
-      const Razorpay = (window as any).Razorpay;
-      
-      if (!intent.keyId || !intent.orderId) {
+      if (!window.Razorpay || !intent.keyId || !intent.orderId) {
         throw new Error('Razorpay configuration incomplete');
       }
 

@@ -29,12 +29,12 @@ async function retryWithBackoff<T>(
   maxRetries: number = 3,
   baseDelay: number = 1000
 ): Promise<T> {
-  let lastError: any;
-  
+  let lastError: unknown;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
       
       // Don't retry auth errors or forbidden errors
@@ -61,10 +61,10 @@ async function retryWithBackoff<T>(
 /**
  * Standardized API client wrapper with retry logic and proper error handling
  */
-export async function invokeEdgeFunction<T = any>(
+export async function invokeEdgeFunction<T = unknown>(
   functionName: string,
   options: {
-    body?: any;
+    body?: unknown;
     headers?: Record<string, string>;
     retries?: number;
   } = {}
@@ -91,7 +91,7 @@ export async function invokeEdgeFunction<T = any>(
     });
 
     if (response.error) {
-      const error = response.error as any;
+      const error = response.error as { code?: string; status?: number; message?: string; correlationId?: string; allowedActions?: string[] };
       const correlationId = error.correlationId || crypto.randomUUID();
 
       if (error.code === 'unauthorized' || error.status === 401) {
@@ -118,10 +118,14 @@ export async function invokeEdgeFunction<T = any>(
   }, retries);
 }
 
+interface ToastFunction {
+  (options: { variant?: string; title: string; description: string }): void;
+}
+
 /**
  * Handle API errors with user-friendly toast messages
  */
-export function handleApiError(error: unknown, toast: any) {
+export function handleApiError(error: unknown, toast: ToastFunction) {
   if (error instanceof UnauthorizedError) {
     toast({
       variant: 'destructive',

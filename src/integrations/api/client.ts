@@ -13,15 +13,42 @@ export interface ApiResponse<T> {
   };
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  full_name?: string;
+  phone?: string;
+}
+
 export interface Session {
   access_token: string;
   expires_at: number;
-  user: {
-    id: string;
-    email: string;
-    full_name?: string;
-    phone?: string;
-  };
+  user: AuthUser;
+}
+
+// Generic record type for database operations
+export type DbRecord = Record<string, unknown>;
+
+// Database query options
+export interface QueryOptions {
+  select?: string;
+  where?: Record<string, unknown>;
+  orderBy?: string;
+  limit?: number;
+  offset?: number;
+}
+
+// Database filter with operator
+export interface FilterOperator {
+  operator: string;
+  value: unknown;
+}
+
+// WebSocket message payload
+export interface WebSocketMessage {
+  event: string;
+  channel?: string;
+  payload?: unknown;
 }
 
 class ApiClient {
@@ -95,10 +122,11 @@ class ApiClient {
       }
 
       return { data };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Network error';
       return {
         error: {
-          message: error.message || 'Network error',
+          message: errorMessage,
           code: 'NETWORK_ERROR',
         },
       };
@@ -107,7 +135,7 @@ class ApiClient {
 
   // Auth methods
   async signUp(email: string, password: string, fullName: string) {
-    const response = await this._request<{ user: any; session: Session }>(
+    const response = await this._request<{ user: AuthUser; session: Session }>(
       '/api/auth/signup',
       {
         method: 'POST',
@@ -127,7 +155,7 @@ class ApiClient {
   }
 
   async signIn(email: string, password: string) {
-    const response = await this.request<{ user: any; session: Session }>(
+    const response = await this.request<{ user: AuthUser; session: Session }>(
       '/api/auth/signin',
       {
         method: 'POST',
@@ -156,7 +184,7 @@ class ApiClient {
   }
 
   async getUser() {
-    return this.request<{ user: any }>('/api/auth/user');
+    return this.request<{ user: AuthUser }>('/api/auth/user');
   }
 
   async getSession(): Promise<Session | null> {
@@ -184,52 +212,46 @@ class ApiClient {
   // Database methods (Supabase-like interface)
   from(table: string) {
     const self = this;
-    
+
     class QueryBuilder {
-      private options: {
-        select?: string;
-        where?: Record<string, any>;
-        orderBy?: string;
-        limit?: number;
-        offset?: number;
-      } = { select: '*', where: {} };
+      private options: QueryOptions = { select: '*', where: {} };
 
       select(columns: string = '*') {
         this.options.select = columns;
         return this;
       }
 
-      eq(column: string, value: any) {
+      eq(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: value };
         return this;
       }
 
-      neq(column: string, value: any) {
+      neq(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: { operator: '!=', value } };
         return this;
       }
 
-      gt(column: string, value: any) {
+      gt(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: { operator: '>', value } };
         return this;
       }
 
-      gte(column: string, value: any) {
+      gte(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: { operator: '>=', value } };
         return this;
       }
 
-      lt(column: string, value: any) {
+      lt(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: { operator: '<', value } };
         return this;
       }
 
-      lte(column: string, value: any) {
+      lte(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: { operator: '<=', value } };
         return this;
       }
 
-      in(column: string, values: any[]) {
+      in(column: string, values: unknown[]) {
         this.options.where = { ...this.options.where, [column]: values };
         return this;
       }
@@ -255,7 +277,7 @@ class ApiClient {
         return this;
       }
 
-      async then(callback?: (result: any) => any) {
+      async then<TResult>(callback?: (result: { data: DbRecord[] | null; error: ApiResponse<unknown>['error'] | null; count: number }) => TResult) {
         const result = await self.query(table, this.options);
         if (callback) {
           return callback(result);
@@ -269,24 +291,18 @@ class ApiClient {
     // Return the builder with additional methods
     // Use Object.assign to preserve prototype chain
     return Object.assign(builder, {
-      insert: (data: any) => self.insert(table, data),
-      update: (data: any) => ({
-        eq: (column: string, value: any) => self.update(table, data, { [column]: value }),
+      insert: (data: DbRecord) => self.insert(table, data),
+      update: (data: DbRecord) => ({
+        eq: (column: string, value: unknown) => self.update(table, data, { [column]: value }),
       }),
       delete: () => ({
-        eq: (column: string, value: any) => self.delete(table, { [column]: value }),
+        eq: (column: string, value: unknown) => self.delete(table, { [column]: value }),
       }),
     });
   }
 
-  async query(table: string, options: {
-    select?: string;
-    where?: Record<string, any>;
-    orderBy?: string;
-    limit?: number;
-    offset?: number;
-  }) {
-    const response = await this._request<{ data: any[]; count: number }>(
+  async query(table: string, options: QueryOptions) {
+    const response = await this._request<{ data: DbRecord[]; count: number }>(
       '/api/db/query',
       {
         method: 'POST',
@@ -305,8 +321,8 @@ class ApiClient {
     };
   }
 
-  private async insert(table: string, data: any) {
-    const response = await this._request<{ data: any }>(
+  private async insert(table: string, data: DbRecord) {
+    const response = await this._request<{ data: DbRecord }>(
       `/api/db/${table}`,
       {
         method: 'POST',
@@ -321,10 +337,10 @@ class ApiClient {
     return { data: response.data?.data || null, error: null };
   }
 
-  private async update(table: string, data: any, where: Record<string, any>) {
+  private async update(table: string, data: DbRecord, where: Record<string, unknown>) {
     // For simplicity, we'll use the first where condition as the ID
     const id = Object.values(where)[0];
-    const response = await this._request<{ data: any }>(
+    const response = await this._request<{ data: DbRecord }>(
       `/api/db/${table}/${id}`,
       {
         method: 'PATCH',
@@ -339,9 +355,9 @@ class ApiClient {
     return { data: response.data?.data || null, error: null };
   }
 
-  private async delete(table: string, where: Record<string, any>) {
+  private async delete(table: string, where: Record<string, unknown>) {
     const id = Object.values(where)[0];
-    const response = await this._request<{ data: any }>(
+    const response = await this._request<{ data: DbRecord }>(
       `/api/db/${table}/${id}`,
       {
         method: 'DELETE',
@@ -408,8 +424,8 @@ class ApiClient {
 
   // Edge functions replacement
   functions = {
-    invoke: async (functionName: string, options?: { body?: any; headers?: Record<string, string> }) => {
-      const response = await this._request(
+    invoke: async <T = unknown>(functionName: string, options?: { body?: unknown; headers?: Record<string, string> }) => {
+      const response = await this._request<T>(
         `/api/functions/${functionName}`,
         {
           method: 'POST',
@@ -449,8 +465,9 @@ class ApiClient {
 
           const data = await response.json();
           return { data, error: null };
-        } catch (error: any) {
-          return { data: null, error: { message: error.message } };
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+          return { data: null, error: { message: errorMessage } };
         }
       },
       getPublicUrl: (path: string) => ({
@@ -470,8 +487,9 @@ class ApiClient {
             })
           );
           return { data: results, error: null };
-        } catch (error: any) {
-          return { data: null, error: { message: error.message } };
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Delete failed';
+          return { data: null, error: { message: errorMessage } };
         }
       },
     }),
@@ -479,7 +497,7 @@ class ApiClient {
 
   // Real-time WebSocket implementation
   private ws: WebSocket | null = null;
-  private wsChannels: Map<string, Set<(payload: any) => void>> = new Map();
+  private wsChannels: Map<string, Set<(payload: unknown) => void>> = new Map();
   private wsReconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
@@ -531,7 +549,7 @@ class ApiClient {
     }
   }
 
-  private handleWebSocketMessage(data: any) {
+  private handleWebSocketMessage(data: WebSocketMessage) {
     const { event, channel, payload } = data;
 
     if (event === 'broadcast' && channel && this.wsChannels.has(channel)) {
@@ -560,11 +578,11 @@ class ApiClient {
     this.connectWebSocket();
 
     const channelObj = {
-      on: (event: string, configOrCallback: any, callback?: (payload: any) => void) => {
+      on: (event: string, configOrCallback: unknown, callback?: (payload: unknown) => void) => {
         // Handle both Supabase-style: .on('postgres_changes', config, callback)
         // and simple: .on('broadcast', callback)
-        let actualCallback = callback || configOrCallback;
-        
+        const actualCallback = (callback || configOrCallback) as (payload: unknown) => void;
+
         if (event === 'postgres_changes' || event === 'broadcast' || event === '*') {
           const callbacks = this.wsChannels.get(name);
           if (callbacks) {
@@ -594,7 +612,7 @@ class ApiClient {
     return channelObj;
   }
 
-  removeChannel(channel: any) {
+  removeChannel(channel: { unsubscribe?: () => void } | null) {
     // Channel is an object with unsubscribe method
     if (channel && typeof channel.unsubscribe === 'function') {
       channel.unsubscribe();
@@ -605,5 +623,5 @@ class ApiClient {
 export const apiClient = new ApiClient(API_URL);
 
 // For backward compatibility, export as "supabase"
-export const supabase = apiClient as any;
+export const supabase = apiClient;
 

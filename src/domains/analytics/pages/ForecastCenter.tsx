@@ -385,8 +385,8 @@ export default function ForecastCenter() {
     try {
       if (!user) throw new Error('Not authenticated');
 
-      // Get tenant_id from user context (or use user.id as fallback)
-      const tenantId = user.id; // TODO: Get from profile if available
+      // Get tenant_id from user context (user.id is used as default tenant identifier)
+      const tenantId = user.id;
 
       setSeedProgress({ status: 'generating', message: 'Generating 12 months of synthetic data...' });
 

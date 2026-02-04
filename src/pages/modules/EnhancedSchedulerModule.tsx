@@ -60,14 +60,20 @@ export default function EnhancedSchedulerModule() {
   const loadScheduleData = async () => {
     try {
       // Load technicians
-      // @ts-ignore - API client type inference issue
       const techResponse = await apiClient
         .from("technicians")
         .select("*")
         .eq("is_active", true);
 
       if (techResponse.data) {
-        setTechnicians(techResponse.data.map((t: any) => ({
+        interface TechnicianRecord {
+          id: string;
+          name: string;
+          skills?: string[];
+          current_location?: { lat: number; lng: number };
+          availability_status?: string;
+        }
+        setTechnicians((techResponse.data as TechnicianRecord[]).map((t) => ({
           id: t.id,
           name: t.name,
           skills: t.skills || [],
@@ -77,7 +83,6 @@ export default function EnhancedSchedulerModule() {
       }
 
       // Load unscheduled work orders
-      // @ts-ignore - API client type inference issue
       const woResponse = await apiClient
         .from("work_orders")
         .select("*")
@@ -85,7 +90,16 @@ export default function EnhancedSchedulerModule() {
         .is("assigned_to", null);
 
       if (woResponse.data) {
-        setWorkOrders(woResponse.data.map((wo: any) => ({
+        interface WorkOrderRecord {
+          id: string;
+          title: string;
+          priority: string;
+          location?: { lat: number; lng: number };
+          estimated_hours?: number;
+          required_skills?: string[];
+          assigned_to?: string;
+        }
+        setWorkOrders((woResponse.data as WorkOrderRecord[]).map((wo) => ({
           id: wo.id,
           title: wo.title,
           priority: wo.priority,
@@ -113,12 +127,13 @@ export default function EnhancedSchedulerModule() {
 
       if (result.error) throw result.error;
 
+      const data = result.data as ScheduleOptimization;
       setOptimization(data);
       toast.success("Schedule optimized successfully!");
 
       // Apply optimized schedule
       await applyOptimizedSchedule(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Optimization error:", error);
       toast.error("Failed to optimize schedule");
     } finally {

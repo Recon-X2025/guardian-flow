@@ -36,6 +36,72 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
+// Type definitions for admin console
+interface PlatformSetting {
+  id: string;
+  tenant_id?: string;
+  setting_key: string;
+  setting_value: unknown;
+  setting_type: string;
+  updated_at: string;
+  created_at: string;
+}
+
+interface BillingPlan {
+  id: string;
+  name: string;
+  description?: string;
+  price_monthly: number;
+  features: string[];
+  max_users?: number;
+  max_work_orders?: number;
+  is_active: boolean;
+}
+
+interface TenantSubscription {
+  id: string;
+  tenant_id: string;
+  billing_plan_id: string;
+  billing_plan?: BillingPlan;
+  status: string;
+  billing_frequency: string;
+  current_period_start: string;
+  current_period_end: string;
+  auto_renew: boolean;
+}
+
+interface UsageAnalytics {
+  id: string;
+  tenant_id: string;
+  metric_type: string;
+  metric_value: number;
+  recorded_at: string;
+}
+
+interface SystemHealthMetric {
+  id: string;
+  tenant_id?: string;
+  metric_name: string;
+  metric_value: string;
+  status: string;
+  recorded_at: string;
+}
+
+interface PlatformIntegration {
+  id: string;
+  tenant_id: string;
+  integration_name: string;
+  integration_type: string;
+  is_active: boolean;
+  last_sync_at?: string;
+  created_at: string;
+}
+
+interface UserRole {
+  role: string;
+  tenant_id: string;
+}
+
 export default function AdminConsole() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -44,32 +110,32 @@ export default function AdminConsole() {
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   // Platform Configuration State
-  const [platformSettings, setPlatformSettings] = useState<any[]>([]);
+  const [platformSettings, setPlatformSettings] = useState<PlatformSetting[]>([]);
   const [newSettingKey, setNewSettingKey] = useState('');
   const [newSettingValue, setNewSettingValue] = useState('');
   const [newSettingType, setNewSettingType] = useState('system');
-  
+
   // Billing State
-  const [billingPlans, setBillingPlans] = useState<any[]>([]);
-  const [tenantSubscription, setTenantSubscription] = useState<any>(null);
+  const [billingPlans, setBillingPlans] = useState<BillingPlan[]>([]);
+  const [tenantSubscription, setTenantSubscription] = useState<TenantSubscription | null>(null);
   const [selectedPlan, setSelectedPlan] = useState('');
   const [billingFrequency, setBillingFrequency] = useState('monthly');
-  
+
   // Usage Analytics State
-  const [usageData, setUsageData] = useState<any[]>([]);
+  const [usageData, setUsageData] = useState<UsageAnalytics[]>([]);
   const [usageMetrics, setUsageMetrics] = useState({
     totalWorkOrders: 0,
     totalApiCalls: 0,
     totalUsers: 0,
     avgResponseTime: 0
   });
-  
+
   // System Health State
-  const [systemHealth, setSystemHealth] = useState<any[]>([]);
+  const [systemHealth, setSystemHealth] = useState<SystemHealthMetric[]>([]);
   const [overallHealth, setOverallHealth] = useState('healthy');
-  
+
   // User Management State
   const [userStats, setUserStats] = useState({
     totalUsers: 0,
@@ -77,9 +143,9 @@ export default function AdminConsole() {
     adminUsers: 0,
     technicianUsers: 0
   });
-  
+
   // Integrations State
-  const [integrations, setIntegrations] = useState<any[]>([]);
+  const [integrations, setIntegrations] = useState<PlatformIntegration[]>([]);
 
   useEffect(() => {
     // Check admin access
@@ -107,11 +173,11 @@ export default function AdminConsole() {
         loadUserStats(),
         loadIntegrations()
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading admin data:', error);
       toast({
         title: 'Error loading data',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -121,30 +187,30 @@ export default function AdminConsole() {
 
   const loadPlatformSettings = async () => {
     let query = apiClient
-      .from('platform_settings' as any)
+      .from('platform_settings')
       .select('*')
-      .order('created_at', { ascending: false }) as any;
-    
+      .order('created_at', { ascending: false });
+
     // tenant_admin and partner_admin only see their tenant's settings
     if (!rbac.hasRole('sys_admin') && rbac.tenantId) {
       query = query.eq('tenant_id', rbac.tenantId);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
-    setPlatformSettings(data || []);
+    setPlatformSettings((data || []) as PlatformSetting[]);
   };
 
   const loadBillingData = async () => {
     // Load billing plans
     const { data: plans, error: plansError } = await apiClient
-      .from('billing_plans' as any)
+      .from('billing_plans')
       .select('*')
       .eq('is_active', true)
       .order('price_monthly');
-    
+
     if (plansError) throw plansError;
-    setBillingPlans(plans || []);
+    setBillingPlans((plans || []) as BillingPlan[]);
 
     // Load tenant subscription if tenant admin
     if (rbac.hasRole('tenant_admin')) {
@@ -154,14 +220,15 @@ export default function AdminConsole() {
         .eq('id', user?.id)
         .single();
 
-      if (profile?.tenant_id) {
+      const profileData = profile as { tenant_id?: string } | null;
+      if (profileData?.tenant_id) {
         const { data: subscription } = await apiClient
-          .from('tenant_subscriptions' as any)
+          .from('tenant_subscriptions')
           .select('*, billing_plan:billing_plans(*)')
-          .eq('tenant_id', profile.tenant_id)
+          .eq('tenant_id', profileData.tenant_id)
           .single();
-        
-        setTenantSubscription(subscription);
+
+        setTenantSubscription(subscription as TenantSubscription | null);
       }
     }
   };
@@ -173,28 +240,32 @@ export default function AdminConsole() {
       .eq('id', user?.id)
       .single();
 
-    if (!profile?.tenant_id) return;
+    const profileData = profile as { tenant_id?: string } | null;
+    if (!profileData?.tenant_id) return;
 
     // Get usage data for last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const { data, error } = await apiClient
-      .from('usage_analytics' as any)
+      .from('usage_analytics')
       .select('*')
-      .eq('tenant_id', profile.tenant_id)
+      .eq('tenant_id', profileData.tenant_id)
       .gte('recorded_at', thirtyDaysAgo.toISOString())
       .order('recorded_at', { ascending: false });
-    
+
     if (error) throw error;
-    setUsageData(data || []);
+    const usageRecords = (data || []) as UsageAnalytics[];
+    setUsageData(usageRecords);
 
     // Calculate metrics
-    const woCount = data?.filter((d: any) => d.metric_type === 'work_orders')
-      .reduce((sum: number, d: any) => sum + Number(d.metric_value), 0) || 0;
-    const apiCount = data?.filter((d: any) => d.metric_type === 'api_calls')
-      .reduce((sum: number, d: any) => sum + Number(d.metric_value), 0) || 0;
-    
+    const woCount = usageRecords
+      .filter((d) => d.metric_type === 'work_orders')
+      .reduce((sum: number, d) => sum + Number(d.metric_value), 0);
+    const apiCount = usageRecords
+      .filter((d) => d.metric_type === 'api_calls')
+      .reduce((sum: number, d) => sum + Number(d.metric_value), 0);
+
     setUsageMetrics({
       totalWorkOrders: woCount,
       totalApiCalls: apiCount,
@@ -205,24 +276,25 @@ export default function AdminConsole() {
 
   const loadSystemHealth = async () => {
     let query = apiClient
-      .from('system_health_metrics' as any)
+      .from('system_health_metrics')
       .select('*')
       .order('recorded_at', { ascending: false })
-      .limit(50) as any;
-    
+      .limit(50);
+
     // Only sys_admin sees global system health, others see tenant-specific
     if (!rbac.hasRole('sys_admin') && rbac.tenantId) {
       query = query.eq('tenant_id', rbac.tenantId);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
-    setSystemHealth(data || []);
+    const healthMetrics = (data || []) as SystemHealthMetric[];
+    setSystemHealth(healthMetrics);
 
     // Determine overall health
-    const criticalCount = data?.filter((d: any) => d.status === 'critical').length || 0;
-    const warningCount = data?.filter((d: any) => d.status === 'warning').length || 0;
-    
+    const criticalCount = healthMetrics.filter((d) => d.status === 'critical').length;
+    const warningCount = healthMetrics.filter((d) => d.status === 'warning').length;
+
     if (criticalCount > 0) {
       setOverallHealth('critical');
     } else if (warningCount > 0) {
@@ -235,27 +307,29 @@ export default function AdminConsole() {
   const loadUserStats = async () => {
     let profilesQuery = apiClient
       .from('profiles')
-      .select('*', { count: 'exact', head: true }) as any;
-    
+      .select('*');
+
     let rolesQuery = apiClient
       .from('user_roles')
-      .select('role, tenant_id') as any;
-    
+      .select('role, tenant_id');
+
     // Filter by tenant for non-sys_admin users
     if (!rbac.hasRole('sys_admin') && rbac.tenantId) {
       profilesQuery = profilesQuery.eq('tenant_id', rbac.tenantId);
       rolesQuery = rolesQuery.eq('tenant_id', rbac.tenantId);
     }
-    
-    const { count: totalCount } = await profilesQuery;
-    const { data: roles } = await rolesQuery;
 
-    const adminCount = roles?.filter(r => ['sys_admin', 'tenant_admin', 'partner_admin'].includes(r.role)).length || 0;
-    const techCount = roles?.filter(r => r.role === 'technician').length || 0;
+    const profilesResult = await profilesQuery;
+    const rolesResult = await rolesQuery;
+    const totalCount = profilesResult.data?.length || 0;
+    const roles = (rolesResult.data || []) as UserRole[];
+
+    const adminCount = roles.filter(r => ['sys_admin', 'tenant_admin', 'partner_admin'].includes(r.role)).length;
+    const techCount = roles.filter(r => r.role === 'technician').length;
 
     setUserStats({
-      totalUsers: totalCount || 0,
-      activeUsers: totalCount || 0, // Simplified
+      totalUsers: totalCount,
+      activeUsers: totalCount, // Simplified
       adminUsers: adminCount,
       technicianUsers: techCount
     });
@@ -268,16 +342,17 @@ export default function AdminConsole() {
       .eq('id', user?.id)
       .single();
 
-    if (!profile?.tenant_id) return;
+    const profileData = profile as { tenant_id?: string } | null;
+    if (!profileData?.tenant_id) return;
 
     const { data, error } = await apiClient
-      .from('platform_integrations' as any)
+      .from('platform_integrations')
       .select('*')
-      .eq('tenant_id', profile.tenant_id)
+      .eq('tenant_id', profileData.tenant_id)
       .order('created_at', { ascending: false});
-    
+
     if (error) throw error;
-    setIntegrations(data || []);
+    setIntegrations((data || []) as PlatformIntegration[]);
   };
 
   const savePlatformSetting = async () => {
@@ -297,10 +372,11 @@ export default function AdminConsole() {
       .single();
 
     try {
+      const profileData = profile as { tenant_id?: string } | null;
       const { error } = await apiClient
-        .from('platform_settings' as any)
-        .upsert({
-          tenant_id: profile?.tenant_id,
+        .from('platform_settings')
+        .insert({
+          tenant_id: profileData?.tenant_id,
           setting_key: newSettingKey,
           setting_value: JSON.parse(newSettingValue),
           setting_type: newSettingType,
@@ -317,10 +393,10 @@ export default function AdminConsole() {
       setNewSettingKey('');
       setNewSettingValue('');
       loadPlatformSettings();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error saving setting',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }
@@ -342,7 +418,8 @@ export default function AdminConsole() {
       .eq('id', user?.id)
       .single();
 
-    if (!profile?.tenant_id) return;
+    const profileData = profile as { tenant_id?: string } | null;
+    if (!profileData?.tenant_id) return;
 
     const currentPeriodEnd = new Date();
     if (billingFrequency === 'monthly') {
@@ -355,9 +432,9 @@ export default function AdminConsole() {
 
     try {
       const { error } = await apiClient
-        .from('tenant_subscriptions' as any)
-        .upsert({
-          tenant_id: profile.tenant_id,
+        .from('tenant_subscriptions')
+        .insert({
+          tenant_id: profileData.tenant_id,
           billing_plan_id: selectedPlan,
           status: 'active',
           billing_frequency: billingFrequency,
@@ -374,10 +451,10 @@ export default function AdminConsole() {
       });
 
       loadBillingData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error updating subscription',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }
@@ -386,7 +463,7 @@ export default function AdminConsole() {
   const toggleIntegration = async (integrationId: string, currentStatus: boolean) => {
     try {
       const { error } = await apiClient
-        .from('platform_integrations' as any)
+        .from('platform_integrations')
         .update({ is_active: !currentStatus })
         .eq('id', integrationId);
 
@@ -398,10 +475,10 @@ export default function AdminConsole() {
       });
 
       loadIntegrations();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error updating integration',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }

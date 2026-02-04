@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/domains/shared/hooks/use-toast";
-import { Database, Cpu, Workflow, Shield, Activity, TrendingUp, Zap, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Database, Cpu, Workflow, Shield, Activity, Zap, CheckCircle2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,12 +15,61 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// Type definitions
+interface SystemConfig {
+  db_mode?: string;
+  vector_enabled?: boolean;
+  [key: string]: unknown;
+}
+
+interface AIModel {
+  id: string;
+  model_name: string;
+  provider: string;
+  capabilities?: string[];
+  usage_count?: number;
+  avg_cost_per_1k_tokens?: number;
+  active: boolean;
+}
+
+interface WorkflowDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  version: string;
+  trigger_events?: string[];
+  active: boolean;
+}
+
+interface Policy {
+  id: string;
+  name: string;
+  category: string;
+  policy_type: string;
+  priority: number;
+  active: boolean;
+}
+
+interface FeatureToggle {
+  id: string;
+  feature_key: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  rollout_percentage: number;
+}
+
+interface ConfigItem {
+  config_key: string;
+  config_value: string;
+}
+
 const ModelOrchestration = () => {
-  const [systemConfig, setSystemConfig] = useState<any>({});
-  const [models, setModels] = useState<any[]>([]);
-  const [workflows, setWorkflows] = useState<any[]>([]);
-  const [policies, setPolicies] = useState<any[]>([]);
-  const [features, setFeatures] = useState<any[]>([]);
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>({});
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([]);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [features, setFeatures] = useState<FeatureToggle[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -31,15 +80,16 @@ const ModelOrchestration = () => {
   const loadSystemStatus = async () => {
     try {
       const [configRes, modelsRes, workflowsRes, policiesRes, featuresRes] = await Promise.all([
-        (apiClient as any).from('system_config').select('*'),
-        (apiClient as any).from('model_registry').select('*').eq('active', true),
-        (apiClient as any).from('workflow_definitions').select('*').eq('active', true),
-        (apiClient as any).from('policy_registry').select('*').eq('active', true),
-        (apiClient as any).from('feature_toggles').select('*')
+        apiClient.from('system_config').select('*'),
+        apiClient.from('model_registry').select('*').eq('active', true),
+        apiClient.from('workflow_definitions').select('*').eq('active', true),
+        apiClient.from('policy_registry').select('*').eq('active', true),
+        apiClient.from('feature_toggles').select('*')
       ]);
 
       if (configRes.data) {
-        const config = configRes.data.reduce((acc: any, item: any) => {
+        const configItems = configRes.data as ConfigItem[];
+        const config = configItems.reduce((acc: SystemConfig, item: ConfigItem) => {
           try {
             acc[item.config_key] = JSON.parse(item.config_value);
           } catch {
@@ -49,14 +99,14 @@ const ModelOrchestration = () => {
         }, {});
         setSystemConfig(config);
       }
-      setModels((modelsRes.data || []) as any[]);
-      setWorkflows((workflowsRes.data || []) as any[]);
-      setPolicies((policiesRes.data || []) as any[]);
-      setFeatures((featuresRes.data || []) as any[]);
-    } catch (error: any) {
+      setModels((modelsRes.data || []) as AIModel[]);
+      setWorkflows((workflowsRes.data || []) as WorkflowDefinition[]);
+      setPolicies((policiesRes.data || []) as Policy[]);
+      setFeatures((featuresRes.data || []) as FeatureToggle[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading system status",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -66,19 +116,19 @@ const ModelOrchestration = () => {
 
   const detectSystem = async () => {
     try {
-      const result = await apiClient.functions.invoke('system-detect', {});
+      const result = await apiClient.functions.invoke<{ db_mode?: string }>('system-detect', {});
       if (result.error) throw result.error;
 
       toast({
         title: "System Detection Complete",
         description: `Database mode: ${result.data?.db_mode}`,
       });
-      
+
       loadSystemStatus();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Detection failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -86,7 +136,7 @@ const ModelOrchestration = () => {
 
   const toggleFeature = async (featureKey: string, currentEnabled: boolean) => {
     try {
-      const { error } = await (apiClient as any)
+      const { error } = await apiClient
         .from('feature_toggles')
         .update({ enabled: !currentEnabled })
         .eq('feature_key', featureKey);
@@ -99,10 +149,10 @@ const ModelOrchestration = () => {
       });
 
       loadSystemStatus();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }

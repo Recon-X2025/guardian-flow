@@ -134,17 +134,27 @@ export default function EnhancedAuthForm({ config, onSuccess, initialEmail = "",
 
     setIsLoading(true);
     try {
-      // Password reset functionality - would need backend endpoint
-      // For now, show a message that this feature needs backend implementation
-      toast.info("Password reset functionality requires backend implementation");
-      // TODO: Implement password reset endpoint
-      // await apiClient.request('/api/auth/reset-password', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ email: formData.email })
-      // });
-    } catch (error: any) {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("If that email exists, a password reset link has been sent");
+        // In dev mode, the token might be returned for testing
+        if (data.reset_token) {
+          console.log('Dev mode - reset token:', data.reset_token);
+        }
+      } else {
+        throw new Error(data.error || "Failed to send reset email");
+      }
+    } catch (error: unknown) {
       console.error("Password reset error:", error);
-      toast.error(error.message || "Failed to send reset email");
+      const message = error instanceof Error ? error.message : "Failed to send reset email";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

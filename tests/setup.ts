@@ -5,9 +5,22 @@ import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(() => null),
+};
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });
 
 // Mock window.matchMedia
