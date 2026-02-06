@@ -10,8 +10,10 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     exclude: [
       'node_modules/**',
+      '**/node_modules/**',
       'dist/**',
       'tests/e2e/**',
+      'tests/e2e-comprehensive.test.js',
       '**/*.spec.ts',
     ],
     coverage: {

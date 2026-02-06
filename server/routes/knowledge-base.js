@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
-import { query, getOne, getMany } from '../db/query.js';
+import { db } from '../db/client.js';
+import { findOne, findMany, insertOne, updateOne, deleteMany, countDocuments, aggregate } from '../db/query.js';
 import { randomUUID } from 'crypto';
 
 const router = express.Router();
@@ -14,86 +15,140 @@ router.get('/articles', optionalAuth, async (req, res) => {
     const { category, status = 'published', search, tag, limit = 50, offset = 0 } = req.query;
     const userId = req.user?.id;
 
-    let sql = `
-      SELECT 
-        kb.id,
-        kb.title,
-        kb.summary,
-        kb.content,
-        kb.status,
-        kb.views_count,
-        kb.helpful_count,
-        kb.not_helpful_count,
-        kb.category_id,
-        kbc.name as category_name,
-        kb.created_at,
-        kb.updated_at,
-        kb.published_at,
-        u1.full_name as created_by_name,
-        array_agg(DISTINCT kbt.name) FILTER (WHERE kbt.name IS NOT NULL) as tags
-      FROM knowledge_base_articles kb
-      LEFT JOIN knowledge_base_categories kbc ON kb.category_id = kbc.id
-      LEFT JOIN users u1 ON kb.created_by = u1.id
-      LEFT JOIN knowledge_base_article_tags kbat ON kb.id = kbat.article_id
-      LEFT JOIN knowledge_base_tags kbt ON kbat.tag_id = kbt.id
-      WHERE 1=1
-    `;
-    const params = [];
-    let paramIndex = 1;
+    // Build aggregation pipeline
+    const pipeline = [];
+
+    // Base match stage
+    const matchStage = {};
 
     // Handle status filter - 'all' shows all statuses
     if (status && status !== 'all') {
-      sql += ` AND kb.status = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
-    }
-
-    if (category) {
-      sql += ` AND kbc.name = $${paramIndex}`;
-      params.push(category);
-      paramIndex++;
+      matchStage.status = status;
     }
 
     if (search) {
-      sql += ` AND (
-        kb.title ILIKE $${paramIndex} OR 
-        kb.content ILIKE $${paramIndex} OR 
-        kb.summary ILIKE $${paramIndex}
-      )`;
-      params.push(`%${search}%`);
-      paramIndex++;
+      matchStage.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+        { summary: { $regex: search, $options: 'i' } },
+      ];
     }
 
-    sql += ` GROUP BY kb.id, kbc.name, u1.full_name`;
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
 
+    // Lookup category
+    pipeline.push({
+      $lookup: {
+        from: 'knowledge_base_categories',
+        localField: 'category_id',
+        foreignField: 'id',
+        as: '_category',
+      },
+    });
+    pipeline.push({
+      $unwind: { path: '$_category', preserveNullAndEmptyArrays: true },
+    });
+
+    // Filter by category name if provided
+    if (category) {
+      pipeline.push({ $match: { '_category.name': category } });
+    }
+
+    // Lookup created_by user
+    pipeline.push({
+      $lookup: {
+        from: 'users',
+        localField: 'created_by',
+        foreignField: 'id',
+        as: '_created_by_user',
+      },
+    });
+    pipeline.push({
+      $unwind: { path: '$_created_by_user', preserveNullAndEmptyArrays: true },
+    });
+
+    // Lookup article tags (join table)
+    pipeline.push({
+      $lookup: {
+        from: 'knowledge_base_article_tags',
+        localField: 'id',
+        foreignField: 'article_id',
+        as: '_article_tags',
+      },
+    });
+
+    // Lookup tag names
+    pipeline.push({
+      $lookup: {
+        from: 'knowledge_base_tags',
+        localField: '_article_tags.tag_id',
+        foreignField: 'id',
+        as: '_tags',
+      },
+    });
+
+    // Filter by tag name if provided
     if (tag) {
-      sql += ` HAVING $${paramIndex} = ANY(array_agg(kbt.name))`;
-      params.push(tag);
-      paramIndex++;
+      pipeline.push({ $match: { '_tags.name': tag } });
     }
 
-    sql += ` ORDER BY kb.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(parseInt(limit), parseInt(offset));
+    // Project final shape
+    pipeline.push({
+      $project: {
+        _id: 0,
+        id: 1,
+        title: 1,
+        summary: 1,
+        content: 1,
+        status: 1,
+        views_count: 1,
+        helpful_count: 1,
+        not_helpful_count: 1,
+        category_id: 1,
+        category_name: { $ifNull: ['$_category.name', null] },
+        created_at: 1,
+        updated_at: 1,
+        published_at: 1,
+        created_by_name: { $ifNull: ['$_created_by_user.full_name', null] },
+        tags: {
+          $filter: {
+            input: '$_tags.name',
+            as: 'tagName',
+            cond: { $ne: ['$$tagName', null] },
+          },
+        },
+      },
+    });
 
-    const articles = await getMany(sql, params);
+    // Sort and paginate
+    pipeline.push({ $sort: { created_at: -1 } });
+    pipeline.push({ $skip: parseInt(offset) });
+    pipeline.push({ $limit: parseInt(limit) });
+
+    const articles = await aggregate('knowledge_base_articles', pipeline);
 
     // Track view for authenticated users (if viewing published articles)
     if (userId && status === 'published') {
-      // This could be done asynchronously in production
       for (const article of articles) {
-        await query(
-          `INSERT INTO knowledge_base_article_views (article_id, user_id, viewed_at)
-           VALUES ($1, $2, now())
-           ON CONFLICT DO NOTHING`,
-          [article.id, userId]
-        ).catch(() => {}); // Ignore errors
+        try {
+          await insertOne('knowledge_base_article_views', {
+            id: randomUUID(),
+            article_id: article.id,
+            user_id: userId,
+            viewed_at: new Date(),
+          });
+        } catch (_) {
+          // Ignore errors (duplicate key returns null from insertOne)
+        }
       }
     }
 
     res.json({ articles });
   } catch (error) {
     console.error('Get articles error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch articles' });
+    res.status(500).json({ error: 'Failed to fetch articles' });
   }
 });
 
@@ -106,56 +161,143 @@ router.get('/articles/:id', optionalAuth, async (req, res) => {
     const { id } = req.params;
     const userId = req.user?.id;
 
-    const article = await getOne(
-      `SELECT 
-        kb.*,
-        kbc.name as category_name,
-        u1.full_name as created_by_name,
-        u2.full_name as updated_by_name,
-        array_agg(DISTINCT kbt.name) FILTER (WHERE kbt.name IS NOT NULL) as tags,
-        array_agg(DISTINCT jsonb_build_object(
-          'id', kba.id,
-          'file_name', kba.file_name,
-          'file_url', kba.file_url,
-          'file_type', kba.file_type
-        )) FILTER (WHERE kba.id IS NOT NULL) as attachments
-      FROM knowledge_base_articles kb
-      LEFT JOIN knowledge_base_categories kbc ON kb.category_id = kbc.id
-      LEFT JOIN users u1 ON kb.created_by = u1.id
-      LEFT JOIN users u2 ON kb.updated_by = u2.id
-      LEFT JOIN knowledge_base_article_tags kbat ON kb.id = kbat.article_id
-      LEFT JOIN knowledge_base_tags kbt ON kbat.tag_id = kbt.id
-      LEFT JOIN knowledge_base_attachments kba ON kb.id = kba.article_id
-      WHERE kb.id = $1
-      GROUP BY kb.id, kbc.name, u1.full_name, u2.full_name`,
-      [id]
-    );
+    // Use aggregation to join category, users, tags, and attachments
+    const pipeline = [
+      { $match: { id } },
+      // Lookup category
+      {
+        $lookup: {
+          from: 'knowledge_base_categories',
+          localField: 'category_id',
+          foreignField: 'id',
+          as: '_category',
+        },
+      },
+      { $unwind: { path: '$_category', preserveNullAndEmptyArrays: true } },
+      // Lookup created_by user
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'created_by',
+          foreignField: 'id',
+          as: '_created_by_user',
+        },
+      },
+      { $unwind: { path: '$_created_by_user', preserveNullAndEmptyArrays: true } },
+      // Lookup updated_by user
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'updated_by',
+          foreignField: 'id',
+          as: '_updated_by_user',
+        },
+      },
+      { $unwind: { path: '$_updated_by_user', preserveNullAndEmptyArrays: true } },
+      // Lookup article tags (join table)
+      {
+        $lookup: {
+          from: 'knowledge_base_article_tags',
+          localField: 'id',
+          foreignField: 'article_id',
+          as: '_article_tags',
+        },
+      },
+      // Lookup tag names
+      {
+        $lookup: {
+          from: 'knowledge_base_tags',
+          localField: '_article_tags.tag_id',
+          foreignField: 'id',
+          as: '_tags',
+        },
+      },
+      // Lookup attachments
+      {
+        $lookup: {
+          from: 'knowledge_base_attachments',
+          localField: 'id',
+          foreignField: 'article_id',
+          as: '_attachments_raw',
+        },
+      },
+      // Project final shape
+      {
+        $addFields: {
+          category_name: { $ifNull: ['$_category.name', null] },
+          created_by_name: { $ifNull: ['$_created_by_user.full_name', null] },
+          updated_by_name: { $ifNull: ['$_updated_by_user.full_name', null] },
+          tags: {
+            $filter: {
+              input: '$_tags.name',
+              as: 'tagName',
+              cond: { $ne: ['$$tagName', null] },
+            },
+          },
+          attachments: {
+            $map: {
+              input: {
+                $filter: {
+                  input: '$_attachments_raw',
+                  as: 'att',
+                  cond: { $ne: ['$$att.id', null] },
+                },
+              },
+              as: 'att',
+              in: {
+                id: '$$att.id',
+                file_name: '$$att.file_name',
+                file_url: '$$att.file_url',
+                file_type: '$$att.file_type',
+              },
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          _category: 0,
+          _created_by_user: 0,
+          _updated_by_user: 0,
+          _article_tags: 0,
+          _tags: 0,
+          _attachments_raw: 0,
+        },
+      },
+    ];
+
+    const results = await aggregate('knowledge_base_articles', pipeline);
+    const article = results[0] || null;
 
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
     // Increment view count
-    await query(
-      `UPDATE knowledge_base_articles 
-       SET views_count = views_count + 1 
-       WHERE id = $1`,
-      [id]
+    await db.collection('knowledge_base_articles').updateOne(
+      { id },
+      { $inc: { views_count: 1 } }
     ).catch(() => {});
 
     // Track view for authenticated users (allow multiple views per user)
     if (userId) {
-      await query(
-        `INSERT INTO knowledge_base_article_views (article_id, user_id, viewed_at)
-         VALUES ($1, $2, now())`,
-        [id, userId]
-      ).catch(() => {}); // Ignore errors if insertion fails
+      try {
+        await insertOne('knowledge_base_article_views', {
+          id: randomUUID(),
+          article_id: id,
+          user_id: userId,
+          viewed_at: new Date(),
+        });
+      } catch (_) {
+        // Ignore errors
+      }
     }
 
     res.json({ article });
   } catch (error) {
     console.error('Get article error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch article' });
+    res.status(500).json({ error: 'Failed to fetch article' });
   }
 });
 
@@ -172,48 +314,58 @@ router.post('/articles', authenticateToken, async (req, res) => {
     }
 
     const articleId = randomUUID();
-    const publishedAt = status === 'published' ? new Date().toISOString() : null;
+    const now = new Date();
+    const publishedAt = status === 'published' ? now : null;
 
-    // Create article
-    const article = await query(
-      `INSERT INTO knowledge_base_articles (
-        id, title, content, summary, category_id, status, 
-        created_by, published_at, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
-      RETURNING *`,
-      [articleId, title, content, summary || null, category_id || null, status, req.user.id, publishedAt]
-    );
+    const articleDoc = {
+      id: articleId,
+      title,
+      content,
+      summary: summary || null,
+      category_id: category_id || null,
+      status,
+      created_by: req.user.id,
+      updated_by: null,
+      published_at: publishedAt,
+      views_count: 0,
+      helpful_count: 0,
+      not_helpful_count: 0,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const article = await insertOne('knowledge_base_articles', articleDoc);
 
     // Add tags
     if (tag_names && tag_names.length > 0) {
       for (const tagName of tag_names) {
+        const normalizedName = tagName.toLowerCase().trim();
+
         // Get or create tag
-        let tag = await getOne(
-          'SELECT id FROM knowledge_base_tags WHERE name = $1',
-          [tagName.toLowerCase().trim()]
-        );
+        let tag = await findOne('knowledge_base_tags', { name: normalizedName });
 
         if (!tag) {
           const tagId = randomUUID();
-          await query(
-            'INSERT INTO knowledge_base_tags (id, name) VALUES ($1, $2)',
-            [tagId, tagName.toLowerCase().trim()]
-          );
+          await insertOne('knowledge_base_tags', {
+            id: tagId,
+            name: normalizedName,
+            created_at: new Date(),
+          });
           tag = { id: tagId };
         }
 
-        // Link tag to article
-        await query(
-          'INSERT INTO knowledge_base_article_tags (article_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [articleId, tag.id]
-        );
+        // Link tag to article (duplicate key returns null)
+        await insertOne('knowledge_base_article_tags', {
+          article_id: articleId,
+          tag_id: tag.id,
+        });
       }
     }
 
-    res.status(201).json({ article: article.rows[0] });
+    res.status(201).json({ article });
   } catch (error) {
     console.error('Create article error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create article' });
+    res.status(500).json({ error: 'Failed to create article' });
   }
 });
 
@@ -227,88 +379,64 @@ router.patch('/articles/:id', authenticateToken, async (req, res) => {
     const { title, content, summary, category_id, status, tag_names } = req.body;
 
     // Get existing article
-    const existing = await getOne('SELECT * FROM knowledge_base_articles WHERE id = $1', [id]);
+    const existing = await findOne('knowledge_base_articles', { id });
     if (!existing) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
-    // Build update query
-    const updates = [];
-    const params = [];
-    let paramIndex = 1;
+    // Build $set object
+    const setFields = {};
 
-    if (title !== undefined) {
-      updates.push(`title = $${paramIndex++}`);
-      params.push(title);
-    }
-    if (content !== undefined) {
-      updates.push(`content = $${paramIndex++}`);
-      params.push(content);
-    }
-    if (summary !== undefined) {
-      updates.push(`summary = $${paramIndex++}`);
-      params.push(summary);
-    }
-    if (category_id !== undefined) {
-      updates.push(`category_id = $${paramIndex++}`);
-      params.push(category_id);
-    }
+    if (title !== undefined) setFields.title = title;
+    if (content !== undefined) setFields.content = content;
+    if (summary !== undefined) setFields.summary = summary;
+    if (category_id !== undefined) setFields.category_id = category_id;
     if (status !== undefined) {
-      updates.push(`status = $${paramIndex++}`);
-      params.push(status);
+      setFields.status = status;
       if (status === 'published' && existing.status !== 'published') {
-        updates.push(`published_at = $${paramIndex++}`);
-        params.push(new Date().toISOString());
+        setFields.published_at = new Date();
       }
     }
 
-    updates.push(`updated_by = $${paramIndex++}`);
-    params.push(req.user.id);
-    updates.push(`updated_at = now()`);
-    params.push(id);
+    setFields.updated_by = req.user.id;
+    setFields.updated_at = new Date();
 
-    const article = await query(
-      `UPDATE knowledge_base_articles 
-       SET ${updates.join(', ')}
-       WHERE id = $${paramIndex}
-       RETURNING *`,
-      params
-    );
+    const article = await updateOne('knowledge_base_articles', { id }, { $set: setFields });
 
     // Update tags if provided
     if (tag_names !== undefined) {
       // Remove existing tags
-      await query('DELETE FROM knowledge_base_article_tags WHERE article_id = $1', [id]);
+      await deleteMany('knowledge_base_article_tags', { article_id: id });
 
       // Add new tags
       if (tag_names.length > 0) {
         for (const tagName of tag_names) {
-          let tag = await getOne(
-            'SELECT id FROM knowledge_base_tags WHERE name = $1',
-            [tagName.toLowerCase().trim()]
-          );
+          const normalizedName = tagName.toLowerCase().trim();
+
+          let tag = await findOne('knowledge_base_tags', { name: normalizedName });
 
           if (!tag) {
             const tagId = randomUUID();
-            await query('INSERT INTO knowledge_base_tags (id, name) VALUES ($1, $2)', [
-              tagId,
-              tagName.toLowerCase().trim(),
-            ]);
+            await insertOne('knowledge_base_tags', {
+              id: tagId,
+              name: normalizedName,
+              created_at: new Date(),
+            });
             tag = { id: tagId };
           }
 
-          await query(
-            'INSERT INTO knowledge_base_article_tags (article_id, tag_id) VALUES ($1, $2)',
-            [id, tag.id]
-          );
+          await insertOne('knowledge_base_article_tags', {
+            article_id: id,
+            tag_id: tag.id,
+          });
         }
       }
     }
 
-    res.json({ article: article.rows[0] });
+    res.json({ article });
   } catch (error) {
     console.error('Update article error:', error);
-    res.status(500).json({ error: error.message || 'Failed to update article' });
+    res.status(500).json({ error: 'Failed to update article' });
   }
 });
 
@@ -320,17 +448,22 @@ router.delete('/articles/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const article = await getOne('SELECT id FROM knowledge_base_articles WHERE id = $1', [id]);
+    const article = await findOne('knowledge_base_articles', { id });
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
-    await query('DELETE FROM knowledge_base_articles WHERE id = $1', [id]);
+    // Clean up related data
+    await deleteMany('knowledge_base_article_tags', { article_id: id });
+    await deleteMany('knowledge_base_attachments', { article_id: id });
+    await deleteMany('knowledge_base_article_views', { article_id: id });
+    await deleteMany('knowledge_base_article_feedback', { article_id: id });
+    await deleteMany('knowledge_base_articles', { id });
 
     res.json({ success: true });
   } catch (error) {
     console.error('Delete article error:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete article' });
+    res.status(500).json({ error: 'Failed to delete article' });
   }
 });
 
@@ -340,20 +473,40 @@ router.delete('/articles/:id', authenticateToken, async (req, res) => {
  */
 router.get('/categories', optionalAuth, async (req, res) => {
   try {
-    const categories = await getMany(
-      `SELECT 
-        kbc.*,
-        COUNT(kb.id) as article_count
-      FROM knowledge_base_categories kbc
-      LEFT JOIN knowledge_base_articles kb ON kbc.id = kb.category_id AND kb.status = 'published'
-      GROUP BY kbc.id
-      ORDER BY kbc.display_order, kbc.name`
-    );
+    const pipeline = [
+      // Lookup published articles for count
+      {
+        $lookup: {
+          from: 'knowledge_base_articles',
+          let: { catId: '$id' },
+          pipeline: [
+            { $match: { $expr: { $and: [{ $eq: ['$category_id', '$$catId'] }, { $eq: ['$status', 'published'] }] } } },
+          ],
+          as: '_articles',
+        },
+      },
+      {
+        $addFields: {
+          article_count: { $size: '$_articles' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          _articles: 0,
+        },
+      },
+      {
+        $sort: { display_order: 1, name: 1 },
+      },
+    ];
+
+    const categories = await aggregate('knowledge_base_categories', pipeline);
 
     res.json({ categories });
   } catch (error) {
     console.error('Get categories error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch categories' });
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 
@@ -363,21 +516,50 @@ router.get('/categories', optionalAuth, async (req, res) => {
  */
 router.get('/tags', optionalAuth, async (req, res) => {
   try {
-    const tags = await getMany(
-      `SELECT 
-        kbt.*,
-        COUNT(kbat.article_id) as article_count
-      FROM knowledge_base_tags kbt
-      LEFT JOIN knowledge_base_article_tags kbat ON kbt.id = kbat.tag_id
-      LEFT JOIN knowledge_base_articles kb ON kbat.article_id = kb.id AND kb.status = 'published'
-      GROUP BY kbt.id
-      ORDER BY article_count DESC, kbt.name`
-    );
+    const pipeline = [
+      // Lookup article_tags join table
+      {
+        $lookup: {
+          from: 'knowledge_base_article_tags',
+          localField: 'id',
+          foreignField: 'tag_id',
+          as: '_article_tags',
+        },
+      },
+      // Lookup articles to check published status
+      {
+        $lookup: {
+          from: 'knowledge_base_articles',
+          let: { articleIds: '$_article_tags.article_id' },
+          pipeline: [
+            { $match: { $expr: { $and: [{ $in: ['$id', '$$articleIds'] }, { $eq: ['$status', 'published'] }] } } },
+          ],
+          as: '_published_articles',
+        },
+      },
+      {
+        $addFields: {
+          article_count: { $size: '$_published_articles' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          _article_tags: 0,
+          _published_articles: 0,
+        },
+      },
+      {
+        $sort: { article_count: -1, name: 1 },
+      },
+    ];
+
+    const tags = await aggregate('knowledge_base_tags', pipeline);
 
     res.json({ tags });
   } catch (error) {
     console.error('Get tags error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch tags' });
+    res.status(500).json({ error: 'Failed to fetch tags' });
   }
 });
 
@@ -395,47 +577,52 @@ router.post('/articles/:id/feedback', optionalAuth, async (req, res) => {
     }
 
     // Check if article exists
-    const article = await getOne('SELECT id FROM knowledge_base_articles WHERE id = $1', [id]);
+    const article = await findOne('knowledge_base_articles', { id });
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
+    const userId = req.user?.id || null;
+
     // Upsert feedback
-    await query(
-      `INSERT INTO knowledge_base_article_feedback (article_id, user_id, is_helpful, feedback_text)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (article_id, user_id) 
-       DO UPDATE SET is_helpful = $3, feedback_text = $4`,
-      [id, req.user?.id || null, is_helpful, feedback_text || null]
+    await updateOne(
+      'knowledge_base_article_feedback',
+      { article_id: id, user_id: userId },
+      {
+        $set: {
+          is_helpful,
+          feedback_text: feedback_text || null,
+        },
+        $setOnInsert: {
+          id: randomUUID(),
+          article_id: id,
+          user_id: userId,
+          created_at: new Date(),
+        },
+      },
+      { upsert: true }
     );
 
     // Update article helpful/not helpful counts
-    const helpfulCount = await query(
-      `SELECT COUNT(*) as count FROM knowledge_base_article_feedback 
-       WHERE article_id = $1 AND is_helpful = true`,
-      [id]
-    );
-    const notHelpfulCount = await query(
-      `SELECT COUNT(*) as count FROM knowledge_base_article_feedback 
-       WHERE article_id = $1 AND is_helpful = false`,
-      [id]
-    );
+    const helpfulCount = await countDocuments('knowledge_base_article_feedback', {
+      article_id: id,
+      is_helpful: true,
+    });
+    const notHelpfulCount = await countDocuments('knowledge_base_article_feedback', {
+      article_id: id,
+      is_helpful: false,
+    });
 
-    await query(
-      `UPDATE knowledge_base_articles 
-       SET helpful_count = $1, not_helpful_count = $2
-       WHERE id = $3`,
-      [
-        parseInt(helpfulCount.rows[0].count),
-        parseInt(notHelpfulCount.rows[0].count),
-        id,
-      ]
+    await updateOne(
+      'knowledge_base_articles',
+      { id },
+      { $set: { helpful_count: helpfulCount, not_helpful_count: notHelpfulCount } }
     );
 
     res.json({ success: true });
   } catch (error) {
     console.error('Submit feedback error:', error);
-    res.status(500).json({ error: error.message || 'Failed to submit feedback' });
+    res.status(500).json({ error: 'Failed to submit feedback' });
   }
 });
 
@@ -452,34 +639,30 @@ router.post('/articles/attachments', authenticateToken, async (req, res) => {
     }
 
     // Verify article exists
-    const article = await getOne('SELECT id FROM knowledge_base_articles WHERE id = $1', [article_id]);
+    const article = await findOne('knowledge_base_articles', { id: article_id });
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
-    const attachment = await query(
-      `INSERT INTO knowledge_base_attachments (
-        id, article_id, file_name, file_type, file_size, 
-        file_path, file_url, mime_type, uploaded_by, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
-      RETURNING *`,
-      [
-        randomUUID(),
-        article_id,
-        file_name,
-        file_type || 'unknown',
-        file_size || null,
-        file_path || null,
-        file_url || null,
-        mime_type || null,
-        req.user.id,
-      ]
-    );
+    const attachmentDoc = {
+      id: randomUUID(),
+      article_id,
+      file_name,
+      file_type: file_type || 'unknown',
+      file_size: file_size || null,
+      file_path: file_path || null,
+      file_url: file_url || null,
+      mime_type: mime_type || null,
+      uploaded_by: req.user.id,
+      created_at: new Date(),
+    };
 
-    res.status(201).json({ attachment: attachment.rows[0] });
+    const attachment = await insertOne('knowledge_base_attachments', attachmentDoc);
+
+    res.status(201).json({ attachment });
   } catch (error) {
     console.error('Create attachment error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create attachment' });
+    res.status(500).json({ error: 'Failed to create attachment' });
   }
 });
 
@@ -491,17 +674,17 @@ router.delete('/articles/attachments/:id', authenticateToken, async (req, res) =
   try {
     const { id } = req.params;
 
-    const attachment = await getOne('SELECT id FROM knowledge_base_attachments WHERE id = $1', [id]);
+    const attachment = await findOne('knowledge_base_attachments', { id });
     if (!attachment) {
       return res.status(404).json({ error: 'Attachment not found' });
     }
 
-    await query('DELETE FROM knowledge_base_attachments WHERE id = $1', [id]);
+    await deleteMany('knowledge_base_attachments', { id });
 
     res.json({ success: true });
   } catch (error) {
     console.error('Delete attachment error:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete attachment' });
+    res.status(500).json({ error: 'Failed to delete attachment' });
   }
 });
 
@@ -513,19 +696,15 @@ router.get('/articles/:id/attachments', optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const attachments = await getMany(
-      `SELECT * FROM knowledge_base_attachments 
-       WHERE article_id = $1 
-       ORDER BY created_at DESC`,
-      [id]
-    );
+    const attachments = await findMany('knowledge_base_attachments', { article_id: id }, {
+      sort: { created_at: -1 },
+    });
 
     res.json({ attachments });
   } catch (error) {
     console.error('Get attachments error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch attachments' });
+    res.status(500).json({ error: 'Failed to fetch attachments' });
   }
 });
 
 export default router;
-

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { errorHandler } from './utils/errorHandler.js';
 import logger from './utils/logger.js';
@@ -13,14 +14,24 @@ import paymentsRoutes from './routes/payments.js';
 import knowledgeBaseRoutes from './routes/knowledge-base.js';
 import faqsRoutes from './routes/faqs.js';
 import mlRoutesFactory from './routes/ml.js';
-import pool from './db/client.js';
+import aiRoutes from './routes/ai.js';
+import { db, client, isConnected } from './db/client.js';
 import { authenticateToken } from './middleware/auth.js';
 import WebSocketManager from './websocket/server.js';
 import { correlationId } from './middleware/correlationId.js';
 import { metricsMiddleware } from './metrics/middleware.js';
 import metricsRoutes from './routes/metrics.js';
+import { validateSecrets } from './config/secrets.js';
 
 dotenv.config();
+
+// Validate required secrets before proceeding
+try {
+  validateSecrets();
+} catch (err) {
+  logger.error(err.message);
+  process.exit(1);
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -31,24 +42,20 @@ const startTime = Date.now();
 const wsManager = new WebSocketManager(server);
 export { wsManager };
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Correlation ID and metrics
 app.use(correlationId);
 app.use(metricsMiddleware);
 
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  }
-  next();
-});
+// Security headers via Helmet
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP disabled — API-only server, no HTML rendering
+  crossOriginEmbedderPolicy: false, // Allow cross-origin resources (CORS handles origin policy)
+  hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true } : false,
+}));
 
 // CORS — strict in production
-const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
   : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:8080'];
@@ -81,20 +88,29 @@ app.use('/api/', generalLimiter);
 
 // Health check — comprehensive
 const healthCheck = async (req, res) => {
-  let dbStatus = 'connected';
-  try {
-    await pool.query('SELECT 1');
-  } catch {
-    dbStatus = 'error';
+  let dbStatus = 'unknown';
+  if (isConnected()) {
+    try {
+      await db.admin().ping();
+      dbStatus = 'connected';
+    } catch {
+      dbStatus = 'error';
+    }
+  } else {
+    dbStatus = 'disconnected';
   }
   const status = dbStatus === 'connected' ? 'ok' : 'degraded';
-  res.status(status === 'ok' ? 200 : 503).json({
+  const response = {
     status,
     database: dbStatus,
     uptime: Math.floor((Date.now() - startTime) / 1000),
-    version: process.env.npm_package_version || '6.0.0',
     timestamp: new Date().toISOString(),
-  });
+  };
+  // Only expose version in non-production (attackers can use it to find CVEs)
+  if (!isProduction) {
+    response.version = process.env.npm_package_version || '6.0.0';
+  }
+  res.status(status === 'ok' ? 200 : 503).json(response);
 };
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
@@ -108,7 +124,8 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/knowledge-base', knowledgeBaseRoutes);
 app.use('/api/faqs', faqsRoutes);
 app.use('/api/ml/train', mlTrainLimiter);
-app.use('/api/ml', mlRoutesFactory(pool));
+app.use('/api/ml', mlRoutesFactory());
+app.use('/api/ai', aiRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
@@ -129,7 +146,7 @@ app.post('/api/functions/:functionName', authenticateToken, async (req, res) => 
   const { functionName } = req.params;
   res.status(501).json({
     error: `Function ${functionName} not yet implemented`,
-    message: 'This edge function needs to be migrated to a regular API route'
+    message: 'This function handler needs to be migrated to a regular API route'
   });
 });
 
@@ -169,9 +186,9 @@ function shutdown(signal) {
       logger.info('WebSocket server closed');
     }
 
-    // Close database pool
-    pool.end().then(() => {
-      logger.info('Database pool closed');
+    // Close MongoDB client
+    client.close().then(() => {
+      logger.info('MongoDB client closed');
       process.exit(0);
     }).catch(() => {
       process.exit(1);

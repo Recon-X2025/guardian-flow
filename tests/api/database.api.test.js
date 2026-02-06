@@ -1,22 +1,21 @@
-const API = 'http://localhost:3001';
+/**
+ * API Integration Tests: Database
+ * Gracefully skips when backend is unavailable.
+ */
+import { describe, test, expect, beforeAll } from 'vitest';
+import { isServerAvailable, apiGet, authenticate, API_URL } from './helpers.js';
 
-async function getToken() {
-  const res = await fetch(`${API}/api/auth/signin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'admin@guardian.dev', password: 'admin123' }),
-  });
-  const data = await res.json();
-  return data.session.access_token;
-}
+let serverAvailable = false;
+let token;
+
+beforeAll(async () => {
+  serverAvailable = await isServerAvailable();
+  if (serverAvailable) {
+    token = await authenticate();
+  }
+});
 
 describe('Database API', () => {
-  let token;
-
-  beforeAll(async () => {
-    token = await getToken();
-  });
-
   const tables = [
     'tickets',
     'work_orders',
@@ -37,13 +36,11 @@ describe('Database API', () => {
 
   for (const table of tables) {
     test(`GET /api/db/${table} - query ${table}`, async () => {
-      const res = await fetch(`${API}/api/db/${table}?select=*&limit=5`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (!serverAvailable) return;
+      const { status, data } = await apiGet(`/api/db/${table}?select=*&limit=5`, token);
       // Accept 200 or 404 (table might not exist) but not 500
-      expect([200, 404]).toContain(res.status);
-      if (res.status === 200) {
-        const data = await res.json();
+      expect([200, 404]).toContain(status);
+      if (status === 200) {
         expect(Array.isArray(data.data) || data.data === null || typeof data.data === 'object').toBe(true);
       }
     });

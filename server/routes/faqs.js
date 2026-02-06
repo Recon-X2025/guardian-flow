@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
-import { query, getOne, getMany } from '../db/query.js';
+import { db } from '../db/client.js';
+import { findOne, findMany, insertOne, updateOne, deleteMany, countDocuments, aggregate } from '../db/query.js';
 import { randomUUID } from 'crypto';
 
 const router = express.Router();
@@ -14,65 +15,90 @@ router.get('/', optionalAuth, async (req, res) => {
     const { category, search, published_only = 'true' } = req.query;
     const userId = req.user?.id;
 
-    let sql = `
-      SELECT 
-        f.id,
-        f.question,
-        f.answer,
-        f.display_order,
-        f.views_count,
-        f.helpful_count,
-        f.not_helpful_count,
-        f.category_id,
-        fc.name as category_name,
-        f.created_at,
-        f.updated_at
-      FROM faqs f
-      LEFT JOIN faq_categories fc ON f.category_id = fc.id
-      WHERE 1=1
-    `;
-    const params = [];
-    let paramIndex = 1;
+    // Build aggregation pipeline
+    const pipeline = [];
+
+    // Base match stage
+    const matchStage = {};
 
     // Filter by published status (admin can see all)
     if (published_only === 'true') {
-      sql += ` AND f.is_published = true`;
-    }
-
-    if (category) {
-      sql += ` AND fc.name = $${paramIndex}`;
-      params.push(category);
-      paramIndex++;
+      matchStage.is_published = true;
     }
 
     if (search) {
-      sql += ` AND (
-        f.question ILIKE $${paramIndex} OR 
-        f.answer ILIKE $${paramIndex}
-      )`;
-      params.push(`%${search}%`);
-      paramIndex++;
+      matchStage.$or = [
+        { question: { $regex: search, $options: 'i' } },
+        { answer: { $regex: search, $options: 'i' } },
+      ];
     }
 
-    sql += ` ORDER BY fc.display_order, f.display_order, f.created_at DESC`;
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
 
-    const faqs = await getMany(sql, params);
+    // Lookup category
+    pipeline.push({
+      $lookup: {
+        from: 'faq_categories',
+        localField: 'category_id',
+        foreignField: 'id',
+        as: '_category',
+      },
+    });
+    pipeline.push({
+      $unwind: { path: '$_category', preserveNullAndEmptyArrays: true },
+    });
+
+    if (category) {
+      pipeline.push({ $match: { '_category.name': category } });
+    }
+
+    // Sort before project so we can use _category.display_order
+    pipeline.push({
+      $sort: { '_category.display_order': 1, display_order: 1, created_at: -1 },
+    });
+
+    // Project final shape
+    pipeline.push({
+      $project: {
+        _id: 0,
+        id: 1,
+        question: 1,
+        answer: 1,
+        display_order: 1,
+        views_count: 1,
+        helpful_count: 1,
+        not_helpful_count: 1,
+        category_id: 1,
+        category_name: { $ifNull: ['$_category.name', null] },
+        created_at: 1,
+        updated_at: 1,
+      },
+    });
+
+    const faqs = await aggregate('faqs', pipeline);
 
     // Track views for authenticated users
     if (userId && faqs.length > 0) {
       for (const faq of faqs) {
-        await query(
-          `INSERT INTO faq_views (faq_id, user_id, viewed_at)
-           VALUES ($1, $2, now())`,
-          [faq.id, userId]
-        ).catch(() => {}); // Ignore errors
+        try {
+          await insertOne('faq_views', {
+            id: randomUUID(),
+            faq_id: faq.id,
+            user_id: userId,
+            viewed_at: new Date(),
+          });
+        } catch (_) {
+          // Ignore errors
+        }
       }
     }
 
     res.json({ faqs });
   } catch (error) {
     console.error('Get FAQs error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch FAQs' });
+    res.status(500).json({ error: 'Failed to fetch FAQs' });
   }
 });
 
@@ -83,20 +109,40 @@ router.get('/', optionalAuth, async (req, res) => {
  */
 router.get('/categories', optionalAuth, async (req, res) => {
   try {
-    const categories = await getMany(
-      `SELECT 
-        fc.*,
-        COUNT(f.id) FILTER (WHERE f.is_published = true) as faq_count
-      FROM faq_categories fc
-      LEFT JOIN faqs f ON fc.id = f.category_id
-      GROUP BY fc.id
-      ORDER BY fc.display_order, fc.name`
-    );
+    const pipeline = [
+      // Lookup published FAQs for count
+      {
+        $lookup: {
+          from: 'faqs',
+          let: { catId: '$id' },
+          pipeline: [
+            { $match: { $expr: { $and: [{ $eq: ['$category_id', '$$catId'] }, { $eq: ['$is_published', true] }] } } },
+          ],
+          as: '_faqs',
+        },
+      },
+      {
+        $addFields: {
+          faq_count: { $size: '$_faqs' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          _faqs: 0,
+        },
+      },
+      {
+        $sort: { display_order: 1, name: 1 },
+      },
+    ];
+
+    const categories = await aggregate('faq_categories', pipeline);
 
     res.json({ categories });
   } catch (error) {
     console.error('Get FAQ categories error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch categories' });
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 
@@ -109,39 +155,62 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const { id } = req.params;
     const userId = req.user?.id;
 
-    const faq = await getOne(
-      `SELECT 
-        f.*,
-        fc.name as category_name
-      FROM faqs f
-      LEFT JOIN faq_categories fc ON f.category_id = fc.id
-      WHERE f.id = $1`,
-      [id]
-    );
+    // Use aggregation to join with category
+    const pipeline = [
+      { $match: { id } },
+      {
+        $lookup: {
+          from: 'faq_categories',
+          localField: 'category_id',
+          foreignField: 'id',
+          as: '_category',
+        },
+      },
+      { $unwind: { path: '$_category', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          category_name: { $ifNull: ['$_category.name', null] },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          _category: 0,
+        },
+      },
+    ];
+
+    const results = await aggregate('faqs', pipeline);
+    const faq = results[0] || null;
 
     if (!faq) {
       return res.status(404).json({ error: 'FAQ not found' });
     }
 
     // Increment view count
-    await query(
-      `UPDATE faqs SET views_count = views_count + 1 WHERE id = $1`,
-      [id]
+    await db.collection('faqs').updateOne(
+      { id },
+      { $inc: { views_count: 1 } }
     ).catch(() => {});
 
     // Track view for authenticated users
     if (userId) {
-      await query(
-        `INSERT INTO faq_views (faq_id, user_id, viewed_at)
-         VALUES ($1, $2, now())`,
-        [id, userId]
-      ).catch(() => {});
+      try {
+        await insertOne('faq_views', {
+          id: randomUUID(),
+          faq_id: id,
+          user_id: userId,
+          viewed_at: new Date(),
+        });
+      } catch (_) {
+        // Ignore errors
+      }
     }
 
     res.json({ faq });
   } catch (error) {
     console.error('Get FAQ error:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch FAQ' });
+    res.status(500).json({ error: 'Failed to fetch FAQ' });
   }
 });
 
@@ -158,21 +227,32 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     const faqId = randomUUID();
-    const publishedAt = is_published ? new Date().toISOString() : null;
+    const now = new Date();
+    const publishedAt = is_published ? now : null;
 
-    const faq = await query(
-      `INSERT INTO faqs (
-        id, question, answer, category_id, display_order, 
-        is_published, created_by, published_at, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
-      RETURNING *`,
-      [faqId, question, answer, category_id || null, display_order, is_published, req.user.id, publishedAt]
-    );
+    const faqDoc = {
+      id: faqId,
+      question,
+      answer,
+      category_id: category_id || null,
+      display_order,
+      is_published,
+      created_by: req.user.id,
+      updated_by: null,
+      published_at: publishedAt,
+      views_count: 0,
+      helpful_count: 0,
+      not_helpful_count: 0,
+      created_at: now,
+      updated_at: now,
+    };
 
-    res.status(201).json({ faq: faq.rows[0] });
+    const faq = await insertOne('faqs', faqDoc);
+
+    res.status(201).json({ faq });
   } catch (error) {
     console.error('Create FAQ error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create FAQ' });
+    res.status(500).json({ error: 'Failed to create FAQ' });
   }
 });
 
@@ -186,58 +266,34 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     const { question, answer, category_id, display_order, is_published } = req.body;
 
     // Get existing FAQ
-    const existing = await getOne('SELECT * FROM faqs WHERE id = $1', [id]);
+    const existing = await findOne('faqs', { id });
     if (!existing) {
       return res.status(404).json({ error: 'FAQ not found' });
     }
 
-    // Build update query
-    const updates = [];
-    const params = [];
-    let paramIndex = 1;
+    // Build $set object
+    const setFields = {};
 
-    if (question !== undefined) {
-      updates.push(`question = $${paramIndex++}`);
-      params.push(question);
-    }
-    if (answer !== undefined) {
-      updates.push(`answer = $${paramIndex++}`);
-      params.push(answer);
-    }
-    if (category_id !== undefined) {
-      updates.push(`category_id = $${paramIndex++}`);
-      params.push(category_id);
-    }
-    if (display_order !== undefined) {
-      updates.push(`display_order = $${paramIndex++}`);
-      params.push(display_order);
-    }
+    if (question !== undefined) setFields.question = question;
+    if (answer !== undefined) setFields.answer = answer;
+    if (category_id !== undefined) setFields.category_id = category_id;
+    if (display_order !== undefined) setFields.display_order = display_order;
     if (is_published !== undefined) {
-      updates.push(`is_published = $${paramIndex++}`);
-      params.push(is_published);
+      setFields.is_published = is_published;
       if (is_published && !existing.is_published) {
-        updates.push(`published_at = $${paramIndex++}`);
-        params.push(new Date().toISOString());
+        setFields.published_at = new Date();
       }
     }
 
-    updates.push(`updated_by = $${paramIndex++}`);
-    params.push(req.user.id);
-    updates.push(`updated_at = now()`);
-    params.push(id);
+    setFields.updated_by = req.user.id;
+    setFields.updated_at = new Date();
 
-    const faq = await query(
-      `UPDATE faqs 
-       SET ${updates.join(', ')}
-       WHERE id = $${paramIndex}
-       RETURNING *`,
-      params
-    );
+    const faq = await updateOne('faqs', { id }, { $set: setFields });
 
-    res.json({ faq: faq.rows[0] });
+    res.json({ faq });
   } catch (error) {
     console.error('Update FAQ error:', error);
-    res.status(500).json({ error: error.message || 'Failed to update FAQ' });
+    res.status(500).json({ error: 'Failed to update FAQ' });
   }
 });
 
@@ -249,17 +305,20 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const faq = await getOne('SELECT id FROM faqs WHERE id = $1', [id]);
+    const faq = await findOne('faqs', { id });
     if (!faq) {
       return res.status(404).json({ error: 'FAQ not found' });
     }
 
-    await query('DELETE FROM faqs WHERE id = $1', [id]);
+    // Clean up related data
+    await deleteMany('faq_views', { faq_id: id });
+    await deleteMany('faq_feedback', { faq_id: id });
+    await deleteMany('faqs', { id });
 
     res.json({ success: true });
   } catch (error) {
     console.error('Delete FAQ error:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete FAQ' });
+    res.status(500).json({ error: 'Failed to delete FAQ' });
   }
 });
 
@@ -277,49 +336,53 @@ router.post('/:id/feedback', optionalAuth, async (req, res) => {
     }
 
     // Check if FAQ exists
-    const faq = await getOne('SELECT id FROM faqs WHERE id = $1', [id]);
+    const faq = await findOne('faqs', { id });
     if (!faq) {
       return res.status(404).json({ error: 'FAQ not found' });
     }
 
+    const userId = req.user?.id || null;
+
     // Upsert feedback
-    await query(
-      `INSERT INTO faq_feedback (faq_id, user_id, is_helpful, feedback_text)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (faq_id, user_id) 
-       DO UPDATE SET is_helpful = $3, feedback_text = $4`,
-      [id, req.user?.id || null, is_helpful, feedback_text || null]
+    await updateOne(
+      'faq_feedback',
+      { faq_id: id, user_id: userId },
+      {
+        $set: {
+          is_helpful,
+          feedback_text: feedback_text || null,
+        },
+        $setOnInsert: {
+          id: randomUUID(),
+          faq_id: id,
+          user_id: userId,
+          created_at: new Date(),
+        },
+      },
+      { upsert: true }
     );
 
     // Update FAQ helpful/not helpful counts
-    const helpfulCount = await query(
-      `SELECT COUNT(*) as count FROM faq_feedback 
-       WHERE faq_id = $1 AND is_helpful = true`,
-      [id]
-    );
-    const notHelpfulCount = await query(
-      `SELECT COUNT(*) as count FROM faq_feedback 
-       WHERE faq_id = $1 AND is_helpful = false`,
-      [id]
-    );
+    const helpfulCount = await countDocuments('faq_feedback', {
+      faq_id: id,
+      is_helpful: true,
+    });
+    const notHelpfulCount = await countDocuments('faq_feedback', {
+      faq_id: id,
+      is_helpful: false,
+    });
 
-    await query(
-      `UPDATE faqs 
-       SET helpful_count = $1, not_helpful_count = $2
-       WHERE id = $3`,
-      [
-        parseInt(helpfulCount.rows[0].count),
-        parseInt(notHelpfulCount.rows[0].count),
-        id,
-      ]
+    await updateOne(
+      'faqs',
+      { id },
+      { $set: { helpful_count: helpfulCount, not_helpful_count: notHelpfulCount } }
     );
 
     res.json({ success: true });
   } catch (error) {
     console.error('Submit FAQ feedback error:', error);
-    res.status(500).json({ error: error.message || 'Failed to submit feedback' });
+    res.status(500).json({ error: 'Failed to submit feedback' });
   }
 });
 
 export default router;
-

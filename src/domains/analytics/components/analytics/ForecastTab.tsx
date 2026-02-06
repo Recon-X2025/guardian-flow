@@ -22,21 +22,21 @@ export function ForecastTab() {
   const [forecastData, setForecastData] = useState<ForecastDataPoint[]>([]);
   const [metrics, setMetrics] = useState<ForecastMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchForecastData();
-  }, []);
+  }, [user]);
 
   const fetchForecastData = async () => {
     try {
       console.log('[ForecastTab] Starting data fetch...');
-      
+
       // Get forecast outputs for next 90 days
       const today = new Date().toISOString().split('T')[0];
       const future = new Date(Date.now() + 90*24*60*60*1000).toISOString().split('T')[0];
 
-      // Resolve tenant for RLS-scoped reads
-      const { user } = useAuth();
+      // Resolve tenant for tenant-scoped reads
       if (!user) return;
       
       const profileResult = await apiClient
@@ -86,12 +86,12 @@ export function ForecastTab() {
       console.log('[ForecastTab] Fetched actuals:', actuals?.length || 0);
 
       if (forecasts && forecasts.length > 0) {
-        const forecastByDate = forecasts.reduce((acc: Record<string, number>, f: any) => {
+        const forecastByDate = forecasts.reduce((acc: Record<string, number>, f: { target_date: string; value: number | string }) => {
           acc[f.target_date] = (acc[f.target_date] || 0) + Number(f.value);
           return acc;
         }, {});
 
-        const actualByDate = (actuals || []).reduce((acc: Record<string, number>, wo: any) => {
+        const actualByDate = (actuals || []).reduce((acc: Record<string, number>, wo: { created_at: string }) => {
           const day = new Date(wo.created_at).toISOString().split('T')[0];
           acc[day] = (acc[day] || 0) + 1;
           return acc;

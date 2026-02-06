@@ -1,7 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { randomUUID, createHash } from 'crypto';
-import { getOne, getMany, query, transaction } from '../db/query.js';
+import { db } from '../db/client.js';
+import { findOne, findMany, transaction } from '../db/query.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
 import { sendPasswordResetEmail } from '../services/email.js';
@@ -18,47 +19,48 @@ function hashToken(token) {
   return createHash('sha256').update(token).digest('hex');
 }
 
-async function ensureRefreshTokensTable() {
-  await query(`
-    CREATE TABLE IF NOT EXISTS refresh_tokens (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID NOT NULL,
-      token_hash VARCHAR(255) NOT NULL,
-      expires_at TIMESTAMP NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `).catch(() => {});
+async function ensureRefreshTokensIndexes() {
+  try {
+    await db.collection('refresh_tokens').createIndex({ token_hash: 1 });
+    await db.collection('refresh_tokens').createIndex({ user_id: 1 });
+    await db.collection('refresh_tokens').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
+  } catch {
+    // Indexes may already exist
+  }
 }
 
-async function ensurePasswordResetTable() {
-  await query(`
-    CREATE TABLE IF NOT EXISTS password_reset_tokens (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID NOT NULL,
-      token_hash VARCHAR(255) NOT NULL,
-      expires_at TIMESTAMP NOT NULL,
-      used BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `).catch(() => {});
+async function ensurePasswordResetIndexes() {
+  try {
+    await db.collection('password_reset_tokens').createIndex({ token_hash: 1 });
+    await db.collection('password_reset_tokens').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
+  } catch {
+    // Indexes may already exist
+  }
 }
 
 async function createRefreshToken(userId) {
-  await ensureRefreshTokensTable();
+  await ensureRefreshTokensIndexes();
   const refreshToken = randomUUID();
   const hash = hashToken(refreshToken);
   const expiresAt = new Date(Date.now() + REFRESH_EXPIRY_MS);
-  await query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-    [userId, hash, expiresAt]
-  );
+  await db.collection('refresh_tokens').insertOne({
+    id: randomUUID(),
+    user_id: userId,
+    token_hash: hash,
+    expires_at: expiresAt,
+    created_at: new Date(),
+  });
   // Clean up old tokens for this user (keep max 5)
-  await query(
-    `DELETE FROM refresh_tokens WHERE user_id = $1 AND id NOT IN (
-      SELECT id FROM refresh_tokens WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5
-    )`,
-    [userId]
-  ).catch(() => {});
+  try {
+    const allTokens = await db.collection('refresh_tokens')
+      .find({ user_id: userId })
+      .sort({ created_at: -1 })
+      .toArray();
+    if (allTokens.length > 5) {
+      const toDelete = allTokens.slice(5).map(t => t.id);
+      await db.collection('refresh_tokens').deleteMany({ id: { $in: toDelete } });
+    }
+  } catch { /* ignore */ }
   return { refreshToken, expiresAt };
 }
 
@@ -74,7 +76,7 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await getOne('SELECT id FROM users WHERE email = $1', [email]);
+    const existingUser = await findOne('users', { email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
@@ -83,31 +85,34 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = randomUUID();
 
-    await transaction(async (client) => {
+    await transaction(async (session) => {
       // Create user
-      await client.query(
-        `INSERT INTO users (id, email, password_hash, full_name, active, created_at)
-         VALUES ($1, $2, $3, $4, true, now())`,
-        [userId, email, hashedPassword, fullName]
-      );
+      await db.collection('users').insertOne({
+        id: userId,
+        email,
+        password_hash: hashedPassword,
+        full_name: fullName,
+        active: true,
+        created_at: new Date(),
+      }, { session });
 
       // Create profile
-      await client.query(
-        `INSERT INTO profiles (id, email, full_name, created_at)
-         VALUES ($1, $2, $3, now())`,
-        [userId, email, fullName]
-      );
+      await db.collection('profiles').insertOne({
+        id: userId,
+        email,
+        full_name: fullName,
+        created_at: new Date(),
+      }, { session });
 
-      // Check if this is the first user (before inserting this one)
-      const existingUsers = await client.query('SELECT COUNT(*) as count FROM users');
-      const isFirstUser = parseInt(existingUsers.rows[0].count) === 0;
-      const defaultRole = isFirstUser ? 'admin' : 'technician';
-      
-      await client.query(
-        `INSERT INTO user_roles (user_id, role, created_at)
-         VALUES ($1, $2, now())`,
-        [userId, defaultRole]
-      );
+      // Check if this is the first user
+      const userCount = await db.collection('users').countDocuments({}, { session });
+      const defaultRole = userCount <= 1 ? 'admin' : 'technician';
+
+      await db.collection('user_roles').insertOne({
+        user_id: userId,
+        role: defaultRole,
+        created_at: new Date(),
+      }, { session });
     });
 
     const token = generateToken(userId);
@@ -146,12 +151,7 @@ router.post('/signin', validate(signinSchema), async (req, res) => {
     }
 
     // Get user with password hash
-    const user = await getOne(
-      `SELECT id, email, password_hash, full_name, phone, active
-       FROM users 
-       WHERE email = $1`,
-      [email]
-    );
+    const user = await findOne('users', { email });
 
     if (!user || !user.active) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -164,10 +164,7 @@ router.post('/signin', validate(signinSchema), async (req, res) => {
     }
 
     // Get user roles
-    const roles = await getMany(
-      `SELECT role FROM user_roles WHERE user_id = $1`,
-      [user.id]
-    );
+    const roles = await findMany('user_roles', { user_id: user.id });
 
     const token = generateToken(user.id);
     const { refreshToken, expiresAt: refreshExpiresAt } = await createRefreshToken(user.id);
@@ -208,28 +205,19 @@ router.get('/me', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get user roles (only select columns that exist in the schema)
-    const userRoles = await getMany(
-      `SELECT id, role, created_at
-       FROM user_roles 
-       WHERE user_id = $1`,
-      [userId]
-    );
+    // Get user roles
+    const userRoles = await findMany('user_roles', { user_id: userId });
 
-    // Get tenant_id from profile (if column exists)
+    // Get tenant_id from profile
     let tenantId = null;
     try {
-      const profile = await getOne(
-        `SELECT tenant_id FROM profiles WHERE id = $1`,
-        [userId]
-      );
+      const profile = await findOne('profiles', { id: userId });
       tenantId = profile?.tenant_id || null;
     } catch (error) {
-      // tenant_id column might not exist in profiles table
       console.warn('Could not fetch tenant_id from profile:', error.message);
       tenantId = null;
     }
-    
+
     // Map database roles to frontend roles
     const roleMap = {
       'admin': 'sys_admin',
@@ -237,44 +225,39 @@ router.get('/me', authenticateToken, async (req, res) => {
       'technician': 'technician',
       'customer': 'customer',
     };
-    
+
     // Convert roles to frontend format
     const mappedRoles = userRoles.map(ur => {
       const mappedRole = roleMap[ur.role] || ur.role;
       return {
-        id: ur.id,
+        id: ur.id || ur._id,
         role: mappedRole,
-        tenant_id: null, // Not in current schema
+        tenant_id: null,
         granted_at: ur.created_at || new Date().toISOString(),
       };
     });
-    
+
     const roles = mappedRoles.map(ur => ur.role);
     console.log('Auth /me - User roles mapped:', roles, 'from DB roles:', userRoles.map(r => r.role));
 
     // Get permissions for all user roles
     let permissions = [];
-    
+
     try {
-      // Try to get permissions from role_permissions table
-      // Use role names directly since we're mapping them
-      const rolePerms = await getMany(
-        `SELECT DISTINCT p.name 
-         FROM permissions p
-         INNER JOIN role_permissions rp ON p.id = rp.permission_id
-         WHERE rp.role = ANY($1::text[])`,
-        [roles]
-      );
-      permissions = rolePerms.map(rp => rp.name);
-      
-      // If no permissions found in DB, use fallback
+      const rolePerms = await db.collection('role_permissions').aggregate([
+        { $match: { role: { $in: roles } } },
+        { $lookup: { from: 'permissions', localField: 'permission_id', foreignField: 'id', as: 'perm' } },
+        { $unwind: '$perm' },
+        { $group: { _id: null, names: { $addToSet: '$perm.name' } } },
+      ]).toArray();
+
+      permissions = rolePerms[0]?.names || [];
+
       if (permissions.length === 0) {
         console.warn('No permissions found in database for roles:', roles);
         permissions = generatePermissionsFromRoles(roles);
       }
     } catch (error) {
-      // If role_permissions table doesn't exist or query fails,
-      // generate permissions based on role (fallback)
       console.warn('Could not fetch permissions from database, using fallback:', error.message);
       permissions = generatePermissionsFromRoles(roles);
     }
@@ -296,8 +279,7 @@ router.get('/me', authenticateToken, async (req, res) => {
  */
 function generatePermissionsFromRoles(roles) {
   const permissions = new Set();
-  
-  // Map roles to common permissions
+
   const rolePermissionMap = {
     sys_admin: [
       'ticket.read', 'ticket.create', 'ticket.update', 'ticket.assign', 'ticket.close',
@@ -397,26 +379,23 @@ router.post('/refresh', validate(refreshSchema), async (req, res) => {
       return res.status(400).json({ error: 'Refresh token is required' });
     }
 
-    await ensureRefreshTokensTable();
+    await ensureRefreshTokensIndexes();
     const hash = hashToken(refresh_token);
 
-    const stored = await getOne(
-      `SELECT id, user_id, expires_at FROM refresh_tokens WHERE token_hash = $1`,
-      [hash]
-    );
+    const stored = await findOne('refresh_tokens', { token_hash: hash });
 
     if (!stored || new Date(stored.expires_at) < new Date()) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
 
     // Verify user still active
-    const user = await getOne('SELECT id, email, active FROM users WHERE id = $1', [stored.user_id]);
+    const user = await findOne('users', { id: stored.user_id });
     if (!user || !user.active) {
       return res.status(401).json({ error: 'User not found or inactive' });
     }
 
     // Delete old refresh token (rotation)
-    await query('DELETE FROM refresh_tokens WHERE id = $1', [stored.id]);
+    await db.collection('refresh_tokens').deleteOne({ id: stored.id });
 
     // Issue new tokens
     const accessToken = generateToken(user.id);
@@ -446,36 +425,40 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res)
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const user = await getOne('SELECT id FROM users WHERE email = $1 AND active = true', [email]);
+    const user = await findOne('users', { email, active: true });
     if (!user) {
-      // Don't reveal whether user exists
       return res.json({ message: 'If that email exists, a reset link has been sent' });
     }
 
-    await ensurePasswordResetTable();
+    await ensurePasswordResetIndexes();
 
     // Invalidate previous tokens
-    await query('UPDATE password_reset_tokens SET used = true WHERE user_id = $1 AND used = false', [user.id]);
+    await db.collection('password_reset_tokens').updateMany(
+      { user_id: user.id, used: false },
+      { $set: { used: true } }
+    );
 
     const resetToken = randomUUID();
     const hash = hashToken(resetToken);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    await query(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
-      [user.id, hash, expiresAt]
-    );
+    await db.collection('password_reset_tokens').insertOne({
+      id: randomUUID(),
+      user_id: user.id,
+      token_hash: hash,
+      expires_at: expiresAt,
+      used: false,
+      created_at: new Date(),
+    });
 
     logger.info('Password reset requested', { userId: user.id });
 
-    // Send email (falls back to logging in dev)
     const emailResult = await sendPasswordResetEmail(email, resetToken).catch(err => {
       logger.error('Email send failed', { error: err.message });
       return { success: false };
     });
 
     const response = { message: 'If that email exists, a reset link has been sent' };
-    // Only expose token in dev mode (no email configured)
     if (emailResult?.mode === 'dev') {
       response.reset_token = resetToken;
       response.expires_at = expiresAt.toISOString();
@@ -501,13 +484,10 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
-    await ensurePasswordResetTable();
+    await ensurePasswordResetIndexes();
     const hash = hashToken(token);
 
-    const stored = await getOne(
-      `SELECT id, user_id, expires_at, used FROM password_reset_tokens WHERE token_hash = $1`,
-      [hash]
-    );
+    const stored = await findOne('password_reset_tokens', { token_hash: hash });
 
     if (!stored || stored.used || new Date(stored.expires_at) < new Date()) {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
@@ -515,13 +495,19 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
 
     // Hash new password and update user
     const hashedPassword = await bcrypt.hash(new_password, 10);
-    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, stored.user_id]);
+    await db.collection('users').updateOne(
+      { id: stored.user_id },
+      { $set: { password_hash: hashedPassword } }
+    );
 
     // Mark token as used
-    await query('UPDATE password_reset_tokens SET used = true WHERE id = $1', [stored.id]);
+    await db.collection('password_reset_tokens').updateOne(
+      { id: stored.id },
+      { $set: { used: true } }
+    );
 
-    // Invalidate all refresh tokens for this user (force re-login)
-    await query('DELETE FROM refresh_tokens WHERE user_id = $1', [stored.user_id]).catch(() => {});
+    // Invalidate all refresh tokens for this user
+    await db.collection('refresh_tokens').deleteMany({ user_id: stored.user_id }).catch(() => {});
 
     logger.info('Password reset completed', { userId: stored.user_id });
 
@@ -537,8 +523,7 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
  */
 router.post('/signout', authenticateToken, async (req, res) => {
   try {
-    // Delete all refresh tokens for this user
-    await query('DELETE FROM refresh_tokens WHERE user_id = $1', [req.user.id]).catch(() => {});
+    await db.collection('refresh_tokens').deleteMany({ user_id: req.user.id }).catch(() => {});
     logger.info('User signed out', { userId: req.user.id });
     res.json({ message: 'Signed out successfully' });
   } catch (error) {
@@ -551,14 +536,11 @@ router.post('/signout', authenticateToken, async (req, res) => {
  */
 router.post('/signout-all', authenticateToken, async (req, res) => {
   try {
-    // Revoke current access token
     if (req.user.tokenData?.jti) {
       await revokeAccessToken(req.user.tokenData.jti, req.user.id, req.user.tokenData.exp, 'signout_all');
     }
-    // Revoke all future tokens issued before now
     await revokeAllUserTokens(req.user.id);
-    // Delete all refresh tokens
-    await query('DELETE FROM refresh_tokens WHERE user_id = $1', [req.user.id]).catch(() => {});
+    await db.collection('refresh_tokens').deleteMany({ user_id: req.user.id }).catch(() => {});
     logger.info('User signed out from all devices', { userId: req.user.id });
     res.json({ message: 'Signed out from all devices' });
   } catch (error) {
@@ -568,8 +550,7 @@ router.post('/signout-all', authenticateToken, async (req, res) => {
 });
 
 /**
- * Assign admin role to a user (for existing users)
- * POST /api/auth/assign-admin
+ * Assign admin role to a user
  */
 router.post('/assign-admin', authenticateToken, async (req, res) => {
   try {
@@ -580,29 +561,23 @@ router.post('/assign-admin', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Only allow if current user is admin
-    const currentUserRoles = await getMany(
-      `SELECT role FROM user_roles WHERE user_id = $1`,
-      [currentUser.id]
-    );
+    const currentUserRoles = await findMany('user_roles', { user_id: currentUser.id });
     const isAdmin = currentUserRoles.some(r => r.role === 'admin');
-    
+
     if (!isAdmin) {
       return res.status(403).json({ error: 'Only admins can assign admin role' });
     }
 
-    // Get target user
-    const targetUser = await getOne('SELECT id FROM users WHERE email = $1', [email]);
+    const targetUser = await findOne('users', { email });
     if (!targetUser) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     // Assign admin role (upsert)
-    await query(
-      `INSERT INTO user_roles (user_id, role, created_at)
-       VALUES ($1, 'admin', now())
-       ON CONFLICT (user_id, role) DO NOTHING`,
-      [targetUser.id]
+    await db.collection('user_roles').updateOne(
+      { user_id: targetUser.id, role: 'admin' },
+      { $setOnInsert: { user_id: targetUser.id, role: 'admin', created_at: new Date() } },
+      { upsert: true }
     );
 
     res.json({ message: `Admin role assigned to ${email}` });
@@ -613,4 +588,3 @@ router.post('/assign-admin', authenticateToken, async (req, res) => {
 });
 
 export default router;
-

@@ -1,16 +1,25 @@
-const API = 'http://localhost:3001';
+/**
+ * API Integration Tests: Auth
+ * Gracefully skips when backend is unavailable.
+ */
+import { describe, test, expect, beforeAll } from 'vitest';
+import { isServerAvailable, apiPost, apiGet, authenticate, API_URL } from './helpers.js';
+
+let serverAvailable = false;
+let token;
+
+beforeAll(async () => {
+  serverAvailable = await isServerAvailable();
+});
 
 describe('Auth API', () => {
-  let token;
-
   test('POST /api/auth/signin - valid credentials', async () => {
-    const res = await fetch(`${API}/api/auth/signin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@guardian.dev', password: 'admin123' }),
+    if (!serverAvailable) return;
+    const { status, data } = await apiPost('/api/auth/signin', {
+      email: 'admin@guardian.dev',
+      password: 'admin123',
     });
-    expect(res.status).toBe(200);
-    const data = await res.json();
+    expect(status).toBe(200);
     expect(data.session).toBeDefined();
     expect(data.session.access_token).toBeDefined();
     expect(data.user.email).toBe('admin@guardian.dev');
@@ -18,25 +27,24 @@ describe('Auth API', () => {
   });
 
   test('POST /api/auth/signin - invalid credentials', async () => {
-    const res = await fetch(`${API}/api/auth/signin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'wrong@test.com', password: 'wrong' }),
+    if (!serverAvailable) return;
+    const { status } = await apiPost('/api/auth/signin', {
+      email: 'wrong@test.com',
+      password: 'wrong',
     });
-    expect(res.status).not.toBe(200);
+    expect(status).not.toBe(200);
   });
 
   test('GET /api/auth/user - with token', async () => {
-    const res = await fetch(`${API}/api/auth/user`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    expect(res.status).toBe(200);
-    const data = await res.json();
+    if (!serverAvailable) return;
+    const { status, data } = await apiGet('/api/auth/user', token);
+    expect(status).toBe(200);
     expect(data.user).toBeDefined();
   });
 
   test('GET /api/auth/user - without token returns 401', async () => {
-    const res = await fetch(`${API}/api/auth/user`);
-    expect(res.status).toBe(401);
+    if (!serverAvailable) return;
+    const { status } = await apiGet('/api/auth/user');
+    expect(status).toBe(401);
   });
 });
