@@ -43,8 +43,8 @@ export async function predictSLABreach(tenantId) {
     const riskLevel = breachProbability > 70 ? 'high' : breachProbability > 40 ? 'medium' : 'low';
 
     const prediction = {
-      _id: randomUUID(),
-      work_order_id: wo._id,
+      id: randomUUID(),
+      work_order_id: wo.id,
       wo_number: wo.wo_number,
       tenant_id: tenantId,
       breach_probability: breachProbability,
@@ -66,7 +66,7 @@ export async function predictSLABreach(tenantId) {
     // Store prediction
     try {
       await updateOne('sla_predictions',
-        { work_order_id: wo._id },
+        { work_order_id: wo.id },
         { $set: prediction },
         { upsert: true }
       );
@@ -100,7 +100,7 @@ export async function generateMaintenancePredictions(tenantId) {
     const serviceHistory = await findMany('work_orders', {
       tenant_id: tenantId,
       $or: [
-        { equipment_id: equip._id },
+        { equipment_id: equip.id },
         { unit_serial: equip.serial_number },
       ],
       status: 'completed',
@@ -129,8 +129,8 @@ export async function generateMaintenancePredictions(tenantId) {
     const riskLevel = failureProbability > 70 ? 'critical' : failureProbability > 50 ? 'high' : failureProbability > 30 ? 'medium' : 'low';
 
     const prediction = {
-      _id: randomUUID(),
-      equipment_id: equip._id,
+      id: randomUUID(),
+      equipment_id: equip.id,
       serial_number: equip.serial_number,
       model: equip.model,
       manufacturer: equip.manufacturer,
@@ -156,7 +156,7 @@ export async function generateMaintenancePredictions(tenantId) {
 
     try {
       await updateOne('maintenance_predictions',
-        { equipment_id: equip._id, tenant_id: tenantId },
+        { equipment_id: equip.id, tenant_id: tenantId },
         { $set: prediction },
         { upsert: true }
       );

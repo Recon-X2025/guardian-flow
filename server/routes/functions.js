@@ -11,6 +11,7 @@ import { PROMPTS } from '../services/ai/prompts.js';
 import { detectWorkOrderAnomalies, detectFinancialAnomalies } from '../services/ai/anomaly.js';
 import { analyzeImage, processBatch } from '../ml/forgery.js';
 import { rateLimit } from '../middleware/rateLimit.js';
+import { predictSLABreach } from '../services/ai/predictive.js';
 
 const router = express.Router();
 
@@ -2734,6 +2735,48 @@ router.post('/predict-sla-breach', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('SLA prediction error:', error);
     res.status(500).json({ error: 'SLA prediction failed' });
+  }
+});
+
+/**
+ * Assess SLA Risk (AI-powered)
+ * POST /api/functions/assess-sla-risk
+ * Uses AI/ML to analyze work orders and predict SLA breach risk
+ */
+router.post('/assess-sla-risk', authenticateToken, aiRateLimit, async (req, res) => {
+  try {
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    // Use the AI predictive service
+    const assessments = await predictSLABreach(tenantId);
+
+    if (assessments.length === 0) {
+      // Return empty but successful response
+      return res.json({
+        success: true,
+        assessments: [],
+        message: 'No active work orders to assess',
+        analyzed_at: new Date().toISOString(),
+      });
+    }
+
+    res.json({
+      success: true,
+      assessments: assessments.map(a => ({
+        work_order_id: a.work_order_id,
+        wo_number: a.wo_number,
+        breach_probability: a.breach_probability / 100, // Convert to 0-1 scale
+        risk_level: a.risk_level,
+        hours_remaining: a.hours_remaining,
+        contributing_factors: a.contributing_factors,
+      })),
+      total_assessed: assessments.length,
+      high_risk_count: assessments.filter(a => a.risk_level === 'high').length,
+      analyzed_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('SLA risk assessment error:', error);
+    res.status(500).json({ error: 'SLA risk assessment failed', details: error.message });
   }
 });
 

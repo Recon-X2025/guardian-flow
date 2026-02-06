@@ -29,13 +29,16 @@ async function seedDatabase() {
     // 1. ADMIN USER
     // ============================================================
     console.log('📦 Seeding admin user...');
-    const adminId = randomUUID();
     const adminEmail = 'admin@guardian.dev';
     const adminPassword = 'admin123';
     const adminHash = await bcrypt.hash(adminPassword, 10);
 
+    // Check if admin exists and get their id, otherwise create new
     const existingAdmin = await db.collection('users').findOne({ email: adminEmail });
+    let adminId;
+
     if (!existingAdmin) {
+      adminId = randomUUID();
       await db.collection('users').insertOne({
         id: adminId,
         email: adminEmail,
@@ -64,12 +67,14 @@ async function seedDatabase() {
 
       console.log(`   ✅ Created admin user: ${adminEmail} / ${adminPassword}`);
     } else {
+      // Use existing admin's id for all seed data
+      adminId = existingAdmin.id;
       // Update password to ensure it matches
       await db.collection('users').updateOne(
         { email: adminEmail },
         { $set: { password_hash: adminHash, active: true, updated_at: new Date() } }
       );
-      console.log(`   ✅ Admin user exists, password reset to: ${adminPassword}`);
+      console.log(`   ✅ Admin user exists (id: ${adminId}), password reset to: ${adminPassword}`);
     }
 
     // ============================================================
@@ -109,22 +114,81 @@ async function seedDatabase() {
     console.log(`   ✅ Seeded ${equipment.length} equipment records`);
 
     // ============================================================
-    // 4. SAMPLE WORK ORDERS
+    // 4. SAMPLE WORK ORDERS (with SLA deadlines for AI testing)
     // ============================================================
     console.log('📦 Seeding work orders...');
+    const now = new Date();
     const workOrders = [
-      { id: '00000000-0000-4000-c000-000000000001', wo_number: 'WO-2024-0001', title: 'Printer Maintenance', description: 'Quarterly maintenance for Industrial Printer', status: 'pending', priority: 'medium', customer_id: 'cust-001', equipment_id: 'equip-001' },
-      { id: '00000000-0000-4000-c000-000000000002', wo_number: 'WO-2024-0002', title: 'Server Diagnostics', description: 'Performance issues reported', status: 'in_progress', priority: 'high', customer_id: 'cust-001', equipment_id: 'equip-002' },
-      { id: '00000000-0000-4000-c000-000000000003', wo_number: 'WO-2024-0003', title: 'Network Configuration', description: 'VLAN setup and configuration', status: 'completed', priority: 'low', customer_id: 'cust-002', equipment_id: 'equip-003' },
+      {
+        id: '00000000-0000-4000-c000-000000000001',
+        wo_number: 'WO-2024-0001',
+        title: 'Printer Maintenance',
+        description: 'Quarterly maintenance for Industrial Printer',
+        status: 'pending',
+        priority: 'medium',
+        customer_id: 'cust-001',
+        equipment_id: 'equip-001',
+        sla_deadline: new Date(now.getTime() + 48 * 60 * 60 * 1000), // 48 hours from now
+        unit_serial: 'SN-PRT-001',
+      },
+      {
+        id: '00000000-0000-4000-c000-000000000002',
+        wo_number: 'WO-2024-0002',
+        title: 'Server Diagnostics',
+        description: 'Performance issues reported',
+        status: 'in_progress',
+        priority: 'high',
+        customer_id: 'cust-001',
+        equipment_id: 'equip-002',
+        sla_deadline: new Date(now.getTime() + 4 * 60 * 60 * 1000), // 4 hours from now - high risk
+        unit_serial: 'SN-SRV-002',
+      },
+      {
+        id: '00000000-0000-4000-c000-000000000003',
+        wo_number: 'WO-2024-0003',
+        title: 'Network Configuration',
+        description: 'VLAN setup and configuration',
+        status: 'completed',
+        priority: 'low',
+        customer_id: 'cust-002',
+        equipment_id: 'equip-003',
+        sla_deadline: new Date(now.getTime() - 24 * 60 * 60 * 1000), // Past - completed
+        unit_serial: 'SN-NET-003',
+      },
+      {
+        id: '00000000-0000-4000-c000-000000000004',
+        wo_number: 'WO-2024-0004',
+        title: 'Urgent Server Repair',
+        description: 'Critical server down, immediate attention needed',
+        status: 'assigned',
+        priority: 'urgent',
+        customer_id: 'cust-001',
+        equipment_id: 'equip-002',
+        sla_deadline: new Date(now.getTime() + 2 * 60 * 60 * 1000), // 2 hours from now - critical
+        unit_serial: 'SN-SRV-002',
+        assigned_to: 'tech-002',
+      },
+      {
+        id: '00000000-0000-4000-c000-000000000005',
+        wo_number: 'WO-2024-0005',
+        title: 'Switch Firmware Update',
+        description: 'Scheduled firmware update',
+        status: 'released',
+        priority: 'low',
+        customer_id: 'cust-002',
+        equipment_id: 'equip-003',
+        sla_deadline: new Date(now.getTime() + 72 * 60 * 60 * 1000), // 72 hours from now - low risk
+        unit_serial: 'SN-NET-003',
+      },
     ];
     for (const wo of workOrders) {
       await db.collection('work_orders').updateOne(
         { id: wo.id },
-        { $set: { ...wo, tenant_id: adminId, created_at: new Date(), updated_at: new Date() } },
+        { $set: { ...wo, tenant_id: adminId, created_at: new Date(now.getTime() - 24 * 60 * 60 * 1000), updated_at: new Date() } },
         { upsert: true }
       );
     }
-    console.log(`   ✅ Seeded ${workOrders.length} work orders`);
+    console.log(`   ✅ Seeded ${workOrders.length} work orders (with SLA deadlines)`);
 
     // ============================================================
     // 5. SAMPLE TECHNICIANS
@@ -255,7 +319,7 @@ async function seedDatabase() {
     const collections = [
       'service_orders', 'service_requests', 'quotes', 'payments', 'penalties',
       'penalty_rules', 'disputes', 'partners', 'notifications', 'audit_log',
-      'forecast_outputs', 'maintenance_predictions', 'sapos_offers', 'fraud_alerts',
+      'forecast_outputs', 'maintenance_predictions', 'sla_predictions', 'sapos_offers', 'fraud_alerts',
       'forgery_detections', 'forgery_batch_jobs', 'forgery_monitoring_alerts',
       'forgery_model_metrics', 'marketplace_items', 'templates', 'webhooks',
       'ab_tests', 'geography_hierarchy', 'sla_configurations', 'sla_records',
