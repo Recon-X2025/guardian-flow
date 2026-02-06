@@ -74,7 +74,7 @@ VITE v... ready in ... ms
 
 ```bash
 cd server
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.js
 ```
 
 ---

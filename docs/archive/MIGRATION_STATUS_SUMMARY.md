@@ -1,4 +1,4 @@
-# Supabase Migration Status Summary
+# legacy service Migration Status Summary
 **Date:** November 25, 2025  
 **Last Updated:** Just now
 
@@ -33,19 +33,19 @@
 ## 📋 Remaining Work
 
 ### High Priority (Immediate)
-1. **WorkOrders.tsx** - 4 Supabase references
+1. **WorkOrders.tsx** - 4 legacy service references
    - Line 7: Import statement
    - Line 69-71: Count query
    - Line 73-78: Data query with joins
    - Line 122: Function invoke
 
-2. **Tickets.tsx** - 3 Supabase references
+2. **Tickets.tsx** - 3 legacy service references
    - Line 11: Import statement
    - Line 41-46: Select query with joins
    - Line 89-94: Insert query
 
 ### Medium Priority (Next)
-3. **Components** (~20 files with Supabase references)
+3. **Components** (~20 files with legacy service references)
    - WarrantyDialog.tsx
    - ServiceBookingDialog.tsx
    - CustomerDialog.tsx
@@ -55,7 +55,7 @@
    - And 14 more analytics-platform components
 
 4. **Other Pages** (~90 files)
-   - Various pages still using Supabase
+   - Various pages still using legacy service
    - Need systematic migration
 
 ## 🎯 Migration Strategy
@@ -76,7 +76,7 @@
 - Remaining pages
 
 ### Phase 4: Cleanup
-- Remove Supabase client file (or keep as re-export)
+- Remove legacy service client file (or keep as re-export)
 - Remove unused imports
 - Update documentation
 
@@ -98,5 +98,5 @@
 
 ---
 
-**Note:** The `supabase/client.ts` file currently re-exports from `apiClient` for backward compatibility. This can be removed once all files are migrated.
+**Note:** The legacy `client.ts` compatibility file currently re-exports from `apiClient` for backward compatibility. This can be removed once all files are migrated.
 

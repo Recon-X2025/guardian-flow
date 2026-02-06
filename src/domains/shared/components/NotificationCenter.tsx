@@ -8,6 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Bell } from 'lucide-react';
 import { format } from 'date-fns';
 
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  priority?: string;
+  read_at?: string | null;
+  action_url?: string;
+  created_at: string;
+}
+
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -74,7 +84,7 @@ export function NotificationCenter() {
 
         <div className="space-y-4 mt-6">
           {notifications && notifications.length > 0 ? (
-            notifications.map((notification: any) => (
+            notifications.map((notification: Notification) => (
               <div
                 key={notification.id}
                 className={`p-4 rounded-lg border cursor-pointer transition-colors ${

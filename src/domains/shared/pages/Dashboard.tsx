@@ -53,8 +53,37 @@ export default function Dashboard() {
     partnerPerformance: 0,
   });
   
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [statusData, setStatusData] = useState<any[]>([]);
+interface ChartDataPoint {
+  date: string;
+  count: number;
+}
+
+interface StatusDataPoint {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface WorkOrder {
+  id: string;
+  status?: string;
+  created_at?: string;
+  technician_id?: string;
+  completed_at?: string;
+  tenant_id?: string;
+}
+
+interface SaposOffer {
+  price: number | string;
+}
+
+interface Invoice {
+  total_amount: number | string;
+  status: string;
+}
+
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [statusData, setStatusData] = useState<StatusDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Get role-specific configuration
@@ -84,12 +113,12 @@ export default function Dashboard() {
       }
 
       const woResult = await woQuery;
-      const allWorkOrders = woResult.data || [];
+      const allWorkOrders = (woResult.data || []) as WorkOrder[];
       const totalWOCount = allWorkOrders.length;
 
-      const activeWOs = allWorkOrders?.filter(wo => ['in_progress', 'assigned'].includes(wo.status || '')).length || 0;
-      const completedWOs = allWorkOrders?.filter(wo => wo.status === 'completed').length || 0;
-      const pendingWOs = allWorkOrders?.filter(wo => wo.status === 'pending_validation').length || 0;
+      const activeWOs = allWorkOrders.filter(wo => ['in_progress', 'assigned'].includes(wo.status || '')).length;
+      const completedWOs = allWorkOrders.filter(wo => wo.status === 'completed').length;
+      const pendingWOs = allWorkOrders.filter(wo => wo.status === 'pending_validation').length;
 
       // Technician-specific metrics
       let myAssignedWOs = 0;
@@ -147,8 +176,8 @@ export default function Dashboard() {
       }
       
       const saposResult = await offersQuery;
-      const saposOffers = saposResult.data || [];
-      const saposRevenue = saposOffers.reduce((sum, offer: any) => sum + Number(offer.price || 0), 0);
+      const saposOffers = (saposResult.data || []) as SaposOffer[];
+      const saposRevenue = saposOffers.reduce((sum, offer) => sum + Number(offer.price || 0), 0);
 
       // Monthly revenue (last 30 days)
       const thirtyDaysAgo = new Date();
@@ -164,8 +193,8 @@ export default function Dashboard() {
       }
       
       const monthlyResult = await monthlyOffersQuery;
-      const monthlyOffers = monthlyResult.data || [];
-      const monthlyRevenue = monthlyOffers.reduce((sum, offer: any) => sum + Number(offer.price || 0), 0);
+      const monthlyOffers = (monthlyResult.data || []) as SaposOffer[];
+      const monthlyRevenue = monthlyOffers.reduce((sum, offer) => sum + Number(offer.price || 0), 0);
 
       // Invoices
       let invoicesQuery = apiClient.from('invoices')
@@ -177,9 +206,9 @@ export default function Dashboard() {
       }
       
       const invoicesResult = await invoicesQuery;
-      const invoices = invoicesResult.data || [];
-      const totalPayables = invoices.reduce((sum, inv: any) => sum + Number(inv.total_amount || 0), 0);
-      const overdueInvoices = invoices.filter((inv: any) => inv.status === 'overdue').length;
+      const invoices = (invoicesResult.data || []) as Invoice[];
+      const totalPayables = invoices.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0);
+      const overdueInvoices = invoices.filter((inv) => inv.status === 'overdue').length;
 
       // Fraud & Compliance metrics (placeholder - these tables may not exist yet)
       // Use work orders as proxy for now
@@ -236,7 +265,7 @@ export default function Dashboard() {
       });
 
       const chartDataProcessed = last7Days.map(date => {
-        const count = allWorkOrders?.filter(wo => wo.created_at?.startsWith(date)).length || 0;
+        const count = allWorkOrders.filter(wo => wo.created_at?.startsWith(date)).length;
         return {
           date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           count
@@ -261,7 +290,7 @@ export default function Dashboard() {
   };
 
   // Format card values based on data type
-  const formatCardValue = (value: any, dataKey: keyof DashboardStats): string => {
+  const formatCardValue = (value: number | string, dataKey: keyof DashboardStats): string => {
     if (typeof value === 'number') {
       // Financial metrics
       if (['saposRevenue', 'totalPayables', 'monthlyRevenue'].includes(dataKey)) {
@@ -314,8 +343,8 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formattedValue}</div>
-                {(card as any).subtitle && (
-                  <p className="text-xs text-muted-foreground mt-1">{(card as any).subtitle}</p>
+                {'subtitle' in card && card.subtitle && (
+                  <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
                 )}
               </CardContent>
             </Card>
@@ -371,7 +400,7 @@ export default function Dashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }: any) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                      label={({ name, percent }: { name: string; percent?: number }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
                       outerRadius={60}
                       className="sm:outerRadius-80"
                       fill="#8884d8"

@@ -8,7 +8,7 @@
 
 ### **Step 1: FAQ System Migration**
 ```bash
-psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
+mongosh guardianflow --file scripts/migrations/add-faq-system.sql
 ```
 
 **Expected Results:**
@@ -23,7 +23,7 @@ psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
 
 ### **Step 2: Payment Gateway Migration**
 ```bash
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.sql
 ```
 
 **Expected Results:**

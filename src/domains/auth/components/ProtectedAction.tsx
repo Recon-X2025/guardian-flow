@@ -58,7 +58,7 @@ export function ProtectedAction({
             <span className="cursor-not-allowed opacity-50">
               {React.cloneElement(children as React.ReactElement, {
                 disabled: true,
-                onClick: (e: any) => e.preventDefault(),
+                onClick: (e: React.MouseEvent) => e.preventDefault(),
               })}
             </span>
           </TooltipTrigger>

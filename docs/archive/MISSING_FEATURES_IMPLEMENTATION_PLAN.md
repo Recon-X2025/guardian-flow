@@ -27,14 +27,14 @@
 ### Current Status
 - ✅ UI exists (`src/pages/Payments.tsx`)
 - ✅ Backend route exists (`server/routes/payments.js`)
-- ⚠️ Uses Supabase (needs migration)
+- ⚠️ Uses legacy service (needs migration)
 - ❌ No actual payment processing integration
 - ❌ No Stripe/Razorpay integration
 
 ### Implementation Tasks
 
 #### 1.1 Migrate Payments Page to apiClient
-- [ ] Replace `supabase` with `apiClient` in `Payments.tsx`
+- [ ] Replace legacy API calls with `apiClient` in `Payments.tsx`
 - [ ] Update invoice fetching logic
 - [ ] Test invoice display
 
@@ -303,7 +303,7 @@
 
 - **Payment Gateway:** Start with Stripe (easier), add Razorpay later for India market
 - **Knowledge Base:** Can reuse document storage from existing system
-- **RAG Engine:** Consider using PostgreSQL with pgvector extension or external vector DB
+- **RAG Engine:** Consider using MongoDB Atlas Vector Search or external vector DB
 - **AI Assistant:** Use OpenAI GPT-4 or Anthropic Claude for LLM
 
 ---

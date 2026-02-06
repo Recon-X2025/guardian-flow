@@ -100,10 +100,10 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
       
       // Clear the result state
       setResult(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete accounts error:', error);
       toast.error('Error deleting accounts', {
-        description: error.message || 'An unexpected error occurred',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     } finally {
       setLoading(false);
@@ -129,10 +129,10 @@ export function SeedAccountsButton({ onSelectAccount, module = 'platform' }: See
       toast.success('RBAC reset', {
         description: response.data?.message || 'All user roles have been cleared.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Reset RBAC error:', error);
       toast.error('Error resetting RBAC', {
-        description: error.message || 'An unexpected error occurred',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     } finally {
       setLoading(false);

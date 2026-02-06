@@ -16,7 +16,7 @@ interface PhotoFile {
 interface PhotoCaptureProps {
   stage: "replacement" | "post_repair" | "pickup";
   workOrderId?: string;
-  onComplete?: (payload: any) => void;
+  onComplete?: (payload: unknown) => void;
 }
 
 const roleLabels: Record<PhotoRole, { title: string; description: string }> = {
@@ -154,14 +154,15 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
         ...prev,
         [role]: { validated: true },
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setValidationResults((prev) => ({
         ...prev,
-        [role]: { validated: false, error: error.message },
+        [role]: { validated: false, error: errorMessage },
       }));
       toast({
         title: "Validation failed",
-        description: `${roleLabels[role].title}: ${error.message}`,
+        description: `${roleLabels[role].title}: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -213,7 +214,7 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
       if (result.error) {
         // Handle validation errors with detailed feedback
         const errorMessage = result.error.message || 'Validation failed';
-        const errorData = result.error as any;
+        const errorData = result.error as { details?: string; error?: string; missing_roles?: PhotoRole[] };
         const errorDetails = errorData.details || errorData.error || '';
         
         toast({
@@ -261,10 +262,10 @@ export default function PhotoCapture({ stage, workOrderId, onComplete }: PhotoCa
         });
         throw new Error(errorMsg);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload photos. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload photos. Please try again.",
         variant: "destructive",
       });
     } finally {

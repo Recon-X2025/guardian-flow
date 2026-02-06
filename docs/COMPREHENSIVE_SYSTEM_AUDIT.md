@@ -9,7 +9,7 @@
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| **Operational Edge Functions** | 70+ | ✅ Working |
+| **Operational Express.js Route Handlers** | 70+ | ✅ Working |
 | **Database Tables** | 85 | ✅ Operational |
 | **Pending Tables** | 19 | ⚠️ Migration Required |
 | **Security Warnings** | 2 | ⚠️ Need Attention |
@@ -54,13 +54,13 @@
 
 ---
 
-### 2. Missing Critical Edge Functions (8 functions)
+### 2. Missing Critical Express.js Route Handlers (8 functions)
 
 #### 🔴 Priority 1 - Core Platform (MUST IMPLEMENT)
 
 **a) Federated Learning Coordinator**
 ```typescript
-// Location: supabase/functions/federated-learning-coordinator/index.ts
+// Location: server/routes/federated-learning-coordinator/index.ts
 // Status: NOT IMPLEMENTED
 // Purpose: Orchestrate distributed model training across tenants
 // Dependencies: federated_learning_models, federated_training_jobs
@@ -80,7 +80,7 @@
 
 **b) Compliance Policy Enforcer**
 ```typescript
-// Location: supabase/functions/compliance-policy-enforcer/index.ts
+// Location: server/routes/compliance-policy-enforcer/index.ts
 // Status: NOT IMPLEMENTED
 // Purpose: Real-time compliance validation and enforcement
 // Dependencies: compliance_policies, compliance_audit_trails
@@ -100,7 +100,7 @@
 
 **c) Model Performance Monitor**
 ```typescript
-// Location: supabase/functions/model-performance-monitor/index.ts
+// Location: server/routes/model-performance-monitor/index.ts
 // Status: NOT IMPLEMENTED
 // Purpose: Monitor ML model performance and trigger retraining
 // Dependencies: model_performance_metrics, model_registry
@@ -120,7 +120,7 @@
 
 **d) Enhanced API Gateway**
 ```typescript
-// Location: supabase/functions/api-gateway/index.ts
+// Location: server/routes/api-gateway/index.ts
 // Status: PARTIALLY IMPLEMENTED (50% complete)
 // Purpose: Enterprise-grade API management
 // Dependencies: api_usage_analytics, partner_api_keys
@@ -142,7 +142,7 @@
 
 **e) Webhook Delivery Manager**
 ```typescript
-// Location: supabase/functions/webhook-delivery-manager/index.ts
+// Location: server/routes/webhook-delivery-manager/index.ts
 // Status: NOT IMPLEMENTED
 // Purpose: Reliable webhook delivery with retry logic
 // Dependencies: developer_webhooks, webhook_deliveries
@@ -165,7 +165,7 @@
 
 **f) Industry Template Manager**
 ```typescript
-// Location: supabase/functions/industry-template-manager/index.ts
+// Location: server/routes/industry-template-manager/index.ts
 // Status: NOT IMPLEMENTED
 // Purpose: CRUD operations for workflow templates
 // Dependencies: workflow_templates, workflow_template_versions
@@ -185,7 +185,7 @@
 
 **g) Marketplace Extension Manager**
 ```typescript
-// Location: supabase/functions/marketplace-extension-manager/index.ts
+// Location: server/routes/marketplace-extension-manager/index.ts
 // Status: NOT IMPLEMENTED
 // Purpose: Extension lifecycle management
 // Dependencies: marketplace_extensions, extension_installations
@@ -205,7 +205,7 @@
 
 **h) Platform Health Monitor Enhancement**
 ```typescript
-// Location: supabase/functions/health-monitor/index.ts (exists)
+// Location: server/routes/health-monitor/index.ts (exists)
 // Status: BASIC IMPLEMENTATION (30% complete)
 // Purpose: Comprehensive system health monitoring
 // Dependencies: system_health_metrics
@@ -233,7 +233,7 @@
 - **Issue:** Some database functions don't have `search_path` set
 - **Risk:** Potential SQL injection or privilege escalation
 - **Fix:** Add `SET search_path = 'public'` to all functions
-- **Documentation:** https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable
+- **Documentation:** See MongoDB Atlas security best practices
 
 **Affected Functions:**
 All custom database functions should be reviewed and updated.
@@ -245,12 +245,12 @@ All custom database functions should be reviewed and updated.
 - **Category:** SECURITY
 - **Issue:** Password leak detection is not enabled
 - **Risk:** Users can set compromised passwords
-- **Fix:** Enable in Supabase Auth settings
-- **Documentation:** https://supabase.com/docs/guides/auth/password-security
+- **Fix:** Enable in auth configuration
+- **Documentation:** See auth configuration in server/middleware/auth.js
 
 **Action Required:**
 ```sql
--- Enable in Supabase Dashboard > Authentication > Password Security
+-- Enable in server auth configuration > Password Security
 -- OR configure via API
 ```
 
@@ -322,7 +322,7 @@ throw new Error('Resource not found');
 
 ## 🚦 OPERATIONAL STATUS
 
-### Edge Functions Deployment Status
+### Express.js Route Handlers Deployment Status
 
 #### ✅ Core Operations (100% Operational)
 - Authentication: `auth-me`, `request-mfa`, `verify-mfa`
@@ -427,7 +427,7 @@ throw new Error('Resource not found');
 - **Cache Hit Rate:** > 95%
 - **Connection Pool:** Healthy
 
-### Edge Function Performance
+### Express.js Route Handler Performance
 - **Average Latency:** 150-300ms
 - **Success Rate:** > 99.5%
 - **Cold Start Time:** < 1s
@@ -605,7 +605,7 @@ throw new Error('Resource not found');
 ✅ Excellent database health  
 
 ### Critical Gaps
-🔴 8 missing edge functions block enterprise features  
+🔴 8 missing Express.js route handlers block enterprise features  
 🔴 19 tables pending (migration required)  
 ⚠️ 2 security warnings need attention  
 ⚠️ 3 UI pages have mock data  

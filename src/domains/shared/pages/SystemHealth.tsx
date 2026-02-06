@@ -6,6 +6,15 @@ import { Progress } from '@/components/ui/progress';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Database, Bell, Zap, AlertTriangle, CheckCircle } from 'lucide-react';
 
+interface HealthMetric {
+  id: string;
+  timestamp: string;
+  health_score: number;
+  cpu_usage?: number;
+  memory_usage?: number;
+  api_latency?: number;
+}
+
 export default function SystemHealth() {
   const { data: healthMetrics, isLoading } = useQuery({
     queryKey: ['system-health'],
@@ -20,13 +29,13 @@ export default function SystemHealth() {
   const { data: historicalMetrics } = useQuery({
     queryKey: ['system-health-history'],
     queryFn: async () => {
-      const { data, error } = await apiClient
-        .from('system_health_metrics' as any)
+      const result = await apiClient
+        .from('system_health_metrics')
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(50);
       if (result.error) throw result.error;
-      return (data as any[])?.reverse();
+      return (result.data as HealthMetric[])?.reverse();
     },
   });
 

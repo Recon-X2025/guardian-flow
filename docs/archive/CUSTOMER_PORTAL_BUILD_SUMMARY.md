@@ -184,7 +184,7 @@ Completely rebuilt with 6 comprehensive tabs:
 1. **Run Database Migration:**
    ```bash
    cd server
-   psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
+   mongosh guardianflow --file scripts/migrations/add-faq-system.js
    ```
 
 2. **Test Customer Portal:**

@@ -9,6 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, FileText, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 
+interface Document {
+  id: string;
+  document_number: string;
+  title: string;
+  file_name: string;
+  document_type: string;
+  ocr_status?: string;
+  created_at: string;
+  file_size?: number;
+}
+
 export default function Documents() {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -87,7 +98,7 @@ export default function Documents() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {documents.map((doc: any) => (
+              {documents.map((doc: Document) => (
                 <TableRow key={doc.id}>
                   <TableCell className="font-mono text-sm">
                     {doc.document_number}

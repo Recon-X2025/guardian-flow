@@ -225,7 +225,7 @@ This analysis maps identified gaps from the build status report to specific plat
 
 **Capabilities:**
 - ✅ RBAC system (16 roles, 300+ permissions)
-- ✅ RLS policies (161 tables)
+- ✅ Application-level tenant isolation (161 collections)
 - ✅ Audit logging (7-year retention)
 - ✅ MFA system (TOTP)
 - ✅ Override request workflow

@@ -242,7 +242,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
         prefill: {
           // Could prefill with customer details if available
         },
-        handler: async function(response: any) {
+        handler: async function(response: RazorpayResponse) {
           // Payment successful
           await confirmRazorpayPayment(response, intent);
         },
@@ -258,7 +258,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
         }
       };
 
-      const razorpay = new Razorpay(options);
+      const razorpay = new window.Razorpay(options);
       razorpay.open();
       
       // Store payment intent for confirmation
@@ -267,16 +267,16 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
         invoiceId: invoice.id,
         transactionId: intent.orderId,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Razorpay Error',
-        description: error.message || 'Failed to initialize Razorpay',
+        description: error instanceof Error ? error.message : 'Failed to initialize Razorpay',
         variant: 'destructive',
       });
     }
   };
 
-  const confirmRazorpayPayment = async (razorpayResponse: any, intent: any) => {
+  const confirmRazorpayPayment = async (razorpayResponse: RazorpayResponse, intent: PaymentIntent) => {
     try {
       setLoading(true);
       
@@ -309,10 +309,10 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
       localStorage.removeItem('razorpay_payment_intent');
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Payment Error',
-        description: error.message || 'Failed to confirm payment',
+        description: error instanceof Error ? error.message : 'Failed to confirm payment',
         variant: 'destructive',
       });
     } finally {
@@ -320,7 +320,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
     }
   };
 
-  const handleManualPayment = async (intent: any) => {
+  const handleManualPayment = async (intent: PaymentIntent) => {
     // Manual payments require reference number
     if (!referenceNumber) {
       toast({
@@ -360,10 +360,10 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
 
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Payment Error',
-        description: error.message || 'Failed to submit payment',
+        description: error instanceof Error ? error.message : 'Failed to submit payment',
         variant: 'destructive',
       });
     } finally {

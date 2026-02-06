@@ -83,10 +83,10 @@ export function GeoCheckInDialog({
 
       onSuccess?.();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Error',
-        description: err.message,
+        description: err instanceof Error ? err.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {

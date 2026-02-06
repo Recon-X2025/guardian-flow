@@ -1,4 +1,4 @@
-# Supabase to API Client Migration - Completion Summary
+# legacy service to API Client Migration - Completion Summary
 
 **Date:** November 25, 2025  
 **Status:** ✅ **COMPONENT MIGRATION COMPLETE**
@@ -7,7 +7,7 @@
 
 ## 🎉 Migration Achievement
 
-All **21 component files** and **1 hook file** have been successfully migrated from Supabase to the custom API client (`apiClient`). This represents 100% completion of all component-level migrations.
+All **21 component files** and **1 hook file** have been successfully migrated from legacy service to the custom API client (`apiClient`). This represents 100% completion of all component-level migrations.
 
 ---
 
@@ -48,8 +48,8 @@ All **21 component files** and **1 hook file** have been successfully migrated f
 ## 🔧 Key Fixes Applied
 
 ### 1. Import Statements
-- Changed all `import { supabase }` to `import { apiClient }`
-- Updated from old path `@/integrations/supabase/client` to `@/integrations/api/client`
+- Changed all `import { apiClient }` to `import { apiClient }`
+- Updated from old path `@/integrations/apiClient/client` to `@/integrations/api/client`
 
 ### 2. Query Patterns
 - Added `.then()` calls to all apiClient queries
@@ -80,7 +80,7 @@ All **21 component files** and **1 hook file** have been successfully migrated f
 ## 🚀 Next Steps (Optional - Lower Priority)
 
 ### Page-Level Migrations
-There are approximately **31 page files** in `src/pages/` that still reference Supabase. These are lower priority as:
+There are approximately **31 page files** in `src/pages/` that still reference legacy service. These are lower priority as:
 - They don't block core functionality
 - Can be migrated incrementally
 - Follow the same patterns documented in the migration checklist
@@ -102,13 +102,13 @@ There are approximately **31 page files** in `src/pages/` that still reference S
 
 ### All Component Imports Migrated
 ```bash
-$ grep -r "from.*supabase" src/components/
+$ grep -r "from.*apiClient" src/components/
 # No results - all component imports migrated ✅
 ```
 
 ### All Component Method Calls Migrated
 ```bash
-$ grep -r "supabase\." src/components/
+$ grep -r "apiClient\." src/components/
 # No results - all component method calls migrated ✅
 ```
 
@@ -122,7 +122,7 @@ $ npm run lint
 
 ## 📝 Migration Patterns Used
 
-All migrations followed consistent patterns documented in `SUPABASE_MIGRATION_CHECKLIST.md`:
+All migrations followed consistent patterns documented in `API_MIGRATION_CHECKLIST.md`:
 
 1. **Import Updates**: All imports changed to `apiClient`
 2. **Query Updates**: Added `.then()` and adjusted for array returns
@@ -135,7 +135,7 @@ All migrations followed consistent patterns documented in `SUPABASE_MIGRATION_CH
 
 ### Benefits Achieved
 - ✅ Consistent API client usage across all components
-- ✅ No dependency on Supabase client in component layer
+- ✅ No dependency on legacy service client in component layer
 - ✅ Easier to maintain and test
 - ✅ Clear migration path for remaining page files
 - ✅ Zero breaking changes to existing functionality
@@ -151,7 +151,7 @@ All 22 migrated files are:
 
 ## 📚 Documentation
 
-- **Migration Checklist:** `SUPABASE_MIGRATION_CHECKLIST.md`
+- **Migration Checklist:** `API_MIGRATION_CHECKLIST.md`
 - **Migration Guide:** `MIGRATION_GUIDE.md`
 - **API Client Docs:** `src/integrations/api/client.ts`
 
@@ -159,6 +159,6 @@ All 22 migrated files are:
 
 ## ✨ Conclusion
 
-The component-level Supabase migration is **100% complete**. All components now use the custom `apiClient`, providing a solid foundation for the application. The remaining page-level migrations can be handled incrementally as those files are worked on.
+The component-level legacy service migration is **100% complete**. All components now use the custom `apiClient`, providing a solid foundation for the application. The remaining page-level migrations can be handled incrementally as those files are worked on.
 
 **Migration completed successfully!** 🎉

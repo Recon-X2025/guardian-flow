@@ -22,11 +22,12 @@ import {
   Users
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { LucideIcon } from "lucide-react";
 
 interface TrainingModule {
   id: string;
   title: string;
-  icon: any;
+  icon: LucideIcon;
   description: string;
   duration: string;
   videos: {

@@ -1,74 +1,63 @@
-import pg from 'pg';
+#!/usr/bin/env node
+import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const { Pool } = pg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '../.env') });
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'guardianflow',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/';
+const DB_NAME = process.env.DB_NAME || 'guardianflow';
 
 async function seedTestUser() {
+  const client = new MongoClient(MONGODB_URI);
+
   try {
+    await client.connect();
+    const db = client.db(DB_NAME);
+
     const email = 'admin@techcorp.com';
     const newPassword = 'TestAdmin123!';
-
-    // Hash the password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Check if user exists
-    const userResult = await pool.query('SELECT id, email FROM users WHERE email = $1', [email]);
+    const existingUser = await db.collection('users').findOne({ email });
 
-    if (userResult.rows.length === 0) {
+    if (!existingUser) {
       console.log('User not found, creating...');
       const userId = randomUUID();
 
-      // Create user
-      await pool.query(
-        `INSERT INTO users (id, email, password_hash, full_name, active, created_at)
-         VALUES ($1, $2, $3, $4, true, now())`,
-        [userId, email, hashedPassword, 'Test Admin']
-      );
+      await db.collection('users').insertOne({
+        id: userId, email, password_hash: hashedPassword,
+        full_name: 'Test Admin', active: true, created_at: new Date(),
+      });
 
-      // Create profile
-      await pool.query(
-        `INSERT INTO profiles (id, email, full_name, created_at)
-         VALUES ($1, $2, $3, now())`,
-        [userId, email, 'Test Admin']
-      );
+      await db.collection('profiles').insertOne({
+        id: userId, email, full_name: 'Test Admin', created_at: new Date(),
+      });
 
-      // Assign admin role
-      await pool.query(
-        `INSERT INTO user_roles (user_id, role, created_at)
-         VALUES ($1, 'admin', now())`,
-        [userId]
-      );
+      await db.collection('user_roles').insertOne({
+        user_id: userId, role: 'admin', created_at: new Date(),
+      });
 
       console.log('User created with admin role');
     } else {
-      const userId = userResult.rows[0].id;
+      const userId = existingUser.id;
       console.log('User found:', userId);
 
-      // Update password
-      await pool.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hashedPassword, email]);
+      await db.collection('users').updateOne({ email }, { $set: { password_hash: hashedPassword } });
       console.log('Password updated');
 
-      // Ensure admin role (upsert - handle potential unique constraint)
-      try {
-        await pool.query(
-          `INSERT INTO user_roles (user_id, role, created_at)
-           VALUES ($1, 'admin', now())
-           ON CONFLICT (user_id, role) DO NOTHING`,
-          [userId]
-        );
-      } catch (e) {
-        // If there's no unique constraint, just ignore duplicates
-        console.log('Admin role may already exist');
-      }
+      // Ensure admin role (upsert)
+      await db.collection('user_roles').updateOne(
+        { user_id: userId, role: 'admin' },
+        { $set: { user_id: userId, role: 'admin', created_at: new Date() } },
+        { upsert: true }
+      );
       console.log('Admin role ensured');
     }
 
@@ -76,12 +65,11 @@ async function seedTestUser() {
     console.log('SUCCESS: Test user ready');
     console.log('Email:', email);
     console.log('Password:', newPassword);
-
   } catch (err) {
     console.error('Error:', err.message);
     process.exit(1);
   } finally {
-    await pool.end();
+    await client.close();
   }
 }
 

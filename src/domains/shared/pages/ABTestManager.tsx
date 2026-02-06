@@ -8,18 +8,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, DollarSign, Activity } from 'lucide-react';
 
+interface ABExperiment {
+  id: string;
+  name: string;
+  description?: string;
+  status: string;
+  variants?: string[];
+  start_date: string;
+  end_date?: string;
+}
+
+interface VariantStats {
+  total: number;
+  conversions: number;
+  conversion_rate: number;
+  avg_value: number;
+}
+
+type ABResults = Record<string, VariantStats>;
+
 export default function ABTestManager() {
   const [selectedExperiment, setSelectedExperiment] = useState<string | null>(null);
 
   const { data: experiments } = useQuery({
     queryKey: ['ab-experiments'],
     queryFn: async () => {
-      const { data, error } = await apiClient
-        .from('ab_test_experiments' as any)
+      const result = await apiClient
+        .from('ab_test_experiments')
         .select('*')
         .order('created_at', { ascending: false });
       if (result.error) throw result.error;
-      return data as any[];
+      return result.data as ABExperiment[];
     },
   });
 
@@ -31,14 +50,14 @@ export default function ABTestManager() {
         body: { action: 'get_results', experiment_id: selectedExperiment },
       });
       if (result.error) throw result.error;
-      return result.data?.stats;
+      return result.data?.stats as ABResults | null;
     },
     enabled: !!selectedExperiment,
   });
 
-  const formatResultsForChart = (stats: any) => {
+  const formatResultsForChart = (stats: ABResults | null) => {
     if (!stats) return [];
-    return Object.entries(stats).map(([variant, data]: [string, any]) => ({
+    return Object.entries(stats).map(([variant, data]: [string, VariantStats]) => ({
       variant,
       conversions: data.conversions,
       rate: data.conversion_rate,
@@ -111,7 +130,7 @@ export default function ABTestManager() {
                     </TabsContent>
                     <TabsContent value="details">
                       <div className="space-y-3">
-                        {Object.entries(results).map(([variant, data]: [string, any]) => (
+                        {Object.entries(results).map(([variant, data]: [string, VariantStats]) => (
                           <Card key={variant}>
                             <CardContent className="pt-6">
                               <div className="flex justify-between items-center mb-2">

@@ -1,4 +1,4 @@
-# Supabase to API Client Migration Checklist
+# MongoDB Atlas API Client Migration Checklist (Archived)
 
 **Date:** November 25, 2025  
 **Status:** ✅ COMPLETED - All Component Files Migrated  
@@ -13,7 +13,7 @@
 - [x] `src/components/GenerateServiceOrderDialog.tsx` - Migrated to apiClient, fixed variable references
 - [x] `src/components/TechnicianDialog.tsx` - Fixed imports, added error handling
 - [x] `src/components/SeedDataManager.tsx` - Migrated, fixed undefined variable bug
-- [x] `src/hooks/useOfflineSync.tsx` - Fully migrated from old supabase client path
+- [x] `src/hooks/useOfflineSync.tsx` - Fully migrated from old apiClient client path
 
 ### Infrastructure
 - [x] `src/components/ModuleSandboxProvider.tsx` - Already using apiClient
@@ -55,19 +55,17 @@
 
 ### 1. Import Statement
 ```typescript
-// Before
-import { supabase } from '@/integrations/api/client';
-// or
-import { supabase } from '@/integrations/supabase/client';
+// Legacy import (still works via compatibility layer)
+import { apiClient } from '@/integrations/apiClient/client';
 
-// After
+// Modern import (recommended)
 import { apiClient } from '@/integrations/api/client';
 ```
 
 ### 2. Query Pattern
 ```typescript
 // Before
-const { data, error } = await supabase
+const { data, error } = await apiClient
   .from('table')
   .select('*')
   .eq('id', value)
@@ -87,7 +85,7 @@ const record = data?.[0]; // apiClient returns array, not single object
 ### 3. Insert Pattern
 ```typescript
 // Before
-const { data, error } = await supabase
+const { data, error } = await apiClient
   .from('table')
   .insert({ field: 'value' })
   .select()
@@ -105,7 +103,7 @@ const created = Array.isArray(data) ? data[0] : data;
 ### 4. Update Pattern
 ```typescript
 // Before
-const { error } = await supabase
+const { error } = await apiClient
   .from('table')
   .update({ field: 'value' })
   .eq('id', id);
@@ -121,7 +119,7 @@ const { error } = await apiClient
 ### 5. Functions Invoke
 ```typescript
 // Before
-const { data, error } = await supabase.functions.invoke('function-name', {
+const { data, error } = await apiClient.functions.invoke('function-name', {
   body: { param: 'value' }
 });
 
@@ -176,14 +174,14 @@ After migrating each file:
 ## Verification Commands
 
 ```bash
-# Check for remaining supabase imports
-grep -r "from.*supabase" src/
+# Check for remaining legacy imports
+grep -r "from.*apiClient" src/
 
-# Check for supabase method calls
-grep -r "supabase\\.from\|supabase\\.auth\|supabase\\.storage" src/
+# Check for legacy method calls
+grep -r "apiClient\\.from\|apiClient\\.auth\|apiClient\\.storage" src/
 
 # Count remaining files
-grep -r "from.*supabase" src/ | wc -l
+grep -r "from.*apiClient" src/ | wc -l
 ```
 
 ---
@@ -200,7 +198,7 @@ grep -r "from.*supabase" src/ | wc -l
 ## Notes
 
 - All files should use `apiClient` from `@/integrations/api/client`
-- The old `supabase` export is an alias but should be replaced for clarity
+- The old `apiClient` export is an alias but should be replaced for clarity
 - Some components may need additional context providers (useAuth, etc.)
 - Test each component after migration to ensure functionality
 

@@ -9,7 +9,7 @@
 ## 🎯 Testing Objectives
 
 Verify that all migrated components:
-1. ✅ Use `apiClient` instead of `supabase`
+1. ✅ Use `apiClient` instead of `legacy service`
 2. ✅ Handle API responses correctly
 3. ✅ Display data without errors
 4. ✅ Handle errors gracefully
@@ -21,7 +21,7 @@ Verify that all migrated components:
 
 ### 1. Import Verification Tests
 **Goal:** Verify all components use `apiClient`
-- [ ] Check for any remaining `supabase` imports
+- [ ] Check for any remaining `legacy service` imports
 - [ ] Verify all imports use `@/integrations/api/client`
 
 ### 2. Component Rendering Tests
@@ -50,7 +50,7 @@ Verify that all migrated components:
 - [ ] ContractDialog creates contracts
 
 ### 5. Function Invocation Tests
-**Goal:** Verify edge function calls work
+**Goal:** Verify Express.js route handler calls work
 - [ ] GenerateServiceOrderDialog invokes generate-service-order
 - [ ] TriggerPrecheckDialog invokes precheck-orchestrator
 - [ ] GenerateOfferDialog invokes generate-offers
@@ -198,7 +198,7 @@ test('complete work order creation flow', async ({ page }) => {
 
 ### Phase 4: Regression Tests (2-3 hours)
 **Goal:** Ensure no functionality lost
-- [ ] Compare behavior with previous Supabase version
+- [ ] Compare behavior with previous legacy API version
 - [ ] Test all dialog workflows
 - [ ] Verify data accuracy
 - [ ] Check performance (should be similar)
@@ -208,7 +208,7 @@ test('complete work order creation flow', async ({ page }) => {
 ## 🐛 Known Issues to Watch For
 
 1. **Array vs Single Object Returns**
-   - apiClient returns arrays, Supabase sometimes returned single objects
+   - apiClient returns arrays, legacy API sometimes returned single objects
    - Watch for: `data.property` vs `data[0].property`
 
 2. **Missing .then() Calls**

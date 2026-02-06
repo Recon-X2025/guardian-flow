@@ -2,19 +2,19 @@
 
 ## Daily Forecast Generation
 
-To run hierarchical forecasts daily at 3 AM, enable `pg_cron` extension and create the schedule:
+To run hierarchical forecasts daily at 3 AM, enable `node-cron` extension and create the schedule:
 
 ```sql
--- Enable pg_cron extension
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- Enable node-cron extension
+CREATE EXTENSION IF NOT EXISTS node-cron;
 
 -- Schedule daily forecast generation at 3 AM
 SELECT cron.schedule(
   'daily-hierarchical-forecast',
   '0 3 * * *', -- At 3:00 AM every day
   $$
-  SELECT net.http_post(
-    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/generate-forecast',
+  SELECT HTTP request(
+    url := 'https://YOUR_API_HOST/functions/v1/generate-forecast',
     headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
     body := '{"geography_levels": ["country","region","state","district","city","partner_hub","pin_code"]}'::jsonb
   ) as request_id;
@@ -26,8 +26,8 @@ SELECT cron.schedule(
   'daily-forecast-reconciliation',
   '30 3 * * *', -- At 3:30 AM every day
   $$
-  SELECT net.http_post(
-    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/reconcile-forecast',
+  SELECT HTTP request(
+    url := 'https://YOUR_API_HOST/functions/v1/reconcile-forecast',
     headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
     body := jsonb_build_object(
       'target_date', current_date::text,
@@ -42,8 +42,8 @@ SELECT cron.schedule(
   'weekly-forecast-worker',
   '0 2 * * 0', -- At 2:00 AM every Sunday
   $$
-  SELECT net.http_post(
-    url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/forecast-worker',
+  SELECT HTTP request(
+    url := 'https://YOUR_API_HOST/functions/v1/forecast-worker',
     headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
   ) as request_id;
   $$
@@ -73,17 +73,17 @@ For testing or manual runs:
 
 ```bash
 # Generate forecasts manually
-curl -X POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/generate-forecast \
+curl -X POST https://YOUR_API_HOST/functions/v1/generate-forecast \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{"geography_levels": ["country","city","pin_code"]}'
 
 # Check forecast status
-curl https://YOUR_PROJECT_REF.supabase.co/functions/v1/forecast-status \
+curl https://YOUR_API_HOST/functions/v1/forecast-status \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY"
 
 # Reconcile forecasts
-curl -X POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/reconcile-forecast \
+curl -X POST https://YOUR_API_HOST/functions/v1/reconcile-forecast \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{"target_date": "2025-10-08", "forecast_type": "volume"}'

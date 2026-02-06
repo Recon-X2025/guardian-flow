@@ -104,7 +104,7 @@ Frontend logs will show:
 
 ## ✨ **What's Running**
 
-- ✅ Backend API server (Express.js + PostgreSQL)
+- ✅ Backend API server (Express.js + MongoDB Atlas)
 - ✅ Frontend dev server (Vite + React)
 - ✅ Payment Gateway endpoints
 - ✅ FAQ system endpoints

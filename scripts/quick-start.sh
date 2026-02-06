@@ -5,90 +5,88 @@
 
 set -e  # Exit on error
 
-echo "🚀 Guardian Flow Quick Start"
+echo "Guardian Flow Quick Start"
 echo "============================"
 echo ""
 
 # Check prerequisites
-echo "1️⃣ Checking prerequisites..."
+echo "1. Checking prerequisites..."
 
 if ! command -v node &> /dev/null; then
-  echo "❌ Node.js not found. Please install Node.js 18+"
+  echo "ERROR: Node.js not found. Please install Node.js 18+"
   exit 1
 fi
 
-if ! command -v psql &> /dev/null; then
-  echo "❌ PostgreSQL client not found. Please install PostgreSQL"
-  exit 1
-fi
-
-if ! pg_isready &> /dev/null; then
-  echo "❌ PostgreSQL server is not running. Please start PostgreSQL"
-  exit 1
-fi
-
-echo "✅ Prerequisites met"
+echo "OK: Node.js $(node --version) found"
 echo ""
 
 # Install dependencies
-echo "2️⃣ Installing dependencies..."
+echo "2. Installing dependencies..."
 if [ ! -d node_modules ]; then
   echo "   Installing root dependencies..."
   npm install
 else
-  echo "✅ Root dependencies already installed"
+  echo "OK: Root dependencies already installed"
 fi
 
 if [ ! -d server/node_modules ]; then
   echo "   Installing server dependencies..."
   cd server && npm install && cd ..
 else
-  echo "✅ Server dependencies already installed"
+  echo "OK: Server dependencies already installed"
 fi
 echo ""
 
-# Database setup
-echo "3️⃣ Setting up database..."
-if psql -U postgres -d guardianflow -c "SELECT 1;" &>/dev/null; then
-  echo "✅ Database connection successful"
-  
-  # Check if tables exist
-  TABLE_COUNT=$(psql -U postgres -d guardianflow -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>/dev/null | tr -d ' ')
-  
-  if [ "$TABLE_COUNT" -lt 5 ]; then
-    echo "   Creating database schema..."
-    psql -U postgres -d guardianflow -f server/scripts/init-db.sql
-    echo "✅ Schema created"
+# MongoDB Atlas connection check
+echo "3. Checking MongoDB Atlas connection..."
+
+# Check for MONGODB_URI in server/.env or environment
+MONGO_URI=""
+if [ -n "${MONGODB_URI:-}" ]; then
+  MONGO_URI="$MONGODB_URI"
+elif [ -f server/.env ]; then
+  MONGO_URI=$(grep -E '^MONGODB_URI=' server/.env 2>/dev/null | cut -d '=' -f2- || true)
+fi
+
+if [ -n "$MONGO_URI" ]; then
+  echo "   Found MONGODB_URI, testing connection..."
+  if command -v mongosh &>/dev/null; then
+    if mongosh "$MONGO_URI" --quiet --eval "db.runCommand({ ping: 1 })" >/dev/null 2>&1; then
+      echo "OK: MongoDB Atlas connection successful"
+    else
+      echo "WARNING: Could not connect to MongoDB Atlas. Please verify your MONGODB_URI."
+    fi
   else
-    echo "✅ Database schema exists ($TABLE_COUNT tables)"
+    # Fallback: use Node.js to test connection
+    if node -e "
+      const { MongoClient } = require('mongodb');
+      const client = new MongoClient('$MONGO_URI');
+      client.connect().then(() => { console.log('connected'); client.close(); process.exit(0); }).catch(() => process.exit(1));
+    " 2>/dev/null; then
+      echo "OK: MongoDB Atlas connection successful"
+    else
+      echo "WARNING: Could not connect to MongoDB Atlas. Please verify your MONGODB_URI."
+    fi
   fi
 else
-  echo "   Creating database..."
-  createdb guardianflow 2>/dev/null || echo "⚠️  Database may already exist"
-  echo "   Creating schema..."
-  psql -U postgres -d guardianflow -f server/scripts/init-db.sql
-  echo "✅ Database created"
+  echo "WARNING: MONGODB_URI not set. You must configure it in server/.env before starting the server."
 fi
 echo ""
 
 # Run migrations
-echo "4️⃣ Running migrations..."
+echo "4. Running migrations..."
 cd server
-npm run migrate 2>/dev/null || echo "⚠️  Migrations may have already run"
+npm run migrate 2>/dev/null || echo "WARNING: Migrations may have already run"
 cd ..
 echo ""
 
 # Environment configuration
-echo "5️⃣ Checking environment configuration..."
+echo "5. Checking environment configuration..."
 if [ ! -f server/.env ]; then
   echo "   Creating server/.env from template..."
   cat > server/.env << 'EOF'
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=guardianflow
-DB_USER=postgres
-DB_PASSWORD=postgres
+# MongoDB Atlas Configuration
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/guardianflow?retryWrites=true&w=majority
 
 # JWT Secret (change in production!)
 JWT_SECRET=your-secret-key-change-in-production-use-strong-random-string
@@ -110,33 +108,32 @@ PUBLIC_URL=http://localhost:3001
 # RAZORPAY_KEY_ID=rzp_test_...
 # RAZORPAY_KEY_SECRET=...
 EOF
-  echo "✅ Created server/.env"
-  echo "⚠️  Please update server/.env with your credentials"
+  echo "OK: Created server/.env"
+  echo "IMPORTANT: Update server/.env with your MongoDB Atlas connection string and other credentials"
 else
-  echo "✅ server/.env already exists"
+  echo "OK: server/.env already exists"
 fi
 echo ""
 
 # Enable payment gateways
-echo "6️⃣ Setting up payment gateways..."
+echo "6. Setting up payment gateways..."
 if [ -f server/.env ]; then
   cd server
-  node scripts/setup-payment-gateways.js 2>/dev/null || echo "⚠️  Payment gateway setup may need manual configuration"
+  node scripts/setup-payment-gateways.js 2>/dev/null || echo "WARNING: Payment gateway setup may need manual configuration"
   cd ..
-  echo "✅ Payment gateways configured"
+  echo "OK: Payment gateways configured"
 else
-  echo "⚠️  Skipping - server/.env not found"
+  echo "WARNING: Skipping - server/.env not found"
 fi
 echo ""
 
 echo "============================"
-echo "✅ Quick start complete!"
+echo "Quick start complete!"
 echo ""
-echo "📋 Next steps:"
-echo "   1. Update server/.env with your credentials"
+echo "Next steps:"
+echo "   1. Update server/.env with your MongoDB Atlas URI and credentials"
 echo "   2. Start backend: cd server && npm run dev"
 echo "   3. Start frontend: npm run dev (in another terminal)"
 echo "   4. Open http://localhost:5175"
 echo ""
-echo "📚 See BUILD_EXECUTION_GUIDE.md for detailed instructions"
-
+echo "See docs/ARCHITECTURE.md for detailed instructions"

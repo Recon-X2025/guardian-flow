@@ -102,11 +102,11 @@ export default function KnowledgeBase() {
 
       if (response.error) throw response.error;
       setArticles(response.data?.articles || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching articles:', error);
       toast({
         title: 'Error loading articles',
-        description: error.message || 'Failed to load knowledge base articles',
+        description: error instanceof Error ? error.message : 'Failed to load knowledge base articles',
         variant: 'destructive',
       });
     } finally {
@@ -132,7 +132,7 @@ export default function KnowledgeBase() {
       }
 
       setAllArticles(allArticles);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching all articles:', error);
       toast({
         title: 'Error',
@@ -152,7 +152,7 @@ export default function KnowledgeBase() {
 
       if (response.error) throw response.error;
       setCategories(response.data?.categories || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching categories:', error);
     }
   };
@@ -165,7 +165,7 @@ export default function KnowledgeBase() {
 
       if (response.error) throw response.error;
       setTags(response.data?.tags || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching tags:', error);
     }
   };
@@ -178,10 +178,10 @@ export default function KnowledgeBase() {
 
       if (response.error) throw response.error;
       setSelectedArticle(response.data?.article);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading article',
-        description: error.message || 'Failed to load article',
+        description: error instanceof Error ? error.message : 'Failed to load article',
         variant: 'destructive',
       });
     }
@@ -228,10 +228,10 @@ export default function KnowledgeBase() {
       setArticleToDelete(null);
       fetchAllArticles();
       fetchArticles();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete article',
+        description: error instanceof Error ? error.message : 'Failed to delete article',
         variant: 'destructive',
       });
     }

@@ -285,7 +285,7 @@ Manually update payment status (for admin).
 ### 1. Run Database Migration
 ```bash
 cd server
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.js
 ```
 
 ### 2. Configure Gateway Credentials

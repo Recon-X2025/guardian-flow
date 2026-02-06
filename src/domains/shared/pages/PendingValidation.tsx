@@ -10,9 +10,30 @@ import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { TriggerPrecheckDialog } from '@/domains/shared/components/TriggerPrecheckDialog';
 
+interface PrecheckInfo {
+  inventory_status?: string;
+  warranty_status?: string;
+  can_release?: boolean;
+}
+
+interface PendingWorkOrder {
+  id: string;
+  wo_number?: string;
+  status: string;
+  created_at: string;
+  released_at?: string;
+  ticket?: {
+    symptom?: string;
+  };
+  technician?: {
+    full_name?: string;
+  };
+  work_order_prechecks?: PrecheckInfo[];
+}
+
 export default function PendingValidation() {
   const { toast } = useToast();
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<PendingWorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentEnabled, setAgentEnabled] = useState(false);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
@@ -26,7 +47,7 @@ export default function PendingValidation() {
     const channel = apiClient
       .channel('pending-validation-updates')
       .on(
-        'postgres_changes',
+        'db_changes',
         {
           event: '*',
           schema: 'public',
@@ -38,7 +59,7 @@ export default function PendingValidation() {
         }
       )
       .on(
-        'postgres_changes',
+        'db_changes',
         {
           event: '*',
           schema: 'public',
@@ -68,19 +89,19 @@ export default function PendingValidation() {
         .limit(50);
 
       if (woResult.error) throw woResult.error;
-      setWorkOrders(woResult.data || []);
+      setWorkOrders((woResult.data || []) as PendingWorkOrder[]);
 
       // Load agent toggle
       const toggleResult = await apiClient.from('feature_toggles')
         .select('enabled')
         .eq('feature_key', 'agent_ops_autonomous')
         .single();
-      
+
       setAgentEnabled(toggleResult.data?.enabled || false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading data",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -118,10 +139,10 @@ export default function PendingValidation() {
           description: "Running initial precheck and release cycle...",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -141,10 +162,10 @@ export default function PendingValidation() {
       });
       
       loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Release Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }

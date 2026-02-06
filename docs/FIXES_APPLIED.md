@@ -7,7 +7,7 @@
 - **Changes**: 
   - Created `AddInventoryItemDialog.tsx` component
   - Integrated dialog with Inventory page
-  - Added RLS policies for CRUD operations
+  - Added tenant isolation policies for CRUD operations
   - Users can now add: SKU, description, price, lead time, consumable flag
 
 ### 2. **Add Penalty Rule** - FIXED ✅
@@ -15,7 +15,7 @@
 - **Changes**:
   - Created `AddPenaltyRuleDialog.tsx` component
   - Integrated dialog with Penalties page
-  - Added RLS policies for CRUD operations
+  - Added tenant isolation policies for CRUD operations
   - Users can now configure: penalty code, violation type, severity, percentage, calculation method, auto-bill, disputes, MFA requirements
 
 ### 3. **Create Work Order** - WORKING ✅
@@ -24,17 +24,17 @@
 - **Resolution**: Verified working with existing data
 
 ### 4. **Generate Service Order** - WORKING ✅
-- **Status**: Edge function properly coded
+- **Status**: Express.js route handler properly coded
 - **Issue**: Likely permissions or missing work order data
 - **Resolution**: Function validates correctly, requires proper role (ops_manager, partner_admin, sys_admin, tenant_admin)
 
 ### 5. **Generate Offers (SaPOS)** - WORKING ✅
-- **Status**: Edge function properly coded with AI integration
+- **Status**: Express.js route handler properly coded with AI integration
 - **Issue**: Requires proper permissions (sapos.generate)
 - **Resolution**: Function works with Lovable AI (Google Gemini 2.5 Flash)
 
 ### 6. **Validate Photos** - WORKING ✅
-- **Status**: Edge function properly coded
+- **Status**: Express.js route handler properly coded
 - **Issue**: Requires proper permissions (photos.validate)
 - **Resolution**: Function validates 4 required photo roles with hashing and GPS verification
 
@@ -99,7 +99,7 @@
 10. ✅ Add penalty rules (NEW!)
 
 ### Security Features
-- ✅ Row-level security on all tables
+- ✅ Application-level tenant isolation on all collections
 - ✅ Permission-based access control
 - ✅ Audit logging for all actions
 - ✅ MFA for sensitive operations (request/verify)
@@ -140,7 +140,7 @@
 
 - ✅ Authentication & RBAC: 100%
 - ✅ Core Workflows: 95%
-- ✅ Edge Functions: 100% (13/13)
+- ✅ Express.js Route Handlers: 100% (13/13)
 - ✅ Security Features: 100%
 - ✅ AI Integration: 80% (SaPOS working, fraud ML pending)
 - ⏳ Payment Processing: 20%
@@ -169,7 +169,7 @@ All these features now work end-to-end! 🎉
 ## 🔐 Security Note
 
 All features implement:
-- Row-level security (RLS)
+- Application-level tenant isolation
 - Permission checking via RBAC
 - Audit trail logging
 - Input validation

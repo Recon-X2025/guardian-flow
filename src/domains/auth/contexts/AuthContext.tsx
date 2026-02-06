@@ -8,12 +8,16 @@ interface User {
   phone?: string;
 }
 
+interface AuthError {
+  message: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -140,9 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('AuthContext: Session token:', response.data.session.access_token.substring(0, 20) + '...');
       
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('AuthContext: SignIn exception:', error);
-      return { error: { message: error.message || 'Login failed' } };
+      return { error: { message: error instanceof Error ? error.message : 'Login failed' } };
     }
   };
 
@@ -170,8 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       return { error: null };
-    } catch (error: any) {
-      return { error: { message: error.message } };
+    } catch (error: unknown) {
+      return { error: { message: error instanceof Error ? error.message : 'Sign up failed' } };
     }
   };
 

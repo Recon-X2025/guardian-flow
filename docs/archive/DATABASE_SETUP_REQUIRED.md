@@ -1,33 +1,40 @@
 # ⚠️ Database Setup Required
 
-**Issue:** PostgreSQL is not running, which is causing sign-in failures.
+**Issue:** MongoDB Atlas is not running, which is causing sign-in failures.
 
 ## Quick Fix
 
-### Option 1: Install PostgreSQL via Homebrew (Recommended for macOS)
+### Option 1: Use MongoDB Atlas Cloud (Recommended)
+
+1. Create a free cluster at https://cloud.mongodb.com
+2. Get your connection string (MONGODB_URI)
+3. Add it to your `server/.env` file
+
+### Option 2: Install MongoDB Community via Homebrew (macOS)
 
 ```bash
-# Install PostgreSQL
-brew install postgresql@15
+# Install MongoDB Community
+brew tap mongodb/brew
+brew install mongodb-community
 
-# Start PostgreSQL service
-brew services start postgresql@15
+# Start MongoDB service
+brew services start mongodb-community
 
 # Verify it's running
-lsof -i :5432
+lsof -i :27017
 ```
 
-### Option 2: Use Docker (Alternative)
+### Option 3: Use Docker (Alternative)
 
 If you have Docker installed:
 
 ```bash
-# Run PostgreSQL in Docker
+# Run MongoDB in Docker
 docker run --name guardianflow-db \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=guardianflow \
-  -p 5432:5432 \
-  -d postgres:15
+  -e MONGO_INITDB_ROOT_USERNAME=root \
+  -e MONGO_INITDB_ROOT_PASSWORD=password \
+  -p 27017:27017 \
+  -d mongo:7
 
 # Wait a few seconds for it to start
 sleep 5
@@ -36,27 +43,19 @@ sleep 5
 docker ps | grep guardianflow-db
 ```
 
-### Option 3: Install PostgreSQL from Official Website
-
-1. Download PostgreSQL from: https://www.postgresql.org/download/macosx/
-2. Install the package
-3. Start PostgreSQL from System Preferences or via command line
-
 ---
 
-## After PostgreSQL is Running
+## After MongoDB Atlas is Running
 
 ### 1. Create Database (if not already created)
 
 ```bash
-# Connect to PostgreSQL
-psql postgres
+# Connect to MongoDB
+mongosh
 
-# In psql, run:
-CREATE DATABASE guardianflow;
-CREATE USER postgres WITH PASSWORD 'postgres';
-GRANT ALL PRIVILEGES ON DATABASE guardianflow TO postgres;
-\q
+# In mongosh, run:
+use guardianflow
+db.createUser({ user: "appuser", pwd: "password", roles: [{ role: "readWrite", db: "guardianflow" }] })
 ```
 
 ### 2. Initialize Database Schema
@@ -73,15 +72,15 @@ This will:
 
 ### 3. Restart Backend Server
 
-The server should automatically reconnect once PostgreSQL is running.
+The server should automatically reconnect once MongoDB Atlas is running.
 
 ---
 
 ## Verify Setup
 
 ```bash
-# Check PostgreSQL is running
-lsof -i :5432
+# Check MongoDB is running
+lsof -i :27017
 
 # Test database connection
 cd server
@@ -93,7 +92,7 @@ node -e "import('./db/client.js').then(() => console.log('✅ Connected')).catch
 ## Current Status
 
 - ✅ `.env` file created in `server/` directory
-- ❌ PostgreSQL not installed/running
+- ❌ MongoDB Atlas not installed/running
 - ❌ Database connection failing
 - ❌ Sign-in endpoint returning 500 error
 
@@ -101,7 +100,7 @@ node -e "import('./db/client.js').then(() => console.log('✅ Connected')).catch
 
 ## Next Steps
 
-1. **Install and start PostgreSQL** (choose one option above)
+1. **Install and start MongoDB Atlas** (choose one option above)
 2. **Create the database** (if not already done)
 3. **Run database setup script**: `cd server && node scripts/setup-database.js`
 4. **Restart backend server** (it should auto-reconnect)
@@ -109,5 +108,5 @@ node -e "import('./db/client.js').then(() => console.log('✅ Connected')).catch
 
 ---
 
-**Note:** The `.env` file has been created with default values. Once PostgreSQL is running, the application should work correctly.
+**Note:** The `.env` file has been created with default values. Once MongoDB Atlas is running, the application should work correctly.
 

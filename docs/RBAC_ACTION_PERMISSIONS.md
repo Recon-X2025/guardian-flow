@@ -255,7 +255,7 @@ const newPerms = useActionPermissions('newResource');
 
 ## Security Notes
 
-- **Frontend RBAC is UX only** - Always enforce permissions in backend (RLS + edge functions)
+- **Frontend RBAC is UX only** - Always enforce permissions in backend (tenant isolation + Express.js route handlers)
 - **Never trust client state** - Backend must validate every action
 - **Audit logging** - All sensitive actions logged in `events_log` table
 - **Tenant isolation** - Every permission check also validates tenant_id

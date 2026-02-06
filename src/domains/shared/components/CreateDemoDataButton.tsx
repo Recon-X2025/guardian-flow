@@ -42,7 +42,7 @@ export function CreateDemoDataButton({ onSuccess }: { onSuccess: () => void }) {
 
       // Refresh the page
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[CreateDemo] Failed:', error);
       handleApiError(error, toast);
     } finally {

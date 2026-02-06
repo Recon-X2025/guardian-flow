@@ -2,7 +2,7 @@
 
 ## Week 1
 - Day 1-2: Handover kickoff, access provisioning, environment setup
-- Day 3-4: Backend functions validation, RLS review and hardening
+- Day 3-4: Backend functions validation, tenant isolation review and hardening
 - Day 5: Forecast pipeline dry run, data seeding in sandbox
 
 ## Week 2

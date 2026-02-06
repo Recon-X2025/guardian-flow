@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173';
 
-// Test account credentials (from seed-test-accounts)
+// Test account credentials (from seed test data)
 const TEST_ACCOUNTS = {
   sys_admin: { email: 'admin@techcorp.com', password: 'TestAdmin123!' },
   ops_manager: { email: 'ops@techcorp.com', password: 'TestOps123!' },
@@ -109,10 +109,10 @@ test.describe('RBAC - Role-Based Access Control', () => {
         expiresInMinutes: 60
       },
       headers: {
-        'Authorization': `Bearer ${await page.evaluate(() => localStorage.getItem('supabase.auth.token'))}`
+        'Authorization': `Bearer ${await page.evaluate(() => localStorage.getItem('auth.token'))}`
       }
     });
-    
+
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.success).toBe(true);
@@ -120,7 +120,7 @@ test.describe('RBAC - Role-Based Access Control', () => {
 
   test('technician cannot approve overrides', async ({ page, request }) => {
     await login(page, 'technician');
-    
+
     const response = await request.post(`${BASE_URL}/api/override-approve`, {
       data: {
         requestId: 'test-request-123',
@@ -128,7 +128,7 @@ test.describe('RBAC - Role-Based Access Control', () => {
         mfaToken: '123456'
       },
       headers: {
-        'Authorization': `Bearer ${await page.evaluate(() => localStorage.getItem('supabase.auth.token'))}`
+        'Authorization': `Bearer ${await page.evaluate(() => localStorage.getItem('auth.token'))}`
       }
     });
     
@@ -141,7 +141,7 @@ test.describe('RBAC - API Authorization', () => {
   
   test('ops_manager can check inventory', async ({ request, page }) => {
     await login(page, 'ops_manager');
-    const token = await page.evaluate(() => localStorage.getItem('supabase.auth.token'));
+    const token = await page.evaluate(() => localStorage.getItem('auth.token'));
     
     const response = await request.post(`${BASE_URL}/functions/v1/check-inventory`, {
       data: {
@@ -158,7 +158,7 @@ test.describe('RBAC - API Authorization', () => {
 
   test('customer cannot check inventory', async ({ request, page }) => {
     await login(page, 'customer');
-    const token = await page.evaluate(() => localStorage.getItem('supabase.auth.token'));
+    const token = await page.evaluate(() => localStorage.getItem('auth.token'));
     
     const response = await request.post(`${BASE_URL}/functions/v1/check-inventory`, {
       data: {

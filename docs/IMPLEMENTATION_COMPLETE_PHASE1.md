@@ -21,7 +21,7 @@
 - `developer_webhooks` - Webhook registry
 - `webhook_deliveries` - Delivery tracking
 
-### 2. New Edge Functions (6 Implemented) ✅
+### 2. New Express.js Route Handlers (6 Implemented) ✅
 - **federated-learning-coordinator** - Multi-tenant ML training
 - **compliance-policy-enforcer** - Real-time compliance validation
 - **model-performance-monitor** - ML ops automation

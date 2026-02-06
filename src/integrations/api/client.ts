@@ -1,6 +1,6 @@
 /**
- * API Client to replace Supabase
- * Connects to local PostgreSQL backend
+ * API Client
+ * Connects to MongoDB backend via Express API
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -209,7 +209,7 @@ class ApiClient {
     return null;
   }
 
-  // Database methods (Supabase-like interface)
+  // Database methods (chainable query interface)
   from(table: string) {
     const self = this;
 
@@ -371,7 +371,7 @@ class ApiClient {
     return { data: response.data?.data || null, error: null };
   }
 
-  // Auth methods (Supabase-like interface)
+  // Auth methods (chainable query interface)
   auth = {
     signInWithPassword: async (credentials: { email: string; password: string }) => {
       return this.signIn(credentials.email, credentials.password);
@@ -579,11 +579,11 @@ class ApiClient {
 
     const channelObj = {
       on: (event: string, configOrCallback: unknown, callback?: (payload: unknown) => void) => {
-        // Handle both Supabase-style: .on('postgres_changes', config, callback)
+        // Handle both: .on('db_changes', config, callback)
         // and simple: .on('broadcast', callback)
         const actualCallback = (callback || configOrCallback) as (payload: unknown) => void;
 
-        if (event === 'postgres_changes' || event === 'broadcast' || event === '*') {
+        if (event === 'db_changes' || event === 'broadcast' || event === '*') {
           const callbacks = this.wsChannels.get(name);
           if (callbacks) {
             callbacks.add(actualCallback);
@@ -621,7 +621,4 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient(API_URL);
-
-// For backward compatibility, export as "supabase"
-export const supabase = apiClient;
 

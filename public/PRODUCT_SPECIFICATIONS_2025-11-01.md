@@ -21,8 +21,8 @@
 - **Training Management**: Security awareness courses and phishing simulation campaigns
 - **Evidence Collection**: Automated gathering of audit evidence for compliance frameworks
 - **Compliance Metrics**: Real-time KPI tracking (MFA enrollment, training completion, vulnerability SLA)
-- **6 Edge Functions**: Complete automation for access reviews, vulnerability management, SIEM forwarding, evidence collection, incident management, and training
-- **100% RLS Coverage**: All compliance tables secured with row-level security policies
+- **6 Server Route Handlers**: Complete automation for access reviews, vulnerability management, SIEM forwarding, evidence collection, incident management, and training
+- **100% Tenant Isolation Coverage**: All compliance collections secured with application-level tenant isolation
 - **Impact**: Platform is now audit-ready for SOC 2 Type II and ISO 27001:2022 certifications
 
 ## 🔧 v6.0.1 Patch Notes (October 31, 2025)
@@ -180,10 +180,10 @@ Guardian Flow v5.0 is a self-governing, forecast-driven field service AI platfor
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **API Gateway** | Deno Edge Function | Request validation, routing, rate limiting |
-| **Agent APIs** | Deno Edge Functions (4 services) | Internal service endpoints |
+| **API Gateway** | Express.js route handler | Request validation, routing, rate limiting |
+| **Agent APIs** | Express.js routes (4 services) | Internal service endpoints |
 | **Auth** | API Key + Tenant ID | Multi-tenant access control |
-| **Billing** | PostgreSQL + Cron | Usage tracking & reconciliation |
+| **Billing** | MongoDB Atlas + Cron | Usage tracking & reconciliation |
 | **Developer UI** | React + TypeScript | Self-service console |
 | **Observability** | Correlation IDs + Logs | Full request tracing |
 
@@ -214,7 +214,7 @@ External Request
     │       └─► If exceeded: return 429 + log overage
     │
     ├─► 4. Route to internal agent service
-    │       POST /functions/v1/agent-{service}-api
+    │       POST /api/functions/agent-{service}-api
     │       Headers: x-internal-secret (security)
     │
     ├─► 5. Log usage (tenant_id, endpoint, latency, status)
@@ -224,7 +224,7 @@ External Request
 
 ### Gateway Configuration
 
-**Endpoint**: `POST /functions/v1/api-gateway`
+**Endpoint**: `POST /api/functions/api-gateway`
 
 **Headers**:
 ```
@@ -542,7 +542,7 @@ Webhook notifications for:
 ### Instant Provisioning
 
 **Route**: `/developer` (public landing page)  
-**Endpoint**: `POST /functions/v1/create-sandbox-tenant`
+**Endpoint**: `POST /api/functions/create-sandbox-tenant`
 
 Create trial tenants in seconds:
 
@@ -616,7 +616,7 @@ Every API call is logged in `api_usage_logs`:
 
 ### Daily Reconciliation
 
-**Edge Function**: `billing-reconciler`  
+**Server Route**: `billing-reconciler`
 **Schedule**: Daily at 12:01 AM  
 **Process**:
 
@@ -655,9 +655,9 @@ Every API call is logged in `api_usage_logs`:
 - Blocks direct external calls
 - Only gateway can invoke agent APIs
 
-**Layer 3: Database RLS**
-- Tenant isolation at row level
-- Permission-based table access
+**Layer 3: Database (Application-Level Tenant Isolation)**
+- Tenant isolation via middleware query filters
+- Permission-based collection access
 - Audit logging for all mutations
 
 ### Secret Management
@@ -748,10 +748,10 @@ Request → Gateway (log with corr_id)
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | **Frontend** | React 18 + TypeScript + Tailwind | Hierarchical drill-down UI |
-| **Database** | PostgreSQL 15 + Hierarchical Indexes | Multi-level geography queries |
+| **Database** | MongoDB Atlas + Hierarchical Indexes | Multi-level geography queries |
 | **Forecast Engine** | Python Worker (Prophet + trend decomposition) | Time-series prediction |
-| **Agent Runtime** | Deno Edge Functions + OpenAI GPT-5 | Context-aware decisions |
-| **Scheduling** | pg_cron + net.http_post | Automated daily pipelines |
+| **Agent Runtime** | Express.js routes + OpenAI GPT-5 | Context-aware decisions |
+| **Scheduling** | node-cron + HTTP triggers | Automated daily pipelines |
 | **Observability** | OpenTelemetry + correlation IDs | End-to-end tracing |
 
 ---
@@ -818,7 +818,7 @@ confidence_score = min(0.95, 0.7 + (data_points / 100))
 #### Ops Agent (Auto-Release Decision)
 ```typescript
 // Query forecast for WO's pin code + product
-const { data: forecast } = await supabase
+const { data: forecast } = await apiClient
   .from('forecast_outputs')
   .select('*')
   .eq('geography_level', 'pin_code')
@@ -839,7 +839,7 @@ if (forecast.avg_volume < capacity_threshold) {
 #### Finance Agent (Revenue Planning)
 ```typescript
 // Query region-level revenue forecast
-const { data: forecast } = await supabase
+const { data: forecast } = await apiClient
   .from('forecast_outputs')
   .select('*')
   .eq('geography_level', 'region')
@@ -855,7 +855,7 @@ adjustCreditLimits(projected_revenue);
 #### Quality Agent (Failure Prediction)
 ```typescript
 // Query district-level failure density
-const { data: forecast } = await supabase
+const { data: forecast } = await apiClient
   .from('forecast_outputs')
   .select('*')
   .eq('geography_level', 'district')
@@ -893,23 +893,23 @@ await invokeAgentRuntime({
 
 ### Database Schema
 
-```sql
-CREATE TABLE geography_hierarchy (
-  id uuid PRIMARY KEY,
-  country text NOT NULL,
-  region text,
-  state text,
-  district text,
-  city text,
-  partner_hub text,
-  pin_code text,
-  geography_key text GENERATED AS (
-    coalesce(pin_code, partner_hub, city, district, state, region, country)
-  ) STORED
-);
+```javascript
+// MongoDB Atlas collection: geography_hierarchy
+// Example document:
+{
+  _id: ObjectId(),
+  country: "USA",
+  region: "North",
+  state: "California",
+  district: "Silicon Valley",
+  city: "San Jose",
+  partner_hub: "Hub_SJ_01",
+  pin_code: "95101",
+  geography_key: "95101"  // computed: pin_code || partner_hub || city || ...
+}
 
--- Optimized index for hierarchical queries
-CREATE INDEX idx_geography_key ON geography_hierarchy(geography_key);
+// Optimized index for hierarchical queries
+db.geography_hierarchy.createIndex({ geography_key: 1 });
 ```
 
 ### Example Hierarchy
@@ -944,16 +944,21 @@ USA (Country)
 
 ## Product-Level Intelligence
 
-### Products Table
+### Products Collection
 
-```sql
-CREATE TABLE products (
-  id uuid PRIMARY KEY,
-  name text NOT NULL,
-  category text,
-  sku text UNIQUE,
-  active boolean DEFAULT true
-);
+```javascript
+// MongoDB Atlas collection: products
+// Example document:
+{
+  _id: ObjectId(),
+  name: "Laptop Model X",
+  category: "Electronics",
+  sku: "LAP-001",  // unique index
+  active: true
+}
+
+// Unique index on SKU
+db.products.createIndex({ sku: 1 }, { unique: true });
 ```
 
 ### Product-Specific Forecasts
@@ -980,7 +985,7 @@ Product: "Printer Model Y"
 
 ```typescript
 // Compare demand across products for capacity planning
-const { data: forecasts } = await supabase
+const { data: forecasts } = await apiClient
   .from('forecast_outputs')
   .select('product_id, value')
   .eq('geography_level', 'city')
@@ -1020,7 +1025,7 @@ for (const parent of parentForecasts) {
 ### Reconciliation Schedule
 
 - **Frequency**: Every 30 minutes after forecast generation
-- **Trigger**: `reconcile-forecast` edge function
+- **Trigger**: `reconcile-forecast` server route handler
 - **Threshold**: ±3% variance tolerance
 - **Direction**: Always bottom-up (children → parent)
 
@@ -1044,43 +1049,39 @@ Country USA: 1050 units ✅ (adjusted upward)
 
 ### Cron Job Configuration
 
-```sql
--- Daily forecast generation at 3:00 AM
-SELECT cron.schedule(
-  'daily-hierarchical-forecast',
-  '0 3 * * *',
-  $$ SELECT net.http_post(...) $$
-);
+```javascript
+// node-cron scheduling in server/services/ai/scheduler.js
 
--- Reconciliation at 3:30 AM
-SELECT cron.schedule(
-  'daily-forecast-reconciliation',
-  '30 3 * * *',
-  $$ SELECT net.http_post(...) $$
-);
+// Daily forecast generation at 3:00 AM
+cron.schedule('0 3 * * *', async () => {
+  await triggerForecastGeneration();
+});
 
--- Weekly worker for queued jobs (Sunday 2 AM)
-SELECT cron.schedule(
-  'weekly-forecast-worker',
-  '0 2 * * 0',
-  $$ SELECT net.http_post(...) $$
-);
+// Reconciliation at 3:30 AM
+cron.schedule('30 3 * * *', async () => {
+  await triggerForecastReconciliation();
+});
+
+// Weekly worker for queued jobs (Sunday 2 AM)
+cron.schedule('0 2 * * 0', async () => {
+  await processForecastQueue();
+});
 ```
 
 ### Manual Triggers
 
 ```bash
 # Generate forecasts on-demand
-curl -X POST https://PROJECT.supabase.co/functions/v1/generate-forecast \
-  -H "Authorization: Bearer SERVICE_ROLE_KEY" \
+curl -X POST https://api.guardianflow.ai/api/functions/generate-forecast \
+  -H "Authorization: Bearer SERVICE_TOKEN" \
   -d '{"geography_levels": ["country","city","pin_code"]}'
 
 # Check forecast status
-curl https://PROJECT.supabase.co/functions/v1/forecast-status \
-  -H "Authorization: Bearer SERVICE_ROLE_KEY"
+curl https://api.guardianflow.ai/api/functions/forecast-status \
+  -H "Authorization: Bearer SERVICE_TOKEN"
 
 # Reconcile specific date
-curl -X POST https://PROJECT.supabase.co/functions/v1/reconcile-forecast \
+curl -X POST https://api.guardianflow.ai/api/functions/reconcile-forecast \
   -d '{"target_date": "2025-10-08", "forecast_type": "volume"}'
 ```
 
@@ -1125,7 +1126,7 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/reconcile-forecast \
 
 All PaaS APIs are accessed through the API Gateway. Authentication requires `x-api-key` and `x-tenant-id` headers.
 
-**Base URL**: `https://{PROJECT}.supabase.co/functions/v1/api-gateway`
+**Base URL**: `https://api.guardianflow.ai/api/gateway`
 
 #### API Gateway Endpoint
 
@@ -1185,7 +1186,7 @@ Content-Type: application/json
 
 **Example - Create Work Order**:
 ```bash
-curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+curl -X POST https://api.guardianflow.ai/api/gateway \
   -H "x-api-key: YOUR_KEY" \
   -H "x-tenant-id: YOUR_TENANT" \
   -H "Content-Type: application/json" \
@@ -1216,7 +1217,7 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 
 **Example - Get Fraud Score**:
 ```bash
-curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+curl -X POST https://api.guardianflow.ai/api/gateway \
   -H "x-api-key: YOUR_KEY" \
   -H "x-tenant-id: YOUR_TENANT" \
   -H "Content-Type: application/json" \
@@ -1258,7 +1259,7 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 
 **Example - Get Billing Summary**:
 ```bash
-curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+curl -X POST https://api.guardianflow.ai/api/gateway \
   -H "x-api-key: YOUR_KEY" \
   -H "x-tenant-id: YOUR_TENANT" \
   -H "Content-Type: application/json" \
@@ -1287,7 +1288,7 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 
 **Example - Get Forecasts**:
 ```bash
-curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+curl -X POST https://api.guardianflow.ai/api/gateway \
   -H "x-api-key: YOUR_KEY" \
   -H "x-tenant-id: YOUR_TENANT" \
   -H "Content-Type: application/json" \
@@ -1308,7 +1309,7 @@ curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
 
 #### Sandbox Tenant Creation
 
-**POST** `/functions/v1/create-sandbox-tenant`
+**POST** `/api/functions/create-sandbox-tenant`
 
 Public endpoint for instant sandbox provisioning.
 
@@ -1333,11 +1334,11 @@ Public endpoint for instant sandbox provisioning.
 
 ---
 
-### v5.0 Internal Edge Functions
+### v5.0 Internal Server Route Handlers
 
 #### generate-forecast
 
-**POST** `/functions/v1/generate-forecast`
+**POST** `/api/functions/generate-forecast`
 
 Enqueues hierarchical forecast jobs.
 
@@ -1364,7 +1365,7 @@ Enqueues hierarchical forecast jobs.
 
 #### forecast-status
 
-**GET** `/functions/v1/forecast-status?correlation_id=uuid`
+**GET** `/api/functions/forecast-status?correlation_id=uuid`
 
 Returns queue status and recent forecasts.
 
@@ -1396,7 +1397,7 @@ Returns queue status and recent forecasts.
 
 #### reconcile-forecast
 
-**POST** `/functions/v1/reconcile-forecast`
+**POST** `/api/functions/reconcile-forecast`
 
 Reconciles forecasts using MinT algorithm.
 
@@ -1430,28 +1431,40 @@ Reconciles forecasts using MinT algorithm.
 
 #### Fetch Forecasts for UI
 
-```sql
-SELECT * FROM forecast_outputs
-WHERE geography_level = 'pin_code'
-  AND pin_code = '95101'
-  AND product_id = 'uuid'
-  AND forecast_type = 'volume'
-  AND target_date BETWEEN current_date AND current_date + interval '30 days'
-ORDER BY target_date;
+```javascript
+// MongoDB Atlas query
+db.forecast_outputs.find({
+  geography_level: 'pin_code',
+  pin_code: '95101',
+  product_id: ObjectId('...'),
+  forecast_type: 'volume',
+  target_date: {
+    $gte: new Date(),
+    $lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  }
+}).sort({ target_date: 1 });
 ```
 
 #### Aggregate to Parent Level
 
-```sql
-SELECT 
-  city,
-  SUM(value) as total_volume,
-  AVG(confidence_lower) as avg_confidence
-FROM forecast_outputs
-WHERE geography_level = 'pin_code'
-  AND city = 'San Jose'
-  AND target_date = current_date
-GROUP BY city;
+```javascript
+// MongoDB Atlas aggregation
+db.forecast_outputs.aggregate([
+  {
+    $match: {
+      geography_level: 'pin_code',
+      city: 'San Jose',
+      target_date: new Date()
+    }
+  },
+  {
+    $group: {
+      _id: '$city',
+      total_volume: { $sum: '$value' },
+      avg_confidence: { $avg: '$confidence_lower' }
+    }
+  }
+]);
 ```
 
 ---
@@ -1466,36 +1479,38 @@ GROUP BY city;
 
 ### Migration Steps
 
-```sql
--- Step 1: Run schema migrations
--- (Already completed via supabase--migration tool)
+```javascript
+// Step 1: Run schema migrations (using mongosh)
+// Connect to MongoDB Atlas cluster
 
--- Step 2: Seed geography hierarchy
-INSERT INTO geography_hierarchy (country, region, state, city, pin_code)
-VALUES 
-  ('USA', 'North', 'California', 'San Jose', '95101'),
-  ('USA', 'North', 'California', 'San Jose', '95102'),
-  ('USA', 'South', 'Texas', 'Austin', '78701');
+// Step 2: Seed geography hierarchy
+db.geography_hierarchy.insertMany([
+  { country: 'USA', region: 'North', state: 'California', city: 'San Jose', pin_code: '95101' },
+  { country: 'USA', region: 'North', state: 'California', city: 'San Jose', pin_code: '95102' },
+  { country: 'USA', region: 'South', state: 'Texas', city: 'Austin', pin_code: '78701' }
+]);
 
--- Step 3: Seed products
-INSERT INTO products (name, category, sku)
-VALUES 
-  ('Laptop Model X', 'Electronics', 'LAP-001'),
-  ('Printer Model Y', 'Peripherals', 'PRT-001');
+// Step 3: Seed products
+db.products.insertMany([
+  { name: 'Laptop Model X', category: 'Electronics', sku: 'LAP-001' },
+  { name: 'Printer Model Y', category: 'Peripherals', sku: 'PRT-001' }
+]);
 
--- Step 4: Backfill work_orders geography
-UPDATE work_orders
-SET 
-  country = 'USA',
-  city = COALESCE(service_address_city, 'Unknown'),
-  pin_code = COALESCE(service_address_zip, '00000')
-WHERE country IS NULL;
-
--- Step 5: Generate initial forecasts
-SELECT net.http_post(
-  'https://PROJECT.supabase.co/functions/v1/generate-forecast',
-  '{"geography_levels": ["country","city","pin_code"]}'::jsonb
+// Step 4: Backfill work_orders geography
+db.work_orders.updateMany(
+  { country: null },
+  [{
+    $set: {
+      country: 'USA',
+      city: { $ifNull: ['$service_address_city', 'Unknown'] },
+      pin_code: { $ifNull: ['$service_address_zip', '00000'] }
+    }
+  }]
 );
+
+// Step 5: Generate initial forecasts
+// POST https://api.guardianflow.ai/api/functions/generate-forecast
+// Body: { "geography_levels": ["country","city","pin_code"] }
 ```
 
 ### Backward Compatibility
@@ -1543,7 +1558,7 @@ SELECT net.http_post(
 - **Drift Detection**: Monitoring model accuracy degradation over time
 - **SOC 2**: Service Organization Control 2 - Trust Services Criteria for security, availability, and confidentiality
 - **ISO 27001**: International standard for Information Security Management Systems (ISMS)
-- **RLS**: Row-Level Security for multi-tenant data isolation
+- **Tenant Isolation**: Application-level tenant isolation for multi-tenant data security
 - **JIT Access**: Just-in-time access provisioning with automatic expiration
 
 ### References

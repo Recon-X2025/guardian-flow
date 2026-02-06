@@ -13,18 +13,25 @@ import { Invoice } from "@/domains/financial/types/invoice";
 import { convertInvoiceRowToInvoice, numberToWords } from "@/domains/financial/lib/invoiceUtils";
 import jsPDF from 'jspdf';
 
+interface InvoiceRow {
+  id: string;
+  invoice_number?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
 interface ComprehensiveInvoiceDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  invoice: any; // Can be InvoiceRow or legacy invoice format
+  invoice: InvoiceRow | null; // Can be InvoiceRow or legacy invoice format
 }
 
 export function ComprehensiveInvoiceDetailDialog({ open, onOpenChange, invoice }: ComprehensiveInvoiceDetailDialogProps) {
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const [invoiceData, setInvoiceData] = useState<Invoice | null>(null);
-  const [lineItems, setLineItems] = useState<any[]>([]);
-  const [paymentTransactions, setPaymentTransactions] = useState<any[]>([]);
+  const [lineItems, setLineItems] = useState<{ line_number: number; name: string; hsn_sac?: string; quantity: number; unit: string; rate: number; taxable_value: number; discount_amount?: number; discount_percent?: number; description?: string }[]>([]);
+  const [paymentTransactions, setPaymentTransactions] = useState<{ id: string; amount?: number | string; date?: string; status?: string; reference?: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -61,11 +68,11 @@ export function ComprehensiveInvoiceDetailDialog({ open, onOpenChange, invoice }
         .then();
 
       setPaymentTransactions(transactions || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading invoice data:', error);
       toast({
         title: "Error loading invoice",
-        description: error.message || "Failed to load invoice data",
+        description: error instanceof Error ? error.message : "Failed to load invoice data",
         variant: "destructive",
       });
     } finally {

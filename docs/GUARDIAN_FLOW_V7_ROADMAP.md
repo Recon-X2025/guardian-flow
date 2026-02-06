@@ -53,8 +53,8 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 │                                                           │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
 │  │ Data Lake    │  │ Aggregation  │  │ Visualization│  │
-│  │ (Supabase)   │─▶│ Service      │─▶│ API          │  │
-│  │              │  │ (Edge Fn)    │  │ (GraphQL)    │  │
+│  │ (Express.js backend)   │─▶│ Service      │─▶│ API          │  │
+│  │              │  │ (Route Handler)    │  │ (GraphQL)    │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
 │         │                  │                   │         │
 │         ▼                  ▼                   ▼         │
@@ -77,9 +77,9 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Add materialized views for common queries
 
 2. **Backend Services (Week 3-6)**
-   - Build `analytics-aggregator` edge function (real-time metrics)
-   - Build `report-generator` edge function (PDF/Excel export)
-   - Build `dashboard-configurator` edge function (save layouts)
+   - Build `analytics-aggregator` Express.js route handler (real-time metrics)
+   - Build `report-generator` Express.js route handler (PDF/Excel export)
+   - Build `dashboard-configurator` Express.js route handler (save layouts)
    - Implement caching layer with 15-minute refresh
    - Add GraphQL API for flexible data queries
 
@@ -92,7 +92,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
      - Partner: Performance scorecard, earnings, penalty breakdown
      - Technician: Personal productivity, skill gap analysis, earnings
    - Implement export functionality (PDF, Excel, scheduled emails)
-   - Add real-time updates via Supabase Realtime
+   - Add real-time updates via WebSocket
 
 4. **Testing & Rollout (Week 11-12)**
    - Unit tests for aggregation logic
@@ -102,7 +102,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Feedback integration and refinement
 
 **Dependencies:**
-- Supabase Realtime enabled on analytics tables
+- WebSocket enabled on analytics tables
 - Background job scheduler for report generation
 - Email service integration (Resend/SendGrid)
 
@@ -124,7 +124,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 ├─────────────────────────────────────────────────────────┤
 │                                                           │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Database     │  │ Edge Function│  │ CDN & Cache  │  │
+│  │ Database     │  │ Express.js Route Handler│  │ CDN & Cache  │  │
 │  │ Sharding     │  │ Auto-scaling │  │ Optimization │  │
 │  │              │  │              │  │              │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
@@ -146,17 +146,17 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Add read replicas for analytics queries
    - Create archival process for old work orders (>2 years)
    - Optimize indexes based on query patterns
-   - Implement connection pooling with pgBouncer
+   - Implement connection pooling with MongoDB connection pooling
 
-2. **Edge Function Auto-scaling (Week 5-6)**
-   - Configure Deno Deploy auto-scaling
+2. **Express.js Route Handler Auto-scaling (Week 5-6)**
+   - Configure Node.js auto-scaling
    - Implement circuit breakers for external APIs
    - Add retry logic with exponential backoff
    - Set up rate limiting per tenant
 
 3. **Observability Enhancement (Week 7-9)**
    - Create `system_health_metrics` table
-   - Build `health-monitor` edge function
+   - Build `health-monitor` Express.js route handler
    - Implement custom metrics collection:
      - API response times (p50, p95, p99)
      - Database query performance
@@ -220,17 +220,17 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Create `ab_test_experiments` table (variant configurations)
    - Create `ab_test_results` table (conversion tracking)
    - Create `model_performance_metrics` table (drift detection)
-   - Build `collect-sapos-feedback` edge function
+   - Build `collect-sapos-feedback` Express.js route handler
 
 2. **A/B Testing Engine (Week 4-6)**
-   - Build `ab-test-manager` edge function
+   - Build `ab-test-manager` Express.js route handler
    - Implement variant assignment logic (sticky sessions)
    - Add conversion tracking
    - Create statistical significance calculator
    - Build experiment dashboard UI
 
 3. **Model Retraining Pipeline (Week 7-10)**
-   - Build `model-drift-detector` edge function (runs daily)
+   - Build `model-drift-detector` Express.js route handler (runs daily)
    - Implement automatic retraining trigger (>5% performance drop)
    - Add model versioning system
    - Implement gradual rollout (canary deployment)
@@ -299,7 +299,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 
 2. **Stripe Integration (Week 3-5)**
    - Enable Stripe integration in Lovable
-   - Build `create-extension-checkout` edge function
+   - Build `create-extension-checkout` Express.js route handler
    - Build `process-extension-payment` webhook handler
    - Implement subscription management
    - Add revenue sharing split payments (70/30)
@@ -376,7 +376,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Add network status detection
 
 2. **Sync Engine (Week 4-5)**
-   - Build `mobile-sync` edge function
+   - Build `mobile-sync` Express.js route handler
    - Implement incremental sync (delta updates)
    - Add retry logic with exponential backoff
    - Create sync status indicator UI
@@ -453,20 +453,20 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 
 2. **Twilio Integration (Week 2-3)**
    - Add TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN secrets
-   - Build `send-sms` edge function
-   - Build `send-whatsapp` edge function
+   - Build `send-sms` Express.js route handler
+   - Build `send-whatsapp` Express.js route handler
    - Implement delivery status webhooks
    - Add opt-out handling (STOP keyword)
 
 3. **Email System (Week 4)**
    - Integrate Resend/SendGrid
    - Create HTML email templates
-   - Build `send-email` edge function
+   - Build `send-email` Express.js route handler
    - Implement bounce/spam handling
    - Add unsubscribe management
 
 4. **Notification Orchestration (Week 5-6)**
-   - Build `notification-orchestrator` edge function
+   - Build `notification-orchestrator` Express.js route handler
    - Implement channel fallback logic (SMS → Email → Push)
    - Add rate limiting per channel
    - Create retry logic for failed deliveries
@@ -512,9 +512,9 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 │         │                  │                   │         │
 │         ▼                  ▼                   ▼         │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │      Portal Backend (Edge Functions)              │  │
+│  │      Portal Backend (Express.js Route Handlers)              │  │
 │  │  - Authentication (magic links)                   │  │
-│  │  - Real-time chat (Supabase Realtime)             │  │
+│  │  - Real-time chat (WebSocket)             │  │
 │  │  - Dispute workflow engine                        │  │
 │  │  - Survey & feedback collection                   │  │
 │  └──────────────────────────────────────────────────┘  │
@@ -540,10 +540,10 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Create training resource library
 
 3. **Shared Services (Week 9-10)**
-   - Build `portal-auth` edge function (magic link authentication)
-   - Implement real-time chat backend (Supabase Realtime channels)
-   - Build `dispute-manager` edge function (workflow orchestration)
-   - Create `survey-collector` edge function
+   - Build `portal-auth` Express.js route handler (magic link authentication)
+   - Implement real-time chat backend (WebSocket channels)
+   - Build `dispute-manager` Express.js route handler (workflow orchestration)
+   - Create `survey-collector` Express.js route handler
    - Add notification integration (email/SMS updates)
 
 4. **Mobile Optimization (Week 11-12)**
@@ -554,7 +554,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 
 **Dependencies:**
 - Magic link authentication setup
-- Supabase Realtime enabled
+- WebSocket enabled
 - Survey question bank and scoring logic
 - Dispute escalation workflow approval
 
@@ -609,7 +609,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 
 2. **User Behavior Analytics (Week 4-6)**
    - Create `user_behavior_events` table
-   - Build `behavior-analyzer` edge function
+   - Build `behavior-analyzer` Express.js route handler
    - Implement anomaly detection rules:
      - Multiple failed login attempts
      - Unusual data access patterns
@@ -618,7 +618,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - Add automated account suspension for high-risk events
 
 3. **Compliance Reporting (Week 7-9)**
-   - Build `compliance-reporter` edge function
+   - Build `compliance-reporter` Express.js route handler
    - Implement SOC 2 control evidence collection
    - Create ISO 27001 compliance checklist
    - Add GDPR data inventory and mapping
@@ -650,7 +650,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 ### Team Structure & Roles
 
 **Phase 1-2 (Foundation):**
-- 2 Backend Engineers (Edge Functions, Database)
+- 2 Backend Engineers (Express.js Route Handlers, Database)
 - 2 Frontend Engineers (React, Analytics UI)
 - 1 DevOps Engineer (Infrastructure)
 - 1 Data Engineer (Analytics, Forecasting)
@@ -704,7 +704,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
    - **Risk:** Platform can't handle 10x traffic spike
    - **Mitigation:**
      - Load testing before each phase
-     - Auto-scaling for edge functions
+     - Auto-scaling for Express.js route handlers
      - Database read replicas
      - CDN for static assets
      - Circuit breakers for external APIs
@@ -743,7 +743,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 - Penetration testing (quarterly)
 - Dependency scanning (daily)
 - Code scanning (on every PR)
-- RLS policy verification
+- Tenant isolation policy verification
 
 **User Acceptance Testing:**
 - Beta program (50 pilot users per phase)
@@ -776,7 +776,7 @@ This roadmap outlines a transformative update to Guardian Flow, evolving it from
 **Rollback Strategy:**
 - Feature flags for instant disable
 - Database migrations are reversible
-- Blue-green deployment for edge functions
+- Blue-green deployment for Express.js route handlers
 - Backup restoration SLA: <1 hour
 
 ---
@@ -837,7 +837,7 @@ Month 9-12: Phase 4 - Portals & Compliance
 **Development Costs:**
 - Team Salaries (15 people x 12 months): $2.4M
 - Third-party Services (Stripe, Twilio, etc.): $150K/year
-- Infrastructure (Supabase, CDN, etc.): $200K/year
+- Infrastructure (MongoDB Atlas, CDN, etc.): $200K/year
 - Testing & QA Tools: $50K/year
 - Security & Compliance: $100K/year
 

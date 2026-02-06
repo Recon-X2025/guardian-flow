@@ -86,7 +86,7 @@ export function ArticleEditorDialog({ open, onOpenChange, article, onSuccess }: 
       });
       if (response.error) throw response.error;
       setCategories(response.data?.categories || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching categories:', error);
     }
   };
@@ -171,11 +171,11 @@ export function ArticleEditorDialog({ open, onOpenChange, article, onSuccess }: 
         // For new articles, stay open to allow document upload
         onSuccess();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving article:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save article',
+        description: error instanceof Error ? error.message : 'Failed to save article',
         variant: 'destructive',
       });
     } finally {

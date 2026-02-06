@@ -50,7 +50,7 @@
 | `/auth-me` Endpoint | ✅ 100% |
 | Frontend RBAC Integration | ✅ 100% |
 | API Error Handling | ✅ 100% |
-| RLS Policies | ✅ 100% |
+| Tenant Isolation | ✅ 100% |
 | Security Functions | ✅ 100% |
 | Tenant Isolation Tests | ✅ 100% |
 | Audit Logging | ✅ 100% |

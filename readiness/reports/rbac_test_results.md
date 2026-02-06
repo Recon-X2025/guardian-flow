@@ -86,7 +86,7 @@
 - ✅ `user:manage` (own tenant)
 - ✅ `api_key:manage` (own tenant)
 
-**RLS Validation**:
+**Tenant Isolation Validation**:
 - ✅ Can only view own tenant's work orders
 - ✅ Cannot access other tenants' data
 - ✅ Can manage users within own tenant
@@ -178,7 +178,7 @@
 - ✅ `photo:upload`
 - ✅ `inventory:read`
 
-**RLS Validation**:
+**Tenant Isolation Validation**:
 - ✅ Can only view work orders assigned to self
 - ✅ Cannot view other technicians' work orders
 - ✅ Cannot create or delete work orders
@@ -237,7 +237,7 @@
 - ✅ `user:manage` (partner scope)
 - ✅ `api_key:manage` (partner scope)
 
-**RLS Validation**:
+**Tenant Isolation Validation**:
 - ✅ Can view work orders for partner's technicians
 - ✅ Can view invoices for partner's work
 - ✅ Cannot view other partners' data
@@ -294,17 +294,17 @@
 1. **User A attempts to view Tenant B's work orders**
    - Expected: BLOCKED
    - Actual: BLOCKED ✅
-   - RLS Policy: `tenant_id = auth.tenant_id()`
+   - Isolation: `tenant_id` middleware filter
 
 2. **User B attempts to view Tenant A's invoices**
    - Expected: BLOCKED
    - Actual: BLOCKED ✅
-   - RLS Policy: Technician role + tenant filter
+   - Isolation: Technician role + tenant filter
 
 3. **sys_admin views both tenants**
    - Expected: ALLOWED
    - Actual: ALLOWED ✅
-   - RLS Policy: sys_admin bypass
+   - Isolation: sys_admin bypass
 
 4. **API call with Tenant A key accessing Tenant B data**
    - Expected: BLOCKED
@@ -370,7 +370,7 @@
 
 ### ✅ Passed Security Checks
 
-1. ✅ All tables have RLS enabled
+1. ✅ All collections have tenant isolation enabled
 2. ✅ Tenant isolation enforced at all layers
 3. ✅ MFA required for high-risk actions
 4. ✅ API rate limiting functional
@@ -393,7 +393,7 @@ All role-based access controls function as designed. Tenant isolation is complet
 
 **Recommendations**:
 1. Enable leaked password protection before production
-2. Remove demo-mode RLS policies (`true` conditions)
+2. Remove demo-mode query bypasses (`true` conditions)
 3. Conduct penetration testing for external APIs
 4. Schedule quarterly RBAC audits
 

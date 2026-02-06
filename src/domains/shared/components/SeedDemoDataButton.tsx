@@ -42,10 +42,10 @@ export function SeedDemoDataButton() {
       toast.success('Demo data seeded successfully!', {
         description: 'Created customers, technicians, equipment, invoices, penalties, photo validations, and forecasts',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[SeedDemo] Seed demo data error:', error);
       toast.error('Error seeding demo data', {
-        description: error.message || 'An unexpected error occurred',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     } finally {
       setIsSeeding(false);

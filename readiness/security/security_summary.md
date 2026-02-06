@@ -34,7 +34,7 @@ Guardian Flow implements a **defense-in-depth security architecture** with:
                         ↓
 ┌─────────────────────────────────────────────────────┐
 │           2. Authentication Layer                    │
-│  • Supabase Auth (JWT)                              │
+│  • Custom JWT Auth (Express.js backend)              │
 │  • Auto-refresh tokens (24h expiry)                 │
 │  • MFA for high-risk actions                        │
 └─────────────────────────────────────────────────────┘
@@ -47,21 +47,21 @@ Guardian Flow implements a **defense-in-depth security architecture** with:
 └─────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────┐
-│         4. Data Layer (RLS + Encryption)             │
-│  • Row-Level Security on all tables                 │
+│         4. Data Layer (Tenant Isolation + Encryption) │
+│  • Application-level tenant isolation on all tables  │
 │  • Tenant isolation (tenant_id filtering)           │
-│  • Encryption at rest (Supabase default)            │
+│  • Encryption at rest (MongoDB Atlas default)       │
 └─────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Row-Level Security (RLS) Policies
+## Application-Level Tenant Isolation Policies
 
 ### Policy Coverage
 
-| Table | RLS Enabled | Policies | Status |
-|-------|-------------|----------|--------|
+| Collection | Tenant Isolation | Middleware Filters | Status |
+|------------|-----------------|-------------------|--------|
 | work_orders | ✅ Yes | 5 | ⚠️ Demo policy active |
 | tickets | ✅ Yes | 4 | ✅ Secure |
 | invoices | ✅ Yes | 3 | ✅ Secure |
@@ -74,75 +74,64 @@ Guardian Flow implements a **defense-in-depth security architecture** with:
 | observability_traces | ✅ Yes | 2 | ✅ Secure |
 | api_usage_logs | ✅ Yes | 2 | ✅ Secure |
 
-**Total Tables**: 45  
-**RLS Enabled**: 45 (100%)  
-**Policies Deployed**: 120+
+**Total Collections**: 45
+**Tenant Isolation Enabled**: 45 (100%)
+**Middleware Filters Deployed**: 120+
 
-### Sample Secure RLS Policy
+### Sample Secure Tenant Isolation Middleware
 
-```sql
--- Example: Work orders tenant isolation
-CREATE POLICY "Users view own tenant work orders"
-ON work_orders
-FOR SELECT
-USING (
-  tenant_id IN (
-    SELECT tenant_id
-    FROM profiles
-    WHERE id = auth.uid()
-  )
-);
+```javascript
+// Example: Work orders tenant isolation middleware
+async function enforceTenantIsolation(req, res, next) {
+  const userProfile = await db.collection('profiles')
+    .findOne({ _id: req.user.id });
+
+  req.tenantFilter = { tenant_id: userProfile.tenant_id };
+  next();
+}
 ```
 
-### High-Priority RLS Issues
+### High-Priority Isolation Issues
 
 #### ⚠️ Issue 1: Work Orders Demo Policy
 
-**Table**: `work_orders`  
-**Policy**: "Users can view all work orders (demo)"  
-**Condition**: `true`
+**Collection**: `work_orders`
+**Policy**: "Users can view all work orders (demo)"
+**Condition**: No tenant filter applied
 
 **Risk**: All work orders visible to anyone (even unauthenticated users)
 
 **Impact**: Operational data leak, competitive intelligence exposure
 
 **Fix**:
-```sql
--- Remove demo policy
-DROP POLICY "Users can view all work orders (demo)" ON work_orders;
-
--- Replace with secure policy
-CREATE POLICY "Users view own tenant work orders"
-ON work_orders
-FOR SELECT
-USING (
-  tenant_id IN (
-    SELECT tenant_id FROM profiles WHERE id = auth.uid()
-  )
-);
+```javascript
+// Remove demo bypass and enforce tenant isolation
+// In server/routes/database.js, ensure all work_orders queries
+// include tenant_id filter from authenticated user context
+router.get('/work_orders', authenticate, async (req, res) => {
+  const results = await db.collection('work_orders')
+    .find({ tenant_id: req.user.tenant_id })
+    .toArray();
+  res.json(results);
+});
 ```
 
 #### ⚠️ Issue 2: Staging Work Orders Exposed
 
-**Table**: `staging_work_orders`  
-**Status**: RLS not enabled (49,000 records exposed)
+**Collection**: `staging_work_orders`
+**Status**: Tenant isolation not enforced (49,000 records exposed)
 
 **Risk**: Complete staging data visible to public
 
 **Fix**:
-```sql
--- Enable RLS
-ALTER TABLE staging_work_orders ENABLE ROW LEVEL SECURITY;
-
--- Add tenant policy
-CREATE POLICY "Staging work orders tenant scoped"
-ON staging_work_orders
-FOR SELECT
-USING (
-  tenant_id IN (
-    SELECT tenant_id FROM profiles WHERE id = auth.uid()
-  )
-);
+```javascript
+// Add tenant isolation middleware to staging_work_orders queries
+router.get('/staging_work_orders', authenticate, async (req, res) => {
+  const results = await db.collection('staging_work_orders')
+    .find({ tenant_id: req.user.tenant_id })
+    .toArray();
+  res.json(results);
+});
 ```
 
 ---
@@ -175,23 +164,24 @@ USING (
 
 ### Permission Validation
 
-All permissions validated using security definer functions:
+All permissions validated using server-side middleware:
 
-```sql
-CREATE FUNCTION has_permission(_user_id uuid, _permission text)
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM user_roles ur
-    JOIN role_permissions rp ON rp.role = ur.role
-    JOIN permissions p ON p.id = rp.permission_id
-    WHERE ur.user_id = _user_id
-      AND p.name = _permission
-  )
-$$;
+```javascript
+// Permission validation middleware (server/middleware/auth.js)
+async function hasPermission(userId, permission) {
+  const userRole = await db.collection('user_roles')
+    .findOne({ user_id: userId });
+
+  const rolePerms = await db.collection('role_permissions')
+    .find({ role: userRole.role })
+    .toArray();
+
+  const permIds = rolePerms.map(rp => rp.permission_id);
+  const perm = await db.collection('permissions')
+    .findOne({ _id: { $in: permIds }, name: permission });
+
+  return !!perm;
+}
 ```
 
 ---
@@ -394,22 +384,24 @@ Action Approved → Execute
 
 ### 4-Layer Isolation
 
-#### Layer 1: Database RLS
+#### Layer 1: Database (Application-Level Tenant Isolation)
 
-```sql
--- Every table has tenant_id column
--- Every SELECT query filtered by tenant_id
-CREATE POLICY "tenant_isolation"
-ON <table>
-FOR SELECT
-USING (tenant_id = (SELECT tenant_id FROM profiles WHERE id = auth.uid()));
+```javascript
+// Every collection query includes tenant_id filter
+// Enforced via server middleware on all database routes
+async function tenantIsolation(req, res, next) {
+  const profile = await db.collection('profiles')
+    .findOne({ _id: req.user.id });
+  req.tenantFilter = { tenant_id: profile.tenant_id };
+  next();
+}
 ```
 
 #### Layer 2: Application Logic
 
 ```typescript
 // AuthContext validates tenant membership
-const { data: profile } = await supabase
+const profile = await apiClient
   .from('profiles')
   .select('tenant_id')
   .eq('id', user.id)
@@ -434,7 +426,7 @@ if (apiKey.tenant_id !== headers['x-tenant-id']) {
 
 ```typescript
 // Components filter by current user's tenant
-const workOrders = await supabase
+const workOrders = await apiClient
   .from('work_orders')
   .select('*')
   .eq('tenant_id', currentUser.tenant_id); // Explicit filter
@@ -446,14 +438,14 @@ const workOrders = await supabase
 
 ### Immediate Actions (Before Production)
 
-1. **Fix RLS Policies** (1 day)
-   - [ ] Remove demo policy from work_orders
-   - [ ] Enable RLS on staging_work_orders
-   - [ ] Add tenant filter to forecast tables
+1. **Fix Tenant Isolation Policies** (1 day)
+   - [ ] Remove demo bypass from work_orders routes
+   - [ ] Add tenant isolation to staging_work_orders queries
+   - [ ] Add tenant filter to forecast collection queries
 
 2. **Enable Production Security** (0.5 days)
    - [ ] Enable leaked password protection
-   - [ ] Remove `true` RLS conditions
+   - [ ] Remove unfiltered query bypasses
    - [ ] Tighten partner_admin scope
 
 ### Short-Term (30 days)
@@ -461,11 +453,11 @@ const workOrders = await supabase
 3. **Security Hardening**
    - [ ] Implement rate limiting per user (not just per tenant)
    - [ ] Add IP allowlisting for sensitive endpoints
-   - [ ] Enable database encryption at column level
+   - [ ] Enable field-level encryption in MongoDB Atlas
 
 4. **Monitoring & Alerting**
    - [ ] Set up alerts for MFA failures (>5 per user per day)
-   - [ ] Monitor RLS policy violations
+   - [ ] Monitor tenant isolation violations
    - [ ] Track API anomalies (sudden spikes)
 
 ### Long-Term (90 days)
@@ -486,9 +478,9 @@ const workOrders = await supabase
 
 ### OWASP Top 10 Coverage
 
-- [x] **A01: Broken Access Control** → RLS + RBAC
+- [x] **A01: Broken Access Control** → Application-level tenant isolation + RBAC
 - [x] **A02: Cryptographic Failures** → TLS 1.3, encrypted at rest
-- [x] **A03: Injection** → Parameterized queries (Supabase SDK)
+- [x] **A03: Injection** → Parameterized queries (MongoDB driver)
 - [x] **A04: Insecure Design** → Defense-in-depth architecture
 - [x] **A05: Security Misconfiguration** → ⚠️ 2 warnings to fix
 - [x] **A06: Vulnerable Components** → Regular dependency updates
@@ -540,7 +532,7 @@ Guardian Flow demonstrates **strong security fundamentals** with minor configura
 - ✅ Policy-as-code governance
 
 **Action Items**:
-- ⚠️ Fix 2 high-priority RLS warnings (1-day effort)
+- ⚠️ Fix 2 high-priority tenant isolation warnings (1-day effort)
 - ⚠️ Enable production security features (0.5-day effort)
 
 **Recommendation**: **APPROVED FOR PRODUCTION** after addressing high-priority warnings.

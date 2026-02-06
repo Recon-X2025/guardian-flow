@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/domains/shared/hooks/use-toast";
 import { apiClient } from "@/integrations/api/client";
-import { Invoice, InvoiceItem, InvoiceType, CustomerType, TaxType, PaymentTerms } from "@/domains/financial/types/invoice";
+import { Invoice, InvoiceItem, InvoiceType, CustomerType, TaxType, PaymentTerms, PaymentStatus, PaymentMethod } from "@/domains/financial/types/invoice";
 import { convertInvoiceToRow, numberToWords, calculateItemTax } from "@/domains/financial/lib/invoiceUtils";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 
@@ -183,7 +183,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice, onSuccess }: In
     calculateTotals(newItems);
   };
 
-  const updateLineItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const updateLineItem = (index: number, field: keyof InvoiceItem, value: string | number | boolean | { tax_type: string; cgst_rate?: number; sgst_rate?: number; igst_rate?: number; cess_rate?: number }) => {
     const newItems = [...(formData.items || [])];
     newItems[index] = { ...newItems[index], [field]: value };
     
@@ -326,10 +326,10 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice, onSuccess }: In
 
       onSuccess?.();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to save invoice",
+        description: error instanceof Error ? error.message : "Failed to save invoice",
         variant: "destructive",
       });
     } finally {
@@ -834,7 +834,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice, onSuccess }: In
                   value={formData.payment?.status || 'UNPAID'}
                   onValueChange={(value) => setFormData({
                     ...formData,
-                    payment: { ...formData.payment!, status: value as any },
+                    payment: { ...formData.payment!, status: value as PaymentStatus },
                   })}
                 >
                   <SelectTrigger>
@@ -854,7 +854,7 @@ export function InvoiceFormDialog({ open, onOpenChange, invoice, onSuccess }: In
                   value={formData.payment?.method || 'BANK_TRANSFER'}
                   onValueChange={(value) => setFormData({
                     ...formData,
-                    payment: { ...formData.payment!, method: value as any },
+                    payment: { ...formData.payment!, method: value as PaymentMethod },
                   })}
                 >
                   <SelectTrigger>

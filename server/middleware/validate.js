@@ -19,7 +19,11 @@ export function validate(schema) {
           message: e.message,
         }));
         logger.warn('Validation failed', { errors: details, path: req.path });
-        return res.status(400).json({ error: 'Validation failed', details });
+        // Only expose field names in production; include messages in development
+        const safeDetails = process.env.NODE_ENV === 'production'
+          ? details.map(d => ({ field: d.field }))
+          : details;
+        return res.status(400).json({ error: 'Validation failed', details: safeDetails });
       }
       next(error);
     }

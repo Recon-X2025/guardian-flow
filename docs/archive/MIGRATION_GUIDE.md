@@ -1,23 +1,23 @@
-# Migration Guide: Supabase to Local PostgreSQL
+# Migration Guide: legacy service to Local MongoDB Atlas
 
-This guide explains the changes made to replace Supabase with local PostgreSQL.
+This guide explains the changes made to replace legacy service with local MongoDB Atlas.
 
 ## What Changed
 
 ### Backend
-- **New Express.js server** (`server/`) replaces Supabase backend
-- **PostgreSQL** replaces Supabase database
-- **JWT authentication** replaces Supabase Auth
-- **REST API** replaces Supabase Edge Functions
+- **New Express.js server** (`server/`) replaces legacy service backend
+- **MongoDB Atlas** replaces legacy service database
+- **JWT authentication** replaces legacy service Auth
+- **REST API** replaces legacy service Express.js Route Handlers
 
 ### Frontend
-- **API Client** (`src/integrations/api/client.ts`) replaces Supabase client
+- **API Client** (`src/integrations/api/client.ts`) replaces legacy service client
 - **AuthContext** updated to use new API
-- **Database queries** now go through REST API instead of direct Supabase calls
+- **Database queries** now go through REST API instead of direct legacy service calls
 
 ## Setup Instructions
 
-### 1. Install PostgreSQL
+### 1. Install MongoDB Atlas
 
 See `server/README.md` for installation instructions.
 
@@ -28,7 +28,7 @@ See `server/README.md` for installation instructions.
 createdb guardianflow
 
 # Run initial schema
-psql -U postgres -d guardianflow -f server/scripts/init-db.sql
+mongosh -U mongodb -d guardianflow -f server/scripts/init-db.sql
 
 # Run migrations
 cd server
@@ -45,11 +45,7 @@ VITE_API_URL=http://localhost:3001
 
 **Backend** (`server/.env`):
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=guardianflow
-DB_USER=postgres
-DB_PASSWORD=postgres
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/guardianflow
 JWT_SECRET=your-secret-key
 FRONTEND_URL=http://localhost:8080
 PORT=3001
@@ -73,15 +69,15 @@ npm run dev
 ## Key Differences
 
 ### Authentication
-- **Before:** `supabase.auth.signInWithPassword()`
+- **Before:** `apiClient.auth.signInWithPassword()`
 - **After:** `apiClient.signIn()` → `POST /api/auth/signin`
 
 ### Database Queries
-- **Before:** `supabase.from('table').select('*').eq('id', value)`
+- **Before:** `apiClient.from('table').select('*').eq('id', value)`
 - **After:** `apiClient.from('table').select('*').eq('id', value)` (same interface, different backend)
 
-### Edge Functions
-- **Before:** `supabase.functions.invoke('function-name', { body })`
+### Express.js Route Handlers
+- **Before:** `apiClient.functions.invoke('function-name', { body })`
 - **After:** `apiClient.functions.invoke('function-name', { body })` → `POST /api/functions/function-name`
 
 ## Migration Status
@@ -94,16 +90,16 @@ npm run dev
 - Auth context migration
 
 ⚠️ **Needs Implementation:**
-- Edge functions (currently return 501)
+- Server route handlers (currently return 501)
 - File storage/uploads
 - Real-time subscriptions (WebSockets)
 - Advanced query features (joins, aggregations)
 
-## Edge Functions Migration
+## Express.js Route Handler Migration
 
-Supabase Edge Functions need to be migrated to Express routes:
+Legacy functions need to be migrated to Express routes:
 
-1. Copy function from `supabase/functions/function-name/index.ts`
+1. Copy function from `apiClient/functions/function-name/index.ts`
 2. Create route in `server/routes/functions.js` or separate file
 3. Update frontend to use new endpoint
 
@@ -111,7 +107,7 @@ Example:
 ```javascript
 // server/routes/functions.js
 router.post('/generate-offers', authenticateToken, async (req, res) => {
-  // Migrate logic from supabase/functions/generate-offers
+  // Migrate logic from apiClient/functions/generate-offers
 });
 ```
 
@@ -119,13 +115,13 @@ router.post('/generate-offers', authenticateToken, async (req, res) => {
 
 - `auth.users` → `users` (with `password_hash` field)
 - All foreign keys updated to reference `users(id)`
-- RLS (Row Level Security) policies removed (implement in application layer if needed)
-- Supabase folder and all edge functions removed
+- Application-level tenant isolation implemented (replaces previous Row Level Security approach)
+- legacy service folder and all Express.js route handlers removed
 - Migrations preserved in `server/migrations` (if needed)
 
 ## Testing
 
-1. Start PostgreSQL
+1. Start MongoDB Atlas
 2. Start backend server
 3. Start frontend
 4. Test authentication flow
@@ -134,9 +130,9 @@ router.post('/generate-offers', authenticateToken, async (req, res) => {
 ## Troubleshooting
 
 **Database connection error:**
-- Check PostgreSQL is running
+- Check MongoDB Atlas is running
 - Verify credentials in `server/.env`
-- Check database exists: `psql -l | grep guardianflow`
+- Check database exists: `mongosh -l | grep guardianflow`
 
 **CORS errors:**
 - Verify `FRONTEND_URL` in `server/.env` matches frontend URL
@@ -149,7 +145,7 @@ router.post('/generate-offers', authenticateToken, async (req, res) => {
 
 ## Next Steps
 
-1. Migrate remaining edge functions
+1. Migrate remaining Express.js route handlers
 2. Implement file storage (local filesystem or S3)
 3. Add WebSocket support for real-time features
 4. Set up production database on Vultr

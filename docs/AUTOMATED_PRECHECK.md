@@ -9,7 +9,7 @@ The precheck orchestration for work orders now runs **automatically** without re
 When a work order is created via `CreateWorkOrderDialog`:
 - Work order record is inserted with `draft` status
 - Precheck record is initialized with all statuses as `pending`
-- **Automatic trigger**: `precheck-orchestrator` edge function is invoked immediately
+- **Automatic trigger**: `precheck-orchestrator` Express.js route handler is invoked immediately
 
 ### 2. Automatic Precheck Execution
 The precheck orchestrator automatically:
@@ -51,10 +51,10 @@ ADD COLUMN can_release boolean GENERATED ALWAYS AS (
 - Prevents explicit value insertion (auto-calculated by database)
 - Automatically updates when any status changes
 
-## Edge Function Changes
+## Express.js Route Handler Changes
 
 ### Precheck Orchestrator
-**Location**: `supabase/functions/precheck-orchestrator/index.ts`
+**Location**: `server/routes/functions.js` (precheck-orchestrator handler)
 
 **Changes**:
 - Removed explicit `requiredPermissions` check - now allows any authenticated user
@@ -136,7 +136,7 @@ View precheck status at any time:
 
 ## Security Note
 
-⚠️ **Password Protection Warning**: A security linter warning exists about leaked password protection being disabled. This is unrelated to the precheck automation and should be addressed separately by enabling password protection in Supabase Auth settings.
+⚠️ **Password Protection Warning**: A security linter warning exists about leaked password protection being disabled. This is unrelated to the precheck automation and should be addressed separately by enabling password protection in auth configuration.
 
 ## Testing
 

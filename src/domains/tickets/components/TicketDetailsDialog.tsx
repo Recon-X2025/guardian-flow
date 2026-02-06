@@ -10,10 +10,32 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar, MapPin, User, Wrench, Clock, AlertCircle, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 
+interface WorkOrder {
+  id: string;
+  wo_number: string;
+  status: string;
+  technician_id?: string;
+}
+
+interface Ticket {
+  id: string;
+  ticket_number: string;
+  title?: string;
+  description?: string;
+  status: string;
+  priority?: string;
+  symptom?: string;
+  site_address?: string;
+  customer_name?: string;
+  created_at: string;
+  scheduled_date?: string;
+  work_orders?: WorkOrder[];
+}
+
 interface TicketDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  ticket: any;
+  ticket: Ticket | null;
 }
 
 export function TicketDetailsDialog({ open, onOpenChange, ticket }: TicketDetailsDialogProps) {

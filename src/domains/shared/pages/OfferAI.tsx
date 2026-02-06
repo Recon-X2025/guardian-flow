@@ -4,14 +4,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/domains/shared/hooks/use-toast";
-import { Loader2, Sparkles, ShoppingCart, TrendingUp } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Sparkles, ShoppingCart, TrendingUp, Info } from "lucide-react";
+
+interface SaposOffer {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  offer_type?: string;
+  price?: number;
+  warranty_conflicts?: boolean;
+  model_version?: string;
+  confidence_score?: number;
+  work_orders?: {
+    wo_number?: string;
+  };
+}
+
+interface WorkOrderBasic {
+  id: string;
+  wo_number: string;
+  status: string;
+}
 
 export default function OfferAI() {
-  const [offers, setOffers] = useState<any[]>([]);
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [offers, setOffers] = useState<SaposOffer[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrderBasic[]>([]);
   const [selectedWO, setSelectedWO] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchOffers = async () => {
@@ -23,12 +46,12 @@ export default function OfferAI() {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (result.error) throw result.error;
-      setOffers(data || []);
-    } catch (error: any) {
+      if (error) throw error;
+      setOffers((data || []) as SaposOffer[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading offers",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -49,12 +72,12 @@ export default function OfferAI() {
         .in('status', ['in_progress', 'pending_validation'])
         .order('created_at', { ascending: false });
 
-      if (result.error) throw result.error;
-      setWorkOrders(data || []);
-    } catch (error: any) {
+      if (error) throw error;
+      setWorkOrders((data || []) as WorkOrderBasic[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading work orders",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -68,17 +91,19 @@ export default function OfferAI() {
       });
 
       if (result.error) throw result.error;
+      const data = result.data as { ai_provider?: string };
+      setAiProvider(data?.ai_provider || null);
 
       toast({
         title: "Offers generated",
-        description: `${data.offers.length} contextual offers created`,
+        description: "Contextual offers created successfully",
       });
 
       fetchOffers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Generation failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -93,14 +118,14 @@ export default function OfferAI() {
         .update({ status: 'accepted' })
         .eq('id', offerId);
 
-      if (result.error) throw result.error;
+      if (error) throw error;
 
       toast({ title: "Offer accepted", description: "Quote will be generated" });
       fetchOffers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -172,6 +197,15 @@ export default function OfferAI() {
           </Button>
         </div>
       </div>
+
+      {aiProvider === 'mock' && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Demo Mode — offers are generated using rule-based templates. Connect OpenAI for personalized AI offers.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>

@@ -47,10 +47,10 @@ export function MFADialog({ open, onOpenChange, actionType, onVerified }: MFADia
         description: `DEMO: Your token is ${data.demo_token}`,
         duration: 10000,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "MFA Request Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -82,10 +82,10 @@ export function MFADialog({ open, onOpenChange, actionType, onVerified }: MFADia
       onVerified(tokenId);
       onOpenChange(false);
       resetDialog();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Verification Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {

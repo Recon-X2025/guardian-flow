@@ -24,7 +24,7 @@ Complete TypeScript interfaces for the invoice template structure:
 - **Attachments**: File attachments with metadata
 - **Metadata**: Status history, audit trail
 
-### 2. Database Migration (`supabase/migrations/20251125210826_comprehensive_invoice_template.sql`)
+### 2. Database Migration (`server/scripts/migrations/comprehensive_invoice_template.js`)
 
 #### New Tables Created:
 
@@ -65,7 +65,7 @@ Complete TypeScript interfaces for the invoice template structure:
 
 #### Features:
 
-- Row Level Security (RLS) policies for all tables
+- Application-level tenant isolation for all collections
 - GIN indexes on JSONB columns for fast queries
 - Automatic `updated_at` timestamp triggers
 - Foreign key constraints and data validation
@@ -184,7 +184,7 @@ The implementation maintains backward compatibility:
 - `src/types/invoice.ts` - TypeScript type definitions
 - `src/lib/invoiceUtils.ts` - Utility functions
 - `src/components/ComprehensiveInvoiceDetailDialog.tsx` - Enhanced detail dialog
-- `supabase/migrations/20251125210826_comprehensive_invoice_template.sql` - Database migration
+- `server/scripts/migrations/comprehensive_invoice_template.js` - Database migration
 
 ### Modified Files:
 - None (maintains backward compatibility)
@@ -195,7 +195,7 @@ To test the implementation:
 
 1. **Run the migration**:
    ```bash
-   # Migration will be applied automatically by Supabase
+   # Migration will be applied by the migration runner
    ```
 
 2. **Create a test invoice** with comprehensive data:
@@ -214,7 +214,7 @@ To test the implementation:
 ## Notes
 
 - The implementation uses JSONB for flexibility while maintaining relational integrity
-- All tables have RLS policies for security
+- All collections have application-level tenant isolation for security
 - The system supports both intra-state and inter-state transactions
 - GST compliance features are built-in (GSTIN validation, tax calculations)
 

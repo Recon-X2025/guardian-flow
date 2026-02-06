@@ -79,7 +79,7 @@ The Enterprise Data Analytics Platform is a comprehensive analytics solution bui
 
 **US-DE-001: Configure Database Data Source**
 - **As a** Data Engineer
-- **I want to** connect to PostgreSQL, MySQL, SQL Server, Oracle databases
+- **I want to** connect to MongoDB Atlas, MySQL, SQL Server, Oracle databases
 - **So that** I can ingest data for analytics workflows
 - **Acceptance Criteria:**
   - Can add connection with host, port, credentials, SSL options
@@ -610,7 +610,7 @@ The Enterprise Data Analytics Platform is a comprehensive analytics solution bui
 ### 1. Data Ingestion & Pipelines
 
 **Supported Data Sources:**
-- **Databases**: PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Redis
+- **Databases**: MongoDB Atlas, MySQL, SQL Server, Oracle, MongoDB, Redis
 - **Data Warehouses**: Snowflake, Redshift, BigQuery, Databricks
 - **APIs**: REST, GraphQL, SOAP with authentication
 - **Streaming**: Kafka, Kinesis, Google Pub/Sub, Azure Event Hubs
@@ -850,7 +850,7 @@ The Enterprise Data Analytics Platform is a comprehensive analytics solution bui
 - Edge computing for low-latency access
 
 **Storage:**
-- Relational database (PostgreSQL) for metadata
+- Relational database (MongoDB Atlas) for metadata
 - Object storage (S3) for data lakes
 - Time-series database (TimescaleDB) for metrics
 - Cache layer (Redis) for performance
@@ -1283,7 +1283,7 @@ Response 200:
 
 **Authorization:**
 - All endpoints enforce workspace-level access
-- Row-level security for data queries
+- Application-level tenant isolation for data queries
 - Audit logging for all API calls
 - IP whitelisting support
 
@@ -1304,7 +1304,7 @@ Response 200:
 
 **Backend:**
 - Test coverage requirement: 80% minimum
-- Framework: Deno Test for edge functions
+- Framework: Jest/Vitest for Express.js route handlers
 - Mocking strategy for external dependencies
 - Automated test execution in CI/CD
 
@@ -1324,7 +1324,7 @@ Response 200:
 
 **Database Testing:**
 - Migration testing (up and down)
-- RLS policy validation
+- Tenant isolation validation
 - Query performance benchmarking
 - Data consistency checks
 

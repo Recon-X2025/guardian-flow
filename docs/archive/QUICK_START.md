@@ -14,11 +14,7 @@ Create `server/.env` file with your database credentials:
 cd server
 cat > .env << 'EOF'
 # Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=guardianflow
-DB_USER=postgres
-DB_PASSWORD=postgres
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/guardianflow
 
 # JWT Secret (change in production!)
 JWT_SECRET=your-secret-key-change-in-production-use-strong-random-string
@@ -35,14 +31,14 @@ PUBLIC_URL=http://localhost:3001
 EOF
 ```
 
-### 2. Set Up PostgreSQL Database
+### 2. Set Up MongoDB Atlas Database
 
 ```bash
 # Create database (if not exists)
 createdb guardianflow
 
 # Run initial schema
-psql -U postgres -d guardianflow -f server/scripts/init-db.sql
+mongosh guardianflow --file server/scripts/init-db.js
 
 # Run migrations
 cd server
@@ -78,20 +74,20 @@ Frontend will start on `http://localhost:8080`
 ✅ **Backend Server** - Running on port 3001
 ✅ **File Storage** - Local filesystem storage
 ✅ **WebSocket** - Real-time subscriptions
-✅ **Edge Functions** - 5 core functions migrated
-✅ **API Client** - Supabase-compatible interface
+✅ **Express.js Route Handlers** - 5 core handlers migrated
+✅ **API Client** - Compatible interface
 
 ## 🔧 Troubleshooting
 
 ### Server Won't Start
-- Check if PostgreSQL is running: `pg_isready`
-- Verify database exists: `psql -l | grep guardianflow`
+- Check if MongoDB is running: `mongosh --eval "db.runCommand({ping:1})"`
+- Verify database exists: `mongosh --eval "show dbs" | grep guardianflow`
 - Check `server/.env` file exists and has correct values
 
 ### Database Connection Errors
-- Ensure PostgreSQL is installed and running
+- Ensure MongoDB is running
 - Check database credentials in `server/.env`
-- Run: `psql -U postgres -d guardianflow -c "SELECT 1;"`
+- Run: `mongosh guardianflow --eval "db.runCommand({ping:1})"`
 
 ### Port Already in Use
 - Change `PORT` in `server/.env` to a different port
@@ -107,5 +103,5 @@ Frontend will start on `http://localhost:8080`
 
 ## 🚀 Ready to Use!
 
-Your server is running and ready to accept requests. The frontend can now connect to the local PostgreSQL backend instead of Supabase!
+Your server is running and ready to accept requests. The frontend can now connect to the MongoDB Atlas backend via the Express.js custom backend!
 

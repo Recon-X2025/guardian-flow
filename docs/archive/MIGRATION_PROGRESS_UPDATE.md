@@ -49,9 +49,9 @@
 
 ### High Priority
 1. **Fix method calls in feature pages** (~44 files)
-   - Replace `supabase.from()` → `apiClient.from()`
-   - Replace `supabase.functions.invoke()` → `apiClient.functions.invoke()`
-   - Replace `supabase.auth.*` → `useAuth()` or `apiClient.auth.*`
+   - Replace `apiClient.from()` → `apiClient.from()`
+   - Replace `apiClient.functions.invoke()` → `apiClient.functions.invoke()`
+   - Replace `apiClient.auth.*` → `useAuth()` or `apiClient.auth.*`
    - Handle complex queries (joins, filters) with client-side processing
 
 2. **Migrate remaining components** (~12 files)
@@ -91,8 +91,8 @@
 
 ### Immediate
 1. Fix method calls in feature pages (batch process)
-   - Replace `supabase.from()` with `apiClient.from()`
-   - Replace `supabase.functions.invoke()` with `apiClient.functions.invoke()`
+   - Replace `apiClient.from()` with `apiClient.from()`
+   - Replace `apiClient.functions.invoke()` with `apiClient.functions.invoke()`
    - Handle complex queries appropriately
 
 2. Fix method calls in remaining components
@@ -101,7 +101,7 @@
 ### Short Term
 1. Test all migrated functionality
 2. Fix any edge cases
-3. Remove `supabase/client.ts` compatibility layer
+3. Remove `apiClient/client.ts` compatibility layer
 4. Update documentation
 
 ---

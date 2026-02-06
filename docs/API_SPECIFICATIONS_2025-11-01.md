@@ -39,12 +39,12 @@ Guardian Flow provides a comprehensive REST API for all platform operations. The
 
 **Production**
 ```
-https://blvrfzymeerefsdwqhoh.supabase.co/functions/v1
+https://api.guardianflow.com/api
 ```
 
 **Development**
 ```
-http://localhost:54321/functions/v1
+http://localhost:3001/api
 ```
 
 ### API Versioning
@@ -53,7 +53,7 @@ Current version: **v1**
 
 Version is included in the URL path:
 ```
-/functions/v1/{function-name}
+/api/v1/{endpoint}
 ```
 
 ---
@@ -85,21 +85,19 @@ Authorization: Bearer {jwt_token}
 
 **Sign Up**
 ```typescript
-POST /auth/v1/signup
+POST /api/auth/signup
 Content-Type: application/json
 
 {
   "email": "user@example.com",
   "password": "secure_password",
-  "data": {
-    "full_name": "John Doe"
-  }
+  "full_name": "John Doe"
 }
 ```
 
 **Sign In**
 ```typescript
-POST /auth/v1/token?grant_type=password
+POST /api/auth/signin
 Content-Type: application/json
 
 {
@@ -126,7 +124,7 @@ Content-Type: application/json
 
 **Request MFA**
 ```typescript
-POST /functions/v1/request-mfa
+POST /api/auth/request-mfa
 Authorization: Bearer {jwt_token}
 
 {
@@ -139,7 +137,7 @@ Authorization: Bearer {jwt_token}
 
 **Verify MFA**
 ```typescript
-POST /functions/v1/verify-mfa
+POST /api/auth/verify-mfa
 Authorization: Bearer {jwt_token}
 
 {
@@ -154,7 +152,7 @@ Authorization: Bearer {jwt_token}
 
 ### Gateway Endpoint
 
-**URL**: `/functions/v1/api-gateway`
+**URL**: `/api/functions/:functionName`
 
 The API Gateway routes all platform requests, providing:
 - Authentication verification
@@ -166,7 +164,7 @@ The API Gateway routes all platform requests, providing:
 ### Gateway Request Format
 
 ```typescript
-POST /functions/v1/api-gateway
+POST /api/functions/api-gateway
 Authorization: Bearer {jwt_token}
 Content-Type: application/json
 

@@ -8,9 +8,21 @@ import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { FullTracesDialog } from '@/domains/shared/components/FullTracesDialog';
 
+interface AuditLog {
+  id: string;
+  action: string;
+  resource_type?: string;
+  mfa_verified?: boolean;
+  reason?: string;
+  user_id?: string;
+  actor_role?: string;
+  correlation_id?: string;
+  created_at: string;
+}
+
 export default function Observability() {
   const { toast } = useToast();
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [showFullTraces, setShowFullTraces] = useState(false);
   const [systemMetrics, setSystemMetrics] = useState({
     totalEvents: 0,
@@ -35,7 +47,7 @@ export default function Observability() {
 
       if (logsError) throw logsError;
 
-      setAuditLogs(logs || []);
+      setAuditLogs((logs || []) as AuditLog[]);
 
       // Calculate system metrics from audit logs
       const totalEvents = logs?.length || 0;
@@ -52,10 +64,10 @@ export default function Observability() {
         avgResponseTime: 1.2, // Mock in seconds
         uptimePercent: 99.9,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading observability data',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

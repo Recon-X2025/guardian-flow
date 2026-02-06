@@ -10,7 +10,7 @@
 1. [Security Overview](#security-overview)
 2. [Authentication](#authentication)
 3. [Authorization (RBAC)](#authorization-rbac)
-4. [Row-Level Security](#row-level-security)
+4. [Application-Level Tenant Isolation](#application-level-tenant-isolation)
 5. [Multi-Factor Authentication](#multi-factor-authentication)
 6. [Audit Logging](#audit-logging)
 7. [Data Protection](#data-protection)
@@ -36,7 +36,7 @@ graph TB
     APP --> JWT[JWT Tokens]
     AUTH --> MFA[Multi-Factor Auth]
     AUTHZ --> RBAC[Role-Based Access]
-    DATA --> RLS[Row-Level Security]
+    DATA --> ISOLATION[Tenant Isolation]
     AUDIT --> IMMUTABLE[Immutable Logs]
 ```
 
@@ -63,15 +63,15 @@ Guardian Flow uses JSON Web Tokens (JWT) for stateless authentication.
 sequenceDiagram
     participant User
     participant Frontend
-    participant SupabaseAuth
+    participant API
     participant Database
-    
+
     User->>Frontend: Enter Credentials
-    Frontend->>SupabaseAuth: POST /auth/v1/token
-    SupabaseAuth->>Database: Validate User
-    Database-->>SupabaseAuth: User Record
-    SupabaseAuth->>SupabaseAuth: Generate JWT
-    SupabaseAuth-->>Frontend: Access Token + Refresh Token
+    Frontend->>API: POST /api/auth/signin
+    API->>Database: Validate User
+    Database-->>API: User Record
+    API->>API: Generate JWT
+    API-->>Frontend: Access Token + Refresh Token
     Frontend-->>User: Login Success
 ```
 
@@ -91,22 +91,22 @@ sequenceDiagram
 
 **Token Properties**
 - **Algorithm**: HS256 (HMAC-SHA256)
-- **Expiry**: 1 hour (access token), 7 days (refresh token)
-- **Issuer**: Supabase Auth
-- **Audience**: authenticated
+- **Expiry**: 7 days (access token)
+- **Issuer**: GuardianFlow Auth
+- **Secret**: JWT_SECRET environment variable
 
 ### Authentication Methods
 
 **Email/Password**
 ```typescript
-const { data, error } = await supabase.auth.signUp({
-  email: 'user@example.com',
-  password: 'secure_password',
-  options: {
-    data: {
-      full_name: 'John Doe'
-    }
-  }
+const response = await fetch('/api/auth/signup', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'secure_password',
+    full_name: 'John Doe'
+  })
 });
 ```
 
@@ -143,7 +143,13 @@ const { data, error } = await supabase.auth.signUp({
 
 **Token Refresh**
 ```typescript
-const { data, error } = await supabase.auth.refreshSession();
+const response = await fetch('/api/auth/refresh', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${refreshToken}`
+  }
+});
 ```
 
 ---
@@ -247,11 +253,11 @@ if (!hasPermission) {
 
 ---
 
-## Row-Level Security
+## Application-Level Tenant Isolation
 
-### RLS Policy Pattern
+### Tenant Isolation Pattern
 
-All tenant-scoped tables implement RLS for tenant isolation.
+All tenant-scoped collections implement application-level tenant isolation.
 
 **Standard Tenant Isolation Policy**
 ```sql
@@ -267,7 +273,7 @@ USING (
 );
 ```
 
-### Permission-Based RLS
+### Permission-Based Tenant Isolation
 
 Combine tenant isolation with permission checks.
 
@@ -285,12 +291,12 @@ USING (
 );
 ```
 
-### RLS Performance
+### Tenant Isolation Performance
 
-**Security Definer Functions**
-- Used to avoid recursive RLS lookups
-- Execute with elevated privileges
-- Defined with `SECURITY DEFINER`
+**Middleware Functions**
+- Used to enforce tenant isolation at the middleware level
+- Execute with service-level privileges
+- Defined in `server/middleware/auth.js`
 
 **Example**
 ```sql
@@ -412,24 +418,20 @@ CREATE TABLE public.audit_logs (
 
 ### Immutability Enforcement
 
-**RLS Policies**
-```sql
--- Allow INSERT only
-CREATE POLICY "audit_logs_insert"
-ON public.audit_logs
-FOR INSERT
-WITH CHECK (true);
+**Tenant Isolation Middleware**
+```javascript
+// Allow INSERT only
+// Audit logs are append-only (immutable)
+// No update or delete operations permitted
 
--- Allow SELECT with permission
-CREATE POLICY "audit_logs_select"
-ON public.audit_logs
-FOR SELECT
-USING (
-  tenant_id = (SELECT tenant_id FROM public.profiles WHERE id = auth.uid())
-  AND public.has_permission(auth.uid(), 'audit_logs:read')
-);
-
--- NO UPDATE or DELETE policies (immutable)
+// Read access requires permission check
+if (!hasPermission(user.id, 'audit_logs:read')) {
+  throw new Error('Permission denied');
+}
+// Filter by tenant_id
+const logs = await db.collection('audit_logs')
+  .find({ tenant_id: user.tenant_id })
+  .toArray();
 ```
 
 ### Audit Log Retention
@@ -445,9 +447,9 @@ USING (
 ### Encryption at Rest
 
 **Database Encryption**
-- Full database encryption via Supabase
+- Full database encryption via MongoDB Atlas
 - AES-256 encryption algorithm
-- Managed keys by Supabase
+- Managed keys by MongoDB Atlas
 
 **File Storage Encryption**
 - S3-compatible storage with encryption
@@ -458,7 +460,7 @@ USING (
 **TLS/SSL**
 - TLS 1.3 for all connections
 - HTTPS enforced for web traffic
-- Certificate management via Supabase
+- Certificate management via cloud provider
 
 ### Field-Level Encryption
 
@@ -556,7 +558,7 @@ Content-Security-Policy:
   script-src 'self' 'unsafe-inline'; 
   style-src 'self' 'unsafe-inline'; 
   img-src 'self' data: https:; 
-  connect-src 'self' https://blvrfzymeerefsdwqhoh.supabase.co;
+  connect-src 'self' https://api.guardianflow.com;
 ```
 
 ---

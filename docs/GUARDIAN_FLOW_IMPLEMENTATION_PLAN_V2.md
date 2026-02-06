@@ -24,7 +24,7 @@ This updated plan accelerates delivery through parallel workstreams, continuous 
 ## Phase 1: Foundation & Security Hardening (Months 1-3)
 
 ### 🎯 MVP Deliverables (Week 4)
-- Telemetry on 20 critical edge functions
+- Telemetry on 20 critical Express.js route handlers
 - Security scan automation operational
 - Basic analytics eventing infrastructure
 - Error boundary on top 5 pages
@@ -45,14 +45,14 @@ CREATE TABLE IF NOT EXISTS public.seed_metadata (
   created_by uuid REFERENCES auth.users(id)
 );
 
-ALTER TABLE public.seed_metadata ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seed_metadata -- application-level tenant isolation enforced;
 
 CREATE POLICY "Users can view own tenant seeds" ON public.seed_metadata
   FOR SELECT USING (tenant_id = get_user_tenant_id(auth.uid()));
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/seed-validated-data/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/seed-validated-data/index.ts`
 ```typescript
 interface SeedConfig {
   tenantId: string;
@@ -71,7 +71,7 @@ interface SeedConfig {
 
 ---
 
-### 1.2 Complete Edge Function Testing & Telemetry (P1)
+### 1.2 Complete Express.js Route Handler Testing & Telemetry (P1)
 
 #### Database Changes
 ```sql
@@ -96,14 +96,14 @@ CREATE INDEX idx_telemetry_function ON public.function_telemetry(function_name, 
 CREATE INDEX idx_telemetry_tenant ON public.function_telemetry(tenant_id, created_at DESC);
 CREATE INDEX idx_telemetry_security ON public.function_telemetry(security_level, created_at DESC); -- NEW
 
-ALTER TABLE public.function_telemetry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.function_telemetry -- application-level tenant isolation enforced;
 
 CREATE POLICY "Admins view all telemetry" ON public.function_telemetry
   FOR SELECT USING (has_any_role(auth.uid(), ARRAY['super_admin', 'admin']::app_role[]));
 ```
 
 #### Shared Telemetry Module (Enhanced)
-**File:** `supabase/functions/_shared/telemetry.ts`
+**File:** `server/routes/_shared/telemetry.ts`
 ```typescript
 export async function recordFunctionCall(params: {
   functionName: string;
@@ -161,7 +161,7 @@ CREATE INDEX idx_analytics_hourly_tenant_time ON public.analytics_hourly_aggrega
 ```
 
 #### Shared Analytics Module
-**File:** `supabase/functions/_shared/analytics.ts`
+**File:** `server/routes/_shared/analytics.ts`
 ```typescript
 export async function trackEvent(params: {
   tenantId: string;
@@ -177,8 +177,8 @@ export async function trackEvent(params: {
 }
 ```
 
-#### Edge Function
-**File:** `supabase/functions/analytics-aggregator/index.ts` (Enhanced)
+#### Express.js Route Handler
+**File:** `server/routes/analytics-aggregator/index.ts` (Enhanced)
 - Hourly aggregation cron job
 - Real-time stream processing
 - Feeds into Phase 2 SLA models and Phase 4 BI exports
@@ -228,13 +228,13 @@ CREATE TABLE IF NOT EXISTS public.user_mfa_settings (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/security-monitor/index.ts` (New)
+#### Express.js Route Handlers
+**File:** `server/routes/security-monitor/index.ts` (New)
 - Real-time security event detection
 - Anomaly detection for suspicious patterns
 - Automated alerting for critical events
 
-**File:** `supabase/functions/oauth-callback/index.ts` (New)
+**File:** `server/routes/oauth-callback/index.ts` (New)
 - OAuth provider integration
 - SAML/SSO support foundation
 
@@ -283,10 +283,10 @@ CREATE TABLE IF NOT EXISTS public.asset_lifecycle_events (
 CREATE INDEX idx_assets_tenant ON public.assets(tenant_id, status);
 CREATE INDEX idx_asset_events_asset ON public.asset_lifecycle_events(asset_id, event_date DESC);
 
-ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.asset_lifecycle_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assets -- application-level tenant isolation enforced;
+ALTER TABLE public.asset_lifecycle_events -- application-level tenant isolation enforced;
 
--- Basic RLS policies
+-- Basic application-level tenant isolation policies
 CREATE POLICY "Tenant users view own assets" ON public.assets
   FOR SELECT USING (tenant_id = get_user_tenant_id(auth.uid()));
 
@@ -357,8 +357,8 @@ CREATE INDEX idx_frontend_errors_tenant ON public.frontend_errors(tenant_id, cre
 CREATE INDEX idx_frontend_errors_severity ON public.frontend_errors(severity, created_at DESC);
 ```
 
-#### Edge Function
-**File:** `supabase/functions/log-frontend-error/index.ts`
+#### Express.js Route Handler
+**File:** `server/routes/log-frontend-error/index.ts`
 
 ---
 
@@ -427,13 +427,13 @@ CREATE INDEX idx_traces_tenant ON public.trace_spans(tenant_id, start_time DESC)
 #### Continuous Security (Week 1-12)
 - **Week 1-4:** OWASP ZAP automated scans on all APIs
 - **Week 5-8:** Manual penetration testing on authentication flows
-- **Week 9-12:** Security code review for all edge functions
+- **Week 9-12:** Security code review for all Express.js route handlers
 
 #### MVP Testing (Week 4)
 - Unit tests for telemetry module
 - Integration tests for analytics eventing
 - Security event simulation tests
-- RLS policy verification
+- Tenant isolation policy verification
 
 ---
 
@@ -481,13 +481,13 @@ CREATE TABLE IF NOT EXISTS public.sla_alerts (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/predict-sla-breach/index.ts` (Enhanced)
+#### Express.js Route Handlers
+**File:** `server/routes/predict-sla-breach/index.ts` (Enhanced)
 - ML model integration (uses analytics_events from Phase 1)
 - Historical data analysis
 - Real-time risk scoring
 
-**File:** `supabase/functions/sla-monitor/index.ts` (New)
+**File:** `server/routes/sla-monitor/index.ts` (New)
 - Continuous monitoring cron job
 - Automatic alert generation
 - Escalation workflow
@@ -520,7 +520,7 @@ CREATE TABLE IF NOT EXISTS public.portal_activity (
   created_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE public.customer_portal_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_portal_users -- application-level tenant isolation enforced;
 
 CREATE POLICY "Customers view own portal users" ON public.customer_portal_users
   FOR SELECT USING (
@@ -571,14 +571,14 @@ CREATE TABLE IF NOT EXISTS public.partner_api_usage (
 CREATE INDEX idx_partner_api_usage_partner ON public.partner_api_usage(partner_id, created_at DESC);
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/partner-api-gateway/index.ts` (New)
+#### Express.js Route Handlers
+**File:** `server/routes/partner-api-gateway/index.ts` (New)
 - Partner authentication (API key validation)
 - Rate limiting per partner
 - Usage metering
 - Webhook delivery
 
-**File:** `supabase/functions/partner-onboard/index.ts` (Enhanced)
+**File:** `server/routes/partner-onboard/index.ts` (Enhanced)
 - API key generation
 - Sandbox tenant provisioning
 - Documentation access
@@ -650,7 +650,7 @@ CREATE TABLE IF NOT EXISTS public.offline_queue (
 
 #### Continuous Security (Week 13-24)
 - OAuth/SAML integration pen-testing
-- Customer portal RLS verification
+- Customer portal tenant isolation verification
 - Partner API security audit
 
 #### MVP Testing (Week 16)
@@ -671,10 +671,10 @@ CREATE TABLE IF NOT EXISTS public.offline_queue (
 
 **Note:** Schema exists from Phase 1, now adding CRUD operations and UI.
 
-#### Edge Functions
-**File:** `supabase/functions/asset-create/index.ts` (New)
-**File:** `supabase/functions/asset-update/index.ts` (New)
-**File:** `supabase/functions/asset-maintenance-scheduler/index.ts` (New)
+#### Express.js Route Handlers
+**File:** `server/routes/asset-create/index.ts` (New)
+**File:** `server/routes/asset-update/index.ts` (New)
+**File:** `server/routes/asset-maintenance-scheduler/index.ts` (New)
 - Automated maintenance scheduling
 - Warranty expiration alerts
 - Lifecycle event automation
@@ -714,8 +714,8 @@ CREATE TABLE IF NOT EXISTS public.scheduling_recommendations (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/optimize-scheduling/index.ts` (uses Phase 1 analytics)
+#### Express.js Route Handlers
+**File:** `server/routes/optimize-scheduling/index.ts` (uses Phase 1 analytics)
 - ML-based technician assignment
 - Route optimization
 - Capacity forecasting
@@ -771,8 +771,8 @@ GROUP BY tenant_id, date_trunc('day', created_at);
 CREATE UNIQUE INDEX ON public.mv_daily_operations(tenant_id, date);
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/bi-connector-sync/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/bi-connector-sync/index.ts`
 - OAuth integration for BI platforms
 - Data export and transformation
 - Scheduled sync jobs
@@ -901,8 +901,8 @@ CREATE TABLE IF NOT EXISTS public.compliance_evidence (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/compliance-collector/index.ts` (Enhanced)
+#### Express.js Route Handlers
+**File:** `server/routes/compliance-collector/index.ts` (Enhanced)
 - Automated evidence collection from Phase 1 security_events
 - Control testing automation
 - Audit report generation
@@ -921,7 +921,7 @@ CREATE TABLE IF NOT EXISTS public.compliance_evidence (
 ## Success Metrics by Phase
 
 ### Phase 1 (Months 1-3)
-- ✅ 100% edge functions with telemetry
+- ✅ 100% Express.js route handlers with telemetry
 - ✅ Zero critical security vulnerabilities
 - ✅ < 500ms average API response time
 - ✅ Analytics eventing operational on all core entities

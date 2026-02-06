@@ -106,7 +106,7 @@
 1. Run migrations to create FAQ tables:
    ```bash
    cd server
-   psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
+   mongosh guardianflow --file scripts/migrations/add-faq-system.js
    ```
 
 2. Test the Customer Portal:

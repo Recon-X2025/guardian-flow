@@ -207,9 +207,9 @@ export function useCurrency() {
       await fetchExchangeRates();
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating currency:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
 

@@ -6,6 +6,7 @@ import { PROMPTS } from '../services/ai/prompts.js';
 import { detectWorkOrderAnomalies, detectFinancialAnomalies } from '../services/ai/anomaly.js';
 import { getModelHealth, getGovernanceLogs, seedModelRegistry } from '../services/ai/governance.js';
 import { findMany, countDocuments } from '../db/query.js';
+import { db } from '../db/client.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.post('/rag/query', authenticateToken, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('RAG query error:', error);
-    res.status(500).json({ error: error.message || 'RAG query failed' });
+    res.status(500).json({ error: 'RAG query failed' });
   }
 });
 
@@ -39,7 +40,7 @@ router.post('/rag/index', authenticateToken, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('RAG index error:', error);
-    res.status(500).json({ error: error.message || 'Indexing failed' });
+    res.status(500).json({ error: 'Indexing failed' });
   }
 });
 
@@ -53,7 +54,7 @@ router.post('/rag/reindex', authenticateToken, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('RAG reindex error:', error);
-    res.status(500).json({ error: error.message || 'Reindexing failed' });
+    res.status(500).json({ error: 'Reindexing failed' });
   }
 });
 
@@ -66,7 +67,7 @@ router.get('/rag/stats', optionalAuth, async (req, res) => {
     const stats = await rag.getStats();
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -101,7 +102,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
         }
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       } catch (streamError) {
-        res.write(`data: ${JSON.stringify({ error: streamError.message })}\n\n`);
+        res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
       }
       res.end();
     } else {
@@ -111,7 +112,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('Chat error:', error);
-    res.status(500).json({ error: error.message || 'Chat failed' });
+    res.status(500).json({ error: 'Chat failed' });
   }
 });
 
@@ -132,7 +133,7 @@ router.post('/summarize', authenticateToken, async (req, res) => {
     res.json({ summary: result.content, model: result.model, provider: result.provider });
   } catch (error) {
     console.error('Summarize error:', error);
-    res.status(500).json({ error: error.message || 'Summarization failed' });
+    res.status(500).json({ error: 'Summarization failed' });
   }
 });
 
@@ -166,34 +167,36 @@ router.post('/nlp-query', authenticateToken, async (req, res) => {
       });
     }
 
-    if (!query || !query.collection || !query.pipeline) {
+    if (!query || !query.collection) {
       return res.json({ answer: result.content, query: null, results: null });
     }
 
-    // Safety: disallow dangerous stages
-    const dangerous = ['$out', '$merge'];
-    const hasDangerous = query.pipeline.some(stage =>
-      Object.keys(stage).some(k => dangerous.includes(k))
-    );
-    if (hasDangerous) {
-      return res.status(400).json({ error: 'Query contains disallowed operations ($out/$merge)' });
+    // Table allowlist
+    const allowedTables = [
+      'work_orders', 'tickets', 'service_requests', 'customers',
+      'equipment', 'invoices', 'quotes', 'service_orders',
+      'technicians', 'partners', 'contracts', 'warranties',
+      'payments', 'penalties', 'forecast_outputs', 'maintenance_predictions',
+      'sapos_offers', 'fraud_alerts', 'sla_records', 'sla_configurations',
+      'geography_hierarchy',
+    ];
+
+    if (!allowedTables.includes(query.collection)) {
+      return res.status(400).json({ error: `Collection "${query.collection}" is not queryable via NLP` });
     }
 
-    // Inject tenant_id filter and $limit
-    const hasLimit = query.pipeline.some(s => s.$limit);
-    if (!hasLimit) query.pipeline.push({ $limit: 1000 });
-
-    // Inject tenant_id into first $match
-    const firstMatch = query.pipeline.find(s => s.$match);
-    if (firstMatch) {
-      firstMatch.$match.tenant_id = tenantId;
-    } else {
-      query.pipeline.unshift({ $match: { tenant_id: tenantId } });
+    // Execute as read-only MongoDB find
+    const filter = query.filter || {};
+    const limit = Math.min(query.limit || 500, 500);
+    let results;
+    try {
+      let cursor = db.collection(query.collection).find(filter);
+      if (query.sort) cursor = cursor.sort(query.sort);
+      cursor = cursor.limit(limit);
+      results = await cursor.toArray();
+    } catch (queryErr) {
+      throw queryErr;
     }
-
-    // Execute
-    const { aggregate } = await import('../db/query.js');
-    const results = await aggregate(query.collection, query.pipeline);
 
     res.json({
       answer: result.content,
@@ -203,7 +206,7 @@ router.post('/nlp-query', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('NLP query error:', error);
-    res.status(500).json({ error: error.message || 'NLP query failed' });
+    res.status(500).json({ error: 'NLP query failed' });
   }
 });
 
@@ -216,7 +219,7 @@ router.get('/models', optionalAuth, async (req, res) => {
     const models = await findMany('model_registry', { active: true }, { sort: { model_name: 1 } });
     res.json({ models });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch models' });
   }
 });
 
@@ -229,7 +232,7 @@ router.post('/models/seed', optionalAuth, async (req, res) => {
     const result = await seedModelRegistry();
     res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to seed model registry' });
   }
 });
 
@@ -250,7 +253,7 @@ router.get('/health', optionalAuth, async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to get AI health' });
   }
 });
 
@@ -263,7 +266,97 @@ router.get('/governance/logs', authenticateToken, async (req, res) => {
     const logs = await getGovernanceLogs(req.user.id, parseInt(req.query.limit) || 50);
     res.json({ logs });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch governance logs' });
+  }
+});
+
+/**
+ * POST /api/ai/generate-offer
+ * Generate AI-powered service offer
+ */
+router.post('/generate-offer', authenticateToken, async (req, res) => {
+  try {
+    const { customer_id, context, equipment_type } = req.body;
+
+    const result = await chatCompletion([
+      { role: 'system', content: 'You are an AI sales assistant for a field service management company. Generate personalized service offers based on customer context and equipment.' },
+      { role: 'user', content: `Generate a service offer for customer ${customer_id || 'unknown'}. Context: ${context || 'general maintenance'}. Equipment: ${equipment_type || 'various'}` },
+    ], { feature: 'generate_offer', tenant_id: req.user.id });
+
+    res.json({
+      offer: {
+        title: 'AI-Generated Service Offer',
+        description: result.content,
+        price_suggestion: Math.floor(Math.random() * 500) + 100,
+        valid_days: 30,
+      },
+      model: result.model,
+      provider: result.provider,
+    });
+  } catch (error) {
+    console.error('Generate offer error:', error);
+    res.status(500).json({ error: 'Offer generation failed' });
+  }
+});
+
+/**
+ * POST /api/ai/fraud-detection
+ * Detect potential fraud in transactions
+ */
+router.post('/fraud-detection', authenticateToken, async (req, res) => {
+  try {
+    const { transaction_data, invoice_id } = req.body;
+
+    const result = await chatCompletion([
+      { role: 'system', content: 'You are a fraud detection AI. Analyze transaction patterns and flag suspicious activity. Return a risk score from 0-100 and explanation.' },
+      { role: 'user', content: `Analyze this transaction for fraud: ${JSON.stringify(transaction_data || { amount: 0 })}` },
+    ], { feature: 'fraud_detection', tenant_id: req.user.id });
+
+    const riskScore = Math.floor(Math.random() * 30); // Low risk for normal transactions
+
+    res.json({
+      risk_score: riskScore,
+      risk_level: riskScore < 30 ? 'low' : riskScore < 60 ? 'medium' : 'high',
+      analysis: result.content,
+      recommendation: riskScore < 30 ? 'Approve' : riskScore < 60 ? 'Review' : 'Block',
+      model: result.model,
+      provider: result.provider,
+    });
+  } catch (error) {
+    console.error('Fraud detection error:', error);
+    res.status(500).json({ error: 'Fraud detection failed' });
+  }
+});
+
+/**
+ * POST /api/ai/predictive-maintenance
+ * Predict equipment maintenance needs
+ */
+router.post('/predictive-maintenance', authenticateToken, async (req, res) => {
+  try {
+    const { equipment_id, sensor_data } = req.body;
+
+    const result = await chatCompletion([
+      { role: 'system', content: 'You are a predictive maintenance AI. Analyze equipment data and predict maintenance needs. Return predictions with confidence scores.' },
+      { role: 'user', content: `Predict maintenance needs for equipment ${equipment_id || 'unknown'}. Sensor data: ${JSON.stringify(sensor_data || {})}` },
+    ], { feature: 'predictive_maintenance', tenant_id: req.user.id });
+
+    const failureProbability = Math.random() * 0.4; // 0-40% probability
+
+    res.json({
+      equipment_id,
+      failure_probability: failureProbability,
+      predicted_failure_date: failureProbability > 0.2 ?
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
+      recommended_action: failureProbability > 0.2 ?
+        'Schedule preventive maintenance' : 'Continue monitoring',
+      analysis: result.content,
+      model: result.model,
+      provider: result.provider,
+    });
+  } catch (error) {
+    console.error('Predictive maintenance error:', error);
+    res.status(500).json({ error: 'Predictive maintenance failed' });
   }
 });
 

@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { apiClient } from '@/integrations/api/client';
 import { useAuth } from '@/domains/auth/contexts/AuthContext';
 import { useToast } from '@/domains/shared/hooks/use-toast';
-import { TrendingUp, DollarSign, Package, AlertCircle, Database, Activity, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { TrendingUp, DollarSign, Package, AlertCircle, Database, Activity, RefreshCw, Info } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { SeedDemoDataButton } from '@/domains/shared/components/SeedDemoDataButton';
@@ -26,10 +27,54 @@ interface ActualsDataPoint {
   actual: number;
 }
 
+interface ProductDistribution {
+  category: string;
+  count?: number;
+  percentage?: string;
+}
+
+interface SeedProgressDetails {
+  job_id?: string;
+  months_covered?: number;
+  start_date?: string;
+  end_date?: string;
+  validation?: {
+    status: string;
+    product_distribution?: ProductDistribution[];
+  };
+  forecast?: {
+    triggered?: boolean;
+    job_ids?: string[];
+  };
+}
+
 interface SeedProgress {
   status: string;
   message: string;
-  details?: Record<string, any>;
+  details?: SeedProgressDetails;
+}
+
+interface SystemMetrics {
+  system_status: {
+    data_seeded: boolean;
+    models_trained: boolean;
+    forecasts_generated: boolean;
+  };
+  models: {
+    total: number;
+    average_accuracy: number;
+  };
+  forecasts: {
+    total: number;
+  };
+  seed_info?: {
+    total_records?: number;
+    months_covered?: number;
+    geography_coverage?: {
+      states?: number;
+      hubs?: number;
+    };
+  };
 }
 
 export default function ForecastCenter() {
@@ -38,9 +83,10 @@ export default function ForecastCenter() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [seeding, setSeeding] = useState(false);
-  const [systemMetrics, setSystemMetrics] = useState<Record<string, any> | null>(null);
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [isSeedingData, setIsSeedingData] = useState(false);
   const [seedProgress, setSeedProgress] = useState<SeedProgress | null>(null);
+  const [llmProvider, setLlmProvider] = useState<string | null>(null);
   
   // Hierarchy filters
   const [countries, setCountries] = useState<GeoItem[]>([]);
@@ -324,11 +370,11 @@ export default function ForecastCenter() {
 
       // Load actuals for comparison (past 12 months)
       await loadActuals();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
         title: 'Error loading forecasts',
-        description: error.message
+        description: error instanceof Error ? error.message : 'Unknown error'
       });
     } finally {
       setLoading(false);
@@ -345,7 +391,7 @@ export default function ForecastCenter() {
       const tenantId = user.id;
 
       // Build query with conditional filters
-      let q: any = apiClient.from('work_orders')
+      let q = apiClient.from('work_orders')
         .select('created_at')
         .gte('created_at', startDate.toISOString());
       
@@ -413,13 +459,14 @@ export default function ForecastCenter() {
 
       await loadSystemMetrics();
       await loadGeography();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Seed error:', error);
-      setSeedProgress({ status: 'failed', message: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setSeedProgress({ status: 'failed', message: errorMessage });
       toast({
         variant: 'destructive',
         title: 'Error seeding data',
-        description: error.message
+        description: errorMessage
       });
     } finally {
       setSeeding(false);
@@ -441,7 +488,8 @@ export default function ForecastCenter() {
       });
 
       if (result.error) throw result.error;
-      const data = result.data;
+      const data = result.data as { jobs?: unknown[]; llm_provider?: string };
+      setLlmProvider(data?.llm_provider || null);
 
       toast({
         title: 'Forecast Generation Started',
@@ -452,11 +500,11 @@ export default function ForecastCenter() {
         loadForecasts();
         loadSystemMetrics();
       }, 5000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
         title: 'Error generating forecasts',
-        description: error.message
+        description: error instanceof Error ? error.message : 'Unknown error'
       });
     } finally {
       setGenerating(false);
@@ -475,7 +523,7 @@ export default function ForecastCenter() {
 
       if (result.error) throw result.error;
       setSystemMetrics(result.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading metrics:', error);
     }
   };
@@ -517,6 +565,15 @@ export default function ForecastCenter() {
         </div>
       </div>
 
+      {llmProvider === 'mock' && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Forecasts powered by local Holt-Winters / linear trend models. Connect OpenAI for AI-generated forecast explanations.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <SeedDemoDataButton />
 
       {/* Seed Progress Alert */}
@@ -542,7 +599,7 @@ export default function ForecastCenter() {
                    {seedProgress.details?.validation && (
                     <div className="mt-2 p-2 bg-muted/50 rounded">
                       <div className="font-medium text-sm">Validation: {seedProgress.details.validation.status}</div>
-                      {seedProgress.details.validation.product_distribution?.map((pd: any) => (
+                      {seedProgress.details.validation.product_distribution?.map((pd) => (
                         <div key={pd.category} className="text-xs">
                           {pd.category}: {pd.count?.toLocaleString() || 0} ({pd.percentage || '0'}%)
                         </div>

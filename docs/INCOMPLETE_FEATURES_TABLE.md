@@ -5,7 +5,7 @@
 
 ---
 
-## 🔴 CRITICAL - Missing Edge Functions
+## 🔴 CRITICAL - Missing Express.js Route Handlers
 
 | # | Function Name | Status | Reason for Incompletion | Impact | Estimated Effort |
 |---|--------------|--------|------------------------|--------|-----------------|
@@ -41,8 +41,8 @@
 
 | # | Issue | Severity | Reason | Risk | Impact | Fix Effort |
 |---|-------|----------|--------|------|--------|-----------|
-| 12 | **Function Search Path Mutable** | WARN | Database functions don't have `search_path` set to prevent SQL injection. | SQL injection or privilege escalation possible in edge functions. | Attackers could manipulate function behavior to access unauthorized data. | 2 hours |
-| 13 | **Leaked Password Protection Disabled** | WARN | Supabase Auth password leak detection not enabled. | Users can set passwords that exist in known breach databases. | Account takeover risk if users reuse compromised passwords. | 30 minutes |
+| 12 | **Function Search Path Mutable** | WARN | Database functions don't have `search_path` set to prevent SQL injection. | SQL injection or privilege escalation possible in Express.js route handlers. | Attackers could manipulate function behavior to access unauthorized data. | 2 hours |
+| 13 | **Leaked Password Protection Disabled** | WARN | Auth password leak detection not enabled. | Users can set passwords that exist in known breach databases. | Account takeover risk if users reuse compromised passwords. | 30 minutes |
 
 ---
 
@@ -70,7 +70,7 @@
 
 | # | Issue | Status | Reason | What's Blocked | Impact | Resolution |
 |---|-------|--------|--------|----------------|--------|------------|
-| 20 | **19 Tables Pending Creation** | ⚠️ Awaiting Approval | User has not approved the database migration containing 19 new tables. | • `workflow_templates`<br>• `workflow_executions`<br>• `workflow_template_versions`<br>• `developer_portal_accounts`<br>• `partner_api_keys`<br>• `federated_learning_models`<br>• `federated_training_jobs`<br>• `model_performance_metrics`<br>• `compliance_policies`<br>• `compliance_audit_trails`<br>• `marketplace_extensions`<br>• `extension_installations`<br>• `marketplace_transactions`<br>• `marketplace_analytics`<br>• `api_usage_analytics`<br>• `system_health_metrics`<br>• `platform_configurations`<br>• `developer_webhooks`<br>• `webhook_deliveries` | **17 TypeScript build errors**<br>**3 pages non-functional**<br>**8 edge functions cannot be implemented**<br>**Phase 1 transformation blocked** | **APPROVE MIGRATION** |
+| 20 | **19 Tables Pending Creation** | ⚠️ Awaiting Approval | User has not approved the database migration containing 19 new tables. | • `workflow_templates`<br>• `workflow_executions`<br>• `workflow_template_versions`<br>• `developer_portal_accounts`<br>• `partner_api_keys`<br>• `federated_learning_models`<br>• `federated_training_jobs`<br>• `model_performance_metrics`<br>• `compliance_policies`<br>• `compliance_audit_trails`<br>• `marketplace_extensions`<br>• `extension_installations`<br>• `marketplace_transactions`<br>• `marketplace_analytics`<br>• `api_usage_analytics`<br>• `system_health_metrics`<br>• `platform_configurations`<br>• `developer_webhooks`<br>• `webhook_deliveries` | **17 TypeScript build errors**<br>**3 pages non-functional**<br>**8 Express.js route handlers cannot be implemented**<br>**Phase 1 transformation blocked** | **APPROVE MIGRATION** |
 
 ---
 
@@ -79,8 +79,8 @@
 ### Missing Implementations (8 items)
 | Category | Count | Status |
 |----------|-------|--------|
-| Edge Functions - Not Started | 6 | 🔴 Critical |
-| Edge Functions - Incomplete | 2 | 🟡 High Priority |
+| Express.js Route Handlers - Not Started | 6 | 🔴 Critical |
+| Express.js Route Handlers - Incomplete | 2 | 🟡 High Priority |
 
 ### UI/Data Issues (6 items)
 | Category | Count | Status |
@@ -178,7 +178,7 @@ Migration + Security + Core + Advanced = 25.5-32 hours
 | **Incomplete Implementation** | #1-8 | Phase 1 in progress. Edge functions documented but not coded. |
 | **Temporary Workarounds** | #14, #15, #16 | Mock data used to prevent build errors until tables exist. |
 | **Feature Backlog** | #17, #18, #19 | Lower priority enhancements. Non-blocking. |
-| **Security Not Hardened** | #12, #13 | Default Supabase settings need production hardening. |
+| **Security Not Hardened** | #12, #13 | Default auth settings need production hardening. |
 | **No Backend Logic** | #11 | UI built before backend implementation. |
 
 ---
@@ -187,7 +187,7 @@ Migration + Security + Core + Advanced = 25.5-32 hours
 
 To provide balance, here's what **IS** fully operational:
 
-- ✅ **70+ Edge Functions** deployed and working
+- ✅ **70+ Express.js Route Handlers** deployed and working
 - ✅ **120+ Database Tables** active and healthy
 - ✅ **50+ UI Pages** fully functional
 - ✅ **Zero Runtime Errors** detected
@@ -208,7 +208,7 @@ To provide balance, here's what **IS** fully operational:
 1. ✅ **APPROVE MIGRATION** ← Single most impactful action
    - Unblocks 3 pages
    - Fixes 17 TypeScript errors
-   - Enables 8 edge function implementations
+   - Enables 8 Express.js route handler implementations
    - Takes 5 minutes
 
 ### Week 1 Focus

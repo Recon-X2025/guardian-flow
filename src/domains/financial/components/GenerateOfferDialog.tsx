@@ -46,11 +46,11 @@ export function GenerateOfferDialog({ open, onOpenChange, workOrderId, customerI
       });
 
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Offer AI generation failed:', error);
       toast({
         variant: 'destructive',
-        description: error.message || 'Failed to generate offers. Check console for details.',
+        description: error instanceof Error ? error.message : 'Failed to generate offers. Check console for details.',
       });
     } finally {
       setLoading(false);

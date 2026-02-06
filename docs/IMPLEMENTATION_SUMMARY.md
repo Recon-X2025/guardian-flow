@@ -12,13 +12,13 @@ All core business logic and workflows have been implemented and deployed to Lova
 
 | # | Feature | Status | Key Files |
 |---|---------|--------|-----------|
-| 1 | RBAC Enforcement | ✅ Complete | `supabase/functions/auth-me/` |
-| 2 | Tenant Isolation | ✅ Complete | RLS policies, `tests/tenant-isolation.spec.ts` |
-| 3 | Precheck Enforcement | ✅ Complete | `supabase/functions/release-work-order/` |
-| 4 | Photo Validation | ✅ Logic only | `supabase/functions/validate-photos/` |
-| 5 | SO Template Manager | ✅ Complete | `supabase/functions/upload-so-template/` |
+| 1 | RBAC Enforcement | ✅ Complete | `server/routes/auth-me/` |
+| 2 | Tenant Isolation | ✅ Complete | Application-level tenant isolation policies, `tests/tenant-isolation.spec.ts` |
+| 3 | Precheck Enforcement | ✅ Complete | `server/routes/release-work-order/` |
+| 4 | Photo Validation | ✅ Logic only | `server/routes/validate-photos/` |
+| 5 | SO Template Manager | ✅ Complete | `server/routes/upload-so-template/` |
 | 6 | SaPOS Provenance | ✅ Complete | Enhanced `generate-sapos-offers` |
-| 7 | Penalty Engine | ✅ Complete | `supabase/functions/calculate-penalties/` |
+| 7 | Penalty Engine | ✅ Complete | `server/routes/calculate-penalties/` |
 | 8 | Fraud Feedback | ✅ Complete | `FraudFeedbackDialog.tsx`, `fraud_feedback` table |
 | 9 | MFA Enforcement | ✅ Complete | Integrated in override flows |
 
@@ -52,7 +52,7 @@ All core business logic and workflows have been implemented and deployed to Lova
 
 ## 🚀 Deployment Status
 
-**Edge Functions Deployed:**
+**Express.js Route Handlers Deployed:**
 - auth-me
 - release-work-order
 - upload-so-template

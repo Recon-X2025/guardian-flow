@@ -24,7 +24,7 @@
 - ✅ Generate Service Order dialog
 - ✅ Generate SaPOS Offers dialog
 
-### Edge Functions (All 13)
+### Express.js Route Handlers (All 13)
 - ✅ check-inventory
 - ✅ check-warranty
 - ✅ validate-photos
@@ -55,7 +55,7 @@
 **Fix:** Add work order selector dropdowns
 
 ### 2. **Photo Capture Not Integrated**
-**Issue:** PhotoCapture component exists but not connected to validate-photos edge function
+**Issue:** PhotoCapture component exists but not connected to validate-photos Express.js route handler
 
 **Fix:** Connect photo upload to validate-photos function
 
@@ -141,5 +141,5 @@ You can test:
 **Next Steps:**
 1. Fix hardcoded IDs in SaPOS, SO, and Photo pages
 2. Add work order selector to generation dialogs
-3. Connect photo validation to edge function
+3. Connect photo validation to Express.js route handler
 4. Document remaining placeholder functionality

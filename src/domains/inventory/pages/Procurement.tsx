@@ -12,12 +12,30 @@ import { PurchaseOrderDialog } from '@/domains/financial/components/PurchaseOrde
 export default function Procurement() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
-  const [items, setItems] = useState<any[]>([]);
-  const [stockLevels, setStockLevels] = useState<any[]>([]);
+  interface InventoryItem {
+    id: string;
+    sku?: string;
+    description?: string;
+    unit_price?: string | number;
+    lead_time_days?: number;
+  }
+
+  interface StockLevel {
+    id: string;
+    item_id?: string;
+    qty_available?: number;
+    qty_reserved?: number;
+    min_threshold?: number;
+    location_id?: string;
+    item?: InventoryItem;
+  }
+
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [stockLevels, setStockLevels] = useState<StockLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [poDialogOpen, setPoDialogOpen] = useState(false);
-  const [selectedStock, setSelectedStock] = useState<any>(null);
+  const [selectedStock, setSelectedStock] = useState<StockLevel | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -37,17 +55,17 @@ export default function Procurement() {
       const stockData = { data: stockResult.data || [] };
       
       // Merge stock levels with items
-      const stockWithItems = stockData.data.map((stock: any) => ({
+      const stockWithItems = stockData.data.map((stock: StockLevel) => ({
         ...stock,
-        item: itemsData.data.find((item: any) => item.id === stock.item_id)
+        item: itemsData.data.find((item: InventoryItem) => item.id === stock.item_id)
       }));
 
       setItems(itemsData.data || []);
       setStockLevels(stockData.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading data",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -55,7 +73,7 @@ export default function Procurement() {
     }
   };
 
-  const handleCreatePO = (stock: any) => {
+  const handleCreatePO = (stock: StockLevel) => {
     setSelectedStock(stock);
     setPoDialogOpen(true);
   };

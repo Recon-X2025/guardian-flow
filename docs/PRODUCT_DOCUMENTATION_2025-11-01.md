@@ -8,7 +8,7 @@
 
 ### v6.1.0 SOC 2 & ISO 27001 Compliance Suite (November 1, 2025)
 - **Compliance Automation**: Comprehensive SOC 2 Type II and ISO 27001:2022 automation system
-- **40+ Database Tables**: Complete compliance infrastructure with 100% RLS coverage
+- **40+ Database Tables**: Complete compliance infrastructure with 100% application-level tenant isolation coverage
 - **7-Year Audit Archive**: Immutable, partitioned audit log retention (2025-2031)
 - **JIT Access Control**: Temporary privileged access with automated quarterly reviews
 - **Vulnerability Management**: SLA-driven vulnerability tracking with auto-ticketing
@@ -139,13 +139,13 @@ Streamline field service operations from ticket creation to financial settlement
 - **Forms**: React Hook Form + Zod (form handling and validation)
 - **Error Handling**: React Error Boundaries with robust context initialization
 
-### Backend (Lovable Cloud / Supabase)
-- **Database**: PostgreSQL (relational database with JSONB support)
-- **Authentication**: Supabase Auth (email/password, OAuth, MFA)
-- **API**: Supabase Client SDK (auto-generated TypeScript types)
-- **Edge Functions**: Deno runtime (serverless TypeScript functions)
-- **Real-time**: Supabase Realtime (WebSocket-based live updates)
-- **Storage**: Supabase Storage (file upload and management)
+### Backend (Express.js Backend / MongoDB Atlas)
+- **Database**: MongoDB Atlas (document database)
+- **Authentication**: Express.js backend Auth (email/password, OAuth, MFA)
+- **API**: Custom API Client (auto-generated TypeScript types)
+- **Express.js Route Handlers**: Node.js runtime (Express.js route handlers)
+- **Real-time**: WebSocket (WebSocket-based live updates)
+- **Storage**: MongoDB Atlas Storage (file upload and management)
 
 ### AI Integration
 - **Gateway**: Lovable AI Gateway (unified AI model access)
@@ -156,11 +156,11 @@ Streamline field service operations from ticket creation to financial settlement
 - **Use Cases**: SaPOS offer generation, photo validation, anomaly detection
 
 ### Security & Infrastructure
-- **Row-Level Security (RLS)**: Database-level access control
+- **Application-Level Tenant Isolation**: Database-level access control
 - **Multi-Factor Authentication**: TOTP-based MFA for sensitive operations
 - **Audit Logging**: Comprehensive activity tracking with correlation IDs
 - **CORS**: Configured for secure cross-origin requests
-- **Environment Management**: Secure secrets storage via Supabase vault
+- **Environment Management**: Secure secrets storage via server vault
 
 ### Testing & Quality
 - **E2E Testing**: Playwright (browser automation)
@@ -188,10 +188,10 @@ Streamline field service operations from ticket creation to financial settlement
 └─────────────────────────────────────────────────────────────┘
                             ↕ HTTPS
 ┌─────────────────────────────────────────────────────────────┐
-│              Supabase Backend (Lovable Cloud)               │
+│              Express.js Backend (MongoDB Atlas)               │
 │                                                              │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │           Edge Functions (Deno Runtime)            │    │
+│  │           Express.js Route Handlers (Node.js Runtime)            │    │
 │  │  • precheck-orchestrator  • generate-sapos-offers  │    │
 │  │  • generate-service-order • validate-photos        │    │
 │  │  • check-inventory        • check-warranty         │    │
@@ -201,8 +201,8 @@ Streamline field service operations from ticket creation to financial settlement
 │  └────────────────────────────────────────────────────┘    │
 │                            ↕                                 │
 │  ┌────────────────────────────────────────────────────┐    │
-│  │         PostgreSQL Database with RLS               │    │
-│  │  • 20+ Tables with Row-Level Security              │    │
+│  │         MongoDB Atlas Database with tenant isolation               │    │
+│  │  • 20+ Tables with Application-Level Tenant Isolation              │    │
 │  │  • Tenant Isolation Policies                       │    │
 │  │  • Permission-Based Access Control                 │    │
 │  │  • Audit Logging Tables                            │    │
@@ -221,7 +221,7 @@ Streamline field service operations from ticket creation to financial settlement
 ```
 1. User Request → 2. Auth Check → 3. RBAC Validation → 4. Database Query
                                                               ↓
-8. UI Update   ← 7. Response    ← 6. RLS Policy   ← 5. Data Retrieval
+8. UI Update   ← 7. Response    ← 6. Tenant Isolation   ← 5. Data Retrieval
 ```
 
 ### Multi-Tenant Isolation
@@ -243,7 +243,7 @@ Streamline field service operations from ticket creation to financial settlement
 │ │Techs(40) │ │ │Techs(40) │ │ │Techs(40) │ │ │Techs(40) ││
 │ └──────────┘ │ └──────────┘ │ └──────────┘ │ └──────────┘│
 └──────────────┴──────────────┴──────────────┴──────────────┘
-     ↓ RLS             ↓ RLS          ↓ RLS         ↓ RLS
+     ↓ Isolation             ↓ Isolation          ↓ Isolation         ↓ Isolation
   Own Data         Own Data       Own Data       Own Data
 ```
 
@@ -636,7 +636,7 @@ Detected (open) → Assigned (in_progress) → Resolved/Escalated
 **Integration Points**:
 - → Audit Logs (compliance evidence)
 - → User Roles (access control validation)
-- → Edge Functions (security monitoring)
+- → Express.js Route Handlers (security monitoring)
 - → RBAC System (authorization controls)
 
 For detailed compliance roadmap, see [SOC 2 & ISO 27001 Compliance Roadmap](./SOC2_ISO27001_COMPLIANCE_ROADMAP.md)
@@ -746,13 +746,13 @@ Settings
 ### Defense-in-Depth Strategy
 
 ```
-Layer 1: Authentication (Supabase Auth)
+Layer 1: Authentication (Express.js backend Auth)
     ↓
 Layer 2: Authorization (RBAC Context)
     ↓
-Layer 3: Row-Level Security (PostgreSQL RLS)
+Layer 3: Application-Level Tenant Isolation (MongoDB Atlas tenant isolation)
     ↓
-Layer 4: Edge Function Validation
+Layer 4: Express.js Route Handler Validation
     ↓
 Layer 5: Audit Logging
 ```
@@ -760,7 +760,7 @@ Layer 5: Audit Logging
 ### 1. Authentication Layer
 
 **Method**: Email/Password with auto-confirm
-- Session-based authentication via Supabase Auth
+- Session-based authentication via Express.js backend Auth
 - JWT tokens for API requests
 - Automatic session refresh
 - Secure password hashing (bcrypt)
@@ -791,7 +791,7 @@ Layer 5: Audit Logging
 - `admin.*` - System administration
 - `audit.*` - Audit log access
 
-### 3. Row-Level Security (RLS)
+### 3. Application-Level Tenant Isolation
 
 **Tenant Isolation Example**:
 ```sql
@@ -819,11 +819,11 @@ USING (
 - ✅ **Individual Users**: Access only to their own records
 - ✅ **Technicians**: Access only to assigned work orders
 
-### 4. Edge Function Security
+### 4. Express.js Route Handler Security
 
 **Shared Authentication Middleware**:
 ```typescript
-// All edge functions use this pattern
+// All Express.js route handlers use this pattern
 const { success, context, error } = await validateAuth(req, {
   requiredRoles: ['ops_manager', 'sys_admin'],
   requiredPermissions: ['wo.precheck']
@@ -834,7 +834,7 @@ if (!success) {
 }
 
 // Tenant-scoped query
-const { data } = await context.supabase
+const { data } = await context.db
   .from('work_orders')
   .select('*')
   .eq('tenant_id', context.tenantId); // Enforced tenant filter
@@ -903,17 +903,17 @@ const { data } = await context.supabase
 ### 7. Data Protection
 
 **Encryption**:
-- ✅ At rest: PostgreSQL encrypted storage
+- ✅ At rest: MongoDB Atlas encrypted storage
 - ✅ In transit: HTTPS/TLS 1.3
-- ✅ Secrets: Supabase Vault (encrypted env vars)
+- ✅ Secrets: Server Vault (encrypted env vars)
 
 **Sensitive Data Handling**:
-- Customer PII: Limited access via RLS
+- Customer PII: Limited access via application-level tenant isolation
 - Payment info: Tokenized (future)
 - MFA secrets: Hashed (SHA-256)
 
 **Backup & Recovery**:
-- Automated daily backups (Supabase managed)
+- Automated daily backups (MongoDB Atlas managed)
 - Point-in-time recovery (7-day window)
 
 ---
@@ -1105,9 +1105,9 @@ sys_admin (Superuser)
 
 ## 📡 API Reference
 
-### Edge Functions
+### Express.js Route Handlers
 
-All edge functions are located in `supabase/functions/` and auto-deployed.
+All Express.js route handlers are located in `server/routes/` and auto-deployed.
 
 #### 1. precheck-orchestrator
 **Method**: POST  
@@ -1377,7 +1377,7 @@ All edge functions are located in `supabase/functions/` and auto-deployed.
 ### Core Tables
 
 #### profiles
-User profile extensions beyond Supabase Auth
+User profile extensions beyond Express.js backend Auth
 ```sql
 - id: uuid (FK → auth.users)
 - email: text
@@ -1568,7 +1568,7 @@ Comprehensive activity tracking
 - **Fraud Detection Rate**: Fraud alerts per 1000 work orders
 
 ### System Health Metrics
-- **API Response Time**: p50, p95, p99 latencies for edge functions
+- **API Response Time**: p50, p95, p99 latencies for Express.js route handlers
 - **Database Query Performance**: Slow query threshold tracking
 - **User Session Duration**: Average time spent in application
 - **Error Rate**: Client and server error frequency
@@ -1578,7 +1578,7 @@ Comprehensive activity tracking
 ## 🚀 Deployment & Operations
 
 ### Environment Configuration
-- **Development**: Local Supabase instance + Vite dev server
+- **Development**: Local MongoDB Atlas instance + Vite dev server
 - **Staging**: Lovable Cloud preview environment
 - **Production**: Lovable Cloud production (custom domain ready)
 
@@ -1589,7 +1589,7 @@ Comprehensive activity tracking
 - Zero-downtime deployments
 
 ### Monitoring & Alerting (Future)
-- Supabase metrics dashboard
+- Platform metrics dashboard
 - Custom application metrics (Grafana)
 - Error tracking (Sentry integration planned)
 - Uptime monitoring (status page)

@@ -89,7 +89,7 @@ Guardian Flow is positioned as the premier compliance-ready, AI-powered field se
 
 **vs. ClickSoftware (Salesforce):**
 - ✅ Transparent pricing (no hidden fees)
-- ✅ Modern tech stack (React, TypeScript, Supabase)
+- ✅ Modern tech stack (React, TypeScript, MongoDB Atlas)
 - ✅ Faster innovation cycle (monthly releases)
 - ❌ Smaller workforce optimization algorithm library
 

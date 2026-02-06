@@ -66,9 +66,9 @@ export function SeedDataManager() {
           description: data?.validation?.errors?.join(', ') || 'Unknown error',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to seed data', {
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setLoading(false);
@@ -86,7 +86,7 @@ export function SeedDataManager() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Seed Type</Label>
-          <Select value={seedType} onValueChange={(v: any) => setSeedType(v)}>
+          <Select value={seedType} onValueChange={(v: 'demo' | 'test' | 'performance') => setSeedType(v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

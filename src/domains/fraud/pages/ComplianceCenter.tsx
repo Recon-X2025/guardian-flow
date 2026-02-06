@@ -8,6 +8,30 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { Shield, FileCheck, AlertCircle, Download, RefreshCw } from 'lucide-react';
 
+interface ComplianceEvidence {
+  count: number;
+}
+
+interface ComplianceControl {
+  id: string;
+  control_name: string;
+  evidence?: ComplianceEvidence[];
+}
+
+interface ComplianceFramework {
+  id: string;
+  framework_name: string;
+  controls?: ComplianceControl[];
+}
+
+interface CollectEvidenceResponse {
+  evidenceCount: number;
+}
+
+interface GenerateReportResponse {
+  report: Record<string, unknown>;
+}
+
 export default function ComplianceCenter() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -15,7 +39,7 @@ export default function ComplianceCenter() {
   const { data: frameworks, isLoading } = useQuery({
     queryKey: ['compliance-frameworks'],
     queryFn: async () => {
-      const { data, error } = await (apiClient as any)
+      const { data, error } = await apiClient
         .from('compliance_frameworks')
         .select(`
           *,
@@ -24,22 +48,22 @@ export default function ComplianceCenter() {
             evidence:compliance_evidence(count)
           )
         `);
-      
+
       if (error) throw error;
-      return data;
+      return data as ComplianceFramework[];
     },
   });
 
   const collectEvidenceMutation = useMutation({
     mutationFn: async (frameworkId: string) => {
-      const { data, error } = await (apiClient as any).functions.invoke('compliance-policy-enforcer', {
+      const { data, error } = await apiClient.functions.invoke('compliance-policy-enforcer', {
         body: { action: 'collect_evidence', frameworkId }
       });
-      
+
       if (error) throw error;
-      return data;
+      return data as CollectEvidenceResponse;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: CollectEvidenceResponse) => {
       queryClient.invalidateQueries({ queryKey: ['compliance-frameworks'] });
       toast({
         title: 'Evidence collected',
@@ -50,21 +74,21 @@ export default function ComplianceCenter() {
 
   const generateReportMutation = useMutation({
     mutationFn: async (frameworkId: string) => {
-      const { data, error } = await (apiClient as any).functions.invoke('compliance-policy-enforcer', {
+      const { data, error } = await apiClient.functions.invoke('compliance-policy-enforcer', {
         body: { action: 'generate_report', frameworkId }
       });
-      
+
       if (error) throw error;
-      return data;
+      return data as GenerateReportResponse;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: GenerateReportResponse) => {
       const blob = new Blob([JSON.stringify(data.report, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `compliance-report-${Date.now()}.json`;
       a.click();
-      
+
       toast({
         title: 'Report generated',
         description: 'Compliance report downloaded.',
@@ -72,14 +96,14 @@ export default function ComplianceCenter() {
     },
   });
 
-  const calculateComplianceScore = (framework: any) => {
+  const calculateComplianceScore = (framework: ComplianceFramework) => {
     const total = framework.controls?.length || 0;
     if (total === 0) return 0;
-    
-    const withEvidence = framework.controls?.filter((c: any) => 
+
+    const withEvidence = framework.controls?.filter((c: ComplianceControl) =>
       c.evidence && c.evidence.length > 0
     ).length || 0;
-    
+
     return Math.round((withEvidence / total) * 100);
   };
 
@@ -106,7 +130,7 @@ export default function ComplianceCenter() {
           const score = calculateComplianceScore(framework);
           const controlCount = framework.controls?.length || 0;
           const evidenceCount = framework.controls?.reduce(
-            (acc: number, c: any) => acc + (c.evidence?.[0]?.count || 0), 0
+            (acc: number, c: ComplianceControl) => acc + (c.evidence?.[0]?.count || 0), 0
           ) || 0;
 
           return (

@@ -26,16 +26,51 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+// Type definitions
+interface ReportColumn {
+  field: string;
+  label: string;
+}
+
+interface Report {
+  id: string;
+  name: string;
+  description?: string;
+  report_type: string;
+  data_sources: {
+    primary_table: string;
+  };
+  columns: ReportColumn[];
+  filters: unknown[];
+  visualizations: Record<string, unknown>;
+}
+
+interface ReportResult {
+  [key: string]: unknown;
+}
+
+interface CreateReportData {
+  name: string;
+  description: string;
+  report_type: string;
+  data_sources: {
+    primary_table: string;
+  };
+  columns: ReportColumn[];
+  filters: unknown[];
+  visualizations: Record<string, unknown>;
+}
+
 export default function CustomReportBuilder() {
   const queryClient = useQueryClient();
-  const [selectedReport, setSelectedReport] = useState<any>(null);
-  const [reportResults, setReportResults] = useState<any[]>([]);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [reportResults, setReportResults] = useState<ReportResult[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const { data: reports, isLoading } = useQuery({
     queryKey: ['custom-reports'],
     queryFn: async () => {
-      const result = await apiClient.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke<{ reports?: Report[] }>('custom-report-builder', {
         body: { action: 'list' },
       });
       if (result.error) throw result.error;
@@ -44,7 +79,7 @@ export default function CustomReportBuilder() {
   });
 
   const createReportMutation = useMutation({
-    mutationFn: async (reportData: any) => {
+    mutationFn: async (reportData: CreateReportData) => {
       const result = await apiClient.functions.invoke('custom-report-builder', {
         body: { action: 'create', data: reportData },
       });
@@ -56,25 +91,25 @@ export default function CustomReportBuilder() {
       toast.success('Report created successfully');
       setIsCreateDialogOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to create report');
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to create report');
     },
   });
 
   const executeReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
-      const result = await apiClient.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke<{ results?: ReportResult[] }>('custom-report-builder', {
         body: { action: 'execute', report_id: reportId },
       });
       if (result.error) throw result.error;
       return result.data;
     },
     onSuccess: (data) => {
-      setReportResults(data.results || []);
+      setReportResults(data?.results || []);
       toast.success('Report executed successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to execute report');
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to execute report');
     },
   });
 
@@ -91,20 +126,20 @@ export default function CustomReportBuilder() {
       setSelectedReport(null);
       setReportResults([]);
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to delete report');
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete report');
     },
   });
 
-  const handleCreateReport = (formData: any) => {
+  const handleCreateReport = (formData: FormData) => {
     createReportMutation.mutate({
-      name: formData.get('name'),
-      description: formData.get('description'),
-      report_type: formData.get('report_type'),
+      name: formData.get('name') as string,
+      description: formData.get('description') as string,
+      report_type: formData.get('report_type') as string,
       data_sources: {
-        primary_table: formData.get('primary_table'),
+        primary_table: formData.get('primary_table') as string,
       },
-      columns: JSON.parse(formData.get('columns') || '[]'),
+      columns: JSON.parse((formData.get('columns') as string) || '[]'),
       filters: [],
       visualizations: {},
     });
@@ -116,22 +151,23 @@ export default function CustomReportBuilder() {
 
   const handleExportReport = async (reportId: string) => {
     try {
-      const result = await apiClient.functions.invoke('custom-report-builder', {
+      const result = await apiClient.functions.invoke<string>('custom-report-builder', {
         body: { action: 'export', report_id: reportId, format: 'csv' },
       });
       if (result.error) throw result.error;
 
-      const blob = new Blob([data], { type: 'text/csv' });
+      const csvData = result.data || '';
+      const blob = new Blob([csvData], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `report-${reportId}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-      
+
       toast.success('Report exported successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to export report');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to export report');
     }
   };
 
@@ -227,7 +263,7 @@ export default function CustomReportBuilder() {
             <CardDescription>Select a report to execute</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {reports?.map((report: any) => (
+            {reports?.map((report) => (
               <div
                 key={report.id}
                 className={`p-3 rounded-lg border cursor-pointer hover:bg-accent ${
@@ -300,7 +336,7 @@ export default function CustomReportBuilder() {
                       <TableBody>
                         {reportResults.map((row, idx) => (
                           <TableRow key={idx}>
-                            {Object.values(row).map((value: any, cellIdx) => (
+                            {Object.values(row).map((value, cellIdx) => (
                               <TableCell key={cellIdx}>{String(value)}</TableCell>
                             ))}
                           </TableRow>

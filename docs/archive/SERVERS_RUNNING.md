@@ -44,7 +44,7 @@ http://localhost:5175/customer-portal
 ## 🔍 **If Backend is Slow to Start**
 
 The backend server may need a moment to:
-- Connect to PostgreSQL database
+- Connect to MongoDB Atlas database
 - Initialize WebSocket server
 - Load all routes
 

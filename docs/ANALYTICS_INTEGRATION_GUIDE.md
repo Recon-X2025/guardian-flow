@@ -393,7 +393,7 @@ ORDER BY created_at DESC;
 **2. "No Data Returned"**
 - Check date range filters
 - Verify tenant has data for requested dataset
-- Review RLS policies for user role
+- Review tenant isolation policies for user role
 
 **3. "Rate Limit Exceeded"**
 - Upgrade to higher tier or contact support

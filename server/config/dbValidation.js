@@ -1,25 +1,39 @@
 import logger from '../utils/logger.js';
 
-const DEFAULT_USERS = ['postgres', 'root', 'admin', 'user'];
-const DEFAULT_PASSWORDS = ['postgres', 'password', '123456', 'admin', 'root'];
+const DEFAULT_PASSWORDS = ['password', '123456', 'admin', 'root', 'mongo', 'mongodb'];
 
 export function validateDatabaseCredentials() {
-  const { DB_USER, DB_PASSWORD, NODE_ENV } = process.env;
+  const { MONGODB_URI, NODE_ENV } = process.env;
 
   if (NODE_ENV !== 'production') return;
 
-  if (DEFAULT_USERS.includes(DB_USER?.toLowerCase())) {
-    logger.error('Default database username detected in production', { user: DB_USER });
-    throw new Error('Production database must not use default usernames');
+  if (!MONGODB_URI) {
+    logger.error('MONGODB_URI must be set in production');
+    throw new Error('MONGODB_URI is required in production');
   }
 
-  if (!DB_PASSWORD || DB_PASSWORD.length < 16) {
-    logger.error('Weak database password in production (must be 16+ characters)');
-    throw new Error('Production database password must be at least 16 characters');
-  }
+  // Check for default/weak passwords embedded in the connection string
+  try {
+    const url = new URL(MONGODB_URI);
+    const password = decodeURIComponent(url.password || '');
 
-  if (DEFAULT_PASSWORDS.includes(DB_PASSWORD?.toLowerCase())) {
-    logger.error('Default database password detected in production');
-    throw new Error('Production database must not use default passwords');
+    if (password && password.length < 12) {
+      logger.error('Weak MongoDB password in production (must be 12+ characters)');
+      throw new Error('Production MongoDB password must be at least 12 characters');
+    }
+
+    if (DEFAULT_PASSWORDS.includes(password?.toLowerCase())) {
+      logger.error('Default MongoDB password detected in production');
+      throw new Error('Production MongoDB must not use default passwords');
+    }
+
+    if (url.username && ['admin', 'root', 'mongo'].includes(url.username.toLowerCase())) {
+      logger.error('Default MongoDB username detected in production', { user: url.username });
+      throw new Error('Production MongoDB must not use default usernames');
+    }
+  } catch (err) {
+    if (err.message.includes('Production MongoDB')) throw err;
+    // URL parsing may fail for srv:// URIs — skip validation for those
+    logger.warn('Could not parse MONGODB_URI for credential validation');
   }
 }

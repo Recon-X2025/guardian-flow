@@ -18,6 +18,49 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
+interface Asset {
+  id: string;
+  name: string;
+  model?: string;
+  serial_number?: string;
+}
+
+interface MaintenanceSchedule {
+  id: string;
+  schedule_name: string;
+  maintenance_type: string;
+  frequency: string;
+  frequency_value: number;
+  next_due_date: string;
+  equipment?: {
+    name: string;
+    serial_number?: string;
+  };
+}
+
+interface MaintenanceEvent {
+  id: string;
+  scheduled_date: string;
+  status: string;
+  maintenance_schedules?: {
+    schedule_name: string;
+  };
+  equipment?: {
+    name: string;
+    serial_number?: string;
+  };
+}
+
+interface ScheduleFormData {
+  asset_id?: string;
+  schedule_name?: string;
+  maintenance_type?: string;
+  frequency?: string;
+  frequency_value?: number;
+  start_date?: string;
+  estimated_duration_hours?: number;
+}
+
 export default function MaintenanceCalendar() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -70,7 +113,7 @@ export default function MaintenanceCalendar() {
   });
 
   const createScheduleMutation = useMutation({
-    mutationFn: async (scheduleData: any) => {
+    mutationFn: async (scheduleData: ScheduleFormData) => {
       const result = await apiClient.functions.invoke('asset-maintenance-scheduler', {
         body: { action: 'create_schedule', data: scheduleData },
       });
@@ -83,7 +126,7 @@ export default function MaintenanceCalendar() {
       toast.success('Maintenance schedule created successfully');
       setIsCreateDialogOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to create schedule');
     },
   });
@@ -101,12 +144,12 @@ export default function MaintenanceCalendar() {
       queryClient.invalidateQueries({ queryKey: ['maintenance-schedules'] });
       toast.success('Maintenance completed');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || 'Failed to complete maintenance');
     },
   });
 
-  const handleCreateSchedule = (formData: any) => {
+  const handleCreateSchedule = (formData: FormData) => {
     createScheduleMutation.mutate({
       asset_id: formData.get('asset_id'),
       schedule_name: formData.get('schedule_name'),
@@ -159,7 +202,7 @@ export default function MaintenanceCalendar() {
                     <SelectValue placeholder="Select asset" />
                   </SelectTrigger>
                   <SelectContent>
-                    {assets?.map((asset: any) => (
+                    {assets?.map((asset: Asset) => (
                       <SelectItem key={asset.id} value={asset.id}>
                         {asset.name} - {asset.serial_number}
                       </SelectItem>
@@ -245,7 +288,7 @@ export default function MaintenanceCalendar() {
             <CardDescription>Recurring maintenance schedules</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {schedules?.map((schedule: any) => (
+            {schedules?.map((schedule: MaintenanceSchedule) => (
               <div key={schedule.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-start">
                   <div>
@@ -282,7 +325,7 @@ export default function MaintenanceCalendar() {
             <CardDescription>Next 90 days</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 max-h-96 overflow-auto">
-            {events?.map((event: any) => (
+            {events?.map((event: MaintenanceEvent) => (
               <div key={event.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-start">
                   <div>

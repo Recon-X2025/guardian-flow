@@ -15,10 +15,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+interface QueryResult {
+  sql?: string;
+  results?: Record<string, unknown>[];
+  executionTime?: number;
+  error?: string;
+}
+
 export default function NLPQueryExecutor() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<QueryResult | null>(null);
 
   const executeQuery = async () => {
     if (!query.trim()) {
@@ -145,9 +152,9 @@ export default function NLPQueryExecutor() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {result.results.map((row: any, idx: number) => (
+                    {result.results.map((row: Record<string, unknown>, idx: number) => (
                       <TableRow key={idx}>
-                        {Object.values(row).map((val: any, i) => (
+                        {Object.values(row).map((val: unknown, i) => (
                           <TableCell key={i}>
                             {typeof val === 'object' ? JSON.stringify(val) : String(val)}
                           </TableCell>

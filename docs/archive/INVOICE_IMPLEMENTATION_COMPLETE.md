@@ -11,10 +11,10 @@
 - All enums, interfaces, and helper types defined
 
 ### 2. Database Migration
-- **File**: `supabase/migrations/20251125210826_comprehensive_invoice_template.sql`
+- **File**: `mongodb/migrations/20251125210826_comprehensive_invoice_template.sql`
 - New tables: `invoice_line_items`, `invoice_attachments`, `invoice_status_history`, `invoice_payment_transactions`
 - Enhanced `invoices` table with JSONB columns for comprehensive data
-- RLS policies, indexes, and triggers configured
+- Application-level tenant isolation, indexes, and triggers configured
 
 ### 3. Utility Functions
 - **File**: `src/lib/invoiceUtils.ts`
@@ -54,20 +54,19 @@
 
 Choose one of these methods:
 
-**Option A: Supabase CLI**
+**Option A: Using mongosh**
 ```bash
 cd /Users/kathikiyer/Documents/GitHub/GuardianFlow
-supabase migration up
+mongosh guardianflow --file server/scripts/migrations/comprehensive_invoice_template.js
 ```
 
-**Option B: Supabase Dashboard**
-1. Go to Supabase Dashboard → SQL Editor
-2. Copy contents of `supabase/migrations/20251125210826_comprehensive_invoice_template.sql`
-3. Paste and execute
+**Option B: MongoDB Atlas UI**
+1. Go to MongoDB Atlas UI → Database → Collections
+2. Apply the migration script manually
 
-**Option C: Direct Database**
+**Option C: Node.js Migration Script**
 ```bash
-psql -h your-host -U your-user -d your-db -f supabase/migrations/20251125210826_comprehensive_invoice_template.sql
+cd server && npm run migrate
 ```
 
 ### Step 2: Test Creating an Invoice
@@ -201,7 +200,7 @@ import { ComprehensiveInvoiceDetailDialog } from '@/components/ComprehensiveInvo
 
 ### Migration Issues
 - Check that all enum types are created
-- Verify RLS policies are applied
+- Verify tenant isolation is applied
 - Ensure foreign key constraints are satisfied
 
 ### Component Issues
@@ -211,7 +210,7 @@ import { ComprehensiveInvoiceDetailDialog } from '@/components/ComprehensiveInvo
 
 ### Data Issues
 - Verify required fields are filled
-- Check RLS policies allow current user access
+- Check tenant isolation allows current user access
 - Validate GSTIN/PAN formats if needed
 
 ## 📚 Additional Resources

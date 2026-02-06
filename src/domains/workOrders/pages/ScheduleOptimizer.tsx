@@ -16,6 +16,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+interface ScheduleAssignment {
+  id: string;
+  scheduled_start: string;
+  scheduled_end: string;
+  optimization_score?: number;
+  work_orders?: {
+    wo_number: string;
+    title?: string;
+    priority?: string;
+  };
+  technicians?: {
+    name: string;
+    email?: string;
+  };
+}
+
 export default function ScheduleOptimizer() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [optimizing, setOptimizing] = useState(false);
@@ -222,7 +238,7 @@ export default function ScheduleOptimizer() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {assignments.map((assignment: any) => {
+                {assignments.map((assignment: ScheduleAssignment) => {
                   const duration = Math.round(
                     (new Date(assignment.scheduled_end).getTime() - 
                      new Date(assignment.scheduled_start).getTime()) / 60000

@@ -161,9 +161,8 @@ export function AnalyticsDataSources() {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="postgresql">PostgreSQL</SelectItem>
-                      <SelectItem value="mysql">MySQL</SelectItem>
                       <SelectItem value="mongodb">MongoDB</SelectItem>
+                      <SelectItem value="mysql">MySQL</SelectItem>
                       <SelectItem value="s3">Amazon S3</SelectItem>
                       <SelectItem value="gcs">Google Cloud Storage</SelectItem>
                       <SelectItem value="api">REST API</SelectItem>

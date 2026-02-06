@@ -1,9 +1,9 @@
-# Complete Migration Summary: Supabase → PostgreSQL
+# Complete Migration Summary: Legacy Service → MongoDB Atlas
 
 ## 🎉 All Requested Features Implemented
 
-### ✅ 1. Edge Functions Migration
-**Status:** Core functions migrated, framework ready for remaining functions
+### ✅ 1. Express.js Route Handlers Migration
+**Status:** Core route handlers migrated, framework ready for remaining handlers
 
 **Migrated Functions:**
 - `check-warranty` - Full warranty checking logic
@@ -18,9 +18,9 @@
 - Fallback handler for unmigrated functions (returns 501)
 
 **How to Migrate More Functions:**
-1. Read original function from `supabase/functions/function-name/index.ts`
-2. Convert Deno code to Node.js/Express
-3. Replace `context.supabase` with direct database queries
+1. Read original function handler
+2. Convert code to Node.js/Express
+3. Replace legacy context calls with direct database queries
 4. Add route to `server/routes/functions.js`
 5. Test and deploy
 
@@ -45,12 +45,12 @@
 **Frontend Usage:**
 ```typescript
 // Upload
-const { data, error } = await supabase.storage
+const { data, error } = await apiClient.storage
   .from('photos')
   .upload('image.jpg', file);
 
 // Get URL
-const { data } = supabase.storage
+const { data } = apiClient.storage
   .from('photos')
   .getPublicUrl('image.jpg');
 ```
@@ -74,14 +74,14 @@ const { data } = supabase.storage
 **Frontend Usage:**
 ```typescript
 // Subscribe to channel
-const channel = supabase.channel('work-orders')
+const channel = apiClient.channel('work-orders')
   .on('broadcast', (payload) => {
     console.log('Update:', payload);
   })
   .subscribe();
 
 // Unsubscribe
-supabase.removeChannel(channel);
+apiClient.removeChannel(channel);
 ```
 
 **WebSocket Events:**
@@ -99,20 +99,20 @@ import { wsManager } from '../server.js';
 wsManager.publish('work-orders', 'update', { id: '123', status: 'completed' });
 ```
 
-### ✅ 4. Supabase-like Interface Maintained
+### ✅ 4. legacy service-like Interface Maintained
 **Status:** Full compatibility layer
 
-**All Supabase methods work:**
-- `supabase.auth.signInWithPassword()`
-- `supabase.auth.signUp()`
-- `supabase.auth.signOut()`
-- `supabase.auth.getUser()`
-- `supabase.auth.getSession()`
-- `supabase.auth.onAuthStateChange()`
-- `supabase.from('table').select().eq()`
-- `supabase.functions.invoke()`
-- `supabase.storage.from().upload()`
-- `supabase.channel().on().subscribe()`
+**All legacy service methods work:**
+- `apiClient.auth.signInWithPassword()`
+- `apiClient.auth.signUp()`
+- `apiClient.auth.signOut()`
+- `apiClient.auth.getUser()`
+- `apiClient.auth.getSession()`
+- `apiClient.auth.onAuthStateChange()`
+- `apiClient.from('table').select().eq()`
+- `apiClient.functions.invoke()`
+- `apiClient.storage.from().upload()`
+- `apiClient.channel().on().subscribe()`
 
 **No frontend code changes required!**
 
@@ -122,7 +122,7 @@ wsManager.publish('work-orders', 'update', { id: '123', status: 'completed' });
 server/
 ├── server.js                 # Main Express server
 ├── db/
-│   ├── client.js            # PostgreSQL connection
+│   ├── client.js            # MongoDB Atlas connection
 │   └── query.js             # Query utilities
 ├── middleware/
 │   └── auth.js              # JWT authentication
@@ -130,7 +130,7 @@ server/
 │   ├── auth.js              # Auth endpoints
 │   ├── database.js          # Database CRUD
 │   ├── storage.js           # File storage
-│   └── functions.js         # Edge function routes
+│   └── functions.js         # Server route handlers
 ├── websocket/
 │   └── server.js            # WebSocket server
 └── scripts/
@@ -141,7 +141,7 @@ server/
 src/integrations/
 ├── api/
 │   └── client.ts            # New API client
-└── supabase/
+└── apiClient/
     └── client.ts            # Re-exports API client
 ```
 
@@ -159,19 +159,15 @@ npm install
 
 ### 2. Set Up Database
 ```bash
-createdb guardianflow
-psql -U postgres -d guardianflow -f server/scripts/init-db.sql
+mongosh guardianflow
+mongosh -d guardianflow -f server/scripts/init-db.js
 cd server && npm run migrate
 ```
 
 ### 3. Configure Environment
 ```bash
 # Backend: server/.env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=guardianflow
-DB_USER=postgres
-DB_PASSWORD=postgres
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/guardianflow
 JWT_SECRET=your-secret-key
 FRONTEND_URL=http://localhost:8080
 PORT=3001
@@ -197,11 +193,7 @@ npm run dev
 ### Environment Variables
 
 **Backend (`server/.env`):**
-- `DB_HOST` - PostgreSQL host
-- `DB_PORT` - PostgreSQL port
-- `DB_NAME` - Database name
-- `DB_USER` - Database user
-- `DB_PASSWORD` - Database password
+- `MONGODB_URI` - MongoDB Atlas connection string
 - `JWT_SECRET` - JWT signing secret
 - `FRONTEND_URL` - Frontend URL for CORS
 - `PORT` - Server port
@@ -217,7 +209,7 @@ npm run dev
 - **File Storage:** 100% ✅
 - **WebSocket:** 100% ✅
 - **API Client:** 100% ✅
-- **Edge Functions:** ~5% (5 of 100+ migrated)
+- **Express.js Route Handlers:** ~5% (5 of 100+ migrated)
 
 ## 🎯 Next Steps
 
@@ -227,14 +219,14 @@ npm run dev
    - Business-critical functions
 
 2. **Production Deployment:**
-   - Set up PostgreSQL on Vultr
+   - Set up MongoDB Atlas cluster
    - Configure nginx reverse proxy
    - Set up SSL certificates
    - Use PM2 for process management
    - Configure S3-compatible storage (optional)
 
 3. **Enhancements:**
-   - Add more edge functions
+   - Add more Express.js route handlers
    - Implement image processing
    - Add file virus scanning
    - Enhance WebSocket features
@@ -250,10 +242,10 @@ npm run dev
 
 ## ✨ Key Achievements
 
-1. ✅ **Zero Frontend Changes Required** - Full Supabase compatibility
+1. ✅ **Zero Frontend Changes Required** - Full legacy service compatibility
 2. ✅ **Complete File Storage** - Local filesystem with S3-like API
 3. ✅ **Real-time WebSocket** - Full subscription support
-4. ✅ **Edge Function Framework** - Easy migration path
+4. ✅ **Express.js Route Handler Framework** - Easy migration path
 5. ✅ **Production Ready** - Ready for Vultr deployment
 
 All requested features have been successfully implemented! 🎉

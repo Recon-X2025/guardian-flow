@@ -20,11 +20,26 @@ interface Supplier {
   rating: number;
 }
 
+interface InventoryItem {
+  id: string;
+  sku: string;
+  description?: string;
+  unit_price?: number;
+  lead_time_days?: number;
+}
+
+interface StockLevel {
+  id: string;
+  item_id: string;
+  qty_available: number;
+  min_threshold?: number;
+}
+
 interface PurchaseOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: any;
-  stockLevel: any;
+  item: InventoryItem | null;
+  stockLevel: StockLevel | null;
   onSuccess: () => void;
 }
 
@@ -116,10 +131,10 @@ export function PurchaseOrderDialog({ open, onOpenChange, item, stockLevel, onSu
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

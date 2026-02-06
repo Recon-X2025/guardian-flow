@@ -15,18 +15,18 @@ This document defines the technical architecture, implementation details, design
 
 ### 1.2 Scope
 
-Covers all technical layers: frontend application, backend API, database schema, ML pipeline, edge functions, authentication, testing, and deployment infrastructure.
+Covers all technical layers: frontend application, backend API, database schema, ML pipeline, Express.js route handlers, authentication, testing, and deployment infrastructure.
 
 ### 1.3 System Context
 
 ```
 External Users        External Services         Infrastructure
 ─────────────        ─────────────────         ──────────────
-Browsers (SPA)       Gemini 2.5 Flash          PostgreSQL 14+
-Mobile (PWA)         OpenAI API                Supabase (Edge, Auth, Storage)
+Browsers (SPA)       Gemini 2.5 Flash          MongoDB Atlas
+Mobile (PWA)         OpenAI API                Express.js backend (Edge, Auth, Storage)
 Partner APIs         Stripe/PayPal/Razorpay    Vultr (Production)
 Webhooks             Google/Outlook Calendar   Node.js 18+ Runtime
-                     SIEM Systems              Deno Runtime (Edge Functions)
+                     SIEM Systems              Node.js Runtime (Express.js Route Handlers)
 ```
 
 ---
@@ -58,8 +58,8 @@ src/
 │   └── shared/                # Cross-cutting: layout, dashboard, admin
 ├── components/ui/             # shadcn/ui component library (40+ components)
 ├── hooks/                     # Global hooks
-├── lib/                       # Utilities (apiClient, supabase client)
-└── integrations/supabase/     # Supabase client configuration
+├── lib/                       # Utilities (apiClient, API client)
+└── integrations/api/          # API client configuration
 ```
 
 ### 2.2 Key Technical Decisions
@@ -109,12 +109,12 @@ canAccessItem(item): boolean {
 
 ### 2.5 API Client
 
-`src/lib/apiClient.ts` — unified client wrapping both Express API calls and Supabase function invocations:
+`src/lib/apiClient.ts` — unified client wrapping Express API calls:
 
 - JWT passed in `Authorization: Bearer <token>` header
 - Automatic token refresh on 401
 - Error normalization
-- Supabase function proxy via Express fallback
+- Edge function proxy via Express fallback
 
 ---
 
@@ -133,7 +133,7 @@ server/
 │   ├── dbValidation.js    # DB credential validation (rejects defaults in production)
 │   └── secrets.js         # Multi-provider secrets loading (AWS/GCP/env)
 ├── db/
-│   ├── client.js          # PostgreSQL connection pool (pg) with SSL
+│   ├── client.js          # MongoDB Atlas connection with SSL
 │   ├── query.js           # Query helpers (getOne, getMany, transaction)
 │   └── tokenBlacklist.js  # JWT revocation (in-memory + DB)
 ├── routes/
@@ -198,24 +198,18 @@ app.use(errorHandler);
 
 ```javascript
 // server/db/client.js
-import pg from 'pg';
+import { MongoClient } from 'mongodb';
 import { validateDatabaseCredentials } from '../config/dbValidation.js';
 
 validateDatabaseCredentials(); // Rejects default creds in production
 
-const poolConfig = {
-  host: process.env.DB_HOST, port: process.env.DB_PORT,
-  database: process.env.DB_NAME, user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  max: 20, idleTimeoutMillis: 30000, connectionTimeoutMillis: 2000,
-};
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/guardianflow';
+const client = new MongoClient(uri, {
+  maxPoolSize: 20,
+  serverSelectionTimeoutMS: 2000,
+});
 
-// SSL enforced in production
-if (process.env.NODE_ENV === 'production' && process.env.DB_SSL !== 'false') {
-  poolConfig.ssl = { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' };
-}
-
-const pool = new pg.Pool(poolConfig);
+// SSL enforced in production via MongoDB Atlas connection string
 ```
 
 ### 3.4 WebSocket Server
@@ -230,12 +224,12 @@ Mounted on the same HTTP server as Express. Used for:
 
 ## 4. Database Design
 
-### 4.1 PostgreSQL Configuration
+### 4.1 MongoDB Atlas Configuration
 
 | Property | Value |
 |----------|-------|
-| Version | 14+ |
-| Connection pooling | pg.Pool (max 20 connections) |
+| Engine | MongoDB Atlas |
+| Connection pooling | MongoDB connection pool (max 20 connections) |
 | SSL | Required (rejectUnauthorized: false for dev) |
 | Tenant isolation | `tenant_id` column on all tenant-scoped tables |
 
@@ -368,7 +362,7 @@ CREATE TABLE forecast_models (
 Training Flow:
   POST /api/ml/train/{type}
     → orchestrator.js: trainModel(pool, modelType, config)
-    → Query training data from PostgreSQL
+    → Query training data from MongoDB Atlas
     → If insufficient data → generate synthetic data
     → Feature engineering (normalize, encode)
     → Train/test split (80/20)
@@ -473,13 +467,13 @@ When training data is insufficient:
 
 ---
 
-## 6. Edge Functions
+## 6. Express.js Route Handlers
 
 ### 6.1 Runtime
 
-- **Runtime:** Deno (Supabase Edge)
+- **Runtime:** Node.js (Express.js Route Handlers)
 - **Language:** TypeScript
-- **Invocation:** HTTP POST via Supabase client or Express proxy
+- **Invocation:** HTTP POST via API client or Express proxy
 - **Count:** 131 functions
 
 ### 6.2 Function Categories
@@ -497,7 +491,7 @@ When training data is insufficient:
 | Admin/System | 10+ | seed-demo-data, health-monitor, security-monitor |
 | Data/Integration | 8 | external-data-sync, mobile-sync, webhook-delivery-manager |
 
-### 6.3 ML-Integrated Edge Functions
+### 6.3 ML-Integrated Express.js Route Handlers
 
 These functions load trained model weights from the database and perform lightweight inference:
 
@@ -743,10 +737,10 @@ npm run dev                    # Port 5176
 cd server && node server.js    # Port 3001
 
 # Database
-# PostgreSQL via Supabase or local instance
+# MongoDB Atlas or local instance
 
-# Edge Functions
-supabase functions serve       # Local Deno runtime
+# Express.js Route Handlers
+cd server && node server.js    # Local Node.js runtime
 ```
 
 ### 10.2 Production Environment (Docker Compose)
@@ -755,8 +749,8 @@ supabase functions serve       # Local Deno runtime
 services:
   nginx:        # TLS termination, static CDN, reverse proxy (ports 80/443)
   server:       # Express API (port 3001, internal)
-  postgres:     # PostgreSQL 14 with health checks and persistent volume
-  backup:       # Automated daily pg_dump backups with retention
+  mongodb:      # MongoDB Atlas with health checks and persistent volume
+  backup:       # Automated daily mongodump backups with retention
   redis:        # Optional shared cache for multi-instance deployments
 ```
 
@@ -766,7 +760,7 @@ services:
 |-----------|------------|
 | Compute | ECS Fargate (2 instances, auto-scaling) |
 | Load Balancer | ALB with HTTPS (ACM certificate) |
-| Database | RDS PostgreSQL 14 (7-day automated backups) |
+| Database | MongoDB Atlas (7-day automated backups) |
 | CDN | CloudFront (1-year cache for static assets) |
 | Secrets | Secrets Manager (DB password, JWT secret) |
 | Logs | CloudWatch (30-day retention) |
@@ -776,7 +770,7 @@ services:
 ### 10.4 Environment Variables
 
 See `.env.production.example` for the full list. Key categories:
-- **Required:** JWT_SECRET, DB_HOST/USER/PASSWORD, FRONTEND_URL
+- **Required:** JWT_SECRET, MONGODB_URI, FRONTEND_URL
 - **Email:** SMTP_HOST/PORT/USER/PASSWORD/FROM
 - **Optional:** REDIS_URL, SECRETS_PROVIDER, SENTRY_DSN, S3_BACKUP_BUCKET
 
@@ -817,7 +811,7 @@ cd server && npm run migrate       # Run migrations
 - Passwords hashed with bcrypt (10 salt rounds)
 - Access tokens: 1h expiry with JTI for revocation
 - Refresh tokens: 30-day expiry, SHA-256 hashed in DB, rotated on use
-- Token blacklist: in-memory cache + PostgreSQL table for JTI-based revocation
+- Token blacklist: in-memory cache + MongoDB Atlas collection for JTI-based revocation
 - Signout-all: revokes all sessions via user_token_revocations timestamp
 - JWT_SECRET: required in production, fail-fast if missing
 - MFA support for sensitive operations
@@ -860,7 +854,7 @@ cd server && npm run migrate       # Run migrations
 | Metric | Value | Conditions |
 |--------|-------|-----------|
 | E2E page load | 1.1-3.8s | Playwright, includes auth |
-| API response (ML) | 5-17ms | Express, local PostgreSQL |
+| API response (ML) | 5-17ms | Express, MongoDB Atlas |
 | ML model training | 4-46ms | Logistic regression / Holt-Winters |
 | Anomaly detection | 5.9ms avg | 100 rapid-fire requests |
 | Forecast inference | 5.8ms avg | 50 rapid-fire requests |
@@ -871,7 +865,7 @@ cd server && npm run migrate       # Run migrations
 ### 12.2 Bottlenecks & Optimization Notes
 
 - SLA prediction is slowest ML endpoint (17ms) due to work order DB query per request
-- Load test p95 elevated by Supabase auth round-trips (~1.5-2.5s)
+- Load test p95 elevated by auth round-trips (~1.5-2.5s)
 - Holt-Winters grid search is O(n * grid_size^3) — fast for daily data, may slow for hourly
 - DB connection pool max=20; may need increase under heavy concurrent load
 
@@ -900,7 +894,7 @@ cd server && npm run migrate       # Run migrations
 | Package | Version | Purpose |
 |---------|---------|---------|
 | express | 4.18.2 | HTTP framework |
-| pg | 8.17.2 | PostgreSQL driver |
+| mongodb | latest | MongoDB Atlas driver |
 | jsonwebtoken | 9.0.2 | JWT auth |
 | bcryptjs | 2.4.3 | Password hashing |
 | nodemailer | latest | Email delivery (SMTP) |

@@ -11,10 +11,19 @@ import { format } from 'date-fns';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 
+interface WarrantyData {
+  id?: string;
+  unit_serial?: string;
+  model?: string;
+  coverage_type?: string;
+  warranty_start?: string;
+  warranty_end?: string;
+}
+
 interface WarrantyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  warranty?: any;
+  warranty?: WarrantyData;
   onSuccess: () => void;
 }
 
@@ -77,10 +86,10 @@ export function WarrantyDialog({ open, onOpenChange, warranty, onSuccess }: Warr
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

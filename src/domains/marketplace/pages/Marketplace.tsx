@@ -7,6 +7,24 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { Package, Star, Download, Settings } from 'lucide-react';
 
+interface MarketplaceExtension {
+  id: string;
+  extension_name: string;
+  description?: string;
+  category?: string;
+  rating?: number;
+  icon_url?: string;
+  status: string;
+}
+
+interface InstalledExtension {
+  extension_id: string;
+}
+
+interface ListInstalledResponse {
+  extensions: InstalledExtension[];
+}
+
 export default function Marketplace() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -15,35 +33,35 @@ export default function Marketplace() {
   const { data: extensions, isLoading } = useQuery({
     queryKey: ['marketplace-extensions'],
     queryFn: async () => {
-      const { data, error } = await (apiClient as any)
+      const { data, error } = await apiClient
         .from('marketplace_extensions')
         .select('*')
         .eq('status', 'approved')
         .order('rating', { ascending: false });
-      
+
       if (error) throw error;
-      return data;
+      return data as MarketplaceExtension[];
     },
   });
 
   const { data: installed } = useQuery({
     queryKey: ['installed-extensions'],
     queryFn: async () => {
-      const { data, error } = await (apiClient as any).functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await apiClient.functions.invoke('marketplace-extension-manager', {
         body: { action: 'list_installed' }
       });
-      
+
       if (error) throw error;
-      return data.extensions || [];
+      return (data as ListInstalledResponse)?.extensions || [];
     },
   });
 
   const installMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { data, error } = await (apiClient as any).functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await apiClient.functions.invoke('marketplace-extension-manager', {
         body: { action: 'install', extensionId }
       });
-      
+
       if (error) throw error;
       return data;
     },
@@ -65,10 +83,10 @@ export default function Marketplace() {
 
   const uninstallMutation = useMutation({
     mutationFn: async (extensionId: string) => {
-      const { data, error } = await (apiClient as any).functions.invoke('marketplace-extension-manager', {
+      const { data, error } = await apiClient.functions.invoke('marketplace-extension-manager', {
         body: { action: 'uninstall', extensionId }
       });
-      
+
       if (error) throw error;
       return data;
     },
@@ -82,7 +100,7 @@ export default function Marketplace() {
   });
 
   const isInstalled = (extensionId: string) => {
-    return installed?.some((ext: any) => ext.extension_id === extensionId);
+    return installed?.some((ext: InstalledExtension) => ext.extension_id === extensionId);
   };
 
   if (isLoading) {
@@ -101,7 +119,7 @@ export default function Marketplace() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {extensions?.map((extension: any) => (
+        {extensions?.map((extension: MarketplaceExtension) => (
           <Card key={extension.id}>
             <CardHeader>
               <div className="flex items-start justify-between">

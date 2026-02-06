@@ -56,7 +56,7 @@ export default function AnalyticsPlatform() {
               <div>
                 <p className="text-sm text-muted-foreground">Active Workspaces</p>
                 <p className="text-2xl font-bold">
-                  {workspaces?.filter((w: any) => w.status === 'active').length || 0}
+                  {workspaces?.filter((w: { status?: string }) => w.status === 'active').length || 0}
                 </p>
               </div>
             </div>

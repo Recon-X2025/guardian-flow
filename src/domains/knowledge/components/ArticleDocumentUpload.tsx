@@ -40,7 +40,7 @@ export function ArticleDocumentUpload({ articleId, onUploadSuccess }: ArticleDoc
       });
       if (response.error) throw response.error;
       setUploadedFiles(response.data?.attachments || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching attachments:', error);
       // Don't show error toast - attachments might not exist yet
     }
@@ -144,11 +144,11 @@ export function ArticleDocumentUpload({ articleId, onUploadSuccess }: ArticleDoc
           if (onUploadSuccess) {
             onUploadSuccess();
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Upload error:', error);
           toast({
             title: 'Upload Failed',
-            description: error.message || 'Failed to upload file',
+            description: error instanceof Error ? error.message : 'Failed to upload file',
             variant: 'destructive',
           });
         } finally {
@@ -156,7 +156,7 @@ export function ArticleDocumentUpload({ articleId, onUploadSuccess }: ArticleDoc
         }
       };
       reader.readAsDataURL(file);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('File read error:', error);
       toast({
         title: 'Error',
@@ -200,10 +200,10 @@ export function ArticleDocumentUpload({ articleId, onUploadSuccess }: ArticleDoc
         title: 'File Deleted',
         description: 'File has been successfully removed',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete file',
+        description: error instanceof Error ? error.message : 'Failed to delete file',
         variant: 'destructive',
       });
     }

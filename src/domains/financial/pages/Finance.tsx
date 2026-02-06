@@ -9,12 +9,44 @@ import { Loader2, DollarSign, TrendingDown, Receipt, AlertTriangle, TrendingUp }
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { InvoiceDetailDialog } from "@/domains/financial/components/InvoiceDetailDialog";
 
+// Type definitions
+interface Invoice {
+  id: string;
+  invoice_number?: string;
+  status: string;
+  subtotal: number | string;
+  penalties: number | string;
+  total_amount: number | string;
+  created_at: string;
+  hold_reason?: string;
+  work_orders?: { wo_number: string; tenant_id?: string };
+  tenant_id?: string;
+}
+
+interface Penalty {
+  id: string;
+  penalty_code: string;
+  reason?: string;
+  amount: number | string;
+  disputed?: boolean;
+  dispute_reason?: string;
+  resolved_at?: string;
+  work_orders?: { wo_number: string; tenant_id?: string };
+  tenant_id?: string;
+  created_at: string;
+}
+
+interface RevenueDataPoint {
+  date: string;
+  revenue: number;
+}
+
 export default function Finance() {
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [penalties, setPenalties] = useState<any[]>([]);
-  const [revenueChart, setRevenueChart] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [revenueChart, setRevenueChart] = useState<RevenueDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
@@ -33,12 +65,12 @@ export default function Finance() {
       let invoicesQuery = apiClient
         .from('invoices')
         .select('*, work_orders(wo_number, tenant_id)')
-        .order('created_at', { ascending: false }) as any;
-      
+        .order('created_at', { ascending: false });
+
       let penaltiesQuery = apiClient
         .from('penalty_applications')
         .select('*, work_orders(wo_number, tenant_id)')
-        .order('created_at', { ascending: false }) as any;
+        .order('created_at', { ascending: false });
 
       // Apply tenant filter for everyone except sys_admin
       if (!isSysAdmin && tenantId) {
@@ -54,8 +86,9 @@ export default function Finance() {
       if (invoicesRes.error) throw invoicesRes.error;
       if (penaltiesRes.error) throw penaltiesRes.error;
 
-      setInvoices(invoicesRes.data || []);
-      setPenalties(penaltiesRes.data || []);
+      const invoicesData = (invoicesRes.data || []) as Invoice[];
+      setInvoices(invoicesData);
+      setPenalties((penaltiesRes.data || []) as Penalty[]);
 
       // Generate revenue chart - last 30 days
       const last30Days = Array.from({ length: 30 }, (_, i) => {
@@ -65,10 +98,10 @@ export default function Finance() {
       });
 
       const chartData = last30Days.map(date => {
-        const dailyRevenue = (invoicesRes.data || [])
-          .filter((inv: any) => inv.created_at?.startsWith(date) && inv.status === 'paid')
-          .reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
-        
+        const dailyRevenue = invoicesData
+          .filter((inv) => inv.created_at?.startsWith(date) && inv.status === 'paid')
+          .reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
+
         return {
           date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           revenue: dailyRevenue
@@ -76,10 +109,10 @@ export default function Finance() {
       });
 
       setRevenueChart(chartData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading data",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {

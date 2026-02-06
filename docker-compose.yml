@@ -15,23 +15,6 @@ services:
       - server
     restart: unless-stopped
 
-  postgres:
-    image: postgres:14-alpine
-    environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-guardianflow}
-    ports:
-      - '5432:5432'
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   server:
     build: .
     ports:
@@ -39,11 +22,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-guardianflow}
-      DB_USER: ${DB_USER:?DB_USER is required}
-      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MONGODB_URI: ${MONGODB_URI:?MONGODB_URI is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       FRONTEND_URL: ${FRONTEND_URL:-https://localhost}
       SMTP_HOST: ${SMTP_HOST:-}
@@ -52,31 +31,4 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       REDIS_URL: ${REDIS_URL:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: unless-stopped
-
-  backup:
-    build:
-      context: .
-      dockerfile: docker/backup/Dockerfile
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME:-guardianflow}
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      BACKUP_DIR: /backups
-      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
-      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-}
-    volumes:
-      - backups:/backups
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: unless-stopped
-
-volumes:
-  pgdata:
-  backups:

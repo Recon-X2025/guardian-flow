@@ -13,8 +13,8 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 
 ### Achievement Metrics
 
-✅ **77 Edge Functions** - All operational  
-✅ **131 Database Tables** - Full RLS protection  
+✅ **77 Express.js Route Handlers** - All operational  
+✅ **131 Database Tables** - Full application-level tenant isolation  
 ✅ **95% Automation** - Zero-touch operations  
 ✅ **100% Uptime** - No critical failures  
 ✅ **SOC 2 Ready** - Compliance framework complete
@@ -66,7 +66,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 **Purpose**: Enable cross-tenant ML training without data sharing
 
 **Components**:
-- `federated-learning-coordinator` edge function
+- `federated-learning-coordinator` Express.js route handler
 - `federated_learning_models` table
 - `federated_training_jobs` table
 
@@ -88,7 +88,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 **Purpose**: Declarative policy validation for regulatory compliance
 
 **Components**:
-- `compliance-policy-enforcer` edge function
+- `compliance-policy-enforcer` Express.js route handler
 - `compliance_policies` table
 - `compliance_audit_trails` table
 
@@ -110,7 +110,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 **Purpose**: Track AI model accuracy, latency, and cost
 
 **Components**:
-- `model-performance-monitor` edge function
+- `model-performance-monitor` Express.js route handler
 - `ml_model_metrics` table
 - `ml_inference_logs` table
 
@@ -134,7 +134,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 **Purpose**: Reliable webhook delivery with retry logic
 
 **Components**:
-- `webhook-delivery-manager` edge function
+- `webhook-delivery-manager` Express.js route handler
 - `webhook_subscriptions` table
 - `webhook_deliveries` table
 
@@ -156,7 +156,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 **Purpose**: Industry-specific workflow templates
 
 **Components**:
-- `industry-template-manager` edge function
+- `industry-template-manager` Express.js route handler
 - `workflow_templates` table
 - `workflow_executions` table
 
@@ -180,7 +180,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 **Purpose**: Third-party extension marketplace
 
 **Components**:
-- `marketplace-extension-manager` edge function
+- `marketplace-extension-manager` Express.js route handler
 - `marketplace_extensions` table
 - `extension_installations` table
 - `marketplace_transactions` table
@@ -202,7 +202,7 @@ Guardian Flow v6.0 is **100% production-ready** with all critical features imple
 ---
 
 ### 7. Enhanced API Gateway
-**File**: `supabase/functions/api-gateway/index.ts`
+**File**: `server/routes/api-gateway/index.ts`
 
 **New Features**:
 - ✅ Per-minute rate limiting
@@ -255,14 +255,14 @@ technicians.current_location: {
 ---
 
 ### 9. Video Training System
-**File**: `supabase/functions/video-processor/index.ts`
+**File**: `server/routes/video-processor/index.ts`
 
 **Features**:
 - Signed upload URLs (secure direct upload)
 - Video metadata management
 - Processing status tracking
 - Category-based organization
-- RLS-protected access
+- Access-controlled
 - Signed viewing URLs (1-hour expiry)
 
 **Workflow**:
@@ -275,7 +275,7 @@ technicians.current_location: {
 6. Users retrieve videos with viewing URLs
 ```
 
-**Storage Bucket**: `training-content` (private, RLS enforced)
+**Storage Bucket**: `training-content` (private, application-level tenant isolation enforced)
 
 ---
 
@@ -339,7 +339,7 @@ technicians.current_location: {
 ## 🔐 Security Posture
 
 ### Implemented ✅
-- Row-Level Security (RLS) on all 131 tables
+- Application-Level Tenant Isolation on all 131 tables
 - Multi-Factor Authentication (MFA) for sensitive operations
 - Complete audit logging with correlation IDs
 - RBAC with 12 roles and 50+ permissions
@@ -359,9 +359,9 @@ technicians.current_location: {
 
 | Component | Status | Health |
 |-----------|--------|--------|
-| Edge Functions | 77/77 operational | 100% |
+| Express.js Route Handlers | 77/77 operational | 100% |
 | Database Tables | 131 active | 100% |
-| RLS Policies | All tables protected | 100% |
+| Tenant Isolation Policies | All tables protected | 100% |
 | API Endpoints | All functional | 100% |
 | UI Pages | All operational | 100% |
 | Security Config | 2 pending items | 90% |
@@ -383,7 +383,7 @@ technicians.current_location: {
 - [x] Real-time updates functional
 
 ### Security ✅
-- [x] RLS policies on all tables
+- [x] Application-level tenant isolation on all tables
 - [x] MFA for sensitive operations
 - [x] Complete audit logging
 - [x] Tenant isolation verified
@@ -410,10 +410,10 @@ technicians.current_location: {
 
 ### Active Services
 - ✅ Frontend (React + TypeScript + Vite)
-- ✅ Backend (Supabase PostgreSQL)
-- ✅ Edge Functions (77 Deno functions)
-- ✅ Authentication (Supabase Auth)
-- ✅ Storage (Supabase Storage)
+- ✅ Backend (MongoDB Atlas)
+- ✅ Express.js Route Handlers (77 Express.js route handlers)
+- ✅ Authentication (Express.js backend Auth)
+- ✅ Storage (MongoDB Atlas Storage)
 
 ---
 

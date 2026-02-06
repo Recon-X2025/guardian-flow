@@ -6,7 +6,7 @@ interface QueuedAction {
   id: string;
   action_type: string;
   resource_type: string;
-  payload: any;
+  payload: Record<string, unknown>;
   synced: boolean;
 }
 
@@ -35,7 +35,7 @@ export function useOfflineSync() {
     }
   }, [isOnline, queue]);
 
-  const queueAction = useCallback(async (actionType: string, resourceType: string, payload: any) => {
+  const queueAction = useCallback(async (actionType: string, resourceType: string, payload: Record<string, unknown>) => {
     if (!user) return;
 
     const action: QueuedAction = {
@@ -113,7 +113,7 @@ export function useOfflineSync() {
     }
   }, [user, syncing, queue]);
 
-  const processAction = async (action: any) => {
+  const processAction = async (action: { action_type: string; resource_type: string; payload: { id?: string; data?: Record<string, unknown> } & Record<string, unknown> }) => {
     const { action_type, resource_type, payload } = action;
 
     switch (action_type) {

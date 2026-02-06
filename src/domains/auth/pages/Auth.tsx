@@ -72,9 +72,9 @@ export default function Auth() {
       // Login successful - navigation will happen via useEffect when user/session are set
       console.log('Login successful, waiting for navigation...');
       toast.success('Login successful!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Unexpected login error:', error);
-      toast.error(error?.message || 'An unexpected error occurred during login');
+      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred during login');
     } finally {
       setLoading(false);
     }

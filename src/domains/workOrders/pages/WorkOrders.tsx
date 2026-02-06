@@ -34,11 +34,44 @@ export default function WorkOrders() {
   const woPerms = useActionPermissions('workOrders');
   const soPerms = useActionPermissions('serviceOrders');
   
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+// Type definitions
+interface Ticket {
+  id: string;
+  symptom?: string;
+  customer_id?: string;
+}
+
+interface SaposOffer {
+  id: string;
+  title: string;
+  price: number | string;
+  status: string;
+  offer_type: string;
+}
+
+interface WorkOrder {
+  id: string;
+  wo_number?: string;
+  status: string;
+  warranty_checked?: boolean;
+  part_status?: string;
+  repair_type?: string;
+  cost_to_customer?: number | string;
+  part_notes?: string;
+  created_at: string;
+  ticket_id?: string;
+  technician_id?: string;
+  tenant_id?: string;
+  ticket?: Ticket | null;
+  technician?: { full_name: string } | null;
+  sapos_offers?: SaposOffer[];
+}
+
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [selectedWOData, setSelectedWOData] = useState<any>(null);
+  const [selectedWOData, setSelectedWOData] = useState<WorkOrder | null>(null);
   const [generateSOOpen, setGenerateSOOpen] = useState(false);
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
   const [kbDialogOpen, setKbDialogOpen] = useState(false);
@@ -96,47 +129,50 @@ export default function WorkOrders() {
       const result = await dataQuery.range(from, to);
 
       if (result.error) throw result.error;
-      const data = result.data || [];
-      
+      const data = (result.data || []) as WorkOrder[];
+
       // Fetch related data separately (apiClient doesn't support joins)
-      const enrichedData = await Promise.all(data.map(async (wo: any) => {
+      const enrichedData: WorkOrder[] = await Promise.all(data.map(async (wo) => {
         // Fetch ticket
         const ticketResult = await apiClient.from('tickets')
           .select('*, customer_id')
           .eq('id', wo.ticket_id)
           .single()
           .catch(() => ({ data: null }));
-        
+
         // Fetch technician
         const techResult = await apiClient.from('profiles')
           .select('full_name')
           .eq('id', wo.technician_id)
           .single()
           .catch(() => ({ data: null }));
-        
+
         // Fetch offers
         const offersResult = await apiClient.from('sapos_offers')
           .select('id, title, price, status, offer_type')
           .eq('work_order_id', wo.id)
           .catch(() => ({ data: [] }));
-        
+
+        const ticketData = ticketResult.data as Ticket | null;
+        const techData = techResult.data as { full_name?: string } | null;
+
         return {
           ...wo,
-          ticket: ticketResult.data,
-          technician: techResult.data ? { full_name: techResult.data.full_name } : null,
-          sapos_offers: offersResult.data || []
+          ticket: ticketData,
+          technician: techData?.full_name ? { full_name: techData.full_name } : null,
+          sapos_offers: (offersResult.data || []) as SaposOffer[]
         };
       }));
-      
+
       console.log(`Page ${currentPage}: Fetched ${enrichedData.length} of ${count} total`);
       setWorkOrders(enrichedData);
 
       // Auto-generate Offer AI offers for released/in_progress WOs lacking offers (max 3 per load)
       try {
-        const targets = (data || [])
-          .filter((wo: any) => (wo.status === 'released' || wo.status === 'in_progress') && (!wo.sapos_offers || wo.sapos_offers.length === 0))
+        const targets = enrichedData
+          .filter((wo) => (wo.status === 'released' || wo.status === 'in_progress') && (!wo.sapos_offers || wo.sapos_offers.length === 0))
           .slice(0, 3);
-        targets.forEach(async (wo: any) => {
+        targets.forEach(async (wo) => {
           const customerId = wo.ticket?.customer_id;
           try {
             console.log('Auto-generating Offer AI for WO:', wo.id);
@@ -152,10 +188,10 @@ export default function WorkOrders() {
       } catch (e) {
         console.error('Auto Offer AI batch error', e);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading work orders",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -410,7 +446,7 @@ export default function WorkOrders() {
                           <span className="text-sm font-medium">Auto-Generated Offers:</span>
                         </div>
                         <div className="space-y-1">
-                          {wo.sapos_offers.slice(0, 3).map((offer: any) => (
+                          {wo.sapos_offers.slice(0, 3).map((offer) => (
                             <div key={offer.id} className="text-xs flex items-center justify-between py-1 px-2 bg-muted/30 rounded">
                               <span className="truncate flex-1">{offer.title}</span>
                               <span className="font-medium ml-2">{formatCurrency(Number(offer.price))}</span>

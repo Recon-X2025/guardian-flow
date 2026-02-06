@@ -41,7 +41,7 @@ describe('apiClient', () => {
   });
 
   describe('functions.invoke()', () => {
-    it('should invoke edge functions', async () => {
+    it('should invoke API functions', async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ success: true }),

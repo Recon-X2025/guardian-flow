@@ -12,8 +12,8 @@
 This document outlines the transformation of Guardian Flow from a field service management solution into a versatile, end-to-end enterprise operations platform with embedded, scalable analytics capabilities. The platform will support multiple industries while maintaining its core strengths in compliance, security, and operational intelligence.
 
 ### Current State Assessment
-- **82 operational edge functions** providing modular agent services
-- **Full RBAC/RLS coverage** with multi-tenant isolation
+- **82 operational Express.js route handlers** providing modular agent services
+- **Full RBAC/application-level tenant isolation coverage** with multi-tenant isolation
 - **7-level hierarchical forecasting** (Country → Region → State → City → Hub → Pincode → Product)
 - **Advanced analytics integration** with PowerBI, Tableau, Looker, Excel, Google Data Studio
 - **SOC 2 & ISO 27001 compliance** roadmap in progress
@@ -630,7 +630,7 @@ interface SLABreachPredictor {
 
 ### Implementation Phase
 **Phase 6A (Months 3-5):**
-- Implement OpenTelemetry tracing across all edge functions
+- Implement OpenTelemetry tracing across all Express.js route handlers
 - Set up Prometheus + Grafana stack
 - Build SLA breach prediction dashboard
 - Create automated alerting rules
@@ -831,7 +831,7 @@ CREATE TABLE platform_feedback (
 
 **Current Stack (Maintain):**
 - Frontend: React, TypeScript, Vite, Tailwind CSS
-- Backend: Supabase (PostgreSQL, Edge Functions, Auth, Storage)
+- Backend: Express.js backend (MongoDB Atlas, Express.js Route Handlers, Auth, Storage)
 - Infrastructure: Lovable Cloud
 
 **New Additions:**
@@ -997,7 +997,7 @@ CREATE TABLE platform_feedback (
 - ✅ 99.99% uptime SLA
 - ✅ <50ms API latency p95
 - ✅ Zero critical security incidents
-- ✅ 100% RLS coverage on all tables
+- ✅ 100% application-level tenant isolation coverage on all tables
 - ✅ Full SOC 2 Type II and ISO 27001 certification
 
 ### Business Impact
@@ -1025,7 +1025,7 @@ CREATE TABLE platform_feedback (
 
 ## Conclusion
 
-Guardian Flow has a strong foundation with 82 operational edge functions, full RBAC/RLS coverage, advanced forecasting, and analytics integrations already in place. This transformation roadmap builds on these strengths to create a truly industry-agnostic, AI-powered enterprise operations platform.
+Guardian Flow has a strong foundation with 82 operational Express.js route handlers, full RBAC/application-level tenant isolation coverage, advanced forecasting, and analytics integrations already in place. This transformation roadmap builds on these strengths to create a truly industry-agnostic, AI-powered enterprise operations platform.
 
 **Key Differentiators:**
 1. **Privacy-Preserving AI:** Federated learning enables cross-tenant intelligence without data sharing

@@ -10,7 +10,7 @@
 |--------|-------|
 | **Total Sprints Completed** | 14 of 16 |
 | **Database Tables** | 157 |
-| **Edge Functions** | 60 |
+| **Express.js Route Handlers** | 60 |
 | **UI Pages/Components** | 95+ |
 | **Time Elapsed** | ~29.5 weeks equivalent |
 | **Remaining Work** | 2.5 weeks (external dependencies only) |
@@ -44,7 +44,7 @@
 - `ab_tests` - A/B testing framework
 - `feature_flags` - Feature rollout controls
 
-**Edge Functions Created (12):**
+**Express.js Route Handlers Created (12):**
 - `assign-role` - RBAC role assignment
 - `remove-role` - RBAC role removal
 - `create-organization` - Tenant provisioning
@@ -66,7 +66,7 @@
 - Access request workflows
 
 **Key Features:**
-- Row-Level Security (RLS) on all tables
+- Application-Level Tenant Isolation on all tables
 - Tenant isolation enforcement
 - JWT-based authentication
 - Session timeout & concurrent session limits
@@ -120,7 +120,7 @@
 - `demo_data_configs` - Demo data generation configs
 - `system_configs` - Global system configurations
 
-**Edge Functions (3):**
+**Express.js Route Handlers (3):**
 - `setup-industry-workflows` - Industry workflow provisioning
 - `industry-template-manager` - Template management
 - `create-sandbox-tenant` - Demo/sandbox tenant creation
@@ -170,7 +170,7 @@
 - `work_order_notes` - Internal notes
 - `work_order_checklists` - Task checklists
 
-**Edge Functions (8):**
+**Express.js Route Handlers (8):**
 - `create-demo-workorders` - Demo data generation
 - `complete-work-order` - Work order completion
 - `release-work-order` - Work order release to pool
@@ -213,7 +213,7 @@
 - `offline_cache_metadata` - Offline cache management
 - `time_tracking` - Technician time logs
 
-**Edge Functions (4):**
+**Express.js Route Handlers (4):**
 - `technician-locate` - GPS location services
 - `validate-photos` - Photo validation & compression
 - `mobile-sync` - Mobile data synchronization
@@ -255,7 +255,7 @@
 - `maintenance_calendar_events` - Maintenance calendar (NEW)
 - `asset_tags` - Asset tagging system
 
-**Edge Functions (5):**
+**Express.js Route Handlers (5):**
 - `equipment-register` - Asset registration
 - `check-warranty` - Warranty validation
 - `predict-equipment-failure` - Predictive maintenance ML
@@ -296,7 +296,7 @@
 - `payment_methods` - Payment information
 - `invoices` - Billing & invoicing
 
-**Edge Functions (5):**
+**Express.js Route Handlers (5):**
 - `customer-create` - Customer registration
 - `customer-book-service` - Self-service booking
 - `notification-send` - Multi-channel notifications
@@ -337,7 +337,7 @@
 - `demand_forecasts` - Demand predictions
 - `sla_breach_predictions` - SLA risk predictions
 
-**Edge Functions (9):**
+**Express.js Route Handlers (9):**
 - `forecast-engine` - Main forecasting orchestrator
 - `forecast-worker` - Async forecast processor
 - `generate-forecast` - On-demand forecast generation
@@ -375,7 +375,7 @@
 - `technician_availability` - Availability calendar
 - `schedule_constraints` - Constraint definitions
 
-**Edge Functions (3):**
+**Express.js Route Handlers (3):**
 - `schedule-optimizer` - Constraint-based scheduling algorithm
 - `optimize-schedule` - Legacy schedule optimizer
 - `workforce-optimizer` - Capacity planning
@@ -412,7 +412,7 @@
 - `tamper_indicators` - Detected tampering patterns
 - `anomaly_detections` - Pattern anomaly detection
 
-**Edge Functions (6):**
+**Express.js Route Handlers (6):**
 - `detect-image-forgery` - AI forgery detection
 - `analyze-image-forensics` - Metadata analysis
 - `submit-forgery-feedback` - Model retraining feedback
@@ -450,7 +450,7 @@
 - `custom_reports` - Custom report builder (NEW)
 - `report_schedules` - Report scheduling (NEW)
 
-**Edge Functions (8):**
+**Express.js Route Handlers (8):**
 - `analytics-aggregator` - Data aggregation pipeline
 - `analytics-report` - Report generation
 - `analytics-export` - CSV/PDF/XLSX export
@@ -500,7 +500,7 @@
 - `extension_hooks` - Event hook system
 - `extension_permissions` - Permission sandboxing
 
-**Edge Functions (1):**
+**Express.js Route Handlers (1):**
 - `marketplace-extension-manager` - Extension lifecycle management
 
 **UI Pages (2):**
@@ -533,7 +533,7 @@
 - `training_quiz_attempts` - Quiz submissions
 - `training_certifications` - Certificate issuance
 
-**Edge Functions (2):**
+**Express.js Route Handlers (2):**
 - `training-course-manager` - Course lifecycle management
 - `training-ai-recommend` - AI-powered course recommendations
 
@@ -573,7 +573,7 @@
 - `access_reviews` - Periodic access reviews
 - `siem_events` - SIEM integration
 
-**Edge Functions (8):**
+**Express.js Route Handlers (8):**
 - `compliance-policy-enforcer` - Policy automation
 - `compliance-evidence-collector` - Evidence automation
 - `compliance-access-reviewer` - Access review automation
@@ -622,7 +622,7 @@
 - `analytics_jit_access_requests` - JIT access for analytics
 - `analytics_compliance_logs` - Analytics audit trail
 
-**Edge Functions (15):**
+**Express.js Route Handlers (15):**
 - `analytics-workspace-manager` - Workspace management
 - `analytics-data-source-manager` - Data source connectivity
 - `analytics-pipeline-executor` - ETL orchestration
@@ -752,11 +752,11 @@
 | **Marketplace** | 7 | Extensions, plugins, hooks |
 | **Training & Compliance** | 20 | Courses, certifications, frameworks |
 | **Integrations** | 26 | Webhooks, APIs, external systems |
-| **Total** | **157** | 100% RLS enabled |
+| **Total** | **157** | 100% tenant isolation enabled |
 
 ---
 
-## ⚡ Edge Functions Summary
+## ⚡ Express.js Route Handlers Summary
 
 | Category | Functions | Notes |
 |----------|-----------|-------|
@@ -796,7 +796,7 @@
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| **Row-Level Security (RLS)** | ✅ | 100% of tables |
+| **Application-Level Tenant Isolation** | ✅ | 100% of tables |
 | **Tenant Isolation** | ✅ | Enforced at DB level |
 | **Audit Logging** | ✅ | 7-year retention |
 | **MFA Enforcement** | ✅ | TOTP-based |
@@ -830,7 +830,7 @@
 - [x] Compliance automation
 - [x] Advanced analytics platform
 - [x] Database schema (157 tables)
-- [x] Edge functions (60)
+- [x] Express.js route handlers (60)
 - [x] UI pages (95+)
 - [x] Offline mobile sync
 - [x] NLP query interface
@@ -877,8 +877,8 @@
 ## 📊 Key Achievements
 
 ✅ **Full-stack platform** from authentication to advanced analytics  
-✅ **157 database tables** with 100% RLS coverage  
-✅ **60 edge functions** for backend logic  
+✅ **157 database tables** with 100% tenant isolation coverage  
+✅ **60 Express.js route handlers** for backend logic  
 ✅ **95+ UI pages/components** responsive & accessible  
 ✅ **9 industries supported** with customized workflows  
 ✅ **AI-powered** forecasting, scheduling, fraud detection, NLP queries  

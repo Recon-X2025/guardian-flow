@@ -7,22 +7,16 @@ This document outlines the external infrastructure required to fully deploy Guar
 
 ## Required Cloud Services
 
-### 1. Managed PostgreSQL Database
-**Options:**
-- AWS RDS Aurora PostgreSQL (recommended)
-- Google Cloud SQL for PostgreSQL
-- Azure Database for PostgreSQL
-- Self-hosted Supabase (includes Postgres + Auth + Storage)
-
-**Specifications:**
-- Version: PostgreSQL 15+
-- Storage: 100GB minimum, auto-scaling enabled
-- Instance: db.r6g.xlarge (4 vCPU, 32GB RAM) or equivalent
-- Backups: Daily automated backups with 30-day retention
-- HA: Multi-AZ deployment for production
+### 1. Managed MongoDB Atlas Database
+**Configuration:**
+- MongoDB Atlas (managed cloud)
+- Cluster tier: M30 or higher (4 vCPU, 32GB RAM) or equivalent
+- Storage: 100GB minimum with auto-scaling enabled
+- Backups: Continuous backups with 30-day retention
+- HA: Multi-region deployment for production
 
 **Why Needed:**
-Lovable Cloud provides Supabase, but for production scale or self-hosting, managed Postgres is required.
+MongoDB Atlas provides managed database infrastructure with automatic scaling and backups.
 
 ---
 
@@ -72,7 +66,7 @@ Real-time CV inference requires GPU compute unavailable in Lovable Cloud.
 **Options:**
 - Pinecone (managed, recommended for simplicity)
 - Weaviate (open-source, self-hosted)
-- pgvector (Postgres extension, simpler but less scalable)
+- MongoDB Atlas Vector Search (integrated with Atlas)
 
 **Configuration:**
 - Index: `fraud-embeddings` (384 dimensions, cosine similarity)
@@ -97,19 +91,19 @@ Duplicate fraud detection and anomaly clustering require vector similarity searc
 
 ---
 
-### 6. Kubernetes Cluster (Edge Functions & Services)
+### 6. Kubernetes Cluster (Express.js Services)
 **Specifications:**
 - Control plane: Managed (EKS, GKE, AKS)
 - Worker nodes: 3x `t3.xlarge` (4 vCPU, 16GB RAM)
 - Namespaces: `production`, `staging`, `dev`
 
 **Workloads:**
-- Edge functions (Supabase functions or custom API)
+- Express.js API services
 - CV inference service
 - Job workers (penalty calculation, SO generation)
 
 **Why Needed:**
-Lovable Cloud hosts edge functions, but production scale requires dedicated infrastructure.
+Production scale requires dedicated infrastructure for compute-intensive workloads.
 
 ---
 
@@ -120,11 +114,11 @@ Lovable Cloud hosts edge functions, but production scale requires dedicated infr
 - Azure Key Vault
 
 **Secrets to Store:**
-- Database credentials
+- MongoDB Atlas credentials
 - Object storage access keys
-- Lovable AI API key
-- Stripe API keys (if used)
-- Third-party API keys
+- JWT secret keys
+- Payment gateway API keys (Stripe, Razorpay, etc.)
+- Third-party API keys (OpenAI, Gemini)
 
 ---
 
@@ -165,34 +159,42 @@ terraform/
 └── README.md
 ```
 
-### Example: Postgres Module
+### Example: MongoDB Atlas Module
 ```hcl
-# terraform/modules/postgres/main.tf
-resource "aws_db_instance" "guardianflow_postgres" {
-  identifier             = "guardianflow-${var.environment}"
-  engine                 = "postgres"
-  engine_version         = "15.4"
-  instance_class         = var.instance_class
-  allocated_storage      = 100
-  storage_encrypted      = true
-  multi_az               = var.environment == "production"
-  backup_retention_period = 30
-  
-  db_name  = "guardianflow_db"
-  username = var.db_username
-  password = var.db_password
-  
-  vpc_security_group_ids = [var.security_group_id]
-  db_subnet_group_name   = var.subnet_group_name
-  
+# terraform/modules/mongodb/main.tf
+resource "mongodbatlas_cluster" "guardianflow_cluster" {
+  project_id   = var.project_id
+  name         = "guardianflow-${var.environment}"
+
+  provider_name               = "AWS"
+  provider_region_name        = var.region
+  provider_instance_size_name = var.instance_size
+
+  cluster_type = "REPLICASET"
+
+  replication_specs {
+    num_shards = 1
+    regions_config {
+      region_name     = var.region
+      electable_nodes = 3
+      priority        = 7
+      read_only_nodes = 0
+    }
+  }
+
+  backup_enabled               = true
+  pit_enabled                  = true
+  auto_scaling_disk_gb_enabled = true
+
   tags = {
     Environment = var.environment
     Project     = "Guardian Flow"
   }
 }
 
-output "postgres_endpoint" {
-  value = aws_db_instance.guardianflow_postgres.endpoint
+output "connection_string" {
+  value = mongodbatlas_cluster.guardianflow_cluster.connection_strings[0].standard_srv
+  sensitive = true
 }
 ```
 
@@ -233,7 +235,7 @@ resource "aws_eks_node_group" "gpu_nodes" {
 1. Set up AWS/Azure/GCP account
 2. Configure Terraform backend (S3 + DynamoDB for state)
 3. Deploy VPC and networking
-4. Provision managed Postgres
+4. Provision managed MongoDB Atlas
 5. Set up object storage buckets
 6. Deploy Redis cluster
 7. Create secrets in Secrets Manager
@@ -246,7 +248,7 @@ resource "aws_eks_node_group" "gpu_nodes" {
 5. Set up cluster autoscaler
 
 ### Phase 3: Application Services (Week 3-4)
-1. Deploy edge functions to Kubernetes
+1. Deploy Express.js backend to Kubernetes
 2. Deploy CV inference service
 3. Set up job queues (SQS/RabbitMQ)
 4. Deploy vector DB (Pinecone or Weaviate)
@@ -280,7 +282,7 @@ resource "aws_eks_node_group" "gpu_nodes" {
 
 | Service | Specification | Estimated Cost |
 |---------|--------------|----------------|
-| RDS Aurora PostgreSQL | db.r6g.xlarge, 100GB | $400 |
+| MongoDB Atlas M30 | 4 vCPU, 32GB RAM, 100GB | $400 |
 | S3 Storage | 500GB with Glacier | $25 |
 | GPU Nodes (EKS) | 2x g4dn.xlarge (avg) | $600 |
 | ElastiCache Redis | cache.r6g.large | $180 |
@@ -299,7 +301,7 @@ resource "aws_eks_node_group" "gpu_nodes" {
 - Deploy in private VPC subnets
 - Use security groups to restrict traffic
 - Enable VPC Flow Logs
-- Use AWS WAF for edge functions
+- Use AWS WAF for Express.js backend
 
 ### Data Security
 - Enable encryption at rest (S3, RDS, Redis)
@@ -350,10 +352,9 @@ export async function exportTenantData(tenantId: string) {
   
   const exports = {};
   for (const table of tables) {
-    const { data } = await supabase
-      .from(table)
-      .select('*')
-      .eq('tenant_id', tenantId);
+    const data = await db.collection(table)
+      .find({ tenant_id: tenantId })
+      .toArray();
     exports[table] = data;
   }
   
@@ -380,7 +381,7 @@ export async function deleteTenantData(tenantId: string) {
 - Deploy in EU regions for EU customers
 - Deploy in US regions for US customers
 - Use region-specific S3 buckets
-- Configure Postgres read replicas in customer regions
+- Configure MongoDB Atlas read replicas in customer regions
 
 ---
 

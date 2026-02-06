@@ -46,7 +46,7 @@
 - ⏳ Analytics Platform: ~14 remaining
 
 ### Overall Progress
-- **Started with:** ~115 files with Supabase references
+- **Started with:** ~115 files with legacy API references
 - **Migrated:** 35 files
 - **Remaining:** ~87 files
 - **Progress:** ~30% complete
@@ -168,30 +168,30 @@
 
 ### Migration Patterns Used
 1. **Auth Methods:**
-   - `supabase.auth.getUser()` → `useAuth().user`
-   - `supabase.auth.signIn()` → `useAuth().signIn()`
-   - `supabase.auth.signOut()` → `useAuth().signOut()`
+   - `apiClient.auth.getUser()` → `useAuth().user`
+   - `apiClient.auth.signIn()` → `useAuth().signIn()`
+   - `apiClient.auth.signOut()` → `useAuth().signOut()`
 
 2. **Database Queries:**
-   - `supabase.from().select()` → `apiClient.from().select()`
-   - `supabase.from().insert()` → `apiClient.from().insert()`
-   - `supabase.from().update()` → `apiClient.from().update()`
-   - `supabase.from().delete()` → `apiClient.from().delete()`
+   - `apiClient.from().select()` → `apiClient.from().select()`
+   - `apiClient.from().insert()` → `apiClient.from().insert()`
+   - `apiClient.from().update()` → `apiClient.from().update()`
+   - `apiClient.from().delete()` → `apiClient.from().delete()`
 
 3. **Function Invocations:**
-   - `supabase.functions.invoke()` → `apiClient.functions.invoke()`
+   - `apiClient.functions.invoke()` → `apiClient.functions.invoke()`
 
 4. **Real-time Subscriptions:**
-   - `supabase.channel().on().subscribe()` → `apiClient.channel().on().subscribe()`
+   - `apiClient.channel().on().subscribe()` → `apiClient.channel().on().subscribe()`
 
 5. **Joins:**
-   - Supabase joins → Separate queries + manual merging
+   - legacy service joins → Separate queries + manual merging
    - Example: WorkOrders.tsx fetches tickets, technicians, offers separately
 
 ### Dependencies Status
-- ✅ **No Supabase packages** in package.json
-- ✅ All Supabase dependencies already removed
-- ✅ `supabase/client.ts` is just a compatibility re-export
+- ✅ **No legacy service packages** in package.json
+- ✅ All legacy service dependencies already removed
+- ✅ `apiClient/client.ts` is just a compatibility re-export
 
 ---
 
@@ -205,14 +205,14 @@
 ### Short Term
 1. Complete all page migrations (~60 files)
 2. Complete all component migrations (~25 files)
-3. Remove `supabase/client.ts` compatibility layer
+3. Remove `apiClient/client.ts` compatibility layer
 4. Update documentation
 
 ### Medium Term
 1. Comprehensive testing
 2. Performance optimization
 3. Error handling improvements
-4. Add missing edge functions
+4. Add missing Express.js route handlers
 
 ---
 
@@ -241,7 +241,7 @@
 ✅ Core pages operational  
 ✅ Forecast generation working  
 ✅ Module system functional  
-✅ No Supabase dependencies in package.json  
+✅ No legacy service dependencies in package.json  
 ✅ Backward compatibility maintained  
 
 ---

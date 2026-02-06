@@ -73,7 +73,7 @@ export async function indexDocument(articleId, content, metadata = {}) {
   for (let i = 0; i < chunks.length; i++) {
     const vector = await embedding(chunks[i]);
     chunkDocs.push({
-      _id: randomUUID(),
+      id: randomUUID(),
       article_id: articleId,
       chunk_index: i,
       content: chunks[i],

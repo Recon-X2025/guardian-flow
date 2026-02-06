@@ -6,7 +6,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function OperationalTab() {
-  const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<{ date: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export function OperationalTab() {
         .then();
 
       if (data) {
-        const dailyCounts = data.reduce((acc: any, wo) => {
+        const dailyCounts = data.reduce((acc: Record<string, number>, wo: { created_at: string }) => {
           const day = new Date(wo.created_at).toISOString().split('T')[0];
           acc[day] = (acc[day] || 0) + 1;
           return acc;

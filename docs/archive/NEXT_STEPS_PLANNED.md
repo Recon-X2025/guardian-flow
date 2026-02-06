@@ -11,7 +11,7 @@
 **Status:** ✅ **100% Complete**
 - ✅ All 21 component files migrated
 - ✅ All hooks migrated
-- ✅ Zero Supabase references
+- ✅ Zero legacy API references
 - ✅ Smoke tests passing (25/25)
 
 **Next Action:** None - Complete!
@@ -87,7 +87,7 @@
 **Status:** Not Started  
 **Estimated Time:** 1-2 weeks (can be incremental)
 
-**Scope:** ~31 page files in `src/pages/` still reference Supabase
+**Scope:** ~31 page files in `src/pages/` still reference legacy API
 
 **High Priority Pages:**
 - [ ] `src/pages/Dashboard.tsx`
@@ -138,7 +138,7 @@
 
 ## 🎯 Medium Term (Next Month)
 
-### 8. ⏳ Implement Missing Edge Functions (Priority: MEDIUM)
+### 8. ⏳ Implement Missing Express.js Route Handlers (Priority: MEDIUM)
 **Status:** Many Placeholders Exist  
 **Estimated Time:** 1 week
 
@@ -186,10 +186,10 @@
 3. ⏳ **Fix Unit Tests** - Ensure test suite is solid
 
 ### 🟡 Medium Priority (Do Soon)
-4. ⏳ **Page-Level Migrations** - Complete Supabase removal
+4. ⏳ **Page-Level Migrations** - Complete legacy API removal
 5. ⏳ **Module Sandbox Testing** - Verify functionality
 6. ⏳ **Expand Test Coverage** - Add more automated tests
-7. ⏳ **Edge Functions** - Implement missing functions
+7. ⏳ **Express.js Route Handlers** - Implement missing functions
 
 ### 🟢 Low Priority (Do Later)
 8. ⏳ **Error Handling** - Improve user experience
@@ -216,7 +216,7 @@
 ### Week 3-4
 **Focus:** Polish & Optimization
 - [ ] Complete remaining page migrations
-- [ ] Implement missing edge functions
+- [ ] Implement missing Express.js route handlers
 - [ ] Improve error handling
 - [ ] Performance optimization
 
@@ -232,7 +232,7 @@
 ### Migration
 - **Component Status:** ✅ 100% Complete (21/21)
 - **Page Status:** ⏳ 0% Complete (0/31)
-- **Pattern Guide:** `SUPABASE_MIGRATION_CHECKLIST.md`
+- **Pattern Guide:** `API_MIGRATION_CHECKLIST.md`
 
 ### Development
 - **Start Backend:** `cd server && npm run dev`

@@ -31,6 +31,12 @@ const ALLOWED_TABLES = new Set([
   'purchase_orders', 'stock_adjustments', 'inventory_items',
   'training_modules', 'training_progress',
   'profiles',
+  // Additional tables
+  'service_contracts',
+  'training_courses', 'training_enrollments', 'training_certifications',
+  'marketplace_extensions', 'marketplace_installations',
+  'analytics_quality_rules', 'analytics_workspaces',
+  'workflow_templates',
 ]);
 
 /** Collections that enforce tenant_id isolation */

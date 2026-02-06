@@ -230,7 +230,7 @@ export function AnalyticsWorkspaces({ workspaces, isLoading }: AnalyticsWorkspac
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full" size="sm">
+                <Button variant="outline" className="w-full" size="sm" onClick={() => toast({ title: "Workspace Management", description: `Managing ${workspace.name}...` })}>
                   Manage Workspace
                 </Button>
               </div>

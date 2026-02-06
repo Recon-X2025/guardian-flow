@@ -188,7 +188,7 @@ const ModelOrchestration = () => {
             <Database className="h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <Badge variant={systemConfig.db_mode === 'LOCAL_MONGODB' ? 'default' : 'secondary'}>
+            <Badge variant={systemConfig.db_mode === 'MONGODB_ATLAS' ? 'default' : 'secondary'}>
               {systemConfig.db_mode || 'RESTRICTED_DB'}
             </Badge>
             <p className="text-xs text-muted-foreground mt-2">
@@ -395,7 +395,7 @@ const ModelOrchestration = () => {
               <div>
                 <p className="font-medium text-sm">Auto-Detection</p>
                 <p className="text-xs text-muted-foreground">
-                  Automatically adapts to LOCAL_MONGODB or RESTRICTED_DB mode
+                  Automatically adapts to MONGODB_ATLAS or RESTRICTED_DB mode
                 </p>
               </div>
             </div>

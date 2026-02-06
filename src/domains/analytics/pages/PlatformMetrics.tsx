@@ -6,18 +6,26 @@ import { Badge } from '@/components/ui/badge';
 import { Activity, Zap, TrendingUp, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
+interface TelemetryRecord {
+  id: string;
+  execution_time_ms: number;
+  status: string;
+  created_at: string;
+}
+
 export default function PlatformMetrics() {
-  const { data: telemetry } = useQuery({
+  const { data: telemetry } = useQuery<TelemetryRecord[]>({
     queryKey: ['function-telemetry'],
     queryFn: async () => {
-      const { data, error } = await (apiClient as any)
+      const result = await apiClient
         .from('function_telemetry')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(1000);
-      
-      if (error) throw error;
-      return data;
+        .limit(1000)
+        .then();
+
+      if (result.error) throw result.error;
+      return result.data as TelemetryRecord[];
     },
   });
 

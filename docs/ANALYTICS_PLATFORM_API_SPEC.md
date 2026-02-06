@@ -300,18 +300,14 @@ Authorization: Bearer <token>
 
 {
   "workspace_id": "ws_7j3k9m2n4p",
-  "type": "postgresql",
+  "type": "mongodb",
   "name": "Production Database",
-  "description": "Main production PostgreSQL instance",
+  "description": "Main production MongoDB Atlas instance",
   "config": {
-    "host": "db.example.com",
-    "port": 5432,
+    "connection_uri": "mongodb+srv://user:password@cluster0.example.mongodb.net/",
     "database": "analytics_prod",
-    "username": "analytics_user",
-    "password": "encrypted_password",
     "ssl": {
-      "enabled": true,
-      "ca_cert": "-----BEGIN CERTIFICATE-----\n..."
+      "enabled": true
     },
     "connection_pool": {
       "min": 2,
@@ -328,15 +324,13 @@ Authorization: Bearer <token>
 {
   "id": "ds_8k4l0n3p5q",
   "workspace_id": "ws_7j3k9m2n4p",
-  "type": "postgresql",
+  "type": "mongodb",
   "name": "Production Database",
-  "description": "Main production PostgreSQL instance",
+  "description": "Main production MongoDB Atlas instance",
   "status": "connected",
   "config": {
-    "host": "db.example.com",
-    "port": 5432,
+    "connection_uri": "mongodb+srv://user:password@cluster0.example.mongodb.net/",
     "database": "analytics_prod",
-    "username": "analytics_user",
     "ssl": {
       "enabled": true
     }
@@ -363,9 +357,9 @@ Authorization: Bearer <token>
   "latency_ms": 45,
   "message": "Connection successful",
   "details": {
-    "server_version": "PostgreSQL 14.5",
-    "accessible_schemas": ["public", "analytics"],
-    "table_count": 42
+    "server_version": "MongoDB 7.0",
+    "accessible_databases": ["analytics_prod"],
+    "collection_count": 42
   }
 }
 ```
@@ -404,9 +398,15 @@ Authorization: Bearer <token>
   "destination_id": "ds_9m5n1p4r6s",
   "transformations": [
     {
-      "type": "sql",
+      "type": "aggregation",
       "name": "Filter Recent Data",
-      "query": "SELECT * FROM sales WHERE created_at > CURRENT_DATE - INTERVAL '1 day'"
+      "pipeline": [
+        {
+          "$match": {
+            "created_at": { "$gte": { "$subtract": [new Date(), 86400000] } }
+          }
+        }
+      ]
     },
     {
       "type": "python",
@@ -531,7 +531,8 @@ Authorization: Bearer <token>
   "framework": "scikit-learn",
   "dataset": {
     "source_id": "ds_8k4l0n3p5q",
-    "query": "SELECT * FROM customer_features WHERE created_at > '2025-01-01'",
+    "query": { "created_at": { "$gt": "2025-01-01" } },
+    "collection": "customer_features",
     "features": ["age", "tenure_days", "purchase_count", "last_login_days"],
     "target": "churned",
     "split": {
@@ -740,7 +741,8 @@ Authorization: Bearer <token>
       "type": "metric",
       "title": "Total Revenue",
       "data_source_id": "ds_8k4l0n3p5q",
-      "query": "SELECT SUM(amount) as total FROM orders WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'",
+      "query": { "created_at": { "$gte": { "$subtract": [new Date(), 2592000000] } } },
+      "aggregation": [{ "$group": { "_id": null, "total": { "$sum": "$amount" } } }],
       "visualization": {
         "type": "number",
         "format": "currency",
@@ -757,7 +759,11 @@ Authorization: Bearer <token>
       "type": "chart",
       "title": "Revenue Trend",
       "data_source_id": "ds_8k4l0n3p5q",
-      "query": "SELECT DATE(created_at) as date, SUM(amount) as revenue FROM orders WHERE created_at >= CURRENT_DATE - INTERVAL '90 days' GROUP BY DATE(created_at) ORDER BY date",
+      "aggregation": [
+        { "$match": { "created_at": { "$gte": { "$subtract": [new Date(), 7776000000] } } } },
+        { "$group": { "_id": { "$dateToString": { "format": "%Y-%m-%d", "date": "$created_at" } }, "revenue": { "$sum": "$amount" } } },
+        { "$sort": { "_id": 1 } }
+      ],
       "visualization": {
         "type": "line",
         "x_axis": "date",
@@ -806,7 +812,13 @@ Authorization: Bearer <token>
 {
   "workspace_id": "ws_7j3k9m2n4p",
   "data_source_id": "ds_8k4l0n3p5q",
-  "query": "SELECT customer_id, SUM(amount) as total_spend FROM orders WHERE created_at >= '2025-10-01' GROUP BY customer_id ORDER BY total_spend DESC LIMIT 10",
+  "collection": "orders",
+  "aggregation": [
+    { "$match": { "created_at": { "$gte": "2025-10-01" } } },
+    { "$group": { "_id": "$customer_id", "total_spend": { "$sum": "$amount" } } },
+    { "$sort": { "total_spend": -1 } },
+    { "$limit": 10 }
+  ],
   "parameters": {
     "start_date": "2025-10-01"
   },
@@ -851,8 +863,8 @@ Authorization: Bearer <token>
   "data_source_id": "ds_8k4l0n3p5q",
   "name": "Email Validation",
   "description": "Ensure all emails are valid format",
-  "table": "customers",
-  "column": "email",
+  "collection": "customers",
+  "field": "email",
   "rule_type": "regex",
   "rule_config": {
     "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
@@ -1126,14 +1138,11 @@ workspace = client.workspaces.create(
 # Add data source
 data_source = client.data_sources.create(
     workspace_id=workspace.id,
-    type="postgresql",
+    type="mongodb",
     name="Production DB",
     config={
-        "host": "db.example.com",
-        "port": 5432,
-        "database": "analytics",
-        "username": "user",
-        "password": "pass"
+        "connection_uri": "mongodb+srv://user:password@cluster0.example.mongodb.net/",
+        "database": "analytics"
     }
 )
 
@@ -1141,7 +1150,9 @@ data_source = client.data_sources.create(
 result = client.queries.execute(
     workspace_id=workspace.id,
     data_source_id=data_source.id,
-    query="SELECT * FROM users LIMIT 10"
+    collection="users",
+    query={},
+    limit=10
 )
 
 print(result.data)
@@ -1191,7 +1202,7 @@ API versioning is handled via the URL path (`/api/v1/...`). When breaking change
 ### Input Validation
 - Max request body size: 10 MB
 - Query timeout: 30 seconds (configurable per workspace)
-- SQL injection prevention via parameterized queries
+- NoSQL injection prevention via input validation
 - XSS prevention via input sanitization
 
 ### Encryption
@@ -1201,7 +1212,7 @@ API versioning is handled via the URL path (`/api/v1/...`). When breaking change
 
 ### Authorization
 - Workspace-level access control
-- Row-level security for data queries
+- Document-level security for data queries
 - API audit logging for compliance
 - IP whitelisting support (enterprise tier)
 

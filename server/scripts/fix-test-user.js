@@ -1,78 +1,72 @@
-import pg from 'pg';
+#!/usr/bin/env node
+import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
-import { randomUUID } from 'crypto';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const { Pool } = pg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '../.env') });
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'guardianflow',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/';
+const DB_NAME = process.env.DB_NAME || 'guardianflow';
 
 async function fix() {
+  const client = new MongoClient(MONGODB_URI);
   const email = 'admin@techcorp.com';
   const password = 'TestAdmin123!';
   const fullName = 'Test Admin';
 
   try {
-    // Get user from users table
-    const userResult = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    await client.connect();
+    const db = client.db(DB_NAME);
 
-    if (userResult.rows.length === 0) {
-      console.log('User not found in users table');
+    // Get user
+    const user = await db.collection('users').findOne({ email });
+    if (!user) {
+      console.log('User not found in users collection');
       return;
     }
 
-    const userId = userResult.rows[0].id;
+    const userId = user.id;
     console.log('User ID:', userId);
 
     // Check if profile exists
-    const profileResult = await pool.query('SELECT id FROM profiles WHERE id = $1', [userId]);
-
-    if (profileResult.rows.length === 0) {
+    const profile = await db.collection('profiles').findOne({ id: userId });
+    if (!profile) {
       console.log('Profile not found, creating...');
-      await pool.query(
-        `INSERT INTO profiles (id, email, full_name, created_at) VALUES ($1, $2, $3, now())`,
-        [userId, email, fullName]
-      );
+      await db.collection('profiles').insertOne({ id: userId, email, full_name: fullName, created_at: new Date() });
       console.log('Profile created');
     } else {
       console.log('Profile exists');
     }
 
     // Check roles
-    const rolesResult = await pool.query('SELECT * FROM user_roles WHERE user_id = $1', [userId]);
-    console.log('Current roles:', rolesResult.rows);
+    const roles = await db.collection('user_roles').find({ user_id: userId }).toArray();
+    console.log('Current roles:', roles);
 
-    if (rolesResult.rows.length === 0) {
+    if (roles.length === 0) {
       console.log('No roles, adding sys_admin...');
-      await pool.query(
-        `INSERT INTO user_roles (user_id, role, created_at) VALUES ($1, 'sys_admin', now())`,
-        [userId]
-      );
+      await db.collection('user_roles').insertOne({ user_id: userId, role: 'sys_admin', created_at: new Date() });
       console.log('Role added');
     }
 
-    // Update password to be sure
+    // Update password
     const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, userId]);
+    await db.collection('users').updateOne({ id: userId }, { $set: { password_hash: hashedPassword } });
     console.log('Password updated');
 
     // Final verification
-    const finalRoles = await pool.query('SELECT * FROM user_roles WHERE user_id = $1', [userId]);
-    console.log('Final roles:', finalRoles.rows);
+    const finalRoles = await db.collection('user_roles').find({ user_id: userId }).toArray();
+    console.log('Final roles:', finalRoles);
 
     console.log('\nSUCCESS: Test user ready');
     console.log('Email:', email);
-    console.log('Password:', password);
-
   } catch (err) {
     console.error('Error:', err.message);
   } finally {
-    await pool.end();
+    await client.close();
   }
 }
 

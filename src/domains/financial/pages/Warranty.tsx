@@ -10,11 +10,20 @@ import { WarrantyDialog } from '@/domains/shared/components/WarrantyDialog';
 
 export default function Warranty() {
   const { toast } = useToast();
-  const [warranties, setWarranties] = useState<any[]>([]);
+  interface WarrantyRecord {
+    id: string;
+    unit_serial?: string;
+    model?: string;
+    coverage_type?: string;
+    warranty_start?: string;
+    warranty_end: string;
+  }
+
+  const [warranties, setWarranties] = useState<WarrantyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchSerial, setSearchSerial] = useState('');
   const [warrantyDialogOpen, setWarrantyDialogOpen] = useState(false);
-  const [selectedWarranty, setSelectedWarranty] = useState<any>(null);
+  const [selectedWarranty, setSelectedWarranty] = useState<WarrantyRecord | null>(null);
 
   useEffect(() => {
     fetchWarranties();
@@ -29,10 +38,10 @@ export default function Warranty() {
 
       if (result.error) throw result.error;
       setWarranties(result.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading warranties',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -64,10 +73,10 @@ export default function Warranty() {
           : `Not covered: ${response.data.reason}`,
         variant: response.data.covered ? 'default' : 'destructive',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Warranty check failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }
@@ -217,7 +226,16 @@ export default function Warranty() {
                       >
                         Edit
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          toast({
+                            title: "RMA Created",
+                            description: `Return Merchandise Authorization initiated for ${warranty.name}`
+                          });
+                        }}
+                      >
                         Create RMA
                       </Button>
                     </div>

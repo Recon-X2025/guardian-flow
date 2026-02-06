@@ -67,7 +67,7 @@ export async function optimizeRoutes(technicianIds, date) {
       // If no GPS, try to get from ticket
       if (!lat || !lon) {
         try {
-          const ticket = wo.ticket_id ? await (await import('../../db/query.js')).findOne('tickets', { _id: wo.ticket_id }) : null;
+          const ticket = wo.ticket_id ? await (await import('../../db/query.js')).findOne('tickets', { id: wo.ticket_id }) : null;
           lat = ticket?.lat || ticket?.check_in_latitude;
           lon = ticket?.lon || ticket?.check_in_longitude;
         } catch (e) { /* skip */ }
@@ -76,14 +76,14 @@ export async function optimizeRoutes(technicianIds, date) {
       // If still no coords, use a deterministic pseudo-location based on ID hash
       if (!lat || !lon) {
         let hash = 0;
-        const id = wo._id || '';
+        const id = wo.id || '';
         for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
         lat = 28.6 + (hash & 0xFF) / 256 * 2; // ~Delhi area spread
         lon = 77.2 + ((hash >> 8) & 0xFF) / 256 * 2;
       }
 
       stops.push({
-        work_order_id: wo._id,
+        work_order_id: wo.id,
         wo_number: wo.wo_number,
         lat: parseFloat(lat),
         lon: parseFloat(lon),

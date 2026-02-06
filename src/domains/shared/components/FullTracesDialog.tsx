@@ -11,10 +11,23 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Activity, MapPin, Monitor, Clock, User, Shield } from "lucide-react";
 import { format } from "date-fns";
 
+interface AuditLog {
+  id: string;
+  action: string;
+  user_id?: string;
+  resource_type?: string;
+  resource_id?: string;
+  details?: Record<string, unknown>;
+  created_at: string;
+  ip_address?: string;
+  user_agent?: string;
+  correlation_id?: string;
+}
+
 interface FullTracesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  logs: any[];
+  logs: AuditLog[];
 }
 
 export function FullTracesDialog({ open, onOpenChange, logs }: FullTracesDialogProps) {

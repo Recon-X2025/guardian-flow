@@ -10,14 +10,34 @@ import { useCurrency } from '@/domains/shared/hooks/useCurrency';
 import { AddInventoryItemDialog } from '@/domains/inventory/components/AddInventoryItemDialog';
 import { StockAdjustmentDialog } from '@/domains/inventory/components/StockAdjustmentDialog';
 
+// Type definitions
+interface StockLevel {
+  id: string;
+  item_id: string;
+  qty_available: number;
+  qty_reserved: number;
+  min_threshold?: number;
+  warehouse_id?: string;
+}
+
+interface InventoryItem {
+  id: string;
+  sku: string;
+  description?: string;
+  unit_price?: number;
+  lead_time_days?: number;
+  consumable?: boolean;
+  stock_levels?: StockLevel[];
+}
+
 export default function Inventory() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
-  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
   useEffect(() => {
     fetchInventory();
@@ -31,43 +51,43 @@ export default function Inventory() {
         .order('description', { ascending: true });
       
       if (itemsResult.error) throw itemsResult.error;
-      let items = itemsResult.data || [];
-      
+      let items = (itemsResult.data || []) as InventoryItem[];
+
       // Filter client-side for complex conditions
-      items = items.filter((item: any) => {
+      items = items.filter((item) => {
         const sku = item.sku?.toLowerCase() || '';
         const desc = item.description?.toLowerCase() || '';
-        
+
         // Include items matching patterns
-        const matchesInclude = 
+        const matchesInclude =
           sku.startsWith('pc-') || sku.startsWith('pr-') || sku.startsWith('prn-') || sku.startsWith('mfp-') ||
           desc.includes('printer') || desc.includes('toner') || desc.includes('ink') ||
           desc.includes('cartridge') || desc.includes('drum') || desc.includes('laser') ||
           desc.includes('desktop') || desc.includes('laptop') || desc.includes('monitor');
-        
+
         // Exclude items matching patterns
-        const matchesExclude = 
-          desc.includes('hvac') || sku.includes('hvac') || 
-          sku.startsWith('elec-') || sku.startsWith('plmb-') || 
+        const matchesExclude =
+          desc.includes('hvac') || sku.includes('hvac') ||
+          sku.startsWith('elec-') || sku.startsWith('plmb-') ||
           sku.startsWith('comp-') || sku.startsWith('ref-');
-        
+
         return matchesInclude && !matchesExclude;
       });
-      
+
       // Fetch stock levels separately and merge
       const stockResult = await apiClient.from('stock_levels').select('*');
-      const stockLevels = stockResult.data || [];
-      
-      const itemsWithStock = items.map((item: any) => ({
+      const stockLevels = (stockResult.data || []) as StockLevel[];
+
+      const itemsWithStock: InventoryItem[] = items.map((item) => ({
         ...item,
-        stock_levels: stockLevels.filter((sl: any) => sl.item_id === item.id)
+        stock_levels: stockLevels.filter((sl) => sl.item_id === item.id)
       }));
-      
+
       setInventoryItems(itemsWithStock);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading inventory',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -75,14 +95,14 @@ export default function Inventory() {
     }
   };
 
-  const getTotalStock = (item: any) => {
+  const getTotalStock = (item: InventoryItem) => {
     if (!item.stock_levels) return 0;
-    return item.stock_levels.reduce((total: number, level: any) => 
+    return item.stock_levels.reduce((total: number, level) =>
       total + (level.qty_available - level.qty_reserved), 0
     );
   };
 
-  const isLowStock = (item: any) => {
+  const isLowStock = (item: InventoryItem) => {
     const totalStock = getTotalStock(item);
     const minThreshold = item.stock_levels?.[0]?.min_threshold || 10;
     return totalStock < minThreshold;
@@ -209,7 +229,11 @@ export default function Inventory() {
                         <Package className="h-4 w-4 mr-1" />
                         Adjust Stock
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toast({ title: item.name, description: `SKU: ${item.sku} | Qty: ${item.quantity} | Reorder: ${item.reorder_level}` })}
+                      >
                         View Details
                       </Button>
                     </div>

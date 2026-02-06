@@ -6,12 +6,12 @@ This document describes the backend-first RBAC and tenant isolation implementati
 ## Architecture
 
 ### 1. Central Permission Store
-- **Permissions table**: Stores all system permissions with categories
-- **Role-Permissions mapping**: Links roles to permissions via `role_permissions` table
-- **User-Roles mapping**: Assigns roles to users via `user_roles` table with tenant context
+- **Permissions collection**: Stores all system permissions with categories
+- **Role-Permissions mapping**: Links roles to permissions via `role_permissions` collection
+- **User-Roles mapping**: Assigns roles to users via `user_roles` collection with tenant context
 
 ### 2. JWT Middleware & Auth Context
-- **Edge Functions**: All protected functions use `validateAuth()` from `_shared/auth.ts`
+- **API Middleware**: All protected endpoints use JWT authentication middleware
 - **Auth Context**: Contains user ID, email, roles, permissions, and tenant_id
 - **Token Validation**: JWT tokens validated on every API request
 
@@ -40,30 +40,38 @@ This document describes the backend-first RBAC and tenant isolation implementati
 - **Protected Actions**: `<ProtectedAction>` component disables UI based on permissions
 - **Route Guards**: `<RoleGuard>` protects entire routes by role
 
-## Row-Level Security (RLS) Policies
+## Application-Level Tenant Isolation
 
 ### Tenant Isolation Strategy
-All multi-tenant tables enforce tenant isolation via RLS policies using the pattern:
+All multi-tenant collections enforce tenant isolation at the application layer:
 
-```sql
-CREATE POLICY "Users view own tenant data"
-ON public.table_name FOR SELECT
-USING (
-  CASE
-    WHEN has_any_role(auth.uid(), ARRAY['sys_admin', 'tenant_admin']) THEN true
-    WHEN has_role(auth.uid(), 'partner_admin') THEN (
-      EXISTS (
-        SELECT 1 FROM profiles
-        WHERE profiles.id = auth.uid() 
-        AND profiles.tenant_id = table_name.tenant_id
-      )
-    )
-    ELSE auth.role() = 'authenticated'
-  END
-);
+```javascript
+// Example tenant filtering in query
+async function getTickets(userId, tenantId) {
+  const user = await getUserWithRoles(userId);
+
+  // System and tenant admins see all data for their tenant
+  if (user.roles.includes('sys_admin') || user.roles.includes('tenant_admin')) {
+    return db.collection('tickets').find({ tenant_id: tenantId });
+  }
+
+  // Partner admins see only their tenant's data
+  if (user.roles.includes('partner_admin')) {
+    return db.collection('tickets').find({
+      tenant_id: tenantId,
+      customer_id: user.id
+    });
+  }
+
+  // Default authenticated user view
+  return db.collection('tickets').find({
+    tenant_id: tenantId,
+    assigned_to: user.id
+  });
+}
 ```
 
-### Tables with Tenant Isolation
+### Collections with Tenant Isolation
 1. **tickets**: Partner admins see only their tenant's tickets
 2. **work_orders**: Scoped by technician's tenant_id
 3. **invoices**: Filtered by customer tenant_id
@@ -73,12 +81,12 @@ USING (
 7. **penalty_applications**: Scoped to work order tenant
 8. **audit_logs**: Filtered by tenant_id
 
-### Security Definer Functions
-To prevent infinite recursion in RLS, these functions use `SECURITY DEFINER`:
-- `has_role(user_id, role)`: Checks if user has specific role
-- `has_any_role(user_id, roles[])`: Checks if user has any of specified roles
-- `has_permission(user_id, permission)`: Checks if user has permission
-- `has_any_permission(user_id, permissions[])`: Checks if user has any permission
+### Authorization Helper Functions
+Application-level helpers for role and permission checking:
+- `hasRole(user, role)`: Checks if user has specific role
+- `hasAnyRole(user, roles[])`: Checks if user has any of specified roles
+- `hasPermission(user, permission)`: Checks if user has permission
+- `hasAnyPermission(user, permissions[])`: Checks if user has any permission
 
 ## Error Handling
 
@@ -115,12 +123,12 @@ Tests cover:
 5. **Auth/me validation**: Endpoint returns correct tenant context
 
 ### Database Test Function
-Function: `public.test_tenant_isolation()`
+Function: `testTenantIsolation()`
 
 Creates test tenants and validates:
 - Tenant creation
-- Data isolation at DB level
-- RLS policy enforcement
+- Data isolation at application level
+- Middleware enforcement
 
 ## Module Visibility by Role
 
@@ -159,22 +167,22 @@ Creates test tenants and validates:
 ## API Authorization Flow
 
 1. **Client Request**: Frontend includes JWT token in Authorization header
-2. **Edge Function**: Calls `validateAuth(req, { requiredPermissions: [...] })`
-3. **Validation**: 
+2. **API Middleware**: Validates authentication via `authenticateToken` middleware
+3. **Validation**:
    - Verifies JWT token
-   - Fetches user roles from `user_roles` table
-   - Fetches permissions from `role_permissions` table
+   - Fetches user roles from `user_roles` collection
+   - Fetches permissions from `role_permissions` collection
    - Checks required permissions/roles
 4. **Response**:
    - Success: Returns auth context with user, roles, permissions, tenant_id
    - Failure: Returns standardized error with correlation ID
-5. **RLS Enforcement**: Database queries automatically filtered by tenant via RLS policies
+5. **Query Filtering**: Database queries filtered by tenant_id at application layer
 
 ## Audit Logging
 
 All sensitive operations are logged via `logAuditEvent()`:
 ```typescript
-await logAuditEvent(supabase, {
+await logAuditEvent(db, {
   userId: context.user.id,
   action: 'workorder.release.override',
   resourceType: 'work_order',
@@ -190,7 +198,7 @@ await logAuditEvent(supabase, {
 ## Deployment Checklist
 
 - [x] Auth/me endpoint deployed
-- [x] RLS policies applied to all tenant tables
+- [x] Tenant isolation middleware applied to all routes
 - [x] Frontend RBACContext integrated
 - [x] Standardized error responses with correlation IDs
 - [x] Tenant isolation tests passing
@@ -213,8 +221,8 @@ await logAuditEvent(supabase, {
 
 ## Security Best Practices
 
-1. **Never store roles in profiles table** - Use dedicated `user_roles` table
-2. **Always use SECURITY DEFINER for role checks** - Prevents RLS recursion
+1. **Never store roles in profiles collection** - Use dedicated `user_roles` collection
+2. **Always filter by tenant_id in queries** - Prevents data leakage across tenants
 3. **Include correlation IDs in all API responses** - Essential for debugging
 4. **Validate permissions on backend** - Never trust frontend checks alone
 5. **Audit all privilege escalations** - Log role grants/removals

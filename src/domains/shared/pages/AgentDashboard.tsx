@@ -15,6 +15,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+interface AgentConfig {
+  [key: string]: unknown;
+}
+
 interface Agent {
   agent_id: string;
   name: string;
@@ -22,7 +26,7 @@ interface Agent {
   goal: string;
   status: string;
   capabilities: string[];
-  config: any;
+  config: AgentConfig;
 }
 
 interface AgentStatus {
@@ -35,11 +39,19 @@ interface AgentStatus {
   avg_execution_time_ms: number;
 }
 
+interface AgentAction {
+  id: string;
+  action_type: string;
+  status: string;
+  created_at: string;
+  execution_time_ms?: number;
+}
+
 const AgentDashboard = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
-  const [recentActions, setRecentActions] = useState<any[]>([]);
+  const [recentActions, setRecentActions] = useState<AgentAction[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -49,21 +61,21 @@ const AgentDashboard = () => {
 
   const loadAgents = async () => {
     try {
-      const { data, error } = await (apiClient as any)
+      const { data, error } = await apiClient
         .from('agent_registry')
         .select('*')
         .order('created_at', { ascending: true });
 
-      if (result.error) throw result.error;
+      if (error) throw error;
       setAgents((data || []) as Agent[]);
       if (data && data.length > 0) {
         setSelectedAgent(data[0] as Agent);
         loadAgentStatus(data[0].agent_id);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading agents",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -81,9 +93,10 @@ const AgentDashboard = () => {
       });
 
       if (result.error) throw result.error;
-      setAgentStatus(data.status);
-      setRecentActions(data.recent_actions || []);
-    } catch (error: any) {
+      const data = result.data as { status?: AgentStatus; recent_actions?: AgentAction[] };
+      if (data?.status) setAgentStatus(data.status);
+      setRecentActions((data?.recent_actions || []) as AgentAction[]);
+    } catch (error: unknown) {
       console.error('Error loading agent status:', error);
     }
   };
@@ -111,10 +124,10 @@ const AgentDashboard = () => {
       if (selectedAgent?.agent_id === agentId) {
         loadAgentStatus(agentId);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error toggling agent",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }

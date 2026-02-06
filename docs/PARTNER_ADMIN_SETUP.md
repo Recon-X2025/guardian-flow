@@ -41,8 +41,8 @@ The system now supports **4 distinct partner organizations**, each with isolated
 
 ## Tenant Isolation Enforcement
 
-### Database Level (RLS Policies)
-Partner admins have restricted access via Row-Level Security policies:
+### Database Level (Tenant Isolation Policies)
+Partner admins have restricted access via application-level tenant isolation policies:
 
 1. **Invoices**: Can only view invoices for work done by their tenant's engineers
 2. **Work Orders**: Can only view work orders assigned to their tenant's engineers
@@ -50,7 +50,7 @@ Partner admins have restricted access via Row-Level Security policies:
 4. **Audit Logs**: Can only view audit logs for their tenant
 
 ### API Level
-All edge functions enforce tenant isolation:
+All Express.js route handlers enforce tenant isolation:
 - Partner admins' API calls automatically filter by `tenant_id`
 - Cross-tenant data leaks are prevented at the database query level
 - Unauthorized access attempts are logged in audit trails
@@ -72,7 +72,7 @@ Click the "Seed Test Accounts" button on the auth page to create all 4 partner a
 If you need to add individual accounts:
 
 ```sql
--- 1. Create user in auth (via Supabase Dashboard or API)
+-- 1. Create user in auth (via Admin Dashboard or API)
 -- 2. Link to tenant in profiles table
 UPDATE public.profiles
 SET tenant_id = (SELECT id FROM public.tenants WHERE slug = 'servicepro')
@@ -155,7 +155,7 @@ Tenant (Partner Org)
 1. User authenticates → JWT issued with `tenant_id` claim
 2. Frontend loads → `useRBAC()` hook fetches user's roles + tenant
 3. API call made → Edge function validates `tenant_id` from JWT
-4. Database query → RLS policy enforces tenant filter
+4. Database query → Tenant isolation policy enforces tenant filter
 5. Response returned → Only tenant-scoped data
 
 ### Audit Trail
@@ -197,7 +197,7 @@ AND ur.role = 'technician';
 **This is a critical security issue!**
 
 **Immediate Action:**
-1. Check RLS policies are enabled: `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public';`
+1. Check tenant isolation policies are enabled via the admin dashboard
 2. Review and reapply tenant isolation policies
 3. Check audit logs for unauthorized access
 4. Rotate credentials if data breach suspected
@@ -216,7 +216,7 @@ Run the seed function again - it's idempotent and will:
 ### Before Going Live:
 1. **Change all default passwords** - especially partner admin passwords
 2. **Enable MFA** for partner admin accounts
-3. **Review RLS policies** - ensure no gaps in tenant isolation
+3. **Review tenant isolation policies** - ensure no gaps in tenant isolation
 4. **Test cross-tenant access** - attempt to breach isolation from multiple angles
 5. **Set up monitoring** - alert on 403 errors and unauthorized access attempts
 6. **Document partner onboarding** - process for adding new partners
@@ -235,6 +235,6 @@ Run the seed function again - it's idempotent and will:
 
 For issues with partner admin access or tenant isolation:
 1. Check audit logs: `SELECT * FROM audit_logs WHERE tenant_id = '<tenant_id>' ORDER BY created_at DESC;`
-2. Review RLS policies: `\d+ <table_name>` in psql
+2. Review tenant isolation policies: inspect collection in mongosh
 3. Test with multiple partner accounts simultaneously
 4. Contact system administrator if cross-tenant data leak is suspected

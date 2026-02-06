@@ -53,16 +53,16 @@ The following 19 new tables are defined but not yet created:
 
 3. **src/pages/MarketplaceManagement.tsx** - No direct errors (using existing tables)
 
-**Resolution:** Errors will auto-resolve once migration is approved and Supabase types regenerate.
+**Resolution:** Errors will auto-resolve once migration is approved and TypeScript types regenerate.
 
 ---
 
 ## 🟡 INCOMPLETE FEATURES
 
-### 1. Edge Functions
+### 1. Express.js Route Handlers
 
 #### ✅ Deployed & Operational (70+ functions)
-All existing edge functions are deployed and functional:
+All existing Express.js route handlers are deployed and functional:
 - Authentication: `auth-me`, `request-mfa`, `verify-mfa`
 - Work Orders: `create-demo-workorders`, `release-work-order`, `complete-work-order`
 - Analytics: `analytics-aggregator`, `analytics-export`, `analytics-report`
@@ -78,7 +78,7 @@ All existing edge functions are deployed and functional:
   - `workflow_executions`
   - `work_orders` (exists, but needs workflow_config column from migration)
 
-### 2. Missing Edge Functions (Documented but Not Implemented)
+### 2. Missing Express.js Route Handlers (Documented but Not Implemented)
 
 Based on GUARDIAN_FLOW_PLATFORM_TRANSFORMATION.md:
 
@@ -195,8 +195,8 @@ Most other instances are legitimate UI placeholders (input fields, select dropdo
 |----------|--------|-------|
 | **Database Tables** | Operational | 50+ |
 | **Database Tables** | Pending Creation | 19 |
-| **Edge Functions** | Operational | 70+ |
-| **Edge Functions** | Incomplete | 8 |
+| **Express.js Route Handlers** | Operational | 70+ |
+| **Express.js Route Handlers** | Incomplete | 8 |
 | **UI Pages** | Fully Functional | 50+ |
 | **UI Pages** | Awaiting Backend | 3 |
 | **Build Errors** | TypeScript | 17 |
@@ -211,7 +211,7 @@ Most other instances are legitimate UI placeholders (input fields, select dropdo
 **Impact:** Enables Phase 1 platform transformation features  
 **Time:** < 5 minutes  
 
-### Step 2: Deploy Priority Edge Functions
+### Step 2: Deploy Priority Express.js Route Handlers
 After migration approval, implement in order:
 
 1. **API Gateway Enhancement** (2-3 hours)
@@ -256,7 +256,7 @@ After migration approval, implement in order:
 ## 🔒 SECURITY & COMPLIANCE
 
 ### ✅ Implemented
-- Row-Level Security (RLS) on all tables
+- Application-Level Tenant Isolation on all tables
 - Role-Based Access Control (RBAC)
 - Audit logging
 - MFA for sensitive operations
@@ -274,7 +274,7 @@ After migration approval, implement in order:
 ## 📈 PLATFORM MATURITY
 
 **Current State:** 85% Complete  
-**Phase 1 Target:** 95% Complete (after migration + 5 edge functions)  
+**Phase 1 Target:** 95% Complete (after migration + 5 Express.js route handlers)  
 **Production Ready:** 90% (missing advanced features are non-blocking)
 
 ### What's Working
@@ -303,7 +303,7 @@ After migration approval, implement in order:
 
 **Next Steps:**
 1. ✅ Approve database migration
-2. 🔄 Implement 5 priority edge functions
+2. 🔄 Implement 5 priority Express.js route handlers
 3. 🧪 Run integration tests
 4. 📚 Update API documentation
 5. 🎉 Launch Phase 1 features

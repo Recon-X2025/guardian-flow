@@ -19,7 +19,7 @@ When a work order is released, the system automatically:
   - `out_of_warranty` = At-Cost Repair (customer pays)
 - Visual badge shows repair type on Work Orders page
 
-**Edge Function:** `release-work-order`
+**Express.js Route Handler:** `release-work-order`
 - Reads warranty result from work_order_prechecks
 - Sets repair_type based on warranty coverage
 - Logs assignment type in audit trail
@@ -37,7 +37,7 @@ Before an engineer can mark a work order as completed, the system validates:
 - If parts were reserved, inventory status must be 'passed'
 - Ensures parts were actually used/consumed
 
-**Edge Function:** `complete-work-order`
+**Express.js Route Handler:** `complete-work-order`
 - Validates all prechecks before allowing completion
 - Returns specific error if photos or parts validation incomplete
 - Logs completion in audit trail
@@ -94,4 +94,4 @@ VALUES ('workorders.complete', 'Complete work orders after validation', 'workord
 
 ## Security Note
 The security linter detected that leaked password protection is disabled in Auth settings. This is a pre-existing configuration and should be enabled for production use:
-https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+Refer to auth configuration documentation for password strength and leaked password protection settings.

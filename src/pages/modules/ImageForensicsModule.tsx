@@ -76,7 +76,7 @@ export default function ImageForensicsModule() {
           continue;
         }
 
-        // Invoke forensics analysis edge function
+        // Invoke forensics analysis API endpoint
         const result = await apiClient.functions.invoke("analyze-image-forensics", {
           body: { 
             filePath: fileName,
@@ -103,7 +103,7 @@ export default function ImageForensicsModule() {
           toast.success("All images appear authentic");
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Forensics error:", error);
       toast.error("Image analysis failed");
     } finally {

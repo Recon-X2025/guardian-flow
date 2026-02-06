@@ -198,7 +198,7 @@ export function AnalyticsCompliance() {
                     <span>Last reviewed: {new Date().toLocaleDateString()}</span>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => toast({ title: "Compliance Evidence", description: `${control.evidence} artifacts available for ${control.name}` })}>
                   View Evidence
                 </Button>
               </div>

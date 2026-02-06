@@ -114,7 +114,7 @@ test.describe('Tenant Isolation Tests', () => {
     await page.goto(`${STAGING_URL}/work-orders`);
     await page.goto(`${STAGING_URL}/invoices`);
     
-    // Note: If RLS is working correctly, we shouldn't see 403s
+    // Note: If tenant isolation is working correctly, we shouldn't see 403s
     // because the backend simply filters data. This test validates
     // that IF a 403 occurs, it has proper correlation ID.
   });

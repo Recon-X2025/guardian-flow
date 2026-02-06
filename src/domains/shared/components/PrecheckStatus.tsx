@@ -6,14 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/domains/shared/hooks/use-toast";
 import { CheckCircle2, XCircle, Loader2, AlertTriangle, Shield } from "lucide-react";
-import { MFADialog } from "./MFADialog";
+import { MFADialog } from "@/domains/auth/components/MFADialog";
 
 interface PrecheckStatusProps {
   workOrderId: string;
 }
 
 export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
-  const [precheck, setPrecheck] = useState<any>(null);
+  const [precheck, setPrecheck] = useState<{ inventory_status?: string; warranty_status?: string; photo_status?: string; can_release?: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
@@ -31,7 +31,7 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
 
       if (error) throw error;
       setPrecheck(data?.[0] || null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Precheck fetch error:', error);
     }
   };
@@ -59,10 +59,10 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
       });
 
       fetchPrecheck();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Precheck Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -88,10 +88,10 @@ export function PrecheckStatus({ workOrderId }: PrecheckStatusProps) {
 
       toast({ title: "Override Applied", description: "Work order can now be released" });
       fetchPrecheck();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Override Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }

@@ -14,7 +14,7 @@
 - **Port:** 5175 (as requested)
 - **PID:** Running in background
 
-### Backend (Express.js + PostgreSQL)
+### Backend (Express.js + MongoDB Atlas)
 - **Status:** ✅ Running
 - **URL:** http://localhost:3001
 - **Port:** 3001

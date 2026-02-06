@@ -10,16 +10,33 @@ import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/domains/shared/hooks/use-toast";
 import jsPDF from 'jspdf';
 
+interface InvoiceRecord {
+  id: string;
+  invoice_number?: string;
+  status?: string;
+  created_at: string;
+  payment_received_at?: string;
+  payment_status?: string;
+  payment_amount?: number | string;
+  subtotal?: number | string;
+  penalties?: number | string;
+  total_amount?: number | string;
+  hold_reason?: string;
+  work_orders?: {
+    wo_number?: string;
+  };
+}
+
 interface InvoiceDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  invoice: any;
+  invoice: InvoiceRecord | null;
 }
 
 export function InvoiceDetailDialog({ open, onOpenChange, invoice }: InvoiceDetailDialogProps) {
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
-  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<{ id: string; payment_amount?: number | string; payment_status?: string; payment_date?: string; payment_method?: string; payment_reference?: string; notes?: string; processed_by_name?: string }[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
@@ -46,11 +63,11 @@ export function InvoiceDetailDialog({ open, onOpenChange, invoice }: InvoiceDeta
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching payment history:', error);
       toast({
         title: "Error loading payment history",
-        description: error.message || "Failed to load payment history",
+        description: error instanceof Error ? error.message : "Failed to load payment history",
         variant: "destructive",
       });
     } finally {
@@ -59,7 +76,7 @@ export function InvoiceDetailDialog({ open, onOpenChange, invoice }: InvoiceDeta
   };
 
   const getPaymentStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; className: string; icon: any }> = {
+    const statusConfig: Record<string, { label: string; className: string; icon: React.ElementType }> = {
       pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800', icon: Clock },
       paid: { label: 'Paid', className: 'bg-green-100 text-green-800', icon: CheckCircle2 },
       partial: { label: 'Partial', className: 'bg-blue-100 text-blue-800', icon: Clock },

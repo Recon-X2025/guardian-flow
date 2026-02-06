@@ -646,7 +646,7 @@
 **Features:**
 - Tenant creation and onboarding
 - Custom branding per tenant
-- Data isolation (RLS enforcement)
+- Data isolation (tenant isolation enforcement)
 - Tenant-level configuration
 - Usage analytics per tenant
 - Sandbox tenant creation for testing

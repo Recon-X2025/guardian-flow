@@ -8,6 +8,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Store, Package, DollarSign, TrendingUp, Users, CheckCircle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
+interface MarketplaceExtension {
+  id: string;
+  extension_name: string;
+  status: string;
+  install_count?: number;
+  created_at: string;
+}
+
+interface ExtensionInstallation {
+  id: string;
+  extension_id: string;
+  installed_at: string;
+  extension?: MarketplaceExtension;
+}
+
+interface MarketplaceTransaction {
+  id: string;
+  extension_id: string;
+  amount: string | number;
+  created_at: string;
+  extension?: MarketplaceExtension;
+}
+
 export default function MarketplaceManagement() {
   const { data: extensions = [] } = useQuery({
     queryKey: ["marketplace-extensions"],
@@ -39,9 +62,9 @@ export default function MarketplaceManagement() {
       const extResult = await apiClient.from("marketplace_extensions").select("*");
       const extensions = extResult.data || [];
       
-      return installations.map((inst: any) => ({
+      return installations.map((inst: ExtensionInstallation) => ({
         ...inst,
-        extension: extensions.find((ext: any) => ext.id === inst.extension_id)
+        extension: extensions.find((ext: MarketplaceExtension) => ext.id === inst.extension_id)
       }));
     },
   });
@@ -63,9 +86,9 @@ export default function MarketplaceManagement() {
       const extResult = await apiClient.from("marketplace_extensions").select("*");
       const extensions = extResult.data || [];
       
-      return transactions.map((trans: any) => ({
+      return transactions.map((trans: MarketplaceTransaction) => ({
         ...trans,
-        extension: extensions.find((ext: any) => ext.id === trans.extension_id)
+        extension: extensions.find((ext: MarketplaceExtension) => ext.id === trans.extension_id)
       }));
     },
   });
@@ -171,7 +194,7 @@ export default function MarketplaceManagement() {
                     All extensions available on the marketplace
                   </CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => toast({ title: "Submit Extension", description: "Extension submission form coming soon" })}>
                   <Store className="h-4 w-4 mr-2" />
                   Submit Extension
                 </Button>
@@ -224,7 +247,7 @@ export default function MarketplaceManagement() {
                       </TableCell>
                       <TableCell>{getStatusBadge(ext.status)}</TableCell>
                       <TableCell>
-                        <Button size="sm" variant="ghost">View</Button>
+                        <Button size="sm" variant="ghost" onClick={() => toast({ title: ext.name, description: ext.description })}>View</Button>
                       </TableCell>
                     </TableRow>
                   ))}

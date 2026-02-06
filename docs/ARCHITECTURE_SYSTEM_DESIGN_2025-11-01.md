@@ -64,7 +64,7 @@ graph TB
         ORCHESTRATOR[Agent Orchestrator]
     end
     
-    subgraph "Edge Functions"
+    subgraph "Express.js Route Handlers"
         WO_MGT[Work Order Mgmt]
         COMPLIANCE[Compliance Suite]
         FORECAST_ENGINE[Forecast Engine]
@@ -73,7 +73,7 @@ graph TB
     end
     
     subgraph "Data Layer"
-        POSTGRES[(PostgreSQL)]
+        POSTGRES[(MongoDB Atlas)]
         STORAGE[File Storage]
         CACHE[Redis Cache]
     end
@@ -156,13 +156,13 @@ App
 
 ### Backend Components
 
-**Edge Functions Architecture**
+**Express.js Route Handlers Architecture**
 - **API Gateway**: Central routing and authentication
 - **Agent Services**: Domain-specific business logic
 - **Worker Functions**: Background job processing
 - **Utility Functions**: Shared helper functions
 
-**Edge Function Categories**
+**Express.js Route Handler Categories**
 1. **Core Operations**: Work orders, dispatch, scheduling
 2. **Financial**: Invoicing, penalties, billing
 3. **Compliance**: Audit logs, access control, evidence
@@ -202,7 +202,7 @@ sequenceDiagram
 ```mermaid
 graph LR
     EVENT[Event Source] --> TRIGGER[Database Trigger]
-    TRIGGER --> FUNCTION[Edge Function]
+    TRIGGER --> FUNCTION[Express.js Route Handler]
     FUNCTION --> PROCESS[Process Event]
     PROCESS --> NOTIFY[Send Notification]
     PROCESS --> LOG[Audit Log]
@@ -213,8 +213,8 @@ graph LR
 
 ```mermaid
 graph TB
-    CLIENT[Client App] -->|Mutation| POSTGRES[PostgreSQL]
-    POSTGRES -->|Real-time| CHANNEL[Supabase Realtime]
+    CLIENT[Client App] -->|Mutation| POSTGRES[MongoDB Atlas]
+    POSTGRES -->|Real-time| CHANNEL[WebSocket]
     CHANNEL -->|Subscribe| CLIENT
     POSTGRES -->|Backup| ARCHIVE[Archive Storage]
     POSTGRES -->|Analytics| DW[Data Warehouse]
@@ -228,7 +228,7 @@ graph TB
 
 **Database-Level Isolation**
 - Every table includes `tenant_id` column
-- Row-Level Security (RLS) policies enforce isolation
+- Application-Level Tenant Isolation policies enforce isolation
 - No cross-tenant queries possible
 - Automated enforcement via database constraints
 
@@ -244,10 +244,10 @@ Platform
     └── Financial Records
 ```
 
-### RLS Policy Pattern
+### Tenant Isolation Pattern
 
 ```sql
--- Example RLS Policy
+-- Example Tenant Isolation Policy
 CREATE POLICY "tenant_isolation"
 ON public.work_orders
 FOR ALL
@@ -424,7 +424,7 @@ graph TB
 **Security Layers**
 1. **Network**: WAF, DDoS protection, TLS encryption
 2. **Application**: JWT authentication, RBAC authorization
-3. **Database**: RLS policies, encryption at rest
+3. **Database**: application-level tenant isolation policies, encryption at rest
 4. **Data**: Field-level encryption, PII masking
 5. **Audit**: Immutable logs, 7-year retention
 
@@ -455,7 +455,7 @@ sequenceDiagram
 **Role-Based Access Control (RBAC)**
 - Roles: Super Admin, Org Admin, Manager, Technician, etc.
 - Permissions: Granular action-based permissions
-- Policies: Row-level security at database level
+- Policies: Application-level tenant isolation
 
 ---
 
@@ -464,7 +464,7 @@ sequenceDiagram
 ### Horizontal Scaling
 
 **Stateless Services**
-- All edge functions are stateless
+- All Express.js route handlers are stateless
 - Can scale horizontally without limits
 - Load balancing across multiple instances
 

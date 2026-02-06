@@ -29,12 +29,25 @@ const COUNTRIES = [
   { code: 'MX', name: 'Mexico', currency: 'MXN' },
 ];
 
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: string;
+}
+
+interface UserProfile {
+  id: string;
+  full_name?: string;
+  email?: string;
+  roles: UserRole[];
+}
+
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const rbac = useRBAC();
   const { currencyInfo, updateCurrency, exchangeRates, ratesLoading, refreshRates } = useCurrency();
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<AppRole>('customer');
@@ -60,16 +73,16 @@ export default function Settings() {
       if (rolesResult.error) throw rolesResult.error;
       const rolesData = rolesResult.data || [];
 
-      const profilesWithRoles = profilesData.map(profile => ({
+      const profilesWithRoles: UserProfile[] = profilesData.map(profile => ({
         ...profile,
-        roles: rolesData.filter(r => r.user_id === profile.id)
+        roles: (rolesData as UserRole[]).filter(r => r.user_id === profile.id)
       })) || [];
 
       setProfiles(profilesWithRoles);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading profiles',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -105,10 +118,10 @@ export default function Settings() {
       fetchProfiles();
       setSelectedProfile('');
       setSelectedRole('customer');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error assigning role',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }
@@ -130,10 +143,10 @@ export default function Settings() {
       });
 
       fetchProfiles();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error removing role',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }
@@ -346,7 +359,7 @@ export default function Settings() {
                       {profile.roles.length === 0 ? (
                         <Badge variant="outline">No roles assigned</Badge>
                       ) : (
-                        profile.roles.map((roleEntry: any) => (
+                        profile.roles.map((roleEntry) => (
                           <Badge
                             key={roleEntry.id}
                             variant="outline"

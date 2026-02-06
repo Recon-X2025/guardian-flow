@@ -30,50 +30,12 @@ module "vpc" {
 }
 
 # --- Database ---
-
-resource "random_password" "db_password" {
-  length  = 32
-  special = true
-}
-
-resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-db-subnet"
-  subnet_ids = module.vpc.private_subnets
-}
-
-resource "aws_security_group" "db" {
-  name   = "${var.project_name}-db-sg"
-  vpc_id = module.vpc.vpc_id
-
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.app.id]
-  }
-}
-
-resource "aws_db_instance" "postgres" {
-  identifier        = "${var.project_name}-db"
-  engine            = "postgres"
-  engine_version    = "14"
-  instance_class    = var.db_instance_class
-  allocated_storage = var.db_storage_gb
-
-  db_name  = "guardianflow"
-  username = "guardianflow_admin"
-  password = random_password.db_password.result
-
-  vpc_security_group_ids = [aws_security_group.db.id]
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-
-  backup_retention_period = 7
-  backup_window           = "03:00-04:00"
-  maintenance_window      = "mon:04:00-mon:05:00"
-  skip_final_snapshot     = var.environment != "prod"
-
-  tags = { Environment = var.environment }
-}
+# MongoDB Atlas is used as the database layer. It is a fully managed cloud
+# service and does not require any AWS-provisioned resources. The connection
+# URI (MONGODB_URI) is stored in AWS Secrets Manager alongside other secrets.
+# Configure your MongoDB Atlas cluster, network peering / PrivateLink, and
+# backup policies through the MongoDB Atlas console or its own Terraform
+# provider (mongodbatlas).
 
 # --- Secrets ---
 
@@ -84,8 +46,7 @@ resource "aws_secretsmanager_secret" "app_secrets" {
 resource "aws_secretsmanager_secret_version" "app_secrets" {
   secret_id = aws_secretsmanager_secret.app_secrets.id
   secret_string = jsonencode({
-    DB_HOST     = aws_db_instance.postgres.address
-    DB_PASSWORD = random_password.db_password.result
+    MONGODB_URI = var.mongodb_uri
     JWT_SECRET  = random_password.jwt_secret.result
   })
 }
@@ -141,8 +102,6 @@ resource "aws_ecs_task_definition" "app" {
     environment = [
       { name = "NODE_ENV", value = "production" },
       { name = "PORT", value = "3001" },
-      { name = "DB_NAME", value = "guardianflow" },
-      { name = "DB_USER", value = "guardianflow_admin" },
       { name = "SECRETS_PROVIDER", value = "aws" },
       { name = "AWS_SECRET_NAME", value = aws_secretsmanager_secret.app_secrets.name },
       { name = "FRONTEND_URL", value = var.frontend_url },

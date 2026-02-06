@@ -10,10 +10,29 @@ import { Plus, Search, FileText } from 'lucide-react';
 import { ContractDialog } from '@/domains/shared/components/ContractDialog';
 import { format } from 'date-fns';
 
+interface ContractCustomer {
+  company_name?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface ServiceContract {
+  id: string;
+  contract_number: string;
+  title: string;
+  contract_type: string;
+  contract_value?: number;
+  billing_frequency?: string;
+  start_date?: string;
+  end_date?: string;
+  status: string;
+  customers?: ContractCustomer;
+}
+
 export default function Contracts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedContract, setSelectedContract] = useState(null);
+  const [selectedContract, setSelectedContract] = useState<ServiceContract | null>(null);
 
   const { data: contracts, isLoading, refetch } = useQuery({
     queryKey: ['contracts', searchTerm],
@@ -92,7 +111,7 @@ export default function Contracts() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contracts.map((contract: any) => (
+              {contracts.map((contract: ServiceContract) => (
                 <TableRow key={contract.id}>
                   <TableCell className="font-mono text-sm">
                     {contract.contract_number}

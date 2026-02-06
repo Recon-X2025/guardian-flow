@@ -5,7 +5,7 @@ import { PROMPTS } from './prompts.js';
 import { findOne, findMany, countDocuments } from '../../db/query.js';
 
 export async function indexDocument(articleId) {
-  const article = await findOne('knowledge_base_articles', { _id: articleId });
+  const article = await findOne('knowledge_base_articles', { id: articleId });
   if (!article) throw new Error(`Article ${articleId} not found`);
 
   const content = `${article.title}\n\n${article.content}`;
@@ -66,10 +66,10 @@ export async function reindexAll(tenantId) {
   let errors = 0;
   for (const article of articles) {
     try {
-      await indexDocument(article._id);
+      await indexDocument(article.id);
       indexed++;
     } catch (e) {
-      console.warn(`Error indexing article ${article._id}:`, e.message);
+      console.warn(`Error indexing article ${article.id}:`, e.message);
       errors++;
     }
   }

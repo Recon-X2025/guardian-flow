@@ -6,9 +6,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useCurrency } from '@/domains/shared/hooks/useCurrency';
 
+interface InvoiceRecord {
+  id: string;
+  invoice_number?: string;
+  status?: string;
+  total_amount?: number | string;
+  created_at: string;
+}
+
+interface FinancialMetrics {
+  totalRevenue: number;
+  pending: number;
+  paid: number;
+  avgInvoice: number;
+}
+
 export function FinancialTab() {
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [metrics, setMetrics] = useState<any>(null);
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  const [metrics, setMetrics] = useState<FinancialMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const { formatCurrency } = useCurrency();
 

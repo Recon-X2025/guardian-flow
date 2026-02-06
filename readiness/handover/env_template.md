@@ -8,30 +8,23 @@
 
 ## Required Environment Variables
 
-### Lovable Cloud (Auto-Configured)
-
-These are automatically set by Lovable Cloud and should **NOT** be manually edited:
+### Application Configuration
 
 ```bash
-# Supabase Connection (Auto-configured by Lovable)
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<anon-key>
-VITE_SUPABASE_PROJECT_ID=<project-id>
+# Frontend API URL
+VITE_API_URL=http://localhost:3001
 ```
 
 ### Backend Secrets (Required)
 
-These must be configured via Lovable Project Settings → Secrets:
+These must be configured via environment variables or a `.env` file:
 
 ```bash
 # Internal API Security
 INTERNAL_API_SECRET=<generate-secure-random-string>
 
-# Supabase Backend Keys (Auto-set by Lovable Cloud)
-SUPABASE_URL=<same-as-VITE_SUPABASE_URL>
-SUPABASE_ANON_KEY=<same-as-VITE_SUPABASE_PUBLISHABLE_KEY>
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key-from-supabase>
-SUPABASE_DB_URL=<postgres-connection-string>
+# MongoDB Atlas Connection
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
 ```
 
 ### Optional AI Integrations (Phase 2)
@@ -67,11 +60,11 @@ STRIPE_SECRET_KEY_PROD=<stripe-prod-secret-key>
 
 ## Configuration Steps
 
-### Step 1: Access Lovable Project Settings
+### Step 1: Access Project Environment Configuration
 
-1. Open your Guardian Flow project in Lovable
-2. Click **Settings** (top-right)
-3. Navigate to **Secrets** tab
+1. Open your Guardian Flow project
+2. Locate your `.env` file or deployment environment settings
+3. Set the required environment variables
 
 ### Step 2: Configure Required Secrets
 
@@ -92,15 +85,12 @@ Value: <your-generated-secret>
 
 **Purpose**: Secures internal agent-to-agent API calls
 
-#### Supabase Keys (Auto-Configured)
+#### MongoDB Atlas Connection
 
-These are automatically set by Lovable Cloud:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_DB_URL`
+Ensure your MongoDB Atlas connection string is configured:
+- `MONGODB_URI`
 
-**Verification**: Check that these exist in your Secrets tab
+**Verification**: Check that the connection string is set and the cluster is accessible
 
 ### Step 3: Optional AI Configuration
 
@@ -115,7 +105,7 @@ Value: <your-key-from-google-cloud>
 
 1. Visit [Google AI Studio](https://makersuite.google.com/)
 2. Create a new API key
-3. Copy and paste into Lovable Secrets
+3. Copy and paste into your `.env` file
 
 #### OPENAI_API_KEY (Optional)
 
@@ -126,7 +116,7 @@ Value: <your-key-from-openai>
 
 1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Create a new secret key
-3. Copy and paste into Lovable Secrets
+3. Copy and paste into your `.env` file
 
 ### Step 4: Stripe Configuration (Phase 2)
 
@@ -136,7 +126,7 @@ For production billing features:
 2. Get **test mode** keys:
    - Publishable key (starts with `pk_test_`)
    - Secret key (starts with `sk_test_`)
-3. Add to Lovable Secrets:
+3. Add to your `.env` file:
    ```bash
    STRIPE_API_KEY=pk_test_...
    STRIPE_SECRET_KEY=sk_test_...
@@ -149,20 +139,20 @@ For production billing features:
 ### Development Environment
 
 ```bash
-# Frontend (Vite automatically prefixes with VITE_)
-VITE_SUPABASE_URL=https://dev-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<dev-anon-key>
+# Frontend
+VITE_API_URL=http://localhost:3001
 
-# Backend (Edge Functions)
+# Backend
+MONGODB_URI=mongodb+srv://<user>:<pass>@dev-cluster.mongodb.net/guardianflow_dev
 INTERNAL_API_SECRET=<dev-secret>
 ```
 
 ### Staging Environment
 
 ```bash
-# Use separate Supabase project for staging
-VITE_SUPABASE_URL=https://staging-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<staging-anon-key>
+# Use separate MongoDB Atlas cluster for staging
+VITE_API_URL=https://staging-api.guardianflow.ai
+MONGODB_URI=mongodb+srv://<user>:<pass>@staging-cluster.mongodb.net/guardianflow_staging
 
 INTERNAL_API_SECRET=<staging-secret>
 ```
@@ -170,9 +160,9 @@ INTERNAL_API_SECRET=<staging-secret>
 ### Production Environment
 
 ```bash
-# Production Supabase project
-VITE_SUPABASE_URL=https://prod-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<prod-anon-key>
+# Production MongoDB Atlas cluster
+VITE_API_URL=https://api.guardianflow.ai
+MONGODB_URI=mongodb+srv://<user>:<pass>@prod-cluster.mongodb.net/guardianflow_prod
 
 INTERNAL_API_SECRET=<prod-secret-strong>
 
@@ -193,7 +183,7 @@ STRIPE_SECRET_KEY=sk_live_...
 
 ### 2. Access Control
 
-- ✅ Only grant Lovable Secrets access to DevOps team
+- ✅ Only grant environment secrets access to DevOps team
 - ✅ Never commit secrets to git
 - ✅ Use different secrets per environment
 - ✅ Audit secret access logs monthly
@@ -212,11 +202,11 @@ STRIPE_SECRET_KEY=sk_live_...
 
 After configuration, verify:
 
-- [ ] Lovable project builds successfully
+- [ ] Project builds successfully
 - [ ] Frontend loads without console errors
-- [ ] Edge functions deploy without failures
+- [ ] Server routes deploy without failures
 - [ ] API Gateway returns 200 OK on health check
-- [ ] Supabase connection works (check auth)
+- [ ] MongoDB Atlas connection works (check auth)
 - [ ] Internal API calls succeed (check logs)
 - [ ] (Optional) AI models respond to test requests
 - [ ] (Optional) Stripe test payment succeeds
@@ -232,17 +222,17 @@ After configuration, verify:
 **Symptom**: Build fails with missing variable error
 
 **Solution**:
-- Check Lovable Settings → Secrets
+- Check your `.env` file or deployment environment settings
 - Ensure all required secrets are set
 - Re-deploy after adding secrets
 
-#### 2. "CORS error when calling Edge Function"
+#### 2. "CORS error when calling API"
 
 **Symptom**: Browser shows CORS policy error
 
 **Solution**:
-- Verify `SUPABASE_URL` matches deployed project
-- Check Edge Function CORS headers are set
+- Verify `VITE_API_URL` matches deployed backend
+- Check Express.js CORS middleware configuration
 - Clear browser cache and retry
 
 #### 3. "Unauthorized: Invalid API key"

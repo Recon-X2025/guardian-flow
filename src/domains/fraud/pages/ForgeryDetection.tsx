@@ -9,13 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  Shield, 
-  AlertTriangle, 
-  TrendingUp, 
-  Activity, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Shield,
+  AlertTriangle,
+  TrendingUp,
+  Activity,
+  Clock,
+  CheckCircle2,
   XCircle,
   Loader2,
   Eye,
@@ -23,21 +23,75 @@ import {
   BarChart3,
   Brain,
   AlertCircle,
-  FileImage
+  FileImage,
+  Info
 } from "lucide-react";
 import { apiClient } from "@/integrations/api/client";
 import { useToast } from "@/domains/shared/hooks/use-toast";
+
+// Type definitions
+interface ForgeryDetection {
+  id: string;
+  work_order_id: string;
+  forgery_detected: boolean;
+  forgery_type?: string;
+  confidence_score: string;
+  model_type: string;
+  model_version: string;
+  review_status?: string;
+  processed_at: string;
+  created_at: string;
+  file_name?: string;
+  work_orders?: { wo_number: string };
+}
+
+interface BatchJob {
+  id: string;
+  job_name: string;
+  job_type: string;
+  status: string;
+  total_images: number;
+  processed_images: number;
+  detections_found: number;
+  avg_confidence?: number;
+  processing_time_seconds?: number;
+  created_at: string;
+}
+
+interface ModelMetrics {
+  id: string;
+  model_type: string;
+  model_version: string;
+  precision_score: string;
+  recall_score: string;
+  f1_score: string;
+  accuracy: string;
+  drift_detected: boolean;
+  drift_score?: string;
+  is_active: boolean;
+  deployed_at: string;
+}
+
+interface MonitoringAlert {
+  id: string;
+  alert_type: string;
+  severity: string;
+  status: string;
+  details?: { recommendation?: string };
+  created_at: string;
+}
 
 export default function ForgeryDetection() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [detections, setDetections] = useState<any[]>([]);
-  const [batchJobs, setBatchJobs] = useState<any[]>([]);
-  const [modelMetrics, setModelMetrics] = useState<any>(null);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [detections, setDetections] = useState<ForgeryDetection[]>([]);
+  const [batchJobs, setBatchJobs] = useState<BatchJob[]>([]);
+  const [modelMetrics, setModelMetrics] = useState<ModelMetrics | null>(null);
+  const [alerts, setAlerts] = useState<MonitoringAlert[]>([]);
   const [filter, setFilter] = useState('all');
   const [startingBatch, setStartingBatch] = useState(false);
+  const [detectionModel, setDetectionModel] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -46,10 +100,10 @@ export default function ForgeryDetection() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch detections (using any to bypass type checking until types regenerate)
-      let detectionQuery = (apiClient as any)
+      // Fetch detections
+      let detectionQuery = apiClient
         .from('forgery_detections')
-        .select('*, attachments(filename), work_orders(wo_number)')
+        .select('*, work_orders(wo_number)')
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -58,39 +112,39 @@ export default function ForgeryDetection() {
       }
 
       const { data: detectionsData } = await detectionQuery;
-      setDetections(detectionsData || []);
+      setDetections((detectionsData || []) as ForgeryDetection[]);
 
       // Fetch batch jobs
-      const { data: jobsData } = await (apiClient as any)
+      const { data: jobsData } = await apiClient
         .from('forgery_batch_jobs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(10);
-      setBatchJobs(jobsData || []);
+      setBatchJobs((jobsData || []) as BatchJob[]);
 
       // Fetch active model metrics
-      const { data: metricsData } = await (apiClient as any)
+      const { data: metricsData } = await apiClient
         .from('forgery_model_metrics')
         .select('*')
         .eq('is_active', true)
         .order('deployed_at', { ascending: false })
         .limit(1)
         .single();
-      setModelMetrics(metricsData);
+      setModelMetrics(metricsData as ModelMetrics | null);
 
       // Fetch active alerts
-      const { data: alertsData } = await (apiClient as any)
+      const { data: alertsData } = await apiClient
         .from('forgery_monitoring_alerts')
         .select('*')
-        .eq('status', 'active')
+        .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(10);
-      setAlerts(alertsData || []);
+      setAlerts((alertsData || []) as MonitoringAlert[]);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading data",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -117,9 +171,9 @@ export default function ForgeryDetection() {
         return;
       }
 
-      const woIds = recentWOs.map(wo => wo.id);
+      const woIds = recentWOs.map(wo => (wo as { id: string }).id);
 
-      const result = await apiClient.functions.invoke('process-forgery-batch', {
+      const result = await apiClient.functions.invoke<{ processed?: number; batch_id?: string; ai_provider?: string; llm_provider?: string }>('process-forgery-batch', {
         body: {
           job_name: `Batch detection ${new Date().toLocaleDateString()}`,
           work_order_ids: woIds,
@@ -128,17 +182,18 @@ export default function ForgeryDetection() {
       });
 
       if (result.error) throw result.error;
+      setDetectionModel(result.data?.ai_provider || null);
 
       toast({
         title: "Batch job started",
-        description: `Processing ${data.processed || 0} images. Job ID: ${data.batch_id}`,
+        description: `Processing ${result.data?.processed || 0} images. Job ID: ${result.data?.batch_id}`,
       });
 
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to start batch job",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -173,9 +228,9 @@ export default function ForgeryDetection() {
 
   const totalDetections = detections.length;
   const forgeryDetected = detections.filter(d => d.forgery_detected).length;
-  const avgConfidence = detections.length > 0 
-    ? (detections.reduce((sum, d) => sum + parseFloat(d.confidence_score || 0), 0) / detections.length * 100).toFixed(1)
-    : 0;
+  const avgConfidence = detections.length > 0
+    ? (detections.reduce((sum, d) => sum + (parseFloat(d.confidence_score) || 0), 0) / detections.length * 100).toFixed(1)
+    : '0.0';
   const pendingReview = detections.filter(d => d.review_status === 'pending' || d.review_status === 'needs_review').length;
 
   return (
@@ -201,6 +256,17 @@ export default function ForgeryDetection() {
           )}
         </Button>
       </div>
+
+      {detectionModel && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {detectionModel === 'ai_vision'
+              ? 'Forgery detection powered by OpenAI Vision API for pixel-level analysis.'
+              : 'Forgery detection powered by statistical metadata analysis. Connect OpenAI for AI vision-based pixel-level detection.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -286,19 +352,19 @@ export default function ForgeryDetection() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Precision</p>
-                <p className="text-2xl font-bold">{(parseFloat(modelMetrics.precision_score) * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold">{((parseFloat(modelMetrics.precision_score) || 0) * 100).toFixed(1)}%</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Recall</p>
-                <p className="text-2xl font-bold">{(parseFloat(modelMetrics.recall_score) * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold">{((parseFloat(modelMetrics.recall_score) || 0) * 100).toFixed(1)}%</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">F1 Score</p>
-                <p className="text-2xl font-bold">{(parseFloat(modelMetrics.f1_score) * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold">{((parseFloat(modelMetrics.f1_score) || 0) * 100).toFixed(1)}%</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Accuracy</p>
-                <p className="text-2xl font-bold">{(parseFloat(modelMetrics.accuracy) * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-bold">{((parseFloat(modelMetrics.accuracy) || 0) * 100).toFixed(1)}%</p>
               </div>
             </div>
             {modelMetrics.drift_detected && (
@@ -364,7 +430,7 @@ export default function ForgeryDetection() {
                 {detections.map((detection) => (
                   <TableRow key={detection.id}>
                     <TableCell className="font-mono text-xs">
-                      {detection.attachments?.filename || 'N/A'}
+                      {detection.file_name || 'N/A'}
                     </TableCell>
                     <TableCell>
                       <Button
@@ -386,9 +452,9 @@ export default function ForgeryDetection() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span>{(parseFloat(detection.confidence_score) * 100).toFixed(1)}%</span>
-                        <Progress 
-                          value={parseFloat(detection.confidence_score) * 100} 
+                        <span>{((parseFloat(detection.confidence_score) || 0) * 100).toFixed(1)}%</span>
+                        <Progress
+                          value={(parseFloat(detection.confidence_score) || 0) * 100}
                           className="w-16" 
                         />
                       </div>
@@ -397,7 +463,7 @@ export default function ForgeryDetection() {
                       {detection.model_type} {detection.model_version}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusColor(detection.review_status)}>
+                      <Badge variant={getStatusColor(detection.review_status || 'pending')}>
                         {detection.review_status?.replace(/_/g, ' ')}
                       </Badge>
                     </TableCell>
@@ -481,12 +547,13 @@ export default function ForgeryDetection() {
                 {(() => {
                   const forgeryTypes = detections
                     .filter(d => d.forgery_detected)
-                    .reduce((acc: any, d) => {
-                      acc[d.forgery_type] = (acc[d.forgery_type] || 0) + 1;
+                    .reduce((acc: Record<string, number>, d) => {
+                      const fType = d.forgery_type || 'unknown';
+                      acc[fType] = (acc[fType] || 0) + 1;
                       return acc;
                     }, {});
-                  
-                  return Object.entries(forgeryTypes).map(([type, count]: [string, any]) => (
+
+                  return Object.entries(forgeryTypes).map(([type, count]) => (
                     <div key={type} className="flex items-center justify-between py-2">
                       <span className="capitalize">{type.replace(/_/g, ' ')}</span>
                       <Badge>{count}</Badge>
@@ -503,12 +570,12 @@ export default function ForgeryDetection() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const statuses = detections.reduce((acc: any, d) => {
+                  const statuses = detections.reduce((acc: Record<string, number>, d) => {
                     acc[d.review_status || 'unknown'] = (acc[d.review_status || 'unknown'] || 0) + 1;
                     return acc;
                   }, {});
-                  
-                  return Object.entries(statuses).map(([status, count]: [string, any]) => (
+
+                  return Object.entries(statuses).map(([status, count]) => (
                     <div key={status} className="flex items-center justify-between py-2">
                       <span className="capitalize">{status.replace(/_/g, ' ')}</span>
                       <Badge variant={getStatusColor(status)}>{count}</Badge>

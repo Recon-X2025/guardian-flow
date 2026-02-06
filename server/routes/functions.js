@@ -3816,5 +3816,216 @@ router.post('/update-work-order-status', authenticateToken, async (req, res) => 
   }
 });
 
+/**
+ * Create a service contract
+ * POST /api/functions/contract-create
+ */
+router.post('/contract-create', authenticateToken, async (req, res) => {
+  try {
+    const { contract, line_items } = req.body;
+
+    if (!contract || !contract.title) {
+      return res.status(400).json({ error: 'Contract title is required' });
+    }
+
+    const contractNumber = contract.contract_number || `SC-${Date.now().toString(36).toUpperCase()}`;
+    const newContract = {
+      id: randomUUID(),
+      contract_number: contractNumber,
+      title: contract.title,
+      contract_type: contract.contract_type || 'maintenance',
+      contract_value: contract.contract_value || 0,
+      currency: contract.currency || 'USD',
+      billing_frequency: contract.billing_frequency || 'monthly',
+      start_date: contract.start_date || new Date().toISOString(),
+      end_date: contract.end_date || new Date(Date.now() + 365*24*60*60*1000).toISOString(),
+      status: contract.status || 'draft',
+      description: contract.description || '',
+      document_url: contract.document_url || null,
+      customer_id: contract.customer_id || null,
+      tenant_id: req.user.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    await db.collection('service_contracts').insertOne(newContract);
+
+    // Insert line items if provided
+    if (line_items && Array.isArray(line_items) && line_items.length > 0) {
+      const lineItemDocs = line_items.map(item => ({
+        id: randomUUID(),
+        contract_id: newContract.id,
+        ...item,
+        created_at: new Date(),
+      }));
+      await db.collection('contract_line_items').insertMany(lineItemDocs);
+    }
+
+    res.json({ success: true, contract: newContract });
+  } catch (error) {
+    console.error('Contract create error:', error);
+    res.status(500).json({ error: 'Failed to create contract' });
+  }
+});
+
+/**
+ * Check warranty status
+ * POST /api/functions/warranty-check
+ */
+router.post('/warranty-check', authenticateToken, async (req, res) => {
+  try {
+    const { equipment_id, serial_number } = req.body;
+
+    if (!equipment_id && !serial_number) {
+      return res.status(400).json({ error: 'equipment_id or serial_number is required' });
+    }
+
+    // Find equipment
+    const filter = equipment_id ? { id: equipment_id } : { serial_number };
+    const equipment = await db.collection('equipment').findOne(filter);
+
+    if (!equipment) {
+      return res.json({
+        warranty_status: 'unknown',
+        message: 'Equipment not found',
+        is_covered: false,
+      });
+    }
+
+    // Find warranty for this equipment
+    const warranty = await db.collection('warranties').findOne({
+      $or: [
+        { equipment_id: equipment.id },
+        { equipment_id: equipment._id?.toString() },
+      ]
+    });
+
+    if (!warranty) {
+      return res.json({
+        warranty_status: 'no_warranty',
+        message: 'No warranty found for this equipment',
+        is_covered: false,
+        equipment: { id: equipment.id, name: equipment.name },
+      });
+    }
+
+    const now = new Date();
+    const endDate = new Date(warranty.end_date);
+    const isCovered = endDate > now && warranty.status === 'active';
+
+    res.json({
+      warranty_status: isCovered ? 'active' : 'expired',
+      is_covered: isCovered,
+      warranty: {
+        id: warranty.id,
+        type: warranty.warranty_type,
+        start_date: warranty.start_date,
+        end_date: warranty.end_date,
+        coverage_details: warranty.coverage_details,
+      },
+      equipment: { id: equipment.id, name: equipment.name },
+      days_remaining: isCovered ? Math.ceil((endDate - now) / (24*60*60*1000)) : 0,
+    });
+  } catch (error) {
+    console.error('Warranty check error:', error);
+    res.status(500).json({ error: 'Failed to check warranty' });
+  }
+});
+
+/**
+ * Generate service order from work order
+ * POST /api/functions/generate-service-order
+ */
+router.post('/generate-service-order', authenticateToken, async (req, res) => {
+  try {
+    const { work_order_id } = req.body;
+
+    if (!work_order_id) {
+      return res.status(400).json({ error: 'work_order_id is required' });
+    }
+
+    // Find work order
+    const workOrder = await db.collection('work_orders').findOne({ id: work_order_id });
+
+    if (!workOrder) {
+      return res.status(404).json({ error: 'Work order not found' });
+    }
+
+    // Check if SO already exists
+    const existing = await db.collection('service_orders').findOne({ work_order_id });
+    if (existing) {
+      return res.json({ success: true, service_order: existing, message: 'Service order already exists' });
+    }
+
+    const soNumber = `SO-${Date.now().toString(36).toUpperCase()}`;
+    const serviceOrder = {
+      id: randomUUID(),
+      so_number: soNumber,
+      work_order_id,
+      status: 'draft',
+      labor_cost: 0,
+      parts_cost: 0,
+      total_cost: 0,
+      tenant_id: workOrder.tenant_id || req.user.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    await db.collection('service_orders').insertOne(serviceOrder);
+
+    res.json({ success: true, service_order: serviceOrder });
+  } catch (error) {
+    console.error('Generate service order error:', error);
+    res.status(500).json({ error: 'Failed to generate service order' });
+  }
+});
+
+/**
+ * Analytics workspace manager
+ * POST /api/functions/analytics-workspace-manager
+ */
+router.post('/analytics-workspace-manager', authenticateToken, async (req, res) => {
+  try {
+    const { action, payload } = req.body;
+
+    switch (action) {
+      case 'list': {
+        const workspaces = await db.collection('analytics_workspaces')
+          .find({ tenant_id: req.user.id })
+          .toArray();
+        return res.json({ workspaces });
+      }
+
+      case 'create': {
+        const workspace = {
+          id: randomUUID(),
+          name: payload?.name || 'New Workspace',
+          description: payload?.description || '',
+          workspace_type: payload?.type || 'standard',
+          status: 'active',
+          storage_quota_gb: 10,
+          query_quota_per_day: 1000,
+          tenant_id: req.user.id,
+          created_at: new Date(),
+        };
+        await db.collection('analytics_workspaces').insertOne(workspace);
+        return res.json({ success: true, workspace });
+      }
+
+      case 'delete': {
+        if (!payload?.id) return res.status(400).json({ error: 'Workspace ID required' });
+        await db.collection('analytics_workspaces').deleteOne({ id: payload.id, tenant_id: req.user.id });
+        return res.json({ success: true });
+      }
+
+      default:
+        return res.status(400).json({ error: `Unknown action: ${action}` });
+    }
+  } catch (error) {
+    console.error('Analytics workspace manager error:', error);
+    res.status(500).json({ error: 'Analytics workspace operation failed' });
+  }
+});
+
 export default router;
 

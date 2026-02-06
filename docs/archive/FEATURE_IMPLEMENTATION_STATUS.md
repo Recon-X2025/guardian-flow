@@ -191,12 +191,12 @@
 ## ✅ Success Criteria
 
 ### Photo Validation UI
-- [ ] All Supabase references removed
+- [ ] All legacy API references removed
 - [ ] Validation results display correctly
 - [ ] Validation workflow works end-to-end
 
 ### Payment Gateway
-- [ ] All Supabase references removed
+- [ ] All legacy API references removed
 - [ ] Stripe integration works
 - [ ] Payment processing completes successfully
 - [ ] Invoice status updates after payment

@@ -3,10 +3,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { OperationalTab } from '@/components/analytics/OperationalTab';
-import { SLATab } from '@/components/analytics/SLATab';
-import { InventoryTab } from '@/components/analytics/InventoryTab';
-import { FinancialTab } from '@/components/analytics/FinancialTab';
+import { OperationalTab } from '@/domains/analytics/components/analytics/OperationalTab';
+import { SLATab } from '@/domains/analytics/components/analytics/SLATab';
+import { InventoryTab } from '@/domains/analytics/components/analytics/InventoryTab';
+import { FinancialTab } from '@/domains/analytics/components/analytics/FinancialTab';
 import { apiClient } from '@/integrations/api/client';
 
 // Mock apiClient
@@ -17,6 +17,19 @@ vi.mock('@/integrations/api/client', () => ({
       invoke: vi.fn(),
     },
   },
+}));
+
+// Mock useAuth (required by useCurrency in FinancialTab)
+vi.mock('@/domains/auth/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user', email: 'test@example.com' },
+    session: null,
+    loading: false,
+    signIn: vi.fn(),
+    signUp: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 describe('Analytics Tabs', () => {

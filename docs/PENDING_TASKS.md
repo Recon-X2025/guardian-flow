@@ -30,8 +30,8 @@
 
 ### 1.3 Database Credentials — Configured
 - Validation in `server/config/dbValidation.js` rejects defaults in production
-- Needs: Strong unique DB_USER and DB_PASSWORD (16+ chars) for production
-- docker-compose.yml uses env var references (`${DB_USER:-postgres}`)
+- Needs: Strong unique MONGODB_URI credentials (16+ chars) for production
+- docker-compose.yml uses env var references (`${MONGODB_URI}`)
 
 ### 1.4 JWT Secret — Configured
 - Server refuses to start without JWT_SECRET in production
@@ -120,7 +120,7 @@
 - Needs: Redis for shared state before scaling beyond 1 instance
 
 ### 5.3 Database Read Replicas — Future
-- Current: single PostgreSQL instance with connection pooling (max 20)
+- Current: single MongoDB Atlas instance with connection pooling (max 20)
 - For high read loads: add RDS read replica
 - Needs: application-level read/write splitting
 

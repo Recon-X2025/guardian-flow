@@ -1,4 +1,4 @@
-import { getMany, getOne } from '../db/query.js';
+import { db } from '../db/client.js';
 
 /**
  * RBAC Middleware - Check if user has required permissions or roles
@@ -11,15 +11,11 @@ export function requirePermission(permission) {
 
     try {
       const userId = req.user.id;
-      
+
       // Get user roles
-      const userRoles = await getMany(
-        `SELECT role FROM user_roles WHERE user_id = $1`,
-        [userId]
-      );
-      
+      const userRoles = await db.collection('user_roles').find({ user_id: userId }).toArray();
       const roles = userRoles.map(r => r.role);
-      
+
       // Map database roles to frontend roles
       const roleMap = {
         'admin': 'sys_admin',
@@ -27,38 +23,37 @@ export function requirePermission(permission) {
         'technician': 'technician',
         'customer': 'customer',
       };
-      
+
       const mappedRoles = roles.map(r => roleMap[r] || r);
-      
+
       // Check if user has permission
       let hasPermission = false;
-      
+
       try {
-        // Try to check permission from database
-        const result = await getMany(
-          `SELECT DISTINCT p.name 
-           FROM permissions p
-           INNER JOIN role_permissions rp ON p.id = rp.permission_id
-           WHERE rp.role = ANY($1::text[]) AND p.name = $2`,
-          [mappedRoles, permission]
-        );
-        
+        // Try to check permission from database using $lookup
+        const result = await db.collection('role_permissions').aggregate([
+          { $match: { role: { $in: mappedRoles } } },
+          { $lookup: { from: 'permissions', localField: 'permission_id', foreignField: 'id', as: 'perm' } },
+          { $unwind: '$perm' },
+          { $match: { 'perm.name': permission } },
+        ]).toArray();
+
         hasPermission = result.length > 0;
       } catch (error) {
         // If permission check fails, use fallback
         console.warn('Permission check failed, using fallback:', error.message);
         hasPermission = checkPermissionFallback(mappedRoles, permission);
       }
-      
+
       if (!hasPermission) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Insufficient permissions',
           message: `You do not have the '${permission}' permission`,
           required: permission,
           roles: mappedRoles
         });
       }
-      
+
       // Attach user context with roles for further use
       req.user.roles = mappedRoles;
       next();
@@ -80,15 +75,11 @@ export function requireAnyPermission(permissions) {
 
     try {
       const userId = req.user.id;
-      
+
       // Get user roles
-      const userRoles = await getMany(
-        `SELECT role FROM user_roles WHERE user_id = $1`,
-        [userId]
-      );
-      
+      const userRoles = await db.collection('user_roles').find({ user_id: userId }).toArray();
       const roles = userRoles.map(r => r.role);
-      
+
       // Map database roles to frontend roles
       const roleMap = {
         'admin': 'sys_admin',
@@ -96,38 +87,37 @@ export function requireAnyPermission(permissions) {
         'technician': 'technician',
         'customer': 'customer',
       };
-      
+
       const mappedRoles = roles.map(r => roleMap[r] || r);
-      
+
       // Check if user has any of the required permissions
       let hasAnyPermission = false;
-      
+
       try {
-        const result = await getMany(
-          `SELECT DISTINCT p.name 
-           FROM permissions p
-           INNER JOIN role_permissions rp ON p.id = rp.permission_id
-           WHERE rp.role = ANY($1::text[]) AND p.name = ANY($2::text[])`,
-          [mappedRoles, permissions]
-        );
-        
+        const result = await db.collection('role_permissions').aggregate([
+          { $match: { role: { $in: mappedRoles } } },
+          { $lookup: { from: 'permissions', localField: 'permission_id', foreignField: 'id', as: 'perm' } },
+          { $unwind: '$perm' },
+          { $match: { 'perm.name': { $in: permissions } } },
+        ]).toArray();
+
         hasAnyPermission = result.length > 0;
       } catch (error) {
         // Fallback
-        hasAnyPermission = permissions.some(perm => 
+        hasAnyPermission = permissions.some(perm =>
           checkPermissionFallback(mappedRoles, perm)
         );
       }
-      
+
       if (!hasAnyPermission) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Insufficient permissions',
           message: `You do not have any of the required permissions`,
           required: permissions,
           roles: mappedRoles
         });
       }
-      
+
       req.user.roles = mappedRoles;
       next();
     } catch (error) {
@@ -148,15 +138,11 @@ export function requireRole(role) {
 
     try {
       const userId = req.user.id;
-      
+
       // Get user roles
-      const userRoles = await getMany(
-        `SELECT role FROM user_roles WHERE user_id = $1`,
-        [userId]
-      );
-      
+      const userRoles = await db.collection('user_roles').find({ user_id: userId }).toArray();
       const roles = userRoles.map(r => r.role);
-      
+
       // Map database roles to frontend roles
       const roleMap = {
         'admin': 'sys_admin',
@@ -164,19 +150,19 @@ export function requireRole(role) {
         'technician': 'technician',
         'customer': 'customer',
       };
-      
+
       const mappedRoles = roles.map(r => roleMap[r] || r);
       const mappedRole = roleMap[role] || role;
-      
+
       if (!mappedRoles.includes(mappedRole)) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Insufficient role',
           message: `You do not have the '${mappedRole}' role`,
           required: mappedRole,
           roles: mappedRoles
         });
       }
-      
+
       req.user.roles = mappedRoles;
       next();
     } catch (error) {
@@ -191,10 +177,7 @@ export function requireRole(role) {
  */
 export async function getUserTenantId(userId) {
   try {
-    const profile = await getOne(
-      `SELECT tenant_id FROM profiles WHERE id = $1`,
-      [userId]
-    );
+    const profile = await db.collection('profiles').findOne({ id: userId });
     return profile?.tenant_id || null;
   } catch (error) {
     return null;
@@ -209,7 +192,7 @@ function checkPermissionFallback(roles, permission) {
   if (roles.includes('sys_admin')) {
     return true;
   }
-  
+
   // Permission map (fallback)
   const rolePermissionMap = {
     sys_admin: ['*'], // All permissions
@@ -217,10 +200,9 @@ function checkPermissionFallback(roles, permission) {
     customer: ['portal.access', 'ticket.create', 'ticket.read', 'wo.read', 'invoice.view', 'invoice.pay'],
     technician: ['wo.read', 'wo.update', 'so.view'],
   };
-  
+
   return roles.some(role => {
     const perms = rolePermissionMap[role] || [];
     return perms.includes('*') || perms.includes(permission);
   });
 }
-

@@ -44,12 +44,12 @@ export default function DeveloperLanding() {
         navigate('/developer-console');
       }, 3000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sandbox creation error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to create sandbox environment",
+        description: error instanceof Error ? error.message : "Failed to create sandbox environment",
       });
     } finally {
       setLoading(false);

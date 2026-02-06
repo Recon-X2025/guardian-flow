@@ -58,10 +58,10 @@ export default function MFAOverrideDialog({
       onOpenChange(false);
       setJustification("");
       setUrgencyLevel("medium");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Request failed",
-        description: error.message || "Failed to submit override request",
+        description: error instanceof Error ? error.message : "Failed to submit override request",
         variant: "destructive",
       });
     } finally {
@@ -108,7 +108,7 @@ export default function MFAOverrideDialog({
 
           <div className="space-y-2">
             <Label htmlFor="urgency">Urgency Level</Label>
-            <Select value={urgencyLevel} onValueChange={(v: any) => setUrgencyLevel(v)}>
+            <Select value={urgencyLevel} onValueChange={(v: "low" | "medium" | "high" | "critical") => setUrgencyLevel(v)}>
               <SelectTrigger id="urgency">
                 <SelectValue />
               </SelectTrigger>

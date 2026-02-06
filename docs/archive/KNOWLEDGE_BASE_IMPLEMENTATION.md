@@ -177,7 +177,7 @@ POST /api/knowledge-base/articles/:id/feedback
 
 ### 1. Run Database Migration
 ```bash
-psql -U postgres -d guardianflow -f server/scripts/migrations/add-knowledge-base.sql
+mongosh guardianflow --file server/scripts/migrations/add-knowledge-base.js
 ```
 
 ### 2. Restart Server

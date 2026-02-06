@@ -5,8 +5,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Package } from 'lucide-react';
 
+interface InventoryItem {
+  id: string;
+  sku?: string;
+  description?: string;
+  consumable?: boolean;
+  lead_time_days?: number;
+}
+
 export function InventoryTab() {
-  const [inventory, setInventory] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

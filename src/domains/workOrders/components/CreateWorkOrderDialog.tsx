@@ -17,7 +17,7 @@ interface CreateWorkOrderDialogProps {
 export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess }: CreateWorkOrderDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [technicians, setTechnicians] = useState<{ id: string; full_name?: string; email?: string }[]>([]);
   const [selectedTech, setSelectedTech] = useState('');
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
 
       if (rolesError) throw rolesError;
 
-      const techIds = techRoles?.map((r: any) => r.user_id) || [];
+      const techIds = techRoles?.map((r: { user_id: string }) => r.user_id) || [];
 
       if (techIds.length === 0) {
         setTechnicians([]);
@@ -53,7 +53,7 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
 
       if (error) throw error;
       setTechnicians(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching technicians:', error);
     }
   };
@@ -137,10 +137,10 @@ export function CreateWorkOrderDialog({ open, onOpenChange, ticketId, onSuccess 
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error creating work order',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

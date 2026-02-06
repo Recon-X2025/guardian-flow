@@ -22,8 +22,6 @@ export async function detectWorkOrderAnomalies(tenantId) {
   const completedWOs = await findMany('work_orders', {
     tenant_id: tenantId,
     status: 'completed',
-    updated_at: { $exists: true },
-    created_at: { $exists: true },
   }, { sort: { updated_at: -1 }, limit: 500 });
 
   if (completedWOs.length < 5) return [];
@@ -48,12 +46,12 @@ export async function detectWorkOrderAnomalies(tenantId) {
     // Flag if z-score > 2.5 (unusually fast or slow)
     if (Math.abs(timeZ) > 2.5) {
       anomalies.push({
-        _id: randomUUID(),
+        id: randomUUID(),
         type: timeZ < 0 ? 'unusually_fast_completion' : 'unusually_slow_completion',
         severity: Math.abs(timeZ) > 3.5 ? 'high' : 'medium',
         confidence: Math.min(99, Math.round(50 + Math.abs(timeZ) * 15)),
         entity_type: 'work_order',
-        entity_id: wo._id,
+        entity_id: wo.id,
         wo_number: wo.wo_number,
         tenant_id: tenantId,
         details: {
@@ -98,12 +96,12 @@ export async function detectFinancialAnomalies(tenantId) {
     const z = zScore(amount, amountMean, amountStd);
     if (Math.abs(z) > 2.5) {
       anomalies.push({
-        _id: randomUUID(),
+        id: randomUUID(),
         type: 'unusual_invoice_amount',
         severity: Math.abs(z) > 3.5 ? 'high' : 'medium',
         confidence: Math.min(99, Math.round(50 + Math.abs(z) * 15)),
         entity_type: 'invoice',
-        entity_id: inv._id,
+        entity_id: inv.id,
         invoice_number: inv.invoice_number,
         tenant_id: tenantId,
         details: {
@@ -132,7 +130,7 @@ export async function detectFinancialAnomalies(tenantId) {
       const deviation = Math.abs(observed - expected);
       if (deviation > 0.1) {
         anomalies.push({
-          _id: randomUUID(),
+          id: randomUUID(),
           type: 'benford_law_violation',
           severity: deviation > 0.15 ? 'high' : 'medium',
           confidence: Math.min(95, Math.round(deviation * 500)),
@@ -163,17 +161,17 @@ export async function detectFinancialAnomalies(tenantId) {
   for (const [key, dupes] of Object.entries(amountMap)) {
     if (dupes.length >= 3) {
       anomalies.push({
-        _id: randomUUID(),
+        id: randomUUID(),
         type: 'duplicate_amount_pattern',
         severity: dupes.length > 5 ? 'high' : 'medium',
         confidence: Math.min(90, 50 + dupes.length * 8),
         entity_type: 'invoice',
-        entity_id: dupes[0]._id,
+        entity_id: dupes[0].id,
         tenant_id: tenantId,
         details: {
           amount: dupes[0].total,
           occurrence_count: dupes.length,
-          invoice_ids: dupes.map(d => d._id).slice(0, 10),
+          invoice_ids: dupes.map(d => d.id).slice(0, 10),
         },
         status: 'open',
         detected_at: new Date(),
@@ -210,7 +208,7 @@ export async function detectPhotoAnomalies(images, context = {}) {
     }
 
     results.push({
-      image_id: image.id || image._id,
+      image_id: image.id,
       ...parsed,
       provider: analysis.provider,
     });

@@ -58,36 +58,30 @@ Guardian Flow is an AI-powered field service management platform that combines w
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
+- MongoDB Atlas account (or connection string)
 - npm or yarn
 
 ### Setup
 
-1. **Install PostgreSQL** (see `server/README.md` for details)
-2. **Set up database:**
-   ```bash
-   createdb guardianflow
-   psql -U postgres -d guardianflow -f server/scripts/init-db.sql
-   ```
-3. **Configure environment:**
+1. **Configure environment:**
    ```bash
    # Frontend
    cp .env.example .env
    # Edit .env: VITE_API_URL=http://localhost:3001
-   
+
    # Backend
    cd server
    cp .env.example .env
-   # Edit .env with database credentials
+   # Set MONGODB_URI with your MongoDB Atlas connection string
    ```
-4. **Start backend:**
+2. **Start backend:**
    ```bash
    cd server
    npm install
    npm run migrate
    npm run dev
    ```
-5. **Start frontend:**
+3. **Start frontend:**
    ```bash
    npm install
    npm run dev
@@ -111,8 +105,8 @@ curl -X POST http://localhost:3001/api/functions/api-gateway \
 ## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Tailwind CSS
-- **Backend**: Express.js + PostgreSQL (local/Vultr)
-- **Database**: PostgreSQL (localhost for development, Vultr for production)
+- **Backend**: Express.js + MongoDB Atlas
+- **Database**: MongoDB Atlas (cloud)
 - **Authentication**: JWT-based auth
 - **AI**: Lovable AI Gateway (Gemini/GPT models)
 - **PaaS**: API Gateway + Multi-tenant billing
@@ -141,11 +135,7 @@ curl -X POST http://localhost:3001/api/functions/api-gateway \
 - API key authentication with rate limiting
 - Multi-Factor Auth (MFA) for sensitive operations
 - Complete audit logging
-- Application-level access control (replaces RLS)
-
-## Migration from Supabase
-
-This project has been migrated from Supabase to local PostgreSQL. See `MIGRATION_GUIDE.md` for details.
+- Application-level access control
 
 ## License
 

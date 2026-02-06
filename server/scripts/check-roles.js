@@ -1,39 +1,43 @@
-import pg from 'pg';
-const { Pool } = pg;
+#!/usr/bin/env node
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'guardianflow',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '../.env') });
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/';
+const DB_NAME = process.env.DB_NAME || 'guardianflow';
 
 async function check() {
+  const client = new MongoClient(MONGODB_URI);
   const userId = '4e639a20-7f45-4fd2-8c78-8ea68178fa1d';
 
-  // Check user_roles
-  const roles = await pool.query('SELECT * FROM user_roles WHERE user_id = $1', [userId]);
-  console.log('User roles:', roles.rows);
+  try {
+    await client.connect();
+    const db = client.db(DB_NAME);
 
-  // Check table structure
-  const cols = await pool.query(`
-    SELECT column_name FROM information_schema.columns
-    WHERE table_name = 'user_roles'
-  `);
-  console.log('user_roles columns:', cols.rows.map(r => r.column_name));
+    // Check user_roles
+    const roles = await db.collection('user_roles').find({ user_id: userId }).toArray();
+    console.log('User roles:', roles);
 
-  // If no roles, add admin
-  if (roles.rows.length === 0) {
-    console.log('No roles found, adding admin role...');
-    await pool.query(
-      `INSERT INTO user_roles (user_id, role, created_at) VALUES ($1, 'admin', now())`,
-      [userId]
-    );
-    console.log('Admin role added');
+    // List all distinct roles in the system
+    const allRoles = await db.collection('user_roles').distinct('role');
+    console.log('All roles in system:', allRoles);
+
+    // If no roles, add admin
+    if (roles.length === 0) {
+      console.log('No roles found, adding admin role...');
+      await db.collection('user_roles').insertOne({ user_id: userId, role: 'admin', created_at: new Date() });
+      console.log('Admin role added');
+    }
+  } catch (err) {
+    console.error('Error:', err.message);
+  } finally {
+    await client.close();
   }
-
-  await pool.end();
 }
 
 check();

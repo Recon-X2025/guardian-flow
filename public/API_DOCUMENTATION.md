@@ -18,7 +18,7 @@ Guardian Flow provides REST APIs for building on top of our field service intell
 
 2. **Make Your First Call**
 ```bash
-curl -X POST https://PROJECT.supabase.co/functions/v1/api-gateway \
+curl -X POST https://api.guardianflow.ai/api/gateway \
   -H "x-api-key: YOUR_API_KEY" \
   -H "x-tenant-id: YOUR_TENANT_ID" \
   -H "Content-Type: application/json" \
@@ -73,7 +73,7 @@ API keys can be:
 
 ## API Gateway
 
-**Endpoint**: `POST /functions/v1/api-gateway`
+**Endpoint**: `POST /api/gateway`
 
 Single entry point for all agent services.
 
@@ -530,7 +530,7 @@ try {
 
 ### Create Sandbox
 
-**Endpoint**: `POST /functions/v1/create-sandbox-tenant`
+**Endpoint**: `POST /api/functions/create-sandbox-tenant`
 
 No authentication required.
 

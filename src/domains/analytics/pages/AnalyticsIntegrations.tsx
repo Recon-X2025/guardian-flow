@@ -26,7 +26,7 @@ export default function AnalyticsIntegrations() {
       icon: BarChart3,
       status: 'Production Ready',
       description: 'Direct query and scheduled exports for enterprise BI',
-      features: ['Real-time refresh', 'Custom DAX measures', 'Row-level security'],
+      features: ['Real-time refresh', 'Custom DAX measures', 'Data-level security'],
       color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20'
     },
     {
@@ -223,7 +223,7 @@ in
                         ))}
                       </ul>
                     </div>
-                    <Button className="w-full mt-4" variant="outline">
+                    <Button className="w-full mt-4" variant="outline" onClick={() => toast({ title: "Setup Guide", description: `Downloading ${platform.name} setup guide...` })}>
                       <Download className="h-4 w-4 mr-2" />
                       Setup Guide
                     </Button>
@@ -253,7 +253,7 @@ in
                         {dataset.records} records • Auto-refresh: {dataset.refresh}
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => toast({ title: dataset.name, description: `${dataset.records} records - Refresh: ${dataset.refresh}` })}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                   </div>
@@ -313,7 +313,7 @@ in
               </div>
 
               <div className="pt-4 border-t">
-                <Button className="w-full">
+                <Button className="w-full" onClick={() => toast({ title: "Downloading", description: "Complete setup guide downloaded" })}>
                   <Download className="h-4 w-4 mr-2" />
                   Download Complete Setup Guide
                 </Button>

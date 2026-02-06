@@ -13,14 +13,10 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "db_instance_class" {
-  description = "RDS instance class"
-  default     = "db.t4g.micro"
-}
-
-variable "db_storage_gb" {
-  description = "Database storage in GB"
-  default     = 20
+variable "mongodb_uri" {
+  description = "MongoDB Atlas connection URI"
+  type        = string
+  sensitive   = true
 }
 
 variable "app_cpu" {

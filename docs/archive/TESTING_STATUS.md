@@ -8,11 +8,11 @@
 ## ✅ Migration Status
 
 ### Components Migrated: **21/21 (100%)**
-All component files have been successfully migrated from Supabase to `apiClient`.
+All component files have been successfully migrated from legacy service to `apiClient`.
 
 ### Verification Status: **✅ Complete**
-- ✅ No Supabase imports in components
-- ✅ No Supabase method calls in components
+- ✅ No legacy service imports in components
+- ✅ No legacy service method calls in components
 - ✅ All files pass linting
 - ✅ All patterns consistent
 
@@ -36,7 +36,7 @@ All component files have been successfully migrated from Supabase to `apiClient`
 ### 3. Smoke Tests
 **File:** `tests/components/migration-smoke.test.tsx`
 - Verifies apiClient imports
-- Checks for Supabase references
+- Checks for legacy service references
 - Validates migration patterns
 
 ---
@@ -50,7 +50,7 @@ npm run test tests/components/migration-smoke.test.tsx
 
 This will verify:
 - ✅ All components use `apiClient` imports
-- ✅ No Supabase references remain
+- ✅ No legacy service references remain
 - ✅ Migration patterns are correct
 
 ### Run Component Tests
@@ -121,7 +121,7 @@ Use the detailed checklist in `COMPONENT_MIGRATION_TEST_PLAN.md` for:
 | Task | Status |
 |------|--------|
 | Component Migration | ✅ 100% Complete (21/21 files) |
-| Migration Verification | ✅ Complete (0 Supabase references) |
+| Migration Verification | ✅ Complete (0 legacy service references) |
 | Test Plan Created | ✅ Complete |
 | Smoke Tests Created | ✅ Complete |
 | Manual Testing | ⏳ Ready to Start |

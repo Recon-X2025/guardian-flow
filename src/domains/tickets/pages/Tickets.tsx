@@ -14,15 +14,34 @@ import { TicketDetailsDialog } from "@/domains/tickets/components/TicketDetailsD
 import { useActionPermissions } from "@/domains/auth/hooks/useActionPermissions";
 import { differenceInDays } from "date-fns";
 
+interface WorkOrderInfo {
+  id: string;
+  wo_number?: string;
+  status?: string;
+  part_status?: string;
+  completed_at?: string;
+}
+
+interface Ticket {
+  id: string;
+  unit_serial?: string;
+  customer_name?: string;
+  site_address?: string;
+  symptom?: string;
+  status: string;
+  created_at: string;
+  work_orders?: WorkOrderInfo[];
+}
+
 export default function Tickets() {
   const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [woDialogOpen, setWoDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedTicketForDetails, setSelectedTicketForDetails] = useState<any>(null);
+  const [selectedTicketForDetails, setSelectedTicketForDetails] = useState<Ticket | null>(null);
   const ticketPerms = useActionPermissions('tickets');
   const isViewOnly = !ticketPerms.create && !ticketPerms.edit;
   const [formData, setFormData] = useState({
@@ -47,23 +66,23 @@ export default function Tickets() {
       const ticketsData = ticketsResult.data || [];
 
       // Fetch related work orders for each ticket
-      const enrichedTickets = await Promise.all(ticketsData.map(async (ticket: any) => {
+      const enrichedTickets = await Promise.all(ticketsData.map(async (ticket) => {
         const woResult = await apiClient.from('work_orders')
           .select('id, wo_number, status, part_status, completed_at')
           .eq('ticket_id', ticket.id)
           .catch(() => ({ data: [] }));
-        
+
         return {
           ...ticket,
-          work_orders: woResult.data || []
-        };
+          work_orders: (woResult.data || []) as WorkOrderInfo[]
+        } as Ticket;
       }));
 
       setTickets(enrichedTickets);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading tickets',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -71,7 +90,7 @@ export default function Tickets() {
     }
   };
 
-  const isTicketOverdue = (ticket: any) => {
+  const isTicketOverdue = (ticket: Ticket) => {
     if (!ticket.work_orders || ticket.work_orders.length === 0) return false;
     const workOrder = ticket.work_orders[0];
     if (workOrder.status !== 'completed' || !workOrder.completed_at || ticket.status === 'completed') {
@@ -81,7 +100,7 @@ export default function Tickets() {
     return daysSinceCompletion >= 7;
   };
 
-  const getDaysOverdue = (ticket: any) => {
+  const getDaysOverdue = (ticket: Ticket) => {
     if (!ticket.work_orders || ticket.work_orders.length === 0) return 0;
     const workOrder = ticket.work_orders[0];
     if (!workOrder.completed_at || ticket.status === 'completed') return 0;
@@ -111,10 +130,10 @@ export default function Tickets() {
       setShowCreateForm(false);
       setFormData({ unitSerial: '', customer: '', siteAddress: '', symptom: '' });
       fetchTickets();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error creating ticket',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }

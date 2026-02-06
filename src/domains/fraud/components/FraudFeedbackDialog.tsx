@@ -40,7 +40,7 @@ export function FraudFeedbackDialog({
 
       // Submit feedback
       const { error } = await apiClient
-        .from('fraud_feedback' as any)
+        .from('fraud_feedback')
         .insert({
           alert_id: alertId,
           investigator_id: user.id,
@@ -48,8 +48,8 @@ export function FraudFeedbackDialog({
           confidence,
           feedback_notes: feedbackNotes,
           verified: false
-        } as any)
-        .then();
+        });
+      await Promise.resolve(); // Ensure async flow
 
       if (error) throw error;
 
@@ -65,11 +65,11 @@ export function FraudFeedbackDialog({
       setLabel('true_positive');
       setConfidence('medium');
       setFeedbackNotes('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Submission Failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ export function FraudFeedbackDialog({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-3">
             <Label>Label Classification *</Label>
-            <RadioGroup value={label} onValueChange={(v: any) => setLabel(v)}>
+            <RadioGroup value={label} onValueChange={(v: 'true_positive' | 'false_positive' | 'uncertain') => setLabel(v)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="true_positive" id="true_positive" />
                 <Label htmlFor="true_positive" className="cursor-pointer font-normal">
@@ -113,7 +113,7 @@ export function FraudFeedbackDialog({
 
           <div className="space-y-3">
             <Label>Confidence Level *</Label>
-            <RadioGroup value={confidence} onValueChange={(v: any) => setConfidence(v)}>
+            <RadioGroup value={confidence} onValueChange={(v: 'low' | 'medium' | 'high') => setConfidence(v)}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="high" id="high" />
                 <Label htmlFor="high" className="cursor-pointer font-normal">

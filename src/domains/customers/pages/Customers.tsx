@@ -13,10 +13,23 @@ import { useToast } from '@/domains/shared/hooks/use-toast';
 import { useRBAC } from '@/domains/auth/contexts/RBACContext';
 import { useActionPermissions } from '@/domains/auth/hooks/useActionPermissions';
 
+interface CustomerRecord {
+  id: string;
+  customer_number?: string;
+  company_name?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  customer_type?: string;
+  status?: string;
+  credit_limit?: number;
+}
+
 export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
   const { toast } = useToast();
   const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
@@ -44,19 +57,19 @@ export default function Customers() {
       let data = result.data || [];
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        data = data.filter((c: any) => 
+        data = data.filter((c: { company_name?: string; first_name?: string; last_name?: string; email?: string }) =>
           c.company_name?.toLowerCase().includes(searchLower) ||
           c.first_name?.toLowerCase().includes(searchLower) ||
           c.last_name?.toLowerCase().includes(searchLower) ||
           c.email?.toLowerCase().includes(searchLower)
         );
       }
-      
+
       return data;
     }
   });
 
-  const handleEdit = (customer: any) => {
+  const handleEdit = (customer: CustomerRecord) => {
     setSelectedCustomer(customer);
     setDialogOpen(true);
   };
@@ -132,7 +145,7 @@ export default function Customers() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map((customer: any) => (
+              {customers.map((customer: CustomerRecord) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-mono text-sm">
                     {customer.customer_number}

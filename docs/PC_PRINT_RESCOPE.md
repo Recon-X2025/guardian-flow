@@ -18,20 +18,20 @@
 - Brother MFC, HP LaserJet (printers)
 - Canon imageRUNNER (MFP)
 
-### Edge Functions Fixed
+### Express.js Route Handlers Fixed
 1. **generate-service-order**: Full error handling with correlation IDs
 2. **validate-photos**: Enhanced validation with detailed error responses
 3. Both functions now return structured JSON errors: `{code, message, details, correlationId}`
 
 ### Database
-- Fixed infinite recursion in profiles RLS using security definer function
+- Fixed infinite recursion in profiles tenant isolation using security definer function
 - Added PC & Print specific permissions
 - All test data uses domain-appropriate SKUs and models
 
 ## All 13 Deliverables Status
 
 1. ✅ RBAC + FE Visibility
-2. ✅ DB RLS & Tenant Isolation  
+2. ✅ DB Tenant Isolation
 3. ✅ Precheck Orchestrator
 4. ✅ Photo Validation (CV = external)
 5. ✅ SO Template Manager

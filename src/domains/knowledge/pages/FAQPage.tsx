@@ -51,11 +51,11 @@ export default function FAQPage() {
 
       if (response.error) throw response.error;
       setFaqs(response.data?.faqs || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching FAQs:', error);
       toast({
         title: 'Error loading FAQs',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -71,7 +71,7 @@ export default function FAQPage() {
 
       if (response.error) throw response.error;
       setCategories(response.data?.categories || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching categories:', error);
     }
   };
@@ -99,7 +99,7 @@ export default function FAQPage() {
 
       // Refresh FAQs
       fetchFAQs();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting feedback:', error);
     }
   };

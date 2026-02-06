@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { PrecheckStatus } from '@/components/PrecheckStatus';
+import { PrecheckStatus } from '@/domains/shared/components/PrecheckStatus';
 import { apiClient } from '@/integrations/api/client';
 
 // Mock apiClient
@@ -123,7 +123,7 @@ describe('PrecheckStatus', () => {
     render(<PrecheckStatus workOrderId="wo-1" />);
 
     // Verify component is set up correctly
-    expect(screen.getByText(/Run Precheck/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Run Precheck/i })).toBeInTheDocument();
     expect(apiClient.functions.invoke).toBeDefined();
   });
 });

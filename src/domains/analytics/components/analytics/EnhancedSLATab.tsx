@@ -36,11 +36,11 @@ interface SLAViolation {
 export function EnhancedSLATab() {
   const [metrics, setMetrics] = useState<SLAMetrics | null>(null);
   const [violations, setViolations] = useState<SLAViolation[]>([]);
-  const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<{ date: string; total: number; completed: number; breached: number; compliance: number | string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
   const [filterSeverity, setFilterSeverity] = useState('all');
-  const [predictionData, setPredictionData] = useState<any>(null);
+  const [predictionData, setPredictionData] = useState<{ atRiskOrders?: number; confidence?: number; recommendedActions?: number } | null>(null);
 
   useEffect(() => {
     fetchAllSLAData();
@@ -118,7 +118,7 @@ export function EnhancedSLATab() {
 
   const fetchViolations = async () => {
     let query = apiClient
-      .from('sla_violations' as any)
+      .from('sla_violations')
       .select('*')
       .order('detected_at', { ascending: false })
       .limit(50);
@@ -128,7 +128,7 @@ export function EnhancedSLATab() {
     }
 
     const { data } = await query.then();
-    if (data) setViolations(data as any);
+    if (data) setViolations(data as SLAViolation[]);
   };
 
   const fetchTrendData = async () => {
@@ -143,7 +143,7 @@ export function EnhancedSLATab() {
       .then();
 
     if (workOrders) {
-      const dailyData: any = {};
+      const dailyData: Record<string, { date: string; total: number; completed: number; breached: number; compliance: number }> = {};
       workOrders.forEach(wo => {
         const date = new Date(wo.created_at).toISOString().split('T')[0];
         if (!dailyData[date]) {
@@ -161,7 +161,7 @@ export function EnhancedSLATab() {
         }
       });
 
-      const trendArray = Object.values(dailyData).map((day: any) => ({
+      const trendArray = Object.values(dailyData).map((day) => ({
         ...day,
         compliance: day.total > 0 ? ((day.total - day.breached) / day.total * 100).toFixed(1) : 100
       }));
@@ -389,7 +389,7 @@ export function EnhancedSLATab() {
                         </TableCell>
                         <TableCell>{violation.violation_type}</TableCell>
                         <TableCell>
-                          <Badge variant={getSeverityColor(violation.severity) as any}>
+                          <Badge variant={getSeverityColor(violation.severity) as "default" | "destructive" | "secondary" | "outline"}>
                             {violation.severity}
                           </Badge>
                         </TableCell>

@@ -48,7 +48,7 @@ export function AnalyticsAuditLogs() {
     queryKey: ["analytics-audit-logs", selectedWorkspace],
     enabled: !!selectedWorkspace,
     queryFn: async () => {
-      // Using edge function to avoid type issues
+      // Using API endpoint to avoid type issues
       const result = await apiClient.functions.invoke('get-analytics-audit-logs', {
         body: { workspace_id: selectedWorkspace }
       });

@@ -101,7 +101,7 @@ if (renderTime > 100) {
 
 **Function Execution Logs**
 ```typescript
-// Structured logging in edge functions
+// Structured logging in Express.js route handlers
 console.log(JSON.stringify({
   level: 'info',
   function: 'api-gateway',
@@ -188,8 +188,8 @@ export async function GET() {
 
 **Backend Health**
 ```typescript
-// Edge function health check
-Deno.serve(async (req) => {
+// Express.js route handler health check
+app.get('/health', async (req, res) => {
   const url = new URL(req.url);
   
   if (url.pathname === '/health') {
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
 ### Resource Monitoring
 
 **CPU and Memory**
-- Monitored via Supabase dashboard
+- Monitored via monitoring dashboard
 - Alerts on > 80% utilization
 - Automatic scaling recommendations
 
@@ -262,8 +262,8 @@ Deno.serve(async (req) => {
 
 ### Log Aggregation
 
-**Supabase Edge Function Logs**
-- Accessible via Supabase dashboard
+**Express.js Route Handler Logs**
+- Accessible via monitoring dashboard
 - Filter by function, level, time range
 - Search by correlation ID
 

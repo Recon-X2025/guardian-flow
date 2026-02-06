@@ -21,7 +21,7 @@ This roadmap delivers all 9 modules of the Guardian Flow platform across 16 spri
 **Focus:** Core security, authentication, and tenant isolation
 
 #### Deliverables
-- [ ] Multi-tenant database schema with RLS policies
+- [ ] Multi-tenant database schema with application-level tenant isolation policies
 - [ ] Role-based access control (RBAC) foundation with `user_roles` table
 - [ ] MFA implementation (TOTP-based)
 - [ ] Session management with granular controls
@@ -493,7 +493,7 @@ Manufacturing, Telecom, Energy, Retail, Logistics, Facility Management, IT Servi
 
 ### Security & Compliance (All Sprints)
 - Weekly security reviews and threat modeling
-- RLS policy validation and testing
+- Tenant isolation policy validation and testing
 - Dependency vulnerability scanning
 - Compliance evidence collection
 - Security incident response drills
@@ -539,7 +539,7 @@ Manufacturing, Telecom, Energy, Retail, Logistics, Facility Management, IT Servi
 - **Tech Lead / Architect** (1) - 100%
 - **Senior Full-Stack Engineers** (3) - 100%
 - **Frontend Engineers** (2) - 100%
-- **Backend / Supabase Engineers** (2) - 100%
+- **Backend / MongoDB Atlas Engineers** (2) - 100%
 - **ML/AI Engineer** (1) - 50% (Sprints 8-11, 15)
 - **QA Engineers** (2) - 100%
 - **DevOps Engineer** (1) - 50%
@@ -553,7 +553,7 @@ Manufacturing, Telecom, Energy, Retail, Logistics, Facility Management, IT Servi
 - **Data Scientist** - 50% (Sprints 8, 11, 15)
 
 ### Infrastructure
-- Supabase Pro tier (database, auth, storage, functions)
+- MongoDB Atlas tier (database, auth, storage, functions)
 - CDN for media delivery (CloudFlare/AWS CloudFront)
 - APM and monitoring (Datadog/New Relic)
 - CI/CD (GitHub Actions)
@@ -594,7 +594,7 @@ Manufacturing, Telecom, Energy, Retail, Logistics, Facility Management, IT Servi
 ## Dependencies & Prerequisites
 
 ### External Dependencies
-- Supabase account and project setup
+- MongoDB Atlas account and project setup
 - Third-party API keys (payment gateways, SMS, email)
 - AI/ML model training data and compute resources
 - Domain and SSL certificates

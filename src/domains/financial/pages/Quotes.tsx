@@ -13,10 +13,22 @@ import { Loader2, FileText, Send, Plus, DollarSign, Clock, CheckCircle2, Search 
 
 type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'declined' | 'expired';
 
+interface Quote {
+  id: string;
+  quote_number?: string;
+  total_amount: number | string;
+  valid_until?: string;
+  status: QuoteStatus;
+  sapos_offers?: {
+    title?: string;
+    price?: number;
+  };
+}
+
 export default function Quotes() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,11 +48,11 @@ export default function Quotes() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQuotes(data || []);
-    } catch (error: any) {
+      setQuotes((data || []) as Quote[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading quotes",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -73,10 +85,10 @@ export default function Quotes() {
       setDialogOpen(false);
       setFormData({ quote_number: '', total_amount: '', valid_until: '', status: 'draft' });
       fetchQuotes();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error creating quote",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -256,12 +268,28 @@ export default function Quotes() {
                 </div>
                 <div className="flex gap-2">
                   {quote.status === 'draft' && (
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await apiClient.from('quotes').update({ status: 'sent' }).eq('id', quote.id);
+                          toast({ title: "Quote sent", description: `Quote ${quote.quote_number} has been sent to the customer` });
+                          fetchQuotes();
+                        } catch (error) {
+                          toast({ title: "Error", description: "Failed to send quote", variant: "destructive" });
+                        }
+                      }}
+                    >
                       <Send className="h-4 w-4 mr-1" />
                       Send
                     </Button>
                   )}
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toast({ title: "Quote Details", description: `Quote ${quote.quote_number || 'Draft'}: ${formatCurrency(Number(quote.total_amount))} - ${quote.status}` })}
+                  >
                     View
                   </Button>
                 </div>

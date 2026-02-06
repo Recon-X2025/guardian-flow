@@ -53,7 +53,7 @@
 
 **Priority:** High  
 **Story Points:** 8  
-**Dependencies:** SLA monitoring edge function, real-time data sync
+**Dependencies:** SLA monitoring Express.js route handler, real-time data sync
 
 ---
 
@@ -183,7 +183,7 @@
 
 **Priority:** Critical  
 **Story Points:** 13  
-**Dependencies:** Access review edge function, email notifications
+**Dependencies:** Access review Express.js route handler, email notifications
 
 ---
 
@@ -397,7 +397,7 @@
 **So that** I can proactively address performance issues
 
 **Acceptance Criteria:**
-- ✅ Dashboard shows edge function performance (p50, p95, p99 latency)
+- ✅ Dashboard shows Express.js route handler performance (p50, p95, p99 latency)
 - ✅ Database connection pool utilization visible
 - ✅ API gateway rate limit consumption tracked
 - ✅ Security alerts displayed with severity indicators

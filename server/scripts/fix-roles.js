@@ -1,45 +1,50 @@
-import pg from 'pg';
-const { Pool } = pg;
+#!/usr/bin/env node
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'guardianflow',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '../.env') });
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/';
+const DB_NAME = process.env.DB_NAME || 'guardianflow';
 
 async function fix() {
+  const client = new MongoClient(MONGODB_URI);
   const userId = '4e639a20-7f45-4fd2-8c78-8ea68178fa1d';
 
-  // Check what enum values exist
-  const enumValues = await pool.query(`
-    SELECT enumlabel FROM pg_enum
-    WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'app_role')
-  `);
-  console.log('Allowed role values:', enumValues.rows.map(r => r.enumlabel));
+  try {
+    await client.connect();
+    const db = client.db(DB_NAME);
 
-  // Use sys_admin if available, otherwise first admin-like role
-  const roles = enumValues.rows.map(r => r.enumlabel);
-  const adminRole = roles.find(r => r === 'sys_admin') ||
-                    roles.find(r => r.includes('admin')) ||
-                    roles[0];
+    // Get all roles
+    const allRoles = await db.collection('user_roles').distinct('role');
+    console.log('Available roles:', allRoles);
 
-  console.log('Using role:', adminRole);
+    const adminRole = allRoles.find(r => r === 'sys_admin') ||
+                      allRoles.find(r => r.includes('admin')) ||
+                      'sys_admin';
 
-  // Insert role
-  await pool.query(
-    `INSERT INTO user_roles (user_id, role, created_at) VALUES ($1, $2, now())
-     ON CONFLICT DO NOTHING`,
-    [userId, adminRole]
-  );
-  console.log('Role assigned');
+    console.log('Using role:', adminRole);
 
-  // Verify
-  const check = await pool.query('SELECT * FROM user_roles WHERE user_id = $1', [userId]);
-  console.log('Current roles:', check.rows);
+    // Upsert role
+    await db.collection('user_roles').updateOne(
+      { user_id: userId, role: adminRole },
+      { $set: { user_id: userId, role: adminRole, created_at: new Date() } },
+      { upsert: true }
+    );
+    console.log('Role assigned');
 
-  await pool.end();
+    // Verify
+    const check = await db.collection('user_roles').find({ user_id: userId }).toArray();
+    console.log('Current roles:', check);
+  } catch (err) {
+    console.error('Error:', err.message);
+  } finally {
+    await client.close();
+  }
 }
 
 fix();

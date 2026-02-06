@@ -260,7 +260,7 @@ Password: Admin123!
 **Verify**:
 - User is logged in
 - User has required permission
-- RLS policies allow the operation
+- Tenant isolation policies allow the operation
 - Check audit logs for authorization failures
 
 ---

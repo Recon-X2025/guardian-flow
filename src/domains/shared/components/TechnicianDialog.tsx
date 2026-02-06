@@ -5,8 +5,22 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { apiClient } from '@/integrations/api/client';
 
-export function TechnicianDialog({ open, onOpenChange, technician, onSuccess }: any) {
-  const [formData, setFormData] = useState(technician || {});
+interface TechnicianData {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+}
+
+interface TechnicianDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  technician?: TechnicianData;
+  onSuccess: () => void;
+}
+
+export function TechnicianDialog({ open, onOpenChange, technician, onSuccess }: TechnicianDialogProps) {
+  const [formData, setFormData] = useState<TechnicianData>(technician || {});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +31,7 @@ export function TechnicianDialog({ open, onOpenChange, technician, onSuccess }: 
         await apiClient.from('technicians').insert(formData).then();
       }
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving technician:', error);
     }
   };

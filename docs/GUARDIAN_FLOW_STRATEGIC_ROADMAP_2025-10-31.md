@@ -40,7 +40,7 @@ Stabilize current platform, implement P0-P1 fixes, and prepare infrastructure fo
 
 **Technical Approach:**
 ```typescript
-// Enhanced seed-demo-data edge function
+// Enhanced seed-demo-data Express.js route handler
 - Add validation layer before insert
 - Implement transaction rollback on failure
 - Add data integrity checks
@@ -54,13 +54,13 @@ Stabilize current platform, implement P0-P1 fixes, and prepare infrastructure fo
 
 ---
 
-#### 1.2 Complete Edge Function Testing & Telemetry (P1)
+#### 1.2 Complete Express.js Route Handler Testing & Telemetry (P1)
 **Priority:** High  
 **Effort:** 3 weeks  
 **Dependencies:** Observability infrastructure
 
 **Deliverables:**
-- Integration test suite for all 80+ edge functions
+- Integration test suite for all 80+ Express.js route handlers
 - Automated telemetry reporting
 - Performance benchmarking framework
 - Error rate monitoring dashboards
@@ -68,7 +68,7 @@ Stabilize current platform, implement P0-P1 fixes, and prepare infrastructure fo
 **Technical Approach:**
 ```typescript
 // Test framework structure
-supabase/functions/_tests/
+server/routes/_tests/
 ├── integration/
 │   ├── work-orders.test.ts
 │   ├── forecasting.test.ts
@@ -139,7 +139,7 @@ supabase/functions/_tests/
 **Dependencies:** observability_traces table
 
 **Deliverables:**
-- Distributed tracing across all edge functions
+- Distributed tracing across all Express.js route handlers
 - SLA breach prediction dashboards
 - Performance anomaly detection
 - Custom alerting rules engine
@@ -474,7 +474,7 @@ CREATE TABLE capacity_forecasts (
 **Technical Architecture:**
 ```typescript
 // BI Connector Architecture
-supabase/functions/bi-connector/
+server/routes/bi-connector/
 ├── powerbi/
 │   ├── auth.ts (OAuth2)
 │   ├── schema.ts (dataset definitions)
@@ -835,7 +835,7 @@ CREATE TABLE data_lineage (
 ### Team Structure
 
 **Core Platform Team (5 engineers)**
-- 2 Backend Engineers (Edge Functions, Database)
+- 2 Backend Engineers (Express.js Route Handlers, Database)
 - 2 Frontend Engineers (React, UI/UX)
 - 1 DevOps/Platform Engineer
 
@@ -868,7 +868,7 @@ CREATE TABLE data_lineage (
 - **Total Personnel:** $4.14M
 
 ### Infrastructure
-- Cloud hosting (Supabase scale): $180K/year
+- Cloud hosting (MongoDB Atlas scale): $180K/year
 - AI model training/inference: $120K/year
 - Third-party APIs (maps, weather, etc.): $60K/year
 - **Total Infrastructure (18 months):** $540K
@@ -907,7 +907,7 @@ CREATE TABLE data_lineage (
 ## Success Metrics by Phase
 
 ### Phase 1 (Months 1-3)
-- ✅ 95%+ edge function test coverage
+- ✅ 95%+ Express.js route handler test coverage
 - ✅ Zero unhandled exceptions
 - ✅ <200ms P95 API latency
 

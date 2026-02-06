@@ -5,17 +5,29 @@ import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/integrations/api/client';
 import { AlertTriangle, Shield, Activity } from 'lucide-react';
 
+interface SuspiciousPattern {
+  pattern_type: string;
+  count: number;
+  severity: string;
+}
+
+interface CriticalError {
+  function_name: string;
+  error_message: string;
+  timestamp: string;
+}
+
 interface SecurityMetrics {
   security_events: {
     total: number;
     critical: number;
     high: number;
-    suspicious_patterns: any[];
+    suspicious_patterns: SuspiciousPattern[];
   };
   errors: {
     total: number;
     by_function: Record<string, number>;
-    recent_critical: any[];
+    recent_critical: CriticalError[];
   };
   timestamp: string;
 }

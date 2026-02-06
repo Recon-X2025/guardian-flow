@@ -86,20 +86,21 @@ The platform orchestrates end-to-end work order lifecycle from ticket creation t
                     └───────────────┬────────────────┘
                                     │
                     ┌───────────────▼────────────────┐
-                    │     Supabase Backend           │
+                    │     Custom Express.js Backend  │
                     │  ┌──────────────────────────┐  │
-                    │  │  PostgreSQL + RLS        │  │
-                    │  │  Multi-tenant isolation  │  │
+                    │  │  MongoDB Atlas           │  │
+                    │  │  Application-level       │  │
+                    │  │  tenant isolation        │  │
                     │  └──────────────────────────┘  │
                     │  ┌──────────────────────────┐  │
-                    │  │  Edge Functions (Deno)   │  │
+                    │  │  Express.js Routes       │  │
                     │  │  • precheck-orchestrator │  │
                     │  │  • agent-runtime         │  │
                     │  │  • forecast-worker       │  │
                     │  │  • policy-enforcer       │  │
                     │  └──────────────────────────┘  │
                     │  ┌──────────────────────────┐  │
-                    │  │  Supabase Auth (JWT)     │  │
+                    │  │  Custom JWT Auth         │  │
                     │  │  RBAC + MFA              │  │
                     │  └──────────────────────────┘  │
                     └───────────────┬────────────────┘
@@ -118,10 +119,10 @@ The platform orchestrates end-to-end work order lifecycle from ticket creation t
 |-------|-----------|---------|
 | **Frontend** | React 18 + TypeScript + Vite | Modern SPA with hot reload |
 | **UI Components** | Radix UI + Tailwind CSS | Accessible, responsive design |
-| **Backend** | Supabase (PostgreSQL + Edge Functions) | Serverless, auto-scaling |
+| **Backend** | Express.js + MongoDB Atlas | Custom backend, horizontally scalable |
 | **AI Models** | Google Gemini 2.5, OpenAI GPT-5 | Intelligent recommendations |
-| **Authentication** | Supabase Auth (JWT) | Secure, session-based |
-| **API Gateway** | Deno Edge Function | Multi-tenant routing |
+| **Authentication** | Custom JWT Auth (Express.js middleware) | Secure, token-based |
+| **API Gateway** | Express.js route handlers | Multi-tenant routing |
 | **Observability** | OpenTelemetry-style traces | Full request tracing |
 | **Forecasting** | Time-series + MinT reconciliation | Hierarchical predictions |
 
@@ -284,7 +285,7 @@ Agent Consumption (automatic)
 
 ### API Gateway
 
-**Endpoint**: `POST /functions/v1/api-gateway`
+**Endpoint**: `POST /api/functions/api-gateway`
 
 **Headers**:
 ```
@@ -345,7 +346,7 @@ Content-Type: application/json
 
 ### Sandbox Environment
 
-**Endpoint**: `POST /functions/v1/create-sandbox-tenant`
+**Endpoint**: `POST /api/functions/create-sandbox-tenant`
 
 **Auto-provisioning**:
 - 7-day trial tenant
@@ -445,9 +446,9 @@ can_release = true/false
 ### Multi-Tenant Isolation
 
 **4-Layer Isolation**:
-1. **Database**: RLS policies enforce `tenant_id` filtering
+1. **Database**: Application-level tenant isolation enforces `tenant_id` filtering
 2. **Application**: AuthContext validates tenant membership
-3. **API**: Edge functions verify `tenant_id` in JWT
+3. **API**: Express.js middleware verifies `tenant_id` in JWT
 4. **UI**: Components filter by current user's `tenant_id`
 
 ### RBAC (Role-Based Access Control)
@@ -484,16 +485,16 @@ can_release = true/false
 
 ### Prerequisites
 
-- Lovable project with Cloud enabled
-- Supabase project (auto-provisioned via Lovable Cloud)
-- Environment variables configured
+- Node.js 18+ and npm
+- MongoDB Atlas cluster (provisioned and configured)
+- Environment variables configured (MONGODB_URI, etc.)
 - API secrets (INTERNAL_API_SECRET, etc.)
 
 ### Deployment Steps
 
-1. **Configure Environment**: Set variables in Project Settings
-2. **Publish**: Click Publish button (top-right)
-3. **Verify Functions**: Check function logs in backend panel
+1. **Configure Environment**: Set variables in `.env` file
+2. **Build & Deploy**: Run `npm run build` and deploy to hosting platform
+3. **Verify Server**: Check Express.js server logs
 4. **Seed Demo Data**: Run India Full Seed from Forecast Center
 5. **Generate API Keys**: Access Developer Console
 
@@ -518,7 +519,7 @@ can_release = true/false
 | **Agent Autonomy** | 92% | Minimal human intervention |
 | **Fraud Detection** | 0.7+ confidence | Real-time prevention |
 | **Multi-Currency** | 14 currencies | Global scalability |
-| **RLS Coverage** | 100% | Complete data isolation |
+| **Tenant Isolation** | 100% | Complete data isolation |
 | **Uptime SLA** | 99.9% | Enterprise reliability |
 
 ### Business Impact

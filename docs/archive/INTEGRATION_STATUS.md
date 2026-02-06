@@ -32,7 +32,7 @@
 
 2. **Database Migrations Not Run**
    - Payment gateway tables need to be created
-   - Run: `psql -U postgres -d guardianflow -f server/scripts/migrations/add-payment-gateways.sql`
+   - Run: `mongosh guardianflow --file server/scripts/migrations/add-payment-gateways.sql`
 
 3. **Frontend Dev Server Not Running**
    - The React app needs to be running
@@ -65,7 +65,7 @@ Should see Vite dev server running (usually `http://localhost:5175`)
 ### **Step 3: Run Database Migration**
 ```bash
 cd server
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.sql
 ```
 
 ### **Step 4: Enable Gateways (Optional)**

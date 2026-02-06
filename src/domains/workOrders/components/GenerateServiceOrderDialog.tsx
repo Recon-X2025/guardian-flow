@@ -16,7 +16,7 @@ interface GenerateServiceOrderDialogProps {
 export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, onSuccess }: GenerateServiceOrderDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [serviceOrder, setServiceOrder] = useState<any>(null);
+  const [serviceOrder, setServiceOrder] = useState<{ so_number?: string; html_content?: string; id?: string } | null>(null);
 
   const generateSO = async () => {
     console.log('Generating Service Order for:', workOrderId);
@@ -55,11 +55,11 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
       });
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('SO generation failed:', error);
       toast({
         title: 'Generation failed',
-        description: error.message || 'Failed to generate Service Order. Check console for details.',
+        description: error instanceof Error ? error.message : 'Failed to generate Service Order. Check console for details.',
         variant: 'destructive',
       });
     } finally {
@@ -81,7 +81,7 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
       if (!wo) return;
 
       // Get ticket details if available
-      let ticket: any = null;
+      let ticket: { customer_id?: string } | null = null;
       if (wo.ticket_id) {
         const { data: tickets } = await apiClient
           .from('tickets')
@@ -99,7 +99,7 @@ export function GenerateServiceOrderDialog({ open, onOpenChange, workOrderId, on
         .eq('work_order_id', woId)
         .then();
 
-      const penaltyTotal = penalties?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+      const penaltyTotal = penalties?.reduce((sum: number, p: { amount?: number | string }) => sum + Number(p.amount), 0) || 0;
       const subtotal = Number(wo.cost_to_customer) || 0;
       const totalAmount = subtotal - penaltyTotal;
 

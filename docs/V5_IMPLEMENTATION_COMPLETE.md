@@ -13,7 +13,7 @@
 - ✅ Extended **work_orders** with full geography + product_id fields
 - ✅ Optimized indexes for hierarchical queries
 
-### Edge Functions
+### Express.js Route Handlers
 - ✅ **generate-forecast**: Enqueues hierarchical forecast jobs (202 Accepted)
 - ✅ **forecast-worker**: Processes queued jobs with hierarchical data fetching
 - ✅ **forecast-status**: Returns queue stats, recent outputs, model status
@@ -84,13 +84,13 @@ User → generate-forecast (202) → forecast_queue → forecast-worker
 ## 🚀 Deployment Status
 
 ### Environment
-- **Database**: Postgres 15 with hierarchical indexes
-- **Functions**: Deno runtime, auto-deployed
-- **Cron**: pg_cron + net.http_post (requires setup)
+- **Database**: MongoDB Atlas with hierarchical indexes
+- **Functions**: Node.js/Express.js runtime, auto-deployed
+- **Cron**: node-cron + HTTP requests (requires setup)
 - **Storage**: 18-month retention policy
 
 ### Security
-- ✅ RLS enabled on all tables
+- ✅ Application-level tenant isolation enabled on all tables
 - ✅ Role-based access control
 - ✅ Audit logging with correlation IDs
 - ⚠️ Password strength check (pre-existing warning)

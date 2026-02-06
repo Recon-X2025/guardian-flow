@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { GenerateServiceOrderDialog } from '@/components/GenerateServiceOrderDialog';
+import { GenerateServiceOrderDialog } from '@/domains/workOrders/components/GenerateServiceOrderDialog';
 import { apiClient } from '@/integrations/api/client';
 
 // Mock apiClient
@@ -36,7 +36,7 @@ describe('GenerateServiceOrderDialog', () => {
       />
     );
 
-    expect(screen.getByText('Generate Service Order')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Generate Service Order/i })).toBeInTheDocument();
   });
 
   it('should invoke generate-service-order function when generating', async () => {
@@ -91,7 +91,7 @@ describe('GenerateServiceOrderDialog', () => {
     );
 
     // Verify component renders
-    expect(screen.getByText(/Generate Service Order/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Generate Service Order/i })).toBeInTheDocument();
     
     // The actual button click would trigger the function
     // This test verifies the component structure is correct
@@ -116,7 +116,7 @@ describe('GenerateServiceOrderDialog', () => {
     );
 
     // Component should render even with potential errors
-    expect(screen.getByText(/Generate Service Order/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Generate Service Order/i })).toBeInTheDocument();
   });
 });
 

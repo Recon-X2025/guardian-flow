@@ -16,7 +16,7 @@ interface TriggerPrecheckDialogProps {
 export function TriggerPrecheckDialog({ open, onOpenChange, workOrderId, onSuccess }: TriggerPrecheckDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<{ can_release?: boolean; inventory?: { all_available?: boolean }; warranty?: { covered?: boolean } } | null>(null);
 
   const runPrecheck = async () => {
     setLoading(true);
@@ -56,10 +56,10 @@ export function TriggerPrecheckDialog({ open, onOpenChange, workOrderId, onSucce
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Precheck failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

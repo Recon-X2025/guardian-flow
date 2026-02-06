@@ -3,10 +3,27 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { DollarSign, Shield, AlertTriangle } from 'lucide-react';
 
+interface Penalty {
+  penalty_code: string;
+  severity_level: string;
+  auto_bill: boolean;
+  dispute_allowed: boolean;
+  mfa_required: boolean;
+  active: boolean;
+  description?: string;
+  violation_type: string;
+  rate_card_entry_code?: string;
+  calculation_method: string;
+  percentage_value: number;
+  base_reference?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface PenaltyDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  penalty: any;
+  penalty: Penalty | null;
 }
 
 export function PenaltyDetailsDialog({ open, onOpenChange, penalty }: PenaltyDetailsDialogProps) {

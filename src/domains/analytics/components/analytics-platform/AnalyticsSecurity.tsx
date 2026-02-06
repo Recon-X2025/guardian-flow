@@ -286,7 +286,7 @@ export function AnalyticsSecurity() {
               <CardTitle>Access Control Policies</CardTitle>
               <CardDescription>Fine-grained access control and authorization rules</CardDescription>
             </div>
-            <Button>
+            <Button onClick={() => toast({ title: "New Policy", description: "Policy creation dialog coming soon" })}>
               <Plus className="h-4 w-4 mr-2" />
               New Policy
             </Button>
@@ -310,7 +310,7 @@ export function AnalyticsSecurity() {
                     <div>Conditions: {JSON.stringify(policy.conditions)}</div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => toast({ title: "Edit Policy", description: `Editing ${policy.name}...` })}>
                   Edit Policy
                 </Button>
               </div>

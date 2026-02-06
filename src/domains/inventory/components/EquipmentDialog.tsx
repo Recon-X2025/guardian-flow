@@ -5,8 +5,22 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { apiClient } from '@/integrations/api/client';
 
-export function EquipmentDialog({ open, onOpenChange, equipment, onSuccess }: any) {
-  const [formData, setFormData] = useState(equipment || {});
+interface Equipment {
+  id?: string;
+  name: string;
+  category: string;
+  serial_number?: string;
+}
+
+interface EquipmentDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  equipment?: Equipment | null;
+  onSuccess: () => void;
+}
+
+export function EquipmentDialog({ open, onOpenChange, equipment, onSuccess }: EquipmentDialogProps) {
+  const [formData, setFormData] = useState<Partial<Equipment>>(equipment || {});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

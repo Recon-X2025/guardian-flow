@@ -1,65 +1,52 @@
 # Guardian Flow Backend Server
 
-Backend API server replacing Supabase with local PostgreSQL.
+Backend API server powered by MongoDB Atlas.
 
 ## Setup
 
-### 1. Install PostgreSQL
+### 1. MongoDB Atlas Setup
 
-**macOS (using Homebrew):**
-```bash
-brew install postgresql@15
-brew services start postgresql@15
+The application uses MongoDB Atlas cloud database. No local installation required.
+
+**Connection String:**
+```
+mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/
 ```
 
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
-sudo systemctl start postgresql
+**Database Name:**
+```
+guardianflow
 ```
 
-**Windows:**
-Download and install from https://www.postgresql.org/download/windows/
-
-### 2. Create Database
-
-```bash
-# Connect to PostgreSQL
-psql postgres
-
-# Create database and user
-CREATE DATABASE guardianflow;
-CREATE USER postgres WITH PASSWORD 'postgres';
-GRANT ALL PRIVILEGES ON DATABASE guardianflow TO postgres;
-\q
-```
-
-### 3. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 cd server
 npm install
 ```
 
-### 4. Configure Environment
+### 3. Configure Environment
 
 ```bash
 cp .env.example .env
-# Edit .env with your database credentials
+# Edit .env with your MongoDB connection details
 ```
 
-### 5. Initialize Database Schema
+Add to your `.env` file:
+```env
+MONGODB_URI=mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/
+MONGODB_DB_NAME=guardianflow
+```
+
+### 4. Initialize Database Collections
 
 ```bash
-# Run initial schema
-psql -U postgres -d guardianflow -f scripts/init-db.sql
-
-# Run migrations
+# The server will automatically connect to MongoDB Atlas
+# Collections are created on first use
 npm run migrate
 ```
 
-### 6. Start Server
+### 5. Start Server
 
 ```bash
 npm run dev
@@ -89,15 +76,15 @@ The server will run on http://localhost:3001
 
 The server uses:
 - **Express.js** - Web framework
-- **pg** - PostgreSQL client
+- **mongodb** - MongoDB client
 - **bcryptjs** - Password hashing
 - **jsonwebtoken** - JWT authentication
 
 ## Production Deployment
 
 For Vultr deployment:
-1. Set up PostgreSQL database on Vultr
-2. Update `.env` with production database credentials
+1. Use MongoDB Atlas cloud database (already configured)
+2. Update `.env` with production MongoDB credentials
 3. Set strong `JWT_SECRET`
 4. Configure `FRONTEND_URL` to your domain
 5. Use PM2 or similar process manager:

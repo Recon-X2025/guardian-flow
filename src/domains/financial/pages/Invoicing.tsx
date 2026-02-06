@@ -17,9 +17,32 @@ import jsPDF from 'jspdf';
 export default function Invoicing() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
-  const [invoices, setInvoices] = useState<any[]>([]);
+  interface Invoice {
+    id: string;
+    invoice_number?: string;
+    status: string;
+    subtotal?: number | string;
+    penalties?: number | string;
+    total_amount: number | string;
+    hold_reason?: string;
+    created_at: string;
+    payment_status?: string;
+    payment_received_at?: string;
+    payment_amount?: number | string;
+    invoice_data?: unknown;
+    supplier_data?: unknown;
+    work_order?: {
+      wo_number?: string;
+      ticket?: {
+        customer_name?: string;
+        unit_serial?: string;
+      };
+    };
+  }
+
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
   const invoicePerms = useActionPermissions('invoices');
@@ -101,10 +124,10 @@ export default function Invoicing() {
       } else {
         setInvoices(data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading invoices',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -138,7 +161,7 @@ export default function Invoicing() {
   const totalPending = invoices.filter(inv => ['draft', 'sent'].includes(inv.status)).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
   const totalOverdue = invoices.filter(inv => inv.status === 'overdue').reduce((sum, inv) => sum + Number(inv.total_amount), 0);
 
-  const handleDownload = (invoice: any) => {
+  const handleDownload = (invoice: Invoice) => {
     const doc = new jsPDF();
     
     // Header

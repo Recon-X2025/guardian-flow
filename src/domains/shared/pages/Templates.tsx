@@ -12,13 +12,25 @@ import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+interface Template {
+  id: string;
+  template_name: string;
+  template_type: string;
+  version?: number;
+  file_format?: string;
+  is_active?: boolean;
+  placeholders: string[];
+  created_at: string;
+  template_versions?: { count: number }[];
+}
+
 export default function Templates() {
   const { toast } = useToast();
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   
   // Upload form state
   const [templateName, setTemplateName] = useState('');
@@ -44,18 +56,19 @@ export default function Templates() {
       
       // Fetch template versions separately and merge
       const versionsResult = await apiClient.from('template_versions').select('*');
-      const versions = versionsResult.data || [];
-      
-      const templatesWithCounts = templatesData.map((template: any) => ({
+      const versions = (versionsResult.data || []) as { template_id: string }[];
+
+      const templatesWithCounts: Template[] = templatesData.map((template) => ({
         ...template,
-        template_versions: [{ count: versions.filter((v: any) => v.template_id === template.id).length }]
+        placeholders: template.placeholders || [],
+        template_versions: [{ count: versions.filter((v) => v.template_id === template.id).length }]
       }));
-      
+
       setTemplates(templatesWithCounts);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading templates',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -109,7 +122,7 @@ export default function Templates() {
       formData.append('placeholders', JSON.stringify(placeholderArray));
       formData.append('preview_data', JSON.stringify({}));
 
-      // Upload via edge function
+      // Upload via API endpoint
       const result = await apiClient.functions.invoke('template-upload', {
         body: formData,
       });
@@ -127,10 +140,10 @@ export default function Templates() {
       setSelectedFile(null);
       setPlaceholders('');
       fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Upload failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

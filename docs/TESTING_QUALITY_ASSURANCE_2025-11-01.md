@@ -156,22 +156,20 @@ describe('formatCurrency', () => {
 
 ### Backend Unit Tests
 
-**Edge Function Testing**
+**Express.js Route Handler Testing**
 ```typescript
 // Example: API gateway
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { assertEquals } from 'https://deno.land/std@0.168.0/testing/asserts.ts';
+import request from 'supertest';
+import app from '../server/server';
 
-Deno.test('API Gateway - Authentication', async () => {
-  const request = new Request('http://localhost/api-gateway', {
-    method: 'POST',
-    headers: {
-      'Authorization': 'Bearer invalid_token'
-    }
+describe('API Gateway - Authentication', () => {
+  it('rejects invalid tokens', async () => {
+    const response = await request(app)
+      .post('/api/functions/api-gateway')
+      .set('Authorization', 'Bearer invalid_token');
+
+    expect(response.status).toBe(401);
   });
-
-  const response = await handleRequest(request);
-  assertEquals(response.status, 401);
 });
 ```
 
@@ -195,7 +193,7 @@ afterAll(async () => {
 });
 ```
 
-**RLS Policy Testing**
+**Tenant Isolation Testing**
 ```typescript
 // Test tenant isolation
 describe('Tenant Isolation', () => {
@@ -203,7 +201,7 @@ describe('Tenant Isolation', () => {
     const tenant1User = await createTestUser('tenant1');
     const tenant2Data = await createTestWorkOrder('tenant2');
 
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('work_orders')
       .select('*')
       .eq('id', tenant2Data.id)
@@ -220,7 +218,7 @@ describe('Tenant Isolation', () => {
 describe('RBAC Permissions', () => {
   it('allows technician to read work orders', async () => {
     const tech = await createTestUser('tenant1', 'technician');
-    const { data, error } = await supabase
+    const { data, error } = await apiClient
       .from('work_orders')
       .select('*');
 
@@ -232,7 +230,7 @@ describe('RBAC Permissions', () => {
     const tech = await createTestUser('tenant1', 'technician');
     const wo = await createTestWorkOrder('tenant1');
 
-    const { error } = await supabase
+    const { error } = await apiClient
       .from('work_orders')
       .delete()
       .eq('id', wo.id);

@@ -8,10 +8,18 @@ import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
+interface WorkOrderData {
+  id: string;
+  status: string;
+  wo_number?: string;
+  part_status?: string;
+  part_notes?: string;
+}
+
 interface EditWorkOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  workOrder: any;
+  workOrder: WorkOrderData;
   onSuccess: () => void;
 }
 
@@ -79,11 +87,11 @@ export function EditWorkOrderDialog({ open, onOpenChange, workOrder, onSuccess }
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Update error:', error);
       toast({
         title: 'Update Failed',
-        description: error.message || 'Failed to update work order',
+        description: error instanceof Error ? error.message : 'Failed to update work order',
         variant: 'destructive',
       });
     } finally {

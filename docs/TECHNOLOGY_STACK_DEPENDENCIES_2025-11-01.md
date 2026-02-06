@@ -31,8 +31,8 @@ Guardian Flow leverages modern, battle-tested technologies to deliver a robust, 
 | **Frontend Framework** | React 18.3 | Component-based, large ecosystem, excellent performance |
 | **Language** | TypeScript 5.x | Type safety, better developer experience, fewer runtime errors |
 | **Build Tool** | Vite 5.x | Fast builds, hot module replacement, modern bundling |
-| **Backend** | Supabase | Full-stack platform, PostgreSQL, real-time, auth built-in |
-| **Database** | PostgreSQL 15+ | ACID compliance, advanced features, proven reliability |
+| **Backend** | Express.js + Node.js | Full-stack platform, flexible, scalable |
+| **Database** | MongoDB Atlas 7.x | Document store, flexible schema, global clusters |
 | **Styling** | Tailwind CSS 3.x | Utility-first, rapid development, consistent design |
 | **State Management** | TanStack Query 5.x | Server state management, caching, automatic refetching |
 | **AI/ML** | Google Gemini, OpenAI GPT | Advanced AI capabilities, multimodal support |
@@ -202,26 +202,19 @@ Guardian Flow leverages modern, battle-tested technologies to deliver a robust, 
 
 ### Platform
 
-**Supabase**
-- Purpose: Backend-as-a-Service
-- Features: PostgreSQL, Auth, Storage, Real-time, Edge Functions
-- Hosting: Lovable Cloud (managed Supabase)
+**Express.js + Node.js**
+- Purpose: Backend server framework
+- Features: RESTful APIs, middleware support, flexible routing
+- Runtime: Node.js 18+
+- License: MIT
+
+### Database Driver
+
+**mongodb 6.3+**
+- Purpose: Native MongoDB driver
+- Features: Connection pooling, async operations, aggregation
+- Version: 6.3+
 - License: Apache 2.0
-
-### Runtime
-
-**Deno**
-- Purpose: Runtime for Edge Functions
-- Features: TypeScript native, secure by default, web-standard APIs
-- Version: Latest stable
-- License: MIT
-
-### Supabase Client
-
-**@supabase/supabase-js 2.58**
-- Purpose: JavaScript client for Supabase
-- Features: Auth, database queries, storage, real-time
-- License: MIT
 
 ---
 
@@ -229,29 +222,30 @@ Guardian Flow leverages modern, battle-tested technologies to deliver a robust, 
 
 ### Database
 
-**PostgreSQL 15+**
+**MongoDB Atlas 7.x**
 - Purpose: Primary database
-- Features: ACID compliance, JSONB, full-text search, extensions
-- Hosting: Managed by Supabase
-- License: PostgreSQL License
+- Features: Document store, flexible schema, aggregation pipeline, indexes
+- Hosting: MongoDB Atlas (managed cloud)
+- License: Server Side Public License (SSPL)
 
-**Database Extensions**
-- `uuid-ossp`: UUID generation
-- `pgcrypto`: Cryptographic functions
-- `pg_stat_statements`: Performance monitoring
+**Database Features**
+- TTL indexes: Automatic document expiration
+- Text indexes: Full-text search
+- Compound indexes: Multi-field query optimization
 
 ### Storage
 
-**Supabase Storage**
+**Disk-based Storage (Multer)**
 - Purpose: File and object storage
-- Features: S3-compatible, CDN, image transformations
-- Buckets: `document-templates`
-- License: Apache 2.0
+- Features: File uploads, MIME type validation
+- Location: Server file system
+- License: MIT
 
 ### Caching
 
-**PostgreSQL Prepared Statements**
+**In-memory Caching**
 - Purpose: Query performance optimization
+- Implementation: Token blacklist, session cache
 - Built-in: No external cache needed for current scale
 
 ---
@@ -292,7 +286,7 @@ Guardian Flow leverages modern, battle-tested technologies to deliver a robust, 
 
 **Lovable Cloud**
 - Purpose: Automated deployments
-- Features: Preview builds, production deploys, edge function deployment
+- Features: Preview builds, production deploys, Express.js route handler deployment
 - Trigger: Git push
 
 ### Hosting
@@ -302,21 +296,21 @@ Guardian Flow leverages modern, battle-tested technologies to deliver a robust, 
 - Features: CDN, SSL, custom domains
 - Regions: Multi-region support
 
-**Supabase Cloud**
+**Express.js Backend (Self-hosted)**
 - Purpose: Backend hosting
-- Features: Database, storage, edge functions
-- Regions: Auto-selected based on project
+- Features: API routes, middleware, database access
+- Regions: Configurable based on deployment
 
 ### Monitoring
 
-**Supabase Dashboard**
+**MongoDB Atlas Dashboard**
 - Purpose: Backend observability
-- Metrics: Database performance, function logs, auth logs
+- Metrics: Database performance, query logs, connection stats
 - Alerts: Configurable
 
 **Custom Telemetry**
 - Purpose: Application metrics
-- Implementation: Edge function telemetry
+- Implementation: Express.js route handler telemetry
 - Storage: Database tables
 
 ---
@@ -389,24 +383,24 @@ tests/
 
 ### Authentication
 
-**Supabase Auth**
+**Custom JWT Auth**
 - Purpose: User authentication
-- Features: JWT tokens, OAuth, MFA
-- Built-in: Part of Supabase
+- Features: JWT tokens, OAuth (planned), MFA
+- Built-in: Part of Express.js backend
 
 ### Authorization
 
 **Custom RBAC System**
-- Implementation: PostgreSQL functions and RLS
-- Tables: `user_roles`, `role_permissions`, `permissions`
+- Implementation: Application-level middleware with tenant isolation
+- Collections: `user_roles`, `role_permissions`, `permissions`
 - No external dependency
 
 ### Encryption
 
-**PostgreSQL pgcrypto**
+**MongoDB Atlas Encryption**
 - Purpose: Database encryption
-- Features: Field-level encryption
-- Built-in: PostgreSQL extension
+- Features: Field-level encryption, client-side encryption
+- Built-in: MongoDB Atlas feature
 
 ### Sanitization
 
@@ -428,7 +422,6 @@ tests/
   "react-dom": "^18.3.1",
   "react-router-dom": "^6.30.1",
   "@tanstack/react-query": "^5.83.0",
-  "@supabase/supabase-js": "^2.58.0",
   "react-hook-form": "^7.61.1",
   "zod": "^3.25.76",
   "tailwindcss": "latest",
@@ -451,10 +444,10 @@ tests/
 
 ### Backend Dependencies
 
-**Edge Functions**
-- No package.json (Deno uses URL imports)
-- Shared code in `supabase/functions/_shared/`
-- Standard library: Deno std
+**Express.js Backend**
+- Package management via npm (server/package.json)
+- Shared code in `server/services/` and `server/middleware/`
+- Standard library: Node.js built-ins
 
 ### Update Strategy
 

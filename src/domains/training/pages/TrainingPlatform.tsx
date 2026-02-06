@@ -8,6 +8,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraduationCap, BookOpen, Trophy, TrendingUp, PlayCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "@/domains/shared/hooks/use-toast";
 
+interface TrainingCourse {
+  id: string;
+  title: string;
+  description?: string;
+  duration_hours?: number;
+  skill_level?: string;
+  is_published: boolean;
+}
+
+interface TrainingEnrollment {
+  id: string;
+  progress_percent: number;
+  completed_at?: string;
+  training_courses: TrainingCourse;
+}
+
+interface TrainingCertification {
+  id: string;
+  certificate_number: string;
+  issued_at: string;
+  expires_at?: string;
+  training_courses?: { title: string };
+}
+
+interface CourseRecommendation {
+  course_id: string;
+  priority: number;
+  reason: string;
+}
+
 export default function TrainingPlatform() {
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
@@ -167,7 +197,7 @@ export default function TrainingPlatform() {
 
         <TabsContent value="my-learning" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {enrollments?.map((enrollment: any) => (
+            {enrollments?.map((enrollment: TrainingEnrollment) => (
               <Card key={enrollment.id}>
                 <CardHeader>
                   <CardTitle>{enrollment.training_courses.title}</CardTitle>
@@ -191,7 +221,11 @@ export default function TrainingPlatform() {
                           'In Progress'
                         )}
                       </span>
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toast({ title: "Course Resumed", description: `Continuing ${enrollment.training_courses?.title || 'course'}...` })}
+                      >
                         <PlayCircle className="w-4 h-4 mr-1" />
                         Continue
                       </Button>
@@ -205,7 +239,7 @@ export default function TrainingPlatform() {
 
         <TabsContent value="certificates" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {certifications?.map((cert: any) => (
+            {certifications?.map((cert: TrainingCertification) => (
               <Card key={cert.id} className="border-2 border-yellow-500/20">
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -228,7 +262,12 @@ export default function TrainingPlatform() {
                         {new Date(cert.expires_at).toLocaleDateString()}
                       </div>
                     )}
-                    <Button size="sm" variant="outline" className="w-full">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => toast({ title: "Certificate", description: `Certificate #${cert.certificate_number} - ${cert.training_courses?.title}` })}
+                    >
                       View Certificate
                     </Button>
                   </div>
@@ -244,7 +283,7 @@ export default function TrainingPlatform() {
             <h2 className="text-xl font-semibold">AI-Powered Recommendations</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {recommendations?.map((rec: any) => {
+            {recommendations?.map((rec: CourseRecommendation) => {
               const course = courses?.find(c => c.id === rec.course_id);
               if (!course) return null;
               return (

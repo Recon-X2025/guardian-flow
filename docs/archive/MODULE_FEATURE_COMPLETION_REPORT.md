@@ -433,8 +433,8 @@ Where:
 
 ### Page Migration: ⏳ 0% Complete
 - **Total Page Files:** 94
-- **Pages with Supabase:** 40
-- **Total Supabase References:** 101
+- **Pages with legacy API:** 40
+- **Total legacy API References:** 101
 - **Migrated:** 0
 - **Remaining:** 40
 
@@ -461,7 +461,7 @@ Where:
 
 ### Migration Completion: 35%
 - ✅ Components: 100% (21/21)
-- ⏳ Pages: 0% (0/40 pages with Supabase)
+- ⏳ Pages: 0% (0/40 pages with legacy API)
 - **Overall:** 21/61 = 34.4% ≈ **35%**
 - **Note:** 40 pages need migration out of 94 total pages
 

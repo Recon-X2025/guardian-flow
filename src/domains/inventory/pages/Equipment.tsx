@@ -12,10 +12,29 @@ import { EquipmentDialog } from '@/domains/inventory/components/EquipmentDialog'
 import { useRBAC } from '@/domains/auth/contexts/RBACContext';
 import { useActionPermissions } from '@/domains/auth/hooks/useActionPermissions';
 
+interface CustomerInfo {
+  company_name?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface EquipmentItem {
+  id: string;
+  equipment_number: string;
+  name: string;
+  category: string;
+  serial_number?: string;
+  manufacturer?: string;
+  model?: string;
+  status: string;
+  warranty_end_date?: string;
+  customers?: CustomerInfo;
+}
+
 export default function Equipment() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
   const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
   const equipmentPerms = useActionPermissions('equipment');
@@ -28,7 +47,7 @@ export default function Equipment() {
       let query = apiClient
         .from('equipment')
         .select('*, customers(company_name, first_name, last_name)')
-        .order('created_at', { ascending: false }) as any;
+        .order('created_at', { ascending: false });
 
       // Only sys_admin sees all equipment, others filtered by tenant
       if (!isSysAdmin && tenantId) {
@@ -113,7 +132,7 @@ export default function Equipment() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {equipment.map((eq: any) => (
+              {equipment.map((eq: EquipmentItem) => (
                 <TableRow key={eq.id}>
                   <TableCell className="font-mono text-sm">
                     {eq.equipment_number}

@@ -39,11 +39,65 @@ const storage = multer.diskStorage({
   },
 });
 
+// MIME type allowlist for file uploads
+const ALLOWED_MIME_TYPES = new Set([
+  // Images
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  // Documents
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  // Text
+  'text/plain', 'text/csv',
+  // Archives
+  'application/zip',
+]);
+
 const upload = multer({
   storage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} is not allowed`), false);
+    }
+  },
+});
+
+/**
+ * Upload file (generic endpoint)
+ * POST /api/storage/upload
+ */
+router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    const bucket = req.body.bucket || 'default';
+    const filePath = req.file.path;
+    const fileName = req.file.filename;
+    const publicUrl = `${PUBLIC_URL}/api/storage/${bucket}/${fileName}`;
+
+    res.json({
+      url: publicUrl,
+      path: fileName,
+      fullPath: `${bucket}/${fileName}`,
+      publicUrl,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
 });
 
 /**

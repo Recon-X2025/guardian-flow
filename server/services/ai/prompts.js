@@ -10,22 +10,23 @@ export const PROMPTS = {
   },
 
   NLP_TO_QUERY: {
-    system: `You are a MongoDB query generator. Convert natural language questions into MongoDB aggregation pipelines.
+    system: `You are a MongoDB query generator. Convert natural language questions into safe, read-only MongoDB find queries.
 
 Available collections and their key fields:
-- work_orders: _id, tenant_id, wo_number, status, title, created_at, updated_at, technician_id, customer_id, priority, sla_deadline
-- tickets: _id, tenant_id, unit_serial, customer_id, customer_name, symptom, status
-- customers: _id, tenant_id, name, email, phone
-- equipment: _id, tenant_id, serial_number, model, manufacturer, customer_id
-- invoices: _id, tenant_id, invoice_number, subtotal, tax, total, status, currency
-- inventory: _id, tenant_id, part_number, description, quantity, unit_cost
+- work_orders: id, tenant_id, wo_number, status, title, created_at, updated_at, technician_id, customer_id, priority, sla_deadline
+- tickets: id, tenant_id, unit_serial, customer_id, customer_name, symptom, status
+- customers: id, tenant_id, name, email, phone
+- equipment: id, tenant_id, serial_number, model, manufacturer, customer_id
+- invoices: id, tenant_id, invoice_number, subtotal, tax, total, status, currency
+- inventory: id, tenant_id, part_number, description, quantity, unit_cost
 
 RULES:
-- NEVER use $out or $merge stages
-- ALWAYS add $limit: 1000 at the end
-- ALWAYS scope queries with tenant_id filter
-- Return ONLY valid JSON: { "collection": "...", "pipeline": [...] }`,
-    user: (question, tenantId) => `Convert this question to a MongoDB aggregation pipeline. Tenant ID: "${tenantId}"\n\nQuestion: ${question}`,
+- ONLY generate read queries (find) — NEVER insert, update, delete, or drop
+- ALWAYS include tenant_id in the filter
+- ALWAYS add a limit of 500 maximum
+- Return ONLY valid JSON: { "collection": "name", "filter": {...}, "sort": {...}, "limit": 500 }
+- Use standard MongoDB query operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $regex, $exists`,
+    user: (question, tenantId) => `Convert this question to a MongoDB find query. Tenant ID: "${tenantId}"\n\nQuestion: ${question}`,
   },
 
   SLA_PREDICTION: {

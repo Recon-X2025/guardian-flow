@@ -30,7 +30,7 @@ async function loadGcpSecrets() {
   const { SecretManagerServiceClient } = await import('@google-cloud/secret-manager');
   const client = new SecretManagerServiceClient();
   const projectId = process.env.GCP_PROJECT_ID;
-  const secretNames = ['DB_PASSWORD', 'JWT_SECRET', 'SMTP_PASSWORD'];
+  const secretNames = ['MONGODB_URI', 'JWT_SECRET', 'SMTP_PASSWORD'];
 
   for (const name of secretNames) {
     try {
@@ -47,7 +47,7 @@ async function loadGcpSecrets() {
 }
 
 function loadEnvSecrets() {
-  const required = ['JWT_SECRET', 'DB_PASSWORD'];
+  const required = ['JWT_SECRET'];
   const missing = required.filter(k => !process.env[k]);
   if (missing.length > 0) {
     throw new Error(`Missing required secrets: ${missing.join(', ')}`);
@@ -57,7 +57,7 @@ function loadEnvSecrets() {
 }
 
 export function validateSecrets() {
-  const required = ['JWT_SECRET', 'DB_PASSWORD'];
+  const required = ['JWT_SECRET'];
   const missing = required.filter(k => !process.env[k]);
   if (missing.length > 0 && process.env.NODE_ENV === 'production') {
     throw new Error(`Missing secrets: ${missing.join(', ')}`);

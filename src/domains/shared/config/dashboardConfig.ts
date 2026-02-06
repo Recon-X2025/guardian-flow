@@ -12,7 +12,7 @@ export interface DashboardCard {
   icon: LucideIcon;
   color: string;
   subtitle?: string;
-  formatter?: (value: any) => string;
+  formatter?: (value: number) => string;
 }
 
 export interface DashboardStats {

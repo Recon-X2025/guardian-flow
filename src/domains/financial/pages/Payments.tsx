@@ -11,7 +11,22 @@ import { useCurrency } from '@/domains/shared/hooks/useCurrency';
 export default function Payments() {
   const { toast } = useToast();
   const { formatCurrency } = useCurrency();
-  const [invoices, setInvoices] = useState<any[]>([]);
+  interface PaymentInvoice {
+    id: string;
+    invoice_number?: string;
+    status: string;
+    total_amount: number | string;
+    created_at: string;
+    work_order?: {
+      wo_number?: string;
+      ticket?: {
+        customer_name?: string;
+        unit_serial?: string;
+      };
+    };
+  }
+
+  const [invoices, setInvoices] = useState<PaymentInvoice[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -73,10 +88,10 @@ export default function Payments() {
       } else {
         setInvoices(data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error loading payments',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {
@@ -103,10 +118,10 @@ export default function Payments() {
       });
 
       fetchPendingPayments();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Payment Failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     }
@@ -122,7 +137,7 @@ export default function Payments() {
           <h1 className="text-3xl font-bold text-foreground">Payments</h1>
           <p className="text-muted-foreground">Process customer payments and manage transactions</p>
         </div>
-        <Button>
+        <Button onClick={() => toast({ title: "Payment Gateway", description: "Navigate to Settings > Integrations to configure payment gateways" })}>
           <CreditCard className="mr-2 h-4 w-4" />
           Configure Payment Gateway
         </Button>
@@ -217,7 +232,11 @@ export default function Payments() {
                       <CreditCard className="h-4 w-4 mr-1" />
                       Process Payment
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast({ title: "Invoice Details", description: `Invoice ${invoice.invoice_number || invoice.id.slice(0, 8)}: ${formatCurrency(Number(invoice.total_amount))}` })}
+                    >
                       View Invoice
                     </Button>
                   </div>

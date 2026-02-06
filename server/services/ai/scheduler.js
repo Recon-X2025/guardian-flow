@@ -14,7 +14,7 @@ export async function optimizeSchedule(tenantId, date) {
   const techRoles = await findMany('user_roles', { role: 'technician' }, { limit: 50 });
   const techIds = techRoles.map(r => r.user_id);
   const technicians = techIds.length > 0
-    ? await findMany('users', { _id: { $in: techIds }, active: true })
+    ? await findMany('users', { id: { $in: techIds }, active: true })
     : [];
 
   if (workOrders.length === 0 || technicians.length === 0) {
@@ -25,11 +25,11 @@ export async function optimizeSchedule(tenantId, date) {
   const techWorkloads = {};
   for (const tech of technicians) {
     const activeWOs = await findMany('work_orders', {
-      technician_id: tech._id,
+      technician_id: tech.id,
       status: { $in: ['assigned', 'in_progress'] },
     });
-    techWorkloads[tech._id] = {
-      id: tech._id,
+    techWorkloads[tech.id] = {
+      id: tech.id,
       name: tech.full_name || tech.email,
       current_load: activeWOs.length,
       max_load: 8, // 8 WOs per day max
@@ -86,9 +86,9 @@ export async function optimizeSchedule(tenantId, date) {
     endTime.setMinutes(endTime.getMinutes() + 90);
 
     const assignment = {
-      _id: randomUUID(),
+      id: randomUUID(),
       optimization_run_id: runId,
-      work_order_id: wo._id,
+      work_order_id: wo.id,
       wo_number: wo.wo_number,
       technician_id: bestTech.id,
       technician_name: bestTech.name,
@@ -108,7 +108,7 @@ export async function optimizeSchedule(tenantId, date) {
   // Store the run and assignments
   try {
     await insertOne('schedule_optimization_runs', {
-      _id: runId,
+      id: runId,
       tenant_id: tenantId,
       run_date: dateStr,
       status: 'completed',

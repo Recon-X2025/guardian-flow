@@ -6,7 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { apiClient } from '@/integrations/api/client';
 
-export function ServiceBookingDialog({ open, onOpenChange }: any) {
+interface ServiceBookingDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function ServiceBookingDialog({ open, onOpenChange }: ServiceBookingDialogProps) {
   const [formData, setFormData] = useState({ title: '', description: '', priority: 'medium' });
 
   const handleSubmit = async (e: React.FormEvent) => {

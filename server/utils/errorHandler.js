@@ -30,13 +30,20 @@ export const errorHandler = (err, req, res, next) => {
   const code = err.code || 'internal_error';
 
   // Standardized error response
+  // Only expose detailed messages for operational errors or in development
+  const isOperational = err.isOperational || false;
+  const isDev = process.env.NODE_ENV !== 'production';
+  const safeMessage = (isOperational || isDev)
+    ? (err.message || 'An unexpected error occurred')
+    : 'An unexpected error occurred';
+
   const errorResponse = {
     success: false,
     error: {
       code,
-      message: err.message || 'An unexpected error occurred',
-      ...(err.details && { details: err.details }),
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      message: safeMessage,
+      ...(isOperational && err.details && { details: err.details }),
+      ...(isDev && { stack: err.stack }),
     },
     timestamp: new Date().toISOString(),
     path: req.path,

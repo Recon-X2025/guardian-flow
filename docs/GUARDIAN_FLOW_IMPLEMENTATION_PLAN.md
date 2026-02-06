@@ -32,14 +32,14 @@ CREATE TABLE IF NOT EXISTS public.seed_metadata (
   created_by uuid REFERENCES auth.users(id)
 );
 
-ALTER TABLE public.seed_metadata ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seed_metadata -- application-level tenant isolation enforced;
 
 CREATE POLICY "Users can view own tenant seeds" ON public.seed_metadata
   FOR SELECT USING (tenant_id = get_user_tenant_id(auth.uid()));
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/seed-validated-data/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/seed-validated-data/index.ts`
 ```typescript
 // Automated seeding with validation
 interface SeedConfig {
@@ -69,7 +69,7 @@ interface SeedConfig {
 
 ---
 
-### 1.2 Complete Edge Function Testing & Telemetry (P1)
+### 1.2 Complete Express.js Route Handler Testing & Telemetry (P1)
 
 #### Database Changes
 ```sql
@@ -90,14 +90,14 @@ CREATE TABLE IF NOT EXISTS public.function_telemetry (
 CREATE INDEX idx_telemetry_function ON public.function_telemetry(function_name, created_at DESC);
 CREATE INDEX idx_telemetry_tenant ON public.function_telemetry(tenant_id, created_at DESC);
 
-ALTER TABLE public.function_telemetry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.function_telemetry -- application-level tenant isolation enforced;
 
 CREATE POLICY "Admins view all telemetry" ON public.function_telemetry
   FOR SELECT USING (has_any_role(auth.uid(), ARRAY['super_admin', 'admin']::app_role[]));
 ```
 
 #### Shared Telemetry Module
-**File:** `supabase/functions/_shared/telemetry.ts`
+**File:** `server/routes/_shared/telemetry.ts`
 ```typescript
 export async function recordFunctionCall(params: {
   functionName: string;
@@ -113,12 +113,12 @@ export async function recordFunctionCall(params: {
 }
 ```
 
-#### Edge Function Updates
-Update all 100+ edge functions to include telemetry:
+#### Express.js Route Handler Updates
+Update all 100+ Express.js route handlers to include telemetry:
 ```typescript
 import { recordFunctionCall } from '../_shared/telemetry.ts';
 
-Deno.serve(async (req) => {
+app.use(async (req, res) => {
   const startTime = Date.now();
   try {
     // ... function logic
@@ -164,8 +164,8 @@ CREATE TABLE IF NOT EXISTS public.frontend_errors (
 CREATE INDEX idx_frontend_errors_tenant ON public.frontend_errors(tenant_id, created_at DESC);
 ```
 
-#### Edge Function
-**File:** `supabase/functions/log-frontend-error/index.ts`
+#### Express.js Route Handler
+**File:** `server/routes/log-frontend-error/index.ts`
 
 #### Wrap Critical Components
 Update these files to use enhanced ErrorBoundary:
@@ -210,7 +210,7 @@ CREATE TABLE IF NOT EXISTS public.rate_limit_config (
 ```
 
 #### Shared Rate Limiting Module
-**File:** `supabase/functions/_shared/rate-limiter.ts`
+**File:** `server/routes/_shared/rate-limiter.ts`
 ```typescript
 export async function checkRateLimit(params: {
   tenantId: string;
@@ -223,7 +223,7 @@ export async function checkRateLimit(params: {
 ```
 
 #### API Gateway Enhancement
-**File:** `supabase/functions/api-gateway/index.ts` (Enhanced)
+**File:** `server/routes/api-gateway/index.ts` (Enhanced)
 - Add rate limiting middleware
 - Add request/response logging
 - Add real-time metrics collection
@@ -256,7 +256,7 @@ CREATE INDEX idx_traces_tenant ON public.trace_spans(tenant_id, start_time DESC)
 ```
 
 #### Shared Tracing Module
-**File:** `supabase/functions/_shared/tracing.ts`
+**File:** `server/routes/_shared/tracing.ts`
 ```typescript
 export class Tracer {
   startSpan(name: string): Span;
@@ -308,14 +308,14 @@ CREATE TABLE IF NOT EXISTS public.sla_alerts (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/predict-sla-breach/index.ts` (Enhanced)
+#### Express.js Route Handlers
+**File:** `server/routes/predict-sla-breach/index.ts` (Enhanced)
 - ML model integration for prediction
 - Historical data analysis
 - Real-time risk scoring
 - Alert generation logic
 
-**File:** `supabase/functions/sla-monitor/index.ts` (New)
+**File:** `server/routes/sla-monitor/index.ts` (New)
 - Continuous monitoring of all active work orders
 - Automatic alert generation
 - Escalation workflow automation
@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS public.portal_activity (
   created_at timestamptz DEFAULT now()
 );
 
-ALTER TABLE public.customer_portal_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_portal_users -- application-level tenant isolation enforced;
 
 CREATE POLICY "Customers view own portal users" ON public.customer_portal_users
   FOR SELECT USING (
@@ -369,8 +369,8 @@ CREATE POLICY "Customers view own portal users" ON public.customer_portal_users
 - `src/pages/CustomerQuotes.tsx` - Quote approval workflow
 - `src/pages/CustomerReports.tsx` - Service history and reports
 
-#### Edge Functions
-**File:** `supabase/functions/customer-portal-access/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/customer-portal-access/index.ts`
 - Customer invitation management
 - Access level control
 - Session management
@@ -520,8 +520,8 @@ CREATE TABLE IF NOT EXISTS public.scheduling_recommendations (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/optimize-scheduling/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/optimize-scheduling/index.ts`
 - ML-based technician assignment
 - Route optimization integration
 - Capacity forecasting
@@ -565,8 +565,8 @@ GROUP BY tenant_id, date_trunc('day', created_at);
 CREATE UNIQUE INDEX ON public.mv_daily_operations(tenant_id, date);
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/bi-connector-sync/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/bi-connector-sync/index.ts`
 - OAuth integration for BI platforms
 - Data export and transformation
 - Scheduled sync jobs
@@ -723,8 +723,8 @@ CREATE TABLE IF NOT EXISTS public.compliance_evidence (
 );
 ```
 
-#### Edge Functions
-**File:** `supabase/functions/compliance-collector/index.ts`
+#### Express.js Route Handlers
+**File:** `server/routes/compliance-collector/index.ts`
 - Automated evidence collection
 - Control testing automation
 - Audit report generation
@@ -745,7 +745,7 @@ CREATE TABLE IF NOT EXISTS public.compliance_evidence (
 
 ### Integration Testing
 - Playwright for E2E tests
-- API integration tests for all edge functions
+- API integration tests for all Express.js route handlers
 - Database migration tests
 
 ### Performance Testing
@@ -755,7 +755,7 @@ CREATE TABLE IF NOT EXISTS public.compliance_evidence (
 
 ### Security Testing
 - OWASP ZAP for vulnerability scanning
-- RLS policy verification
+- Tenant isolation policy verification
 - Penetration testing for each phase
 
 ---
@@ -782,7 +782,7 @@ jobs:
     needs: test
     steps:
       - Deploy database migrations
-      - Deploy edge functions
+      - Deploy Express.js route handlers
       - Deploy frontend
       - Run smoke tests
 ```
@@ -797,7 +797,7 @@ jobs:
 ## Success Metrics
 
 ### Phase 1 (Months 1-3)
-- ✅ 100% edge functions with telemetry
+- ✅ 100% Express.js route handlers with telemetry
 - ✅ Zero critical errors in production
 - ✅ < 500ms average API response time
 

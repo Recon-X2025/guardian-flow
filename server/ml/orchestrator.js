@@ -3,6 +3,8 @@
  * Replaces 5-second setTimeout + random metrics with real training
  */
 
+import { randomUUID } from 'crypto';
+import { db } from '../db/client.js';
 import { trainFailureModel, predictFailure } from './failure.js';
 import { trainSlaModel, predictSlaBreach } from './sla.js';
 import { holtWintersTrain, holtWintersPredict } from './forecasting.js';
@@ -11,36 +13,33 @@ import { detectAnomalies } from './anomaly.js';
 /**
  * Train a model based on type, using data from the database
  */
-async function trainModel(pool, modelType, config = {}) {
-  const startTime = Date.now();
-
+async function trainModel(modelType, config = {}) {
   switch (modelType) {
     case 'equipment_failure':
-      return await trainEquipmentFailure(pool, config);
+      return await trainEquipmentFailure(config);
     case 'sla_breach':
-      return await trainSlaBreach(pool, config);
+      return await trainSlaBreach(config);
     case 'forecast':
-      return await trainForecast(pool, config);
+      return await trainForecast(config);
     default:
       throw new Error(`Unknown model type: ${modelType}`);
   }
 }
 
-async function trainEquipmentFailure(pool, config) {
+async function trainEquipmentFailure(config) {
   const startTime = Date.now();
 
   // Load asset lifecycle events from DB
-  const { rows: events } = await pool.query(
-    `SELECT asset_id, event_type, event_time, details
-     FROM asset_lifecycle_events
-     ORDER BY event_time DESC
-     LIMIT 10000`
-  );
+  const events = await db.collection('asset_lifecycle_events')
+    .find({})
+    .sort({ event_time: -1 })
+    .limit(10000)
+    .toArray();
 
   if (events.length === 0) {
     // Generate synthetic training data if no real data exists
     const syntheticEvents = generateSyntheticFailureData(500);
-    return trainAndStoreFailureModel(pool, syntheticEvents, config, true);
+    return trainAndStoreFailureModel(syntheticEvents, config, true);
   }
 
   // Group events by equipment
@@ -51,10 +50,10 @@ async function trainEquipmentFailure(pool, config) {
     eventsByEquipment[id].push(event);
   }
 
-  return trainAndStoreFailureModel(pool, eventsByEquipment, config, false);
+  return trainAndStoreFailureModel(eventsByEquipment, config, false);
 }
 
-async function trainAndStoreFailureModel(pool, eventsByEquipment, config, isSynthetic) {
+async function trainAndStoreFailureModel(eventsByEquipment, config, isSynthetic) {
   const startTime = Date.now();
   const result = trainFailureModel(eventsByEquipment);
 
@@ -62,58 +61,44 @@ async function trainAndStoreFailureModel(pool, eventsByEquipment, config, isSynt
     // Generate synthetic data as fallback
     if (!isSynthetic) {
       const syntheticEvents = generateSyntheticFailureData(500);
-      return trainAndStoreFailureModel(pool, syntheticEvents, config, true);
+      return trainAndStoreFailureModel(syntheticEvents, config, true);
     }
     return result;
   }
 
   const trainingTime = Date.now() - startTime;
 
-  // Store model weights in DB
-  await pool.query(
-    `INSERT INTO ml_models (id, tenant_id, model_name, model_type, framework, status,
-     accuracy_score, precision_score, recall_score, f1_score, training_data_size,
-     features, hyperparameters, created_at, updated_at)
-     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
-     ON CONFLICT (model_name, tenant_id) DO UPDATE SET
-       status = $5, accuracy_score = $6, precision_score = $7, recall_score = $8,
-       f1_score = $9, training_data_size = $10, features = $11, hyperparameters = $12, updated_at = NOW()`,
-    [
-      config.tenantId || '00000000-0000-0000-0000-000000000000',
-      'equipment_failure_v1',
-      'equipment_failure',
-      'logistic_regression',
-      'deployed',
-      result.cvMetrics.accuracy,
-      result.cvMetrics.precision,
-      result.cvMetrics.recall,
-      result.cvMetrics.f1,
-      result.trainingSamples,
-      JSON.stringify({ names: result.featureNames, means: result.featureMeans, stds: result.featureStds }),
-      JSON.stringify({ weights: result.weights, bias: result.bias, featureMeans: result.featureMeans, featureStds: result.featureStds }),
-    ]
-  ).catch(() => {
-    // Table might not have unique constraint, try simple insert
-    return pool.query(
-      `INSERT INTO ml_models (id, tenant_id, model_name, model_type, framework, status,
-       accuracy_score, precision_score, recall_score, f1_score, training_data_size, features, hyperparameters, created_at, updated_at)
-       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
-      [
-        config.tenantId || '00000000-0000-0000-0000-000000000000',
-        'equipment_failure_v1',
-        'equipment_failure',
-        'logistic_regression',
-        'deployed',
-        result.cvMetrics.accuracy,
-        result.cvMetrics.precision,
-        result.cvMetrics.recall,
-        result.cvMetrics.f1,
-        result.trainingSamples,
-        JSON.stringify({ names: result.featureNames, means: result.featureMeans, stds: result.featureStds }),
-        JSON.stringify({ weights: result.weights, bias: result.bias, featureMeans: result.featureMeans, featureStds: result.featureStds }),
-      ]
+  // Store model weights in DB (upsert by model_name + tenant_id)
+  const modelDoc = {
+    id: randomUUID(),
+    tenant_id: config.tenantId || '00000000-0000-0000-0000-000000000000',
+    model_name: 'equipment_failure_v1',
+    model_type: 'equipment_failure',
+    framework: 'logistic_regression',
+    status: 'deployed',
+    accuracy_score: result.cvMetrics.accuracy,
+    precision_score: result.cvMetrics.precision,
+    recall_score: result.cvMetrics.recall,
+    f1_score: result.cvMetrics.f1,
+    training_data_size: result.trainingSamples,
+    features: JSON.stringify({ names: result.featureNames, means: result.featureMeans, stds: result.featureStds }),
+    hyperparameters: JSON.stringify({ weights: result.weights, bias: result.bias, featureMeans: result.featureMeans, featureStds: result.featureStds }),
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+
+  try {
+    await db.collection('ml_models').updateOne(
+      { model_name: 'equipment_failure_v1', tenant_id: modelDoc.tenant_id },
+      { $set: { ...modelDoc, updated_at: new Date() } },
+      { upsert: true }
     );
-  });
+  } catch (err) {
+    // Fallback: simple insert
+    try {
+      await db.collection('ml_models').insertOne(modelDoc);
+    } catch { /* ignore */ }
+  }
 
   return {
     modelType: 'equipment_failure',
@@ -127,23 +112,29 @@ async function trainAndStoreFailureModel(pool, eventsByEquipment, config, isSynt
   };
 }
 
-async function trainSlaBreach(pool, config) {
+async function trainSlaBreach(config) {
   const startTime = Date.now();
 
-  const { rows: workOrders } = await pool.query(
-    `SELECT id, created_at, check_out_at as completed_at,
-     COALESCE(repair_type, 'medium') as priority,
-     NULL as technician_id, status
-     FROM work_orders
-     WHERE check_out_at IS NOT NULL
-     ORDER BY created_at DESC
-     LIMIT 10000`
-  );
+  const workOrders = await db.collection('work_orders')
+    .find({ check_out_at: { $ne: null } })
+    .sort({ created_at: -1 })
+    .limit(10000)
+    .toArray();
 
-  let trainingData = workOrders;
+  // Map fields for compatibility
+  const mappedOrders = workOrders.map(wo => ({
+    id: wo.id,
+    created_at: wo.created_at,
+    completed_at: wo.check_out_at,
+    priority: wo.repair_type || 'medium',
+    technician_id: null,
+    status: wo.status,
+  }));
+
+  let trainingData = mappedOrders;
   let isSynthetic = false;
 
-  if (workOrders.length < 10) {
+  if (mappedOrders.length < 10) {
     trainingData = generateSyntheticSlaData(500);
     isSynthetic = true;
   }
@@ -160,29 +151,33 @@ async function trainSlaBreach(pool, config) {
 
   const trainingTime = Date.now() - startTime;
 
-  await pool.query(
-    `INSERT INTO ml_models (id, tenant_id, model_name, model_type, framework, status,
-     accuracy_score, precision_score, recall_score, f1_score, training_data_size,
-     features, hyperparameters, created_at, updated_at)
-     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
-     ON CONFLICT (model_name, tenant_id) DO UPDATE SET
-       status = $5, accuracy_score = $6, precision_score = $7, recall_score = $8,
-       f1_score = $9, training_data_size = $10, features = $11, hyperparameters = $12, updated_at = NOW()`,
-    [
-      config.tenantId || '00000000-0000-0000-0000-000000000000',
-      'sla_breach_v1',
-      'sla_breach',
-      'logistic_regression',
-      'deployed',
-      result.cvMetrics.accuracy,
-      result.cvMetrics.precision,
-      result.cvMetrics.recall,
-      result.cvMetrics.f1,
-      result.trainingSamples,
-      JSON.stringify({ names: result.featureNames, means: result.featureMeans, stds: result.featureStds }),
-      JSON.stringify({ weights: result.weights, bias: result.bias, featureMeans: result.featureMeans, featureStds: result.featureStds, slaThresholdDays: result.slaThresholdDays }),
-    ]
-  ).catch(err => console.error('Failed to store SLA model:', err.message));
+  const modelDoc = {
+    id: randomUUID(),
+    tenant_id: config.tenantId || '00000000-0000-0000-0000-000000000000',
+    model_name: 'sla_breach_v1',
+    model_type: 'sla_breach',
+    framework: 'logistic_regression',
+    status: 'deployed',
+    accuracy_score: result.cvMetrics.accuracy,
+    precision_score: result.cvMetrics.precision,
+    recall_score: result.cvMetrics.recall,
+    f1_score: result.cvMetrics.f1,
+    training_data_size: result.trainingSamples,
+    features: JSON.stringify({ names: result.featureNames, means: result.featureMeans, stds: result.featureStds }),
+    hyperparameters: JSON.stringify({ weights: result.weights, bias: result.bias, featureMeans: result.featureMeans, featureStds: result.featureStds, slaThresholdDays: result.slaThresholdDays }),
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+
+  try {
+    await db.collection('ml_models').updateOne(
+      { model_name: 'sla_breach_v1', tenant_id: modelDoc.tenant_id },
+      { $set: { ...modelDoc, updated_at: new Date() } },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.error('Failed to store SLA model:', err.message);
+  }
 
   return {
     modelType: 'sla_breach',
@@ -197,7 +192,7 @@ async function trainSlaBreach(pool, config) {
   };
 }
 
-async function trainForecast(pool, config) {
+async function trainForecast(config) {
   const startTime = Date.now();
   const forecastType = config.forecastType || 'repair_volume';
   const seasonLength = config.seasonLength || 7;
@@ -205,22 +200,20 @@ async function trainForecast(pool, config) {
   let data = [];
 
   if (forecastType === 'repair_volume') {
-    const { rows } = await pool.query(
-      `SELECT DATE(created_at) as date, COUNT(*) as value
-       FROM work_orders
-       GROUP BY DATE(created_at)
-       ORDER BY date
-       LIMIT 365`
-    );
+    const pipeline = [
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } }, value: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+      { $limit: 365 },
+    ];
+    const rows = await db.collection('work_orders').aggregate(pipeline).toArray();
     data = rows.map(r => Number(r.value));
   } else if (forecastType === 'spend_revenue') {
-    const { rows } = await pool.query(
-      `SELECT DATE(created_at) as date, COALESCE(SUM(total_amount), 0) as value
-       FROM invoices
-       GROUP BY DATE(created_at)
-       ORDER BY date
-       LIMIT 365`
-    );
+    const pipeline = [
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } }, value: { $sum: { $ifNull: ['$total_amount', 0] } } } },
+      { $sort: { _id: 1 } },
+      { $limit: 365 },
+    ];
+    const rows = await db.collection('invoices').aggregate(pipeline).toArray();
     data = rows.map(r => Number(r.value));
   }
 
@@ -233,23 +226,24 @@ async function trainForecast(pool, config) {
   const weights = holtWintersTrain(data, seasonLength);
   const trainingTime = Date.now() - startTime;
 
-  // Store in forecast_models — delete old then insert to avoid duplicates
-  await pool.query(
-    `DELETE FROM forecast_models WHERE model_name = $1`,
-    [`${forecastType}_holt_winters`]
-  ).catch(() => {});
-  await pool.query(
-    `INSERT INTO forecast_models (id, model_type, model_name, algorithm, frequency, accuracy_score, config, created_at, updated_at)
-     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-    [
-      forecastType,
-      `${forecastType}_holt_winters`,
-      'holt_winters',
-      'daily',
-      weights.metrics.r2,
-      JSON.stringify(weights),
-    ]
-  ).catch(err => console.error('Failed to store forecast model:', err.message));
+  // Store in forecast_models — delete old then insert
+  const modelName = `${forecastType}_holt_winters`;
+  await db.collection('forecast_models').deleteMany({ model_name: modelName }).catch(() => {});
+  try {
+    await db.collection('forecast_models').insertOne({
+      id: randomUUID(),
+      model_type: forecastType,
+      model_name: modelName,
+      algorithm: 'holt_winters',
+      frequency: 'daily',
+      accuracy_score: weights.metrics.r2,
+      config: weights,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+  } catch (err) {
+    console.error('Failed to store forecast model:', err.message);
+  }
 
   return {
     modelType: 'forecast',
@@ -297,7 +291,6 @@ function generateSyntheticSlaData(n) {
     const hasTech = Math.random() > 0.3;
     const createdAt = new Date(Date.now() - Math.floor(Math.random() * 30) * 86400000);
 
-    // Higher priority + no tech = more likely to breach
     const baseBreachProb = ({ urgent: 0.6, high: 0.4, medium: 0.2, low: 0.1 })[priority];
     const breachProb = hasTech ? baseBreachProb * 0.5 : baseBreachProb * 1.5;
     const breached = Math.random() < breachProb;

@@ -226,7 +226,7 @@ export default function RAGEngine() {
                     <Database className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium text-sm">Vector Store</p>
-                      <p className="text-xs text-muted-foreground">PostgreSQL pgvector extension</p>
+                      <p className="text-xs text-muted-foreground">MongoDB Atlas Vector Search</p>
                     </div>
                   </div>
                   <CheckCircle2 className="h-5 w-5 text-green-600" />

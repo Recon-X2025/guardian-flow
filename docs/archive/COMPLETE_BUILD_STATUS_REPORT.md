@@ -16,8 +16,8 @@ Guardian Flow has evolved from a basic work order management system to a compreh
 | **Total Build Requests** | 195+ | - |
 | **Features Completed** | 184 | 94.4% |
 | **Features Pending** | 11 | 5.6% |
-| **Database Tables** | 161 | 100% RLS |
-| **Edge Functions** | 120+ | Operational |
+| **Database Collections** | 161 | 100% tenant isolation |
+| **Express.js Route Handlers** | 120+ | Operational |
 | **Test Accounts** | 174 | Seeded |
 | **Current Status** | **PRODUCTION READY** | 96/100 |
 
@@ -51,7 +51,7 @@ Guardian Flow has evolved from a basic work order management system to a compreh
 | 11 | `/auth-me` Endpoint | ✅ 100% | Oct 9, 2025 | Server-validated context |
 | 12 | Frontend RBAC Integration | ✅ 100% | Oct 10, 2025 | `RBACContext.tsx` with caching |
 | 13 | API Error Handling | ✅ 100% | Oct 11, 2025 | Correlation IDs + sanitization |
-| 14 | RLS Policies | ✅ 100% | Oct 12, 2025 | All 161 tables tenant-isolated |
+| 14 | Tenant Isolation | ✅ 100% | Oct 12, 2025 | All 161 collections tenant-isolated |
 | 15 | Security Functions | ✅ 100% | Oct 12, 2025 | `has_role()`, `has_permission()` |
 | 16 | Tenant Isolation Tests | ✅ 100% | Oct 13, 2025 | Playwright E2E suite |
 | 17 | Audit Logging | ✅ 100% | Oct 14, 2025 | 7-year retention + immutability |
@@ -389,8 +389,8 @@ Guardian Flow has evolved from a basic work order management system to a compreh
 ## 🏆 KEY ACHIEVEMENTS
 
 ### Technical Milestones ✅
-- **161 database tables** with complete RLS policies
-- **120+ edge functions** operational
+- **161 database collections** with complete tenant isolation
+- **120+ Express.js route handlers** operational
 - **174 test accounts** across 4 partner organizations
 - **<500ms** average API response time
 - **99.9%** uptime target achieved
@@ -475,8 +475,8 @@ Guardian Flow v6.1.0 is **95% production-ready** with 70/74 mainline features co
 | Financial management | ✅ 80% operational |
 | Compliance | ✅ 93% operational |
 | Analytics platform | ✅ 100% operational |
-| Database & RLS | ✅ 100% complete |
-| Edge functions | ✅ 120+ deployed |
+| Database & Tenant Isolation | ✅ 100% complete |
+| Express.js route handlers | ✅ 120+ deployed |
 | Test accounts | ✅ 174 seeded |
 | Documentation | ✅ Complete |
 

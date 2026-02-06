@@ -1,14 +1,14 @@
 # Guardian Flow Monitoring & Self-Healing System
 
-**Version**: 1.0  
-**Date**: October 31, 2025  
+**Version**: 1.0
+**Date**: October 31, 2025
 **Status**: Production Ready
 
 ---
 
 ## 📋 Overview
 
-Automated monitoring system for Guardian Flow using Lovable Cloud edge functions and Supabase cron scheduling. Performs health checks, workflow validations, and self-healing actions without infrastructure overhead.
+Automated monitoring system for Guardian Flow using scheduled jobs for health checks, workflow validations, and self-healing actions.
 
 ---
 
@@ -16,13 +16,13 @@ Automated monitoring system for Guardian Flow using Lovable Cloud edge functions
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Supabase pg_cron Scheduler                 │
+│              Scheduled Job Monitoring                    │
 │  • Every 5 minutes: health-monitor                      │
 │  • Every 15 minutes: workflow-validator                 │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
-│                 Edge Functions                          │
+│                 Monitoring Services                      │
 │  ┌─────────────────┐    ┌───────────────────┐          │
 │  │ health-monitor  │    │ workflow-validator│          │
 │  │  • HTTP checks  │    │  • Critical flows │          │
@@ -50,86 +50,66 @@ Automated monitoring system for Guardian Flow using Lovable Cloud edge functions
 
 ## 🚀 Setup Instructions
 
-### Step 1: Enable Required Extensions
+### Step 1: Configure Scheduled Jobs
 
-Run in Supabase SQL Editor:
-
-```sql
--- Enable cron scheduling
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
--- Enable HTTP requests from cron
-CREATE EXTENSION IF NOT EXISTS pg_net;
-```
-
-### Step 2: Configure Cron Jobs
+Set up monitoring jobs using your preferred scheduler (node-cron, AWS EventBridge, or similar):
 
 **Health Monitor (Every 5 minutes)**:
 
-```sql
-SELECT cron.schedule(
-  'health-monitor-every-5min',
-  '*/5 * * * *',
-  $$
-  SELECT
-    net.http_post(
-      url := 'https://blvrfzymeerefsdwqhoh.supabase.co/functions/v1/health-monitor',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsdnJmenltZWVyZWZzZHdxaG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzU1NDMsImV4cCI6MjA3NTAxMTU0M30.hKqz5ZaEB0plQj3Gs9q3tiyaA8VQgVm-qmfRw0ThvBY"}'::jsonb
-    ) as request_id;
-  $$
-);
+```javascript
+// Schedule health monitor
+schedule.scheduleJob('*/5 * * * *', async () => {
+  await fetch('http://localhost:3001/api/monitoring/health-check', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${MONITORING_TOKEN}`
+    }
+  });
+});
 ```
 
 **Workflow Validator (Every 15 minutes)**:
 
-```sql
-SELECT cron.schedule(
-  'workflow-validator-every-15min',
-  '*/15 * * * *',
-  $$
-  SELECT
-    net.http_post(
-      url := 'https://blvrfzymeerefsdwqhoh.supabase.co/functions/v1/workflow-validator',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsdnJmenltZWVyZWZzZHdxaG9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzU1NDMsImV4cCI6MjA3NTAxMTU0M30.hKqz5ZaEB0plQj3Gs9q3tiyaA8VQgVm-qmfRw0ThvBY"}'::jsonb
-    ) as request_id;
-  $$
-);
+```javascript
+// Schedule workflow validator
+schedule.scheduleJob('*/15 * * * *', async () => {
+  await fetch('http://localhost:3001/api/monitoring/workflow-validation', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${MONITORING_TOKEN}`
+    }
+  });
+});
 ```
 
 **Monitoring Summary Refresh (Every 5 minutes)**:
 
-```sql
-SELECT cron.schedule(
-  'refresh-monitoring-summary',
-  '*/5 * * * *',
-  $$
-  SELECT refresh_monitoring_summary();
-  $$
-);
+```javascript
+// Schedule monitoring summary refresh
+schedule.scheduleJob('*/5 * * * *', async () => {
+  await refreshMonitoringSummary();
+});
 ```
 
-### Step 3: Verify Cron Jobs
+### Step 2: Verify Scheduled Jobs
 
-```sql
--- List all scheduled jobs
-SELECT * FROM cron.job;
-
--- View recent job runs
-SELECT * FROM cron.job_run_details 
-ORDER BY start_time DESC 
-LIMIT 10;
+```javascript
+// Check job status
+console.log('Scheduled jobs:', schedule.scheduledJobs);
 ```
 
-### Step 4: Test Manual Execution
+### Step 3: Test Manual Execution
 
 ```bash
 # Test health monitor
-curl -X POST https://blvrfzymeerefsdwqhoh.supabase.co/functions/v1/health-monitor \
-  -H "Authorization: Bearer YOUR_ANON_KEY"
+curl -X POST http://localhost:3001/api/monitoring/health-check \
+  -H "Authorization: Bearer YOUR_TOKEN"
 
 # Test workflow validator
-curl -X POST https://blvrfzymeerefsdwqhoh.supabase.co/functions/v1/workflow-validator \
-  -H "Authorization: Bearer YOUR_ANON_KEY"
+curl -X POST http://localhost:3001/api/monitoring/workflow-validation \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ---
@@ -138,87 +118,93 @@ curl -X POST https://blvrfzymeerefsdwqhoh.supabase.co/functions/v1/workflow-vali
 
 ### Health Check Summary (Last 24 Hours)
 
-```sql
-SELECT
-  check_name,
-  COUNT(*) as total_checks,
-  COUNT(*) FILTER (WHERE status = 'healthy') as healthy_count,
-  COUNT(*) FILTER (WHERE status = 'unhealthy') as unhealthy_count,
-  AVG(response_time_ms)::INTEGER as avg_response_time,
-  MAX(response_time_ms) as max_response_time
-FROM health_check_logs
-WHERE checked_at > now() - INTERVAL '24 hours'
-GROUP BY check_name
-ORDER BY check_name;
+```javascript
+// MongoDB query
+db.health_check_logs.aggregate([
+  {
+    $match: {
+      checked_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    }
+  },
+  {
+    $group: {
+      _id: "$check_name",
+      total_checks: { $sum: 1 },
+      healthy_count: {
+        $sum: { $cond: [{ $eq: ["$status", "healthy"] }, 1, 0] }
+      },
+      unhealthy_count: {
+        $sum: { $cond: [{ $ne: ["$status", "healthy"] }, 1, 0] }
+      },
+      avg_response_time: { $avg: "$response_time_ms" },
+      max_response_time: { $max: "$response_time_ms" }
+    }
+  },
+  { $sort: { _id: 1 } }
+]);
 ```
 
 ### Recent Failed Checks
 
-```sql
-SELECT
-  check_name,
-  status,
-  response_time_ms,
-  error_message,
-  checked_at
-FROM health_check_logs
-WHERE status != 'healthy'
-  AND checked_at > now() - INTERVAL '24 hours'
-ORDER BY checked_at DESC
-LIMIT 20;
+```javascript
+db.health_check_logs.find({
+  status: { $ne: "healthy" },
+  checked_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+})
+.sort({ checked_at: -1 })
+.limit(20);
 ```
 
 ### Workflow Validation Status
 
-```sql
-SELECT
-  workflow_name,
-  COUNT(*) as total_runs,
-  COUNT(*) FILTER (WHERE status = 'passed') as passed_count,
-  COUNT(*) FILTER (WHERE status = 'failed') as failed_count,
-  AVG(execution_time_ms)::INTEGER as avg_execution_time,
-  MAX(executed_at) as last_run
-FROM workflow_validation_logs
-WHERE executed_at > now() - INTERVAL '24 hours'
-GROUP BY workflow_name
-ORDER BY workflow_name;
+```javascript
+db.workflow_validation_logs.aggregate([
+  {
+    $match: {
+      executed_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    }
+  },
+  {
+    $group: {
+      _id: "$workflow_name",
+      total_runs: { $sum: 1 },
+      passed_count: {
+        $sum: { $cond: [{ $eq: ["$status", "passed"] }, 1, 0] }
+      },
+      failed_count: {
+        $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] }
+      },
+      avg_execution_time: { $avg: "$execution_time_ms" },
+      last_run: { $max: "$executed_at" }
+    }
+  },
+  { $sort: { _id: 1 } }
+]);
 ```
 
 ### Open System Incidents
 
-```sql
-SELECT
-  id,
-  title,
-  severity,
-  component,
-  detected_at,
-  description
-FROM system_incidents
-WHERE status IN ('open', 'investigating')
-ORDER BY severity DESC, detected_at DESC;
+```javascript
+db.system_incidents.find({
+  status: { $in: ["open", "investigating"] }
+})
+.sort({ severity: -1, detected_at: -1 });
 ```
 
 ### Self-Healing Activity
 
-```sql
-SELECT
-  component,
-  action,
-  status,
-  metadata,
-  created_at,
-  completed_at
-FROM self_healing_logs
-WHERE created_at > now() - INTERVAL '24 hours'
-ORDER BY created_at DESC
-LIMIT 50;
+```javascript
+db.self_healing_logs.find({
+  created_at: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+})
+.sort({ created_at: -1 })
+.limit(50);
 ```
 
-### Overall System Health (Materialized View)
+### Overall System Health
 
-```sql
-SELECT * FROM monitoring_summary;
+```javascript
+db.monitoring_summary.find();
 ```
 
 ---
@@ -295,7 +281,7 @@ Check `system_incidents` table for open issues requiring manual resolution.
 
 ```typescript
 // Add to health-monitor/index.ts
-const SLACK_WEBHOOK_URL = Deno.env.get('SLACK_WEBHOOK_URL');
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
 if (criticalFailures.length > 0 && SLACK_WEBHOOK_URL) {
   await fetch(SLACK_WEBHOOK_URL, {
@@ -325,7 +311,7 @@ if (criticalFailures.length > 0 && SLACK_WEBHOOK_URL) {
 // Add secret: RESEND_API_KEY
 import { Resend } from 'npm:resend@2.0.0';
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 await resend.emails.send({
   from: 'alerts@yourdomain.com',
@@ -339,33 +325,28 @@ await resend.emails.send({
 
 ## 🔍 Troubleshooting
 
-### Cron Jobs Not Running
+### Scheduled Jobs Not Running
 
-```sql
--- Check job status
-SELECT * FROM cron.job WHERE jobname LIKE '%monitor%';
+```bash
+# Check job status in your scheduler
+# For node-cron:
+console.log('Active jobs:', Object.keys(schedule.scheduledJobs));
 
--- Check recent errors
-SELECT * FROM cron.job_run_details 
-WHERE status = 'failed'
-ORDER BY start_time DESC;
-
--- Manually unschedule and reschedule
-SELECT cron.unschedule('health-monitor-every-5min');
--- Then run schedule command again
+# Check for errors in application logs
+tail -f logs/monitoring.log
 ```
 
-### Edge Function Timeouts
+### Function Timeouts
 
 - Increase timeout in health checks (currently 5-10s)
-- Check edge function logs: `supabase functions logs health-monitor`
-- Verify Supabase service status
+- Check application logs for timeout errors
+- Verify MongoDB Atlas connectivity
 
 ### Missing Data in Logs
 
-- Verify RLS policies allow service role to insert
-- Check edge function execution logs
-- Ensure cron jobs are executing (check `cron.job_run_details`)
+- Verify database write permissions
+- Check application execution logs
+- Ensure scheduled jobs are running correctly
 
 ---
 

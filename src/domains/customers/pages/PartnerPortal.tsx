@@ -106,7 +106,7 @@ export default function PartnerPortal() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {partners.map((partner: any) => (
+                  {partners.map((partner: { id: string; partner_number?: string; company_name?: string; contact_name?: string; email?: string; partner_type?: string; commission_rate?: number; status?: string }) => (
                     <TableRow key={partner.id}>
                       <TableCell className="font-mono text-sm">
                         {partner.partner_number}
@@ -155,7 +155,7 @@ export default function PartnerPortal() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {commissions.map((commission: any) => (
+                  {commissions.map((commission: { id: string; partners?: { company_name?: string }; base_amount?: number; commission_rate?: number; commission_amount?: number; status?: string; created_at: string }) => (
                     <TableRow key={commission.id}>
                       <TableCell>
                         {commission.partners?.company_name}

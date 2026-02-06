@@ -5,6 +5,19 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, FileText, UserCheck, AlertTriangle, CheckCircle } from 'lucide-react';
 
+interface BehaviorEvent {
+  id: string;
+  event_type: string;
+  anomaly_score?: number;
+  timestamp: string;
+}
+
+interface ComplianceReport {
+  id: string;
+  report_type: string;
+  generated_at: string;
+}
+
 export default function ComplianceDashboard() {
   const { data: auditLogs } = useQuery({
     queryKey: ['audit-logs'],
@@ -23,12 +36,12 @@ export default function ComplianceDashboard() {
     queryKey: ['user-behavior'],
     queryFn: async () => {
       const { data, error } = await apiClient
-        .from('user_behavior_events' as any)
+        .from('user_behavior_events')
         .select('*')
         .order('timestamp', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data as any[];
+      return data as BehaviorEvent[];
     },
   });
 
@@ -36,11 +49,11 @@ export default function ComplianceDashboard() {
     queryKey: ['compliance-reports'],
     queryFn: async () => {
       const { data, error } = await apiClient
-        .from('compliance_reports' as any)
+        .from('compliance_reports')
         .select('*')
         .order('generated_at', { ascending: false });
       if (error) throw error;
-      return data as any[];
+      return data as ComplianceReport[];
     },
   });
 

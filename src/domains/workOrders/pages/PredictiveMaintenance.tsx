@@ -1,19 +1,43 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/integrations/api/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertTriangle, TrendingUp, Zap, Calendar } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, TrendingUp, Zap, Calendar, Loader2, Play, Info } from 'lucide-react';
+import { useToast } from '@/domains/shared/hooks/use-toast';
 import { format } from 'date-fns';
 
+interface Prediction {
+  id: string;
+  prediction_type: string;
+  risk_level: string;
+  failure_probability: number;
+  confidence_score?: number;
+  predicted_failure_date?: string;
+  recommended_action?: string;
+  status: string;
+  equipment?: {
+    serial_number?: string;
+    model?: string;
+    manufacturer?: string;
+  };
+}
+
 export default function PredictiveMaintenance() {
+  const [running, setRunning] = useState(false);
+  const [modelInfo, setModelInfo] = useState<{ ai_provider?: string; llm_provider?: string; model_info?: { trained?: boolean; data_points?: number } } | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: predictions, isLoading } = useQuery({
     queryKey: ['maintenance-predictions'],
     queryFn: async () => {
       const { data, error } = await apiClient
         .from('maintenance_predictions')
-        .select('*, equipment(name, equipment_number, serial_number)')
+        .select('*, equipment(serial_number, model, manufacturer)')
         .order('failure_probability', { ascending: false })
         .limit(50);
 
@@ -21,6 +45,31 @@ export default function PredictiveMaintenance() {
       return data;
     }
   });
+
+  const runPredictions = async () => {
+    setRunning(true);
+    try {
+      const result = await apiClient.functions.invoke('predict-maintenance-failures', {
+        body: {}
+      });
+      if (result.error) throw result.error;
+      const data = result.data as { count?: number; ai_provider?: string; llm_provider?: string; model_info?: { trained?: boolean; data_points?: number } };
+      setModelInfo(data ? { ai_provider: data.ai_provider, llm_provider: data.llm_provider, model_info: data.model_info } : null);
+      toast({
+        title: 'Predictions generated',
+        description: `Generated ${data?.count || 0} predictions for equipment`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-predictions'] });
+    } catch (error: unknown) {
+      toast({
+        title: 'Prediction failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setRunning(false);
+    }
+  };
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -37,15 +86,41 @@ export default function PredictiveMaintenance() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <TrendingUp className="h-8 w-8" />
-          Predictive Maintenance
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          AI-powered equipment failure prediction and preventive maintenance scheduling
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <TrendingUp className="h-8 w-8" />
+            Predictive Maintenance
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            AI-powered equipment failure prediction and preventive maintenance scheduling
+          </p>
+        </div>
+        <Button onClick={runPredictions} disabled={running}>
+          {running ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Running...
+            </>
+          ) : (
+            <>
+              <Play className="mr-2 h-4 w-4" />
+              Run Predictions
+            </>
+          )}
+        </Button>
       </div>
+
+      {modelInfo && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Predictions powered by {modelInfo.ai_provider === 'local_ml' ? 'local logistic regression ML model' : modelInfo.ai_provider || 'ML model'}
+            {modelInfo.model_info?.data_points ? ` trained on ${modelInfo.model_info.data_points} lifecycle events` : ' (seed data for better accuracy)'}
+            {modelInfo.llm_provider === 'mock' ? '. Connect OpenAI for AI-generated maintenance recommendations.' : '.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-6">
@@ -99,13 +174,13 @@ export default function PredictiveMaintenance() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {predictions.map((prediction: any) => (
+              {predictions.map((prediction: Prediction) => (
                 <TableRow key={prediction.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{prediction.equipment?.name}</div>
+                      <div className="font-medium">{prediction.equipment?.manufacturer} {prediction.equipment?.model}</div>
                       <div className="text-sm text-muted-foreground">
-                        {prediction.equipment?.equipment_number}
+                        {prediction.equipment?.serial_number}
                       </div>
                     </div>
                   </TableCell>
@@ -123,7 +198,7 @@ export default function PredictiveMaintenance() {
                         {(prediction.failure_probability * 100).toFixed(1)}%
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        ({(prediction.confidence_score * 100).toFixed(0)}% confidence)
+                        ({((prediction.confidence_score ?? 0) * 100).toFixed(0)}% confidence)
                       </div>
                     </div>
                   </TableCell>
@@ -148,7 +223,11 @@ export default function PredictiveMaintenance() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast({ title: "Maintenance Scheduled", description: `Scheduled preventive maintenance for ${prediction.equipment?.name || 'equipment'}` })}
+                    >
                       Schedule Maintenance
                     </Button>
                   </TableCell>

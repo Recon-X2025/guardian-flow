@@ -144,7 +144,7 @@ To empower field service organizations with a fully integrated, AI-enhanced plat
 
 **1. Security & Governance**
 - Role-based access control (8 distinct roles)
-- Row-level security (RLS) across all data tables
+- Application-level tenant isolation across all data collections
 - Multi-tenant isolation with zero data leakage
 - End-to-end encryption at rest and in transit
 

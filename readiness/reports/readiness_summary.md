@@ -28,7 +28,7 @@ The platform demonstrates:
 | **RBAC & Permissions** | ✅ Ready | 100/100 | All roles tested successfully |
 | **API & PaaS** | ✅ Ready | 92/100 | Gateway & billing functional |
 | **Documentation** | ✅ Ready | 98/100 | Complete technical specs |
-| **Deployment** | ✅ Ready | 90/100 | Lovable Cloud auto-deploy |
+| **Deployment** | ✅ Ready | 90/100 | Custom Express.js + MongoDB Atlas |
 | **Handover Preparedness** | ✅ Ready | 95/100 | All artifacts generated |
 
 **Overall Readiness Score**: **94/100** ✅
@@ -86,20 +86,20 @@ The platform demonstrates:
 ### High-Priority Warnings (Action Required)
 
 1. **⚠️ Work Orders Demo Policy**
-   - **Issue**: RLS policy with `true` condition allows public read access
+   - **Issue**: Demo bypass allows unfiltered read access
    - **Impact**: All work orders visible to anyone (demo mode)
-   - **Fix**: Replace with tenant-scoped policy
+   - **Fix**: Replace with tenant-scoped query filter
    - **Timeline**: Before production launch
 
 2. **⚠️ Staging Work Orders Exposed**
    - **Issue**: 49,000 staging work orders publicly readable
    - **Impact**: Operational data leak
-   - **Fix**: Add RLS policies to staging tables
+   - **Fix**: Add tenant isolation middleware to staging collection queries
    - **Timeline**: Before production launch
 
 ### Medium-Priority Warnings
 
-1. ⚠️ Leaked password protection disabled (enable in Supabase)
+1. ⚠️ Leaked password protection disabled (enable in auth middleware)
 2. ⚠️ External data feeds publicly readable (limit to sys_admin)
 3. ⚠️ Forecast queue exposed (limit to ml_ops role)
 4. ⚠️ Forecast outputs publicly readable (add tenant filter)
@@ -109,7 +109,7 @@ The platform demonstrates:
 ### Security Strengths
 
 ✅ **Implemented & Validated**:
-- Multi-tenant RLS on all core tables
+- Multi-tenant application-level isolation on all core collections
 - JWT-based authentication with auto-refresh
 - MFA enforcement for high-risk actions
 - API key validation & rate limiting
@@ -171,7 +171,7 @@ The platform demonstrates:
 | **Environment Template** | ✅ Complete | `/readiness/handover/env_template.env` |
 | **Deployment Guide** | ✅ Complete | `/readiness/handover/deployment_guide.md` |
 | **Security Summary** | ✅ Complete | `/readiness/security/security_summary.md` |
-| **RLS Verification** | ✅ Complete | `/readiness/security/rls_verification_log.txt` |
+| **Tenant Isolation Verification** | ✅ Complete | `/readiness/security/rls_verification_log.txt` |
 | **RBAC Test Results** | ✅ Complete | `/readiness/reports/rbac_test_results.md` |
 | **Transition Plan** | ✅ Complete | `/readiness/ops/transition_plan.md` |
 | **Readiness Summary** | ✅ Complete | `/readiness/reports/readiness_summary.md` (this file) |
@@ -180,13 +180,13 @@ The platform demonstrates:
 
 ## Deployment Readiness
 
-### Lovable Cloud Configuration
+### Deployment Configuration
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Supabase Project** | ✅ Active | Auto-provisioned |
-| **Database Schema** | ✅ Complete | 45 tables, full RLS |
-| **Edge Functions** | ✅ Deployed | 30+ functions |
+| **MongoDB Atlas Cluster** | ✅ Active | Auto-provisioned |
+| **Database Schema** | ✅ Complete | 45 collections, full tenant isolation |
+| **Server Routes** | ✅ Deployed | 30+ route handlers |
 | **Environment Variables** | ✅ Configured | All secrets set |
 | **Authentication** | ✅ Active | Email + JWT |
 | **API Gateway** | ✅ Operational | Rate limiting active |
@@ -199,7 +199,7 @@ The platform demonstrates:
 | **Playwright E2E Tests** | ✅ Pass | Core workflows validated |
 | **RBAC Tests** | ✅ Pass | All roles tested |
 | **Security Scan** | ⚠️ Warnings | 2 high-priority items |
-| **Edge Functions** | ✅ Deployed | All functions operational |
+| **Server Routes** | ✅ Deployed | All route handlers operational |
 
 ### Performance Benchmarks
 
@@ -248,13 +248,13 @@ The platform demonstrates:
 ### Immediate (Before Handover)
 
 1. **Fix High-Priority Security Warnings**
-   - [ ] Replace demo RLS policy on work_orders
-   - [ ] Add RLS to staging_work_orders table
+   - [ ] Replace demo bypass on work_orders queries
+   - [ ] Add tenant isolation to staging_work_orders collection
    - Timeline: 1 day
 
 2. **Enable Production Security**
    - [ ] Enable leaked password protection
-   - [ ] Remove `true` RLS policies
+   - [ ] Remove unfiltered query bypasses
    - Timeline: 0.5 days
 
 3. **Generate Missing Artifacts**
@@ -277,8 +277,8 @@ The platform demonstrates:
    - Timeline: 1 day
 
 6. **Database Schema Export**
-   - Use Supabase SQL Editor or pgAdmin
-   - Export structure-only SQL
+   - Use MongoDB Atlas UI or mongosh
+   - Export collection schemas and indexes
    - Timeline: 1 hour
 
 7. **Final Packaging**

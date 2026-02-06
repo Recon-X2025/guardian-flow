@@ -142,9 +142,9 @@ export default function IndustryOnboarding() {
 
       toast.success("Onboarding complete! Welcome to Guardian Flow");
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Onboarding error:", error);
-      toast.error(error.message || "Failed to complete onboarding");
+      toast.error(error instanceof Error ? error.message : "Failed to complete onboarding");
     } finally {
       setIsSubmitting(false);
     }

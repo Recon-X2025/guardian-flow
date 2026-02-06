@@ -9,13 +9,27 @@ import { useToast } from '@/domains/shared/hooks/use-toast';
 import { AddPenaltyRuleDialog } from '@/domains/financial/components/AddPenaltyRuleDialog';
 import { PenaltyDetailsDialog } from '@/domains/financial/components/PenaltyDetailsDialog';
 
+interface PenaltyRule {
+  id: string;
+  penalty_code: string;
+  description?: string;
+  severity_level: string;
+  auto_bill?: boolean;
+  dispute_allowed?: boolean;
+  percentage_value?: number;
+  base_reference?: string;
+  violation_type?: string;
+  calculation_method?: string;
+  active?: boolean;
+}
+
 export default function Penalties() {
   const { toast } = useToast();
-  const [penalties, setPenalties] = useState<any[]>([]);
+  const [penalties, setPenalties] = useState<PenaltyRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  const [selectedPenalty, setSelectedPenalty] = useState<any>(null);
+  const [selectedPenalty, setSelectedPenalty] = useState<PenaltyRule | null>(null);
 
   useEffect(() => {
     fetchPenalties();
@@ -30,11 +44,11 @@ export default function Penalties() {
         .order('severity_level', { ascending: false });
 
       if (error) throw error;
-      setPenalties(data || []);
-    } catch (error: any) {
+      setPenalties((data || []) as PenaltyRule[]);
+    } catch (error: unknown) {
       toast({
         title: 'Error loading penalties',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

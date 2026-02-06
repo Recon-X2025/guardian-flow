@@ -25,8 +25,8 @@ export default function AnalyticsPlatformAuth() {
 
       toast.success("Successfully logged in to Analytics Platform");
       navigate("/analytics-platform");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to login");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to login");
     } finally {
       setIsLoading(false);
     }
@@ -52,8 +52,8 @@ export default function AnalyticsPlatformAuth() {
 
       toast.success(`Logged in as ${role.replace('_', ' ')}`);
       navigate("/analytics-platform");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to login");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to login");
     } finally {
       setIsLoading(false);
     }

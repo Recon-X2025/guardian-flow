@@ -65,12 +65,12 @@
 - [ ] Log in as `admin@techcorp.com` / `Admin123!`
 - [ ] Approve override with MFA
 
-### 6. Edge Functions ✅
+### 6. Express.js Route Handlers ✅
 Open browser console and run:
 
 ```javascript
 // Test inventory check
-const { data, error } = await supabase.functions.invoke('check-inventory', {
+const { data, error } = await apiClient.invoke('check-inventory', {
   body: { 
     parts: [{ sku: 'TEST-001', quantity: 1 }],
     hubId: 'test-hub-123'
@@ -79,7 +79,7 @@ const { data, error } = await supabase.functions.invoke('check-inventory', {
 console.log('Inventory check:', data, error);
 
 // Test warranty check
-const { data: warranty, error: wError } = await supabase.functions.invoke('check-warranty', {
+const { data: warranty, error: wError } = await apiClient.invoke('check-warranty', {
   body: { 
     unitSerial: 'TEST-SERIAL-001',
     parts: ['TEST-001']
@@ -96,14 +96,14 @@ console.log('Warranty check:', warranty, wError);
 - Different users see different modules based on roles
 - Partner admins see ONLY their tenant's data
 - API returns 403 for unauthorized requests
-- Edge functions return 200 with valid data (or 404 if test data missing)
+- Express.js route handlers return 200 with valid data (or 404 if test data missing)
 
 ### ❌ FAIL if:
 - All users see all modules
 - Partner admins see other tenants' data
 - API allows unauthorized actions
-- Edge functions return 500 errors
-- Console shows RLS policy errors
+- Express.js route handlers return 500 errors
+- Console shows tenant isolation errors
 
 ---
 
@@ -134,12 +134,12 @@ Date: _______________
 | 3. Tenant Isolation | ⬜ | |
 | 4. API Authorization | ⬜ | |
 | 5. Override Flow | ⬜ | |
-| 6. Edge Functions | ⬜ | |
+| 6. Express.js Route Handlers | ⬜ | |
 | 7. Add Inventory Item | ✅ | FIXED Oct 3 |
 | 8. Add Penalty Rule | ✅ | FIXED Oct 3 |
 | 9. Fraud Investigation | ✅ | Working (not placeholder!) |
 | 10. Create Work Order | ✅ | 162 technicians available |
-| 11. Generate Service Orders | ✅ | Edge function working |
+| 11. Generate Service Orders | ✅ | Express.js route handler working |
 | 12. Generate SaPOS Offers | ✅ | AI-powered (Lovable AI) |
 
 **Overall**: ⬜ PASS | ⬜ FAIL

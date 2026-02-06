@@ -45,8 +45,8 @@
 #### **1. Run Database Migrations**
 ```bash
 cd server
-psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-faq-system.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.sql
 ```
 
 #### **2. Test Customer Portal**
@@ -191,8 +191,8 @@ open http://localhost:5175/customer-portal
 ### **2. Run Migrations:**
 ```bash
 cd server
-psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-faq-system.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.sql
 ```
 
 ### **3. Test Payment Flow:**
@@ -241,8 +241,8 @@ psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
 ```bash
 # Run migrations
 cd server
-psql -U postgres -d guardianflow -f scripts/migrations/add-faq-system.sql
-psql -U postgres -d guardianflow -f scripts/migrations/add-payment-gateways.sql
+mongosh guardianflow --file scripts/migrations/add-faq-system.sql
+mongosh guardianflow --file scripts/migrations/add-payment-gateways.sql
 
 # Start servers (if not running)
 cd server && npm run dev &

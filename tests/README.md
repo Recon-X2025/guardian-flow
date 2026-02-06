@@ -50,7 +50,7 @@ npx playwright show-report
 ```
 
 ## Test Accounts
-All test accounts are seeded via the `seed-test-accounts` edge function:
+All test accounts are seeded via the `seed-test-accounts` API endpoint:
 
 | Role | Email | Tenant | Description |
 |------|-------|--------|-------------|

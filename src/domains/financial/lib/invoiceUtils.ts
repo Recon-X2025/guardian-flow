@@ -1,11 +1,50 @@
 // Utility functions for invoice data handling
 
-import { Invoice, InvoiceDocument, InvoiceRow } from '@/domains/financial/types/invoice';
+import { Invoice, InvoiceDocument, InvoiceRow, PaymentTerms } from '@/domains/financial/types/invoice';
+
+interface LegacyInvoiceRow {
+  id?: string;
+  tenant_id?: string;
+  invoice_data?: Record<string, unknown>;
+  status_history?: unknown[];
+  created_by?: string;
+  created_at?: string;
+  updated_by?: string;
+  updated_at?: string;
+  supplier_data?: Record<string, unknown>;
+  customer_data?: Record<string, unknown>;
+  invoice_type?: string;
+  invoice_number?: string;
+  po_number?: string;
+  job_card_number?: string;
+  project_code?: string;
+  department?: string;
+  reverse_charge?: boolean;
+  is_export?: boolean;
+  due_date?: string;
+  payment_terms?: string;
+  notes?: string;
+  terms_and_conditions?: string;
+  currency?: string;
+  exchange_rate?: string | number;
+  eway_bill_required?: boolean;
+  line_items?: unknown[];
+  tax_summary_data?: Record<string, unknown>;
+  subtotal?: string | number;
+  penalties?: string | number;
+  total_amount?: string | number;
+  payment_data?: Record<string, unknown>;
+  payment_status?: string;
+  transport_data?: Record<string, unknown>;
+  signatory_data?: Record<string, unknown>;
+  attachments?: unknown[];
+  custom_fields?: Record<string, string>;
+}
 
 /**
  * Converts a database invoice row to the comprehensive Invoice type
  */
-export function convertInvoiceRowToInvoice(row: any): Invoice {
+export function convertInvoiceRowToInvoice(row: LegacyInvoiceRow): Invoice {
   // If invoice_data exists, use it as the base
   if (row.invoice_data && typeof row.invoice_data === 'object') {
     return {
@@ -68,7 +107,7 @@ export function convertInvoiceRowToInvoice(row: any): Invoice {
       reverse_charge: row.reverse_charge || false,
       is_export: row.is_export || false,
       due_date: row.due_date ? new Date(row.due_date).toISOString().split('T')[0] : '',
-      payment_terms: (row.payment_terms as any) || 'NET30',
+      payment_terms: (row.payment_terms as PaymentTerms) || 'NET30',
       notes: row.notes || '',
       terms_and_conditions: row.terms_and_conditions || '',
       currency: row.currency || 'INR',

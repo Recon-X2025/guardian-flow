@@ -29,7 +29,7 @@
 - ✅ Invoicing and Payments pages display real data
 - ✅ Analytics and Observability show metrics
 - ✅ KB and Assistant have functional UI (RAG = external)
-- ✅ Tenant isolation enforced via RLS
+- ✅ Tenant isolation enforced via application-level policies
 - ✅ RBAC controls module visibility
 
 ## Test Accounts

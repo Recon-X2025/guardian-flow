@@ -8,11 +8,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 
+interface InventoryItem {
+  id: string;
+  sku?: string;
+  description?: string;
+}
+
+interface StockLevel {
+  location_id?: string;
+  qty_available?: number;
+}
+
 interface StockAdjustmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item: any;
-  stockLevel: any;
+  item: InventoryItem;
+  stockLevel: StockLevel;
   onSuccess: () => void;
 }
 
@@ -59,10 +70,10 @@ export function StockAdjustmentDialog({ open, onOpenChange, item, stockLevel, on
 
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

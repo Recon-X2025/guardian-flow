@@ -1,6 +1,6 @@
 # Data Models and Database Schema
 
-**Guardian Flow v6.1.0**  
+**Guardian Flow v6.1.0**
 **Date:** November 1, 2025
 
 ---
@@ -9,12 +9,12 @@
 
 1. [Database Overview](#database-overview)
 2. [Entity Relationship Diagram](#entity-relationship-diagram)
-3. [Core Tables](#core-tables)
-4. [Compliance Tables](#compliance-tables)
-5. [Financial Tables](#financial-tables)
-6. [Forecasting Tables](#forecasting-tables)
-7. [AI/ML Tables](#aiml-tables)
-8. [Security Tables](#security-tables)
+3. [Core Collections](#core-collections)
+4. [Compliance Collections](#compliance-collections)
+5. [Financial Collections](#financial-collections)
+6. [Forecasting Collections](#forecasting-collections)
+7. [AI/ML Collections](#aiml-collections)
+8. [Security Collections](#security-collections)
 9. [Indexes and Constraints](#indexes-and-constraints)
 10. [Data Retention Policies](#data-retention-policies)
 
@@ -22,35 +22,27 @@
 
 ## Database Overview
 
-Guardian Flow uses **PostgreSQL 15+** as its primary database, leveraging advanced features:
-- **Row-Level Security (RLS)**: Tenant isolation and RBAC enforcement
-- **JSONB**: Flexible schema for dynamic data
-- **Full-Text Search**: Built-in search capabilities
-- **Triggers**: Automated data management
-- **Functions**: Reusable business logic
+Guardian Flow uses **MongoDB Atlas 7.x** as its primary database, leveraging modern features:
+- **Application-Level Isolation**: Tenant isolation via `tenant_id` field filtering
+- **Flexible Schema**: JSON document storage with optional schema validation
+- **Text Search**: Built-in text indexes for search capabilities
+- **Aggregation Pipeline**: Powerful data transformation and analysis
+- **TTL Indexes**: Automatic document expiration
 
-### Schema Organization
+### Database Organization
 
-- **public**: Application tables
-- **auth**: User authentication (Supabase managed)
-- **storage**: File storage metadata (Supabase managed)
+- **guardianflow**: Main application database
+- Collections organized by domain (users, work_orders, invoices, etc.)
 
 ### Multi-Tenancy
 
-All tenant-scoped tables include a `tenant_id` column with RLS policies enforcing isolation.
+All tenant-scoped collections include a `tenant_id` field with application-level filtering.
 
-```sql
--- Example RLS Policy
-CREATE POLICY "tenant_isolation"
-ON public.work_orders
-FOR ALL
-USING (
-  tenant_id = (
-    SELECT tenant_id 
-    FROM public.profiles 
-    WHERE id = auth.uid()
-  )
-);
+```javascript
+// Example tenant filtering
+const workOrders = await db.collection('work_orders').find({
+  tenant_id: userTenantId
+}).toArray();
 ```
 
 ---
@@ -132,7 +124,7 @@ CREATE TABLE public.profiles (
 - `idx_profiles_tenant_id` on `tenant_id`
 - `idx_profiles_email` on `email`
 
-**RLS Policies**
+**Tenant Isolation Policies**
 - Users can read their own profile
 - Users can update their own profile
 - Admins can read all profiles in tenant
@@ -771,7 +763,7 @@ ADD CONSTRAINT work_orders_wo_number_unique UNIQUE(tenant_id, wo_number);
 ## Conclusion
 
 Guardian Flow's database schema provides:
-- **Security**: RLS policies, RBAC enforcement, tenant isolation
+- **Security**: Tenant isolation policies, RBAC enforcement
 - **Compliance**: Immutable audit logs, 7-year retention
 - **Performance**: Strategic indexing, partitioning
 - **Scalability**: Normalized design, efficient queries

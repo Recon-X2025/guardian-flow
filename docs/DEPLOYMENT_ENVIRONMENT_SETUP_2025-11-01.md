@@ -22,40 +22,42 @@
 
 ## Deployment Overview
 
-Guardian Flow uses a modern, cloud-native deployment architecture powered by **Lovable Cloud** and **Supabase**.
+Guardian Flow uses a modern, cloud-native deployment architecture with **React frontend**, **Express.js backend**, and **MongoDB Atlas** database.
 
 ### Deployment Architecture
 
 ```mermaid
 graph TB
-    subgraph "Lovable Cloud"
-        CDN[CDN / Edge Network]
-        FRONTEND[Static Frontend Assets]
+    subgraph "Frontend Hosting"
+        CDN[CDN / Static Assets]
+        FRONTEND[React SPA]
     end
-    
-    subgraph "Supabase Cloud"
-        AUTH[Auth Service]
-        DATABASE[(PostgreSQL)]
+
+    subgraph "Backend Services"
+        API[Express.js API]
+        AUTH[JWT Auth]
         STORAGE[File Storage]
-        EDGE[Edge Functions]
     end
-    
+
+    subgraph "Database"
+        DATABASE[(MongoDB Atlas)]
+    end
+
     USER[End Users] --> CDN
     CDN --> FRONTEND
-    FRONTEND --> AUTH
-    FRONTEND --> EDGE
-    EDGE --> DATABASE
-    EDGE --> STORAGE
+    FRONTEND --> API
+    API --> AUTH
+    API --> DATABASE
+    API --> STORAGE
 ```
 
 ### Environments
 
-| Environment | Purpose | URL Pattern |
-|------------|---------|-------------|
-| **Development** | Local development | `localhost:5173` |
-| **Preview** | Feature branch testing | `{branch}.lovable.app` |
-| **Staging** | Pre-production testing | `staging.guardianflow.lovable.app` |
-| **Production** | Live system | `app.guardianflow.com` |
+| Environment | Purpose | Frontend URL | Backend URL |
+|------------|---------|-------------|-------------|
+| **Development** | Local development | `localhost:5175` | `localhost:3001` |
+| **Staging** | Pre-production testing | `staging.guardianflow.com` | `api-staging.guardianflow.com` |
+| **Production** | Live system | `app.guardianflow.com` | `api.guardianflow.com` |
 
 ---
 
@@ -65,10 +67,9 @@ graph TB
 
 **Frontend (.env)**
 ```bash
-# Supabase Configuration
-VITE_SUPABASE_URL=https://blvrfzymeerefsdwqhoh.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGci...
-VITE_SUPABASE_PROJECT_ID=blvrfzymeerefsdwqhoh
+# API Configuration
+VITE_API_URL=http://localhost:3001
+VITE_WS_URL=ws://localhost:3001
 
 # Application Configuration
 VITE_APP_NAME=Guardian Flow
@@ -76,41 +77,50 @@ VITE_APP_VERSION=6.1.0
 VITE_ENVIRONMENT=production
 ```
 
-**Backend (Edge Function Secrets)**
+**Backend (.env)**
 ```bash
-# Managed via Lovable Cloud Secrets
-SUPABASE_URL=https://blvrfzymeerefsdwqhoh.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
-SUPABASE_DB_URL=postgresql://...
+# Server Configuration
+PORT=3001
+NODE_ENV=production
+FRONTEND_URL=https://app.guardianflow.com
+
+# Database Configuration
+MONGODB_URI=mongodb+srv://username:password@cluster0.xdkbkkd.mongodb.net/guardianflow?retryWrites=true&w=majority
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRES_IN=7d
 
 # API Keys (optional integrations)
 STRIPE_SECRET_KEY=sk_live_...
-SHOPIFY_API_KEY=...
+RAZORPAY_KEY_ID=...
+RAZORPAY_KEY_SECRET=...
 OPENAI_API_KEY=...
+GEMINI_API_KEY=...
 
-# Internal Configuration
-INTERNAL_API_SECRET=...
-LOVABLE_API_KEY=...
+# Email Configuration
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
 ```
 
 ### Secret Management
 
-**Adding Secrets via Lovable Cloud**
-1. Navigate to Project Settings → Secrets
-2. Click "Add Secret"
-3. Enter secret name and value
-4. Secret automatically available in edge functions
+**Using Environment Variables**
+1. Store secrets in `.env` file (never commit to git)
+2. Use `dotenv` package to load in Node.js
+3. Access via `process.env.SECRET_NAME`
 
-**Accessing Secrets in Edge Functions**
-```typescript
-const apiKey = Deno.env.get('STRIPE_SECRET_KEY');
+**Accessing Secrets in Backend**
+```javascript
+const apiKey = process.env.STRIPE_SECRET_KEY;
 ```
 
 **Security**
-- Secrets encrypted at rest
-- Never logged or exposed in responses
-- Automatically injected at runtime
+- Use cloud secrets managers (AWS Secrets Manager, GCP Secret Manager)
+- Secrets never logged or exposed in responses
+- Rotate secrets regularly
 
 ---
 
@@ -180,35 +190,30 @@ Cache-Control: public, max-age=31536000, immutable
 
 ## Backend Deployment
 
-### Edge Functions
+### Express.js Route Handlers
 
 **Deployment Process**
-1. Functions defined in `supabase/functions/`
+1. Route handlers defined in `server/routes/`
 2. Committed to repository
-3. Lovable Cloud auto-deploys
-4. Available at `/functions/v1/{function-name}`
+3. Deployed via CI/CD pipeline
+4. Available at `/api/{route-name}`
 
-**Function Structure**
+**Route Structure**
 ```
-supabase/functions/
-├── _shared/           # Shared utilities
-│   ├── auth.ts
-│   ├── cors.ts
-│   └── telemetry.ts
-├── api-gateway/       # Main API gateway
-│   └── index.ts
-├── agent-ops-api/     # Operations agent
-│   └── index.ts
-└── [other functions]/
+server/routes/
+├── ai.js              # AI service routes
+├── database.js        # Generic query endpoint
+├── functions.js       # Serverless-style function handlers
+├── payments.js        # Payment gateway routes
+├── storage.js         # File storage routes
+└── [other routes]/
 ```
 
-**Configuration (supabase/config.toml)**
-```toml
-[functions.api-gateway]
-verify_jwt = true
-
-[functions.customer-book-service]
-verify_jwt = false  # Public endpoint
+**Configuration (server/server.js)**
+```javascript
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/database', require('./routes/database'));
+app.use('/api/functions', require('./routes/functions'));
 ```
 
 ### Database Migrations
@@ -216,39 +221,25 @@ verify_jwt = false  # Public endpoint
 **Creating Migrations**
 ```sql
 -- Migration: Add new table
--- File: supabase/migrations/20251101000000_add_table.sql
+-- MongoDB collection creation handled by application code
 
-CREATE TABLE public.new_table (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id),
-  name TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE public.new_table ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "tenant_isolation"
-ON public.new_table
-FOR ALL
-USING (
-  tenant_id = (
-    SELECT tenant_id FROM public.profiles WHERE id = auth.uid()
-  )
-);
+// Example collection creation in server/db/client.js:
+// db.createCollection('new_collection')
+// db.collection('new_collection').createIndex({ tenant_id: 1 })
 ```
 
 **Running Migrations**
-- Migrations run automatically on deployment
-- Applied in chronological order
-- Transactional (rollback on error)
+- Migrations run automatically on server startup
+- Applied in defined order
+- Transactional where supported
 
 ### Database Connection
 
 **Connection Details**
-- **Host**: Managed by Supabase
-- **Database**: `postgres`
+- **Host**: Managed by MongoDB Atlas
+- **Database**: `guardianflow`
 - **SSL**: Required
-- **Pooling**: Automatic (PgBouncer)
+- **Pooling**: Built-in MongoDB driver connection pooling
 
 **Connection Limits**
 - Development: 50 connections
@@ -261,29 +252,34 @@ USING (
 ### Initial Setup
 
 **1. Database Creation**
-- Automatically provisioned via Lovable Cloud
-- PostgreSQL 15+ with required extensions
+- Automatically provisioned via MongoDB Atlas
+- MongoDB 7.x with required indexes
 
 **2. Schema Migration**
-- Apply all migrations in `supabase/migrations/`
-- Create tables, policies, functions
+- Apply all migrations via server startup scripts
+- Create collections, indexes, validation rules
 
 **3. Seed Data (Optional)**
 ```typescript
 // Seed demo data
-POST /functions/v1/seed-demo-data
+POST /api/functions/seed-demo-data
 
 // Seed test accounts
-POST /functions/v1/seed-test-accounts
+POST /api/functions/seed-test-accounts
 ```
 
-### Database Extensions
+### Database Indexes
 
-**Enabled Extensions**
-```sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";       -- Encryption
-CREATE EXTENSION IF NOT EXISTS "pg_stat_statements"; -- Performance
+**Required Indexes**
+```javascript
+// Tenant isolation index on all collections
+db.collection.createIndex({ tenant_id: 1 });
+
+// Timestamp indexes for sorting
+db.collection.createIndex({ created_at: -1 });
+
+// Compound indexes for common queries
+db.collection.createIndex({ tenant_id: 1, created_at: -1 });
 ```
 
 ### Backup Strategy
@@ -309,7 +305,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_stat_statements"; -- Performance
 graph LR
     PUSH[Git Push] --> BUILD[Build Frontend]
     BUILD --> TEST[Run Tests]
-    TEST --> DEPLOY_FUNCTIONS[Deploy Edge Functions]
+    TEST --> DEPLOY_FUNCTIONS[Deploy Express.js Backend]
     DEPLOY_FUNCTIONS --> DEPLOY_FRONTEND[Deploy Frontend]
     DEPLOY_FRONTEND --> NOTIFY[Notify Team]
 ```
@@ -319,7 +315,7 @@ graph LR
 2. Run linters (ESLint, TypeScript)
 3. Run unit tests
 4. Build production bundle
-5. Deploy edge functions
+5. Deploy Express.js backend
 6. Deploy frontend to CDN
 7. Run smoke tests
 
@@ -424,7 +420,7 @@ POST /functions/v1/log-frontend-error
 ```
 
 **Backend Logs**
-- Automatic logging to Supabase dashboard
+- Automatic logging to Express.js backend console
 - Structured logging (JSON format)
 - Log levels: debug, info, warn, error
 - Correlation IDs for tracing
@@ -493,17 +489,17 @@ Response: {
 
 **1. Database Recovery**
 ```bash
-# Restore from backup
-supabase db restore --backup-id {backup_id}
+# Restore from MongoDB Atlas backup via Atlas UI or CLI
+mongorestore --uri="$MONGODB_URI" --archive=backup.archive
 
 # Verify data integrity
-psql -c "SELECT COUNT(*) FROM work_orders"
+mongosh "$MONGODB_URI" --eval "db.work_orders.countDocuments()"
 ```
 
 **2. Function Redeployment**
 ```bash
-# Redeploy all functions
-supabase functions deploy --all
+# Redeploy all server routes
+npm run deploy --prefix server
 ```
 
 **3. Frontend Redeployment**
@@ -542,18 +538,18 @@ graph LR
 
 ### Backend Scaling
 
-**Edge Functions**
+**Express.js Route Handlers**
 - Automatic horizontal scaling
 - Stateless design
 - Load balancing
-- Cold start optimization
+- Process manager (PM2) optimization
 
 **Database Scaling**
 
 **Vertical Scaling**
 - Upgrade instance size
 - Increase CPU/RAM
-- Downtime: None (managed by Supabase)
+- Downtime: None (managed by MongoDB Atlas)
 
 **Horizontal Scaling** (Future)
 - Read replicas for analytics
@@ -589,7 +585,7 @@ graph LR
 
 - [ ] All environment variables configured
 - [ ] Database migrations applied
-- [ ] RLS policies enabled on all tables
+- [ ] Application-level tenant isolation enforced on all collections
 - [ ] SSL certificate configured
 - [ ] Custom domain configured
 - [ ] Error tracking enabled
@@ -625,12 +621,12 @@ npm run build
 **Database Connection Issues**
 ```typescript
 // Check connection
-const { error } = await supabase.from('work_orders').select('count');
-if (error) console.error('DB connection failed', error);
+const count = await db.collection('work_orders').countDocuments();
+console.log('DB connection OK, work_orders count:', count);
 ```
 
 **Function Deployment Issues**
-- Check function logs in Supabase dashboard
+- Check function logs in server console output
 - Verify environment variables are set
 - Ensure no syntax errors
 
@@ -640,7 +636,7 @@ if (error) console.error('DB connection failed', error);
 
 Guardian Flow's deployment infrastructure provides:
 - **Zero-Downtime Deployments**: Automatic, seamless updates
-- **Global Performance**: CDN and edge functions
+- **Global Performance**: CDN and Express.js route handlers
 - **Automatic Scaling**: Handle traffic spikes
 - **Disaster Recovery**: Comprehensive backup and recovery
 - **Observability**: Complete monitoring and logging

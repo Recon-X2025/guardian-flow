@@ -1,19 +1,25 @@
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
-import { getOne, getMany } from '../db/query.js';
+import { db } from '../db/client.js';
 import logger from '../utils/logger.js';
 import { isTokenRevoked, isUserTokenRevokedBefore } from '../db/tokenBlacklist.js';
 
-// Fail fast in production if no JWT secret configured
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-  logger.error('JWT_SECRET environment variable is required in production');
-  process.exit(1);
+// Fail fast in production if JWT secret is missing or too short
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET) {
+    logger.error('FATAL: JWT_SECRET environment variable is required in production');
+    process.exit(1);
+  }
+  if (process.env.JWT_SECRET.length < 32) {
+    logger.error('FATAL: JWT_SECRET must be at least 32 characters in production');
+    process.exit(1);
+  }
 }
 if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
   logger.warn('Using default JWT secret — set JWT_SECRET env var for production');
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-secret-do-not-use-in-prod';
 
 /**
  * Middleware to verify JWT token and attach user to request
@@ -38,11 +44,9 @@ export async function authenticateToken(req, res, next) {
     }
 
     // Get user from database
-    const user = await getOne(
-      `SELECT id, email, full_name, phone, created_at 
-       FROM users 
-       WHERE id = $1 AND active = true`,
-      [decoded.userId]
+    const user = await db.collection('users').findOne(
+      { id: decoded.userId, active: true },
+      { projection: { id: 1, email: 1, full_name: 1, phone: 1, created_at: 1 } }
     );
 
     if (!user) {
@@ -50,10 +54,10 @@ export async function authenticateToken(req, res, next) {
     }
 
     // Get user roles
-    const roles = await getMany(
-      `SELECT role FROM user_roles WHERE user_id = $1`,
-      [user.id]
-    );
+    const roles = await db.collection('user_roles').find(
+      { user_id: user.id },
+      { projection: { role: 1 } }
+    ).toArray();
 
     // Map database roles to frontend roles
     const roleMap = {
@@ -62,7 +66,7 @@ export async function authenticateToken(req, res, next) {
       'technician': 'technician',
       'customer': 'customer',
     };
-    
+
     const mappedRoles = roles.map(r => roleMap[r.role] || r.role);
 
     req.user = {
@@ -105,18 +109,16 @@ export async function optionalAuth(req, res, next) {
 
     if (token) {
       const decoded = jwt.verify(token, JWT_SECRET);
-      const user = await getOne(
-        `SELECT id, email, full_name, phone, created_at 
-         FROM users 
-         WHERE id = $1 AND active = true`,
-        [decoded.userId]
+      const user = await db.collection('users').findOne(
+        { id: decoded.userId, active: true },
+        { projection: { id: 1, email: 1, full_name: 1, phone: 1, created_at: 1 } }
       );
 
       if (user) {
-        const roles = await getMany(
-          `SELECT role FROM user_roles WHERE user_id = $1`,
-          [user.id]
-        );
+        const roles = await db.collection('user_roles').find(
+          { user_id: user.id },
+          { projection: { role: 1 } }
+        ).toArray();
         req.user = {
           ...user,
           roles: roles.map(r => r.role),
@@ -129,4 +131,3 @@ export async function optionalAuth(req, res, next) {
     next();
   }
 }
-

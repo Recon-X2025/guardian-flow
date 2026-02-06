@@ -10,8 +10,8 @@ import { useToast } from "@/domains/shared/hooks/use-toast";
 
 export default function PhotoCapturePage() {
   const [stage, setStage] = useState<"replacement" | "post_repair" | "pickup">("replacement");
-  const [validations, setValidations] = useState<any[]>([]);
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [validations, setValidations] = useState<{ photos_validated?: boolean; anomaly_detected?: boolean; stage?: string }[]>([]);
+  const [workOrders, setWorkOrders] = useState<{ id: string; wo_number?: string; status?: string }[]>([]);
   const [selectedWO, setSelectedWO] = useState<string>('');
   const { toast } = useToast();
 
@@ -26,10 +26,10 @@ export default function PhotoCapturePage() {
 
       if (result.error) throw result.error;
       setValidations(result.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading validations",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -54,16 +54,16 @@ export default function PhotoCapturePage() {
       if (result.data && result.data.length > 0) {
         setSelectedWO(result.data[0].id);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error loading work orders",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
   };
 
-  const handleComplete = (payload: any) => {
+  const handleComplete = (payload: unknown) => {
     console.log("Photos validated:", payload);
     toast({
       title: "Stage Complete",
@@ -192,7 +192,7 @@ export default function PhotoCapturePage() {
                 </option>
               ))}
             </select>
-            <Select value={stage} onValueChange={(v: any) => setStage(v)}>
+            <Select value={stage} onValueChange={(v: "replacement" | "post_repair" | "pickup") => setStage(v)}>
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select stage" />
               </SelectTrigger>

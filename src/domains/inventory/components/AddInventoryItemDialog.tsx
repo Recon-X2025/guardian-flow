@@ -52,10 +52,10 @@ export function AddInventoryItemDialog({ open, onOpenChange, onSuccess }: AddInv
       onSuccess();
       onOpenChange(false);
       setFormData({ sku: '', description: '', unitPrice: '', leadTimeDays: '', consumable: false });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error adding item',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

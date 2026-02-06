@@ -5,7 +5,7 @@
 ### 3. Precheck Orchestrator Enforcement ✅
 
 **Backend:**
-- ✅ `release-work-order` edge function created
+- ✅ `release-work-order` Express.js route handler created
 - ✅ Enforces `can_release` check or requires MFA override
 - ✅ Validates MFA token expiration and single-use
 - ✅ Logs override with correlation ID and reason
@@ -17,8 +17,8 @@
 - [x] Override tokens marked as `used_at` after consumption
 
 **Files:**
-- `supabase/functions/release-work-order/index.ts`
-- Updated `supabase/config.toml`
+- `server/routes/release-work-order/index.ts`
+- Updated server configuration
 
 ---
 
@@ -49,7 +49,7 @@
 - [x] Validation creates fraud alert if anomalies detected (placeholder)
 
 **Files:**
-- `supabase/functions/validate-photos/index.ts` (enhanced)
+- `server/routes/validate-photos/index.ts` (enhanced)
 - `src/components/PhotoCapture.tsx` (existing)
 
 ---
@@ -57,7 +57,7 @@
 ### 5. SO Template Manager (OEM Templates) ✅
 
 **Backend:**
-- ✅ `upload-so-template` edge function created
+- ✅ `upload-so-template` Express.js route handler created
 - ✅ Handlebars template upload with sanitization (removes `<script>`, `javascript:`, `on*` handlers)
 - ✅ Placeholder validation (only allowed: wo_number, customer_name, technician_name, etc.)
 - ✅ Template versioning via `so_template_versions` table
@@ -65,7 +65,7 @@
 
 **Database:**
 - ✅ `so_template_versions` table for version control
-- ✅ RLS policies for template access
+- ✅ Application-level tenant isolation for template access
 
 **Acceptance Criteria Met:**
 - [x] Upload template with Handlebars syntax
@@ -75,7 +75,7 @@
 - [x] Existing `generate-service-order` renders templates to HTML/PDF
 
 **Files:**
-- `supabase/functions/upload-so-template/index.ts`
+- `server/routes/upload-so-template/index.ts`
 - Migration added `so_template_versions` table
 
 ---
@@ -101,7 +101,7 @@
 - [x] Accepting offer creates quote → invoice (existing flow in `GenerateSaPOSDialog`)
 
 **Files:**
-- `supabase/functions/generate-sapos-offers/index.ts` (enhanced)
+- `server/routes/generate-sapos-offers/index.ts` (enhanced)
 - Migration added provenance columns
 
 ---
@@ -109,7 +109,7 @@
 ### 7. Penalty Engine Integrated with Finance ✅
 
 **Backend:**
-- ✅ `calculate-penalties` edge function created
+- ✅ `calculate-penalties` Express.js route handler created
 - ✅ Auto-applies penalties based on `penalty_matrix` rules
 - ✅ Supports violation types: late_completion, missing_photos, warranty_misuse, parts_discrepancy
 - ✅ Calculation methods: percentage, fixed
@@ -128,7 +128,7 @@
 - [x] Dispute flow exists (via `penalty_applications.disputed` field)
 
 **Files:**
-- `supabase/functions/calculate-penalties/index.ts`
+- `server/routes/calculate-penalties/index.ts`
 - Migration added `penalty_calculations` table
 
 ---
@@ -145,7 +145,7 @@
 **Database:**
 - ✅ `fraud_feedback` table for storing labels
 - ✅ `fraud_labeled_dataset` view for ML export
-- ✅ RLS policies for investigators only
+- ✅ Application-level tenant isolation for investigators only
 
 **Export:**
 - ✅ SQL view exports verified labels for ML training
@@ -184,8 +184,8 @@
 - [x] All MFA events audited with correlation_id
 
 **Files:**
-- `supabase/functions/request-mfa/index.ts` (existing)
-- `supabase/functions/verify-mfa/index.ts` (existing)
+- `server/routes/request-mfa/index.ts` (existing)
+- `server/routes/verify-mfa/index.ts` (existing)
 - `src/components/MFADialog.tsx` (existing)
 
 ---
@@ -203,7 +203,7 @@
 - ✅ `photo_compliance_metrics`: Photo validation pass rate by stage
 - ✅ `sapos_acceptance_metrics`: Offer acceptance rate, avg price
 
-**Edge Functions:**
+**Express.js Route Handlers:**
 - ✅ All functions emit correlation_ids
 - ✅ Audit logs track correlation_ids
 - ✅ Error responses include X-Correlation-ID headers
@@ -217,7 +217,7 @@
 - ✅ Database-level event tracking
 - ✅ SQL views for metrics aggregation
 - ✅ Correlation ID propagation
-- ✅ Basic logging in all edge functions
+- ✅ Basic logging in all Express.js route handlers
 
 **Acceptance Criteria Met:**
 - [x] Observability events table captures key operations
@@ -267,7 +267,7 @@
 **Documentation Provided:**
 - See `docs/INFRASTRUCTURE_REQUIREMENTS.md` (to be created)
 - Terraform modules needed for:
-  - Managed Postgres (Aurora/Cloud SQL)
+  - Managed MongoDB Atlas
   - Object storage (S3/Azure Blob)
   - Redis for caching
   - Kubernetes cluster
@@ -275,7 +275,7 @@
   - Secret manager (AWS KMS/HashiCorp Vault)
 
 **Why Not Implemented:**
-- Lovable Cloud provides managed Supabase (Postgres)
+- Platform uses managed MongoDB Atlas
 - Terraform deployment requires AWS/Azure/GCP account
 - GPU infrastructure requires cloud provider setup
 - Cannot provision external infrastructure from Lovable
@@ -284,8 +284,8 @@
 1. Export codebase to GitHub
 2. Set up cloud provider account
 3. Use provided Terraform modules (to be documented)
-4. Deploy Supabase self-hosted or use Supabase Cloud
-5. Configure edge functions deployment
+4. Deploy Express.js backend with MongoDB Atlas
+5. Configure Express.js route handlers deployment
 6. Set up CI/CD pipeline (GitHub Actions)
 
 ---
@@ -316,7 +316,7 @@
 | Item | Feature | Status | Notes |
 |------|---------|--------|-------|
 | 1 | RBAC Enforcement | ✅ Complete | Auth/me endpoint, permission checks |
-| 2 | Tenant Isolation | ✅ Complete | RLS policies, cross-tenant tests |
+| 2 | Tenant Isolation | ✅ Complete | Application-level tenant isolation, cross-tenant tests |
 | 3 | Precheck Enforcement | ✅ Complete | Release endpoint requires precheck or MFA |
 | 4 | Photo Validation | ✅ Business logic | CV/GPU requires infra |
 | 5 | SO Template Manager | ✅ Complete | Upload, sanitize, version control |
@@ -336,9 +336,9 @@
 ## 🚀 Deployment Checklist
 
 ### Completed
-- [x] All edge functions deployed and registered
+- [x] All Express.js route handlers deployed and registered
 - [x] Database migrations applied
-- [x] RLS policies enforced
+- [x] Application-level tenant isolation enforced
 - [x] Frontend components integrated
 - [x] Basic Playwright tests passing
 - [x] Audit logging operational

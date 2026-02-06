@@ -62,7 +62,7 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
     try {
       // Call backend /api/auth/me endpoint for server-validated context
       const response = await apiClient.request<{
-        user: any;
+        user: { id: string; email?: string };
         roles: UserRole[];
         permissions: string[];
         tenant_id: string | null;
@@ -83,7 +83,7 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
       const fetchedPermissions = response.data?.permissions || [];
       const fetchedTenantId = response.data?.tenant_id || null;
       
-      console.log('RBACContext: Fetched roles:', fetchedRoles.map((r: any) => r.role));
+      console.log('RBACContext: Fetched roles:', fetchedRoles.map((r: UserRole) => r.role));
       console.log('RBACContext: Fetched permissions:', fetchedPermissions.length, 'permissions');
       
       setRoles(fetchedRoles);

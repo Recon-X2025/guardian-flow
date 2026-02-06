@@ -25,7 +25,7 @@ This document outlines Guardian Flow's comprehensive roadmap to achieve SOC 2 Ty
 **Phase 2: Implementation** 🔄 IN PROGRESS (45% complete)
 
 **Recently Completed (v6.1.0):**
-- ✅ 40+ compliance database tables with 100% RLS coverage
+- ✅ 40+ compliance database tables with 100% application-level tenant isolation coverage
 - ✅ 7-year immutable audit log archive (partitioned 2025-2031)
 - ✅ JIT privileged access control system
 - ✅ Automated quarterly access review campaigns
@@ -34,7 +34,7 @@ This document outlines Guardian Flow's comprehensive roadmap to achieve SOC 2 Ty
 - ✅ Incident response system (P0-P3 classification)
 - ✅ Training management and phishing simulation platform
 - ✅ Automated compliance evidence collection
-- ✅ 6 edge functions for complete automation
+- ✅ 6 Express.js route handlers for complete automation
 
 ---
 
@@ -48,8 +48,8 @@ This document outlines Guardian Flow's comprehensive roadmap to achieve SOC 2 Ty
 - Multi-tenant architecture with strict tenant isolation
 - Role-Based Access Control (RBAC) with 8 distinct roles
 - MFA implementation for high-risk operations
-- Security definer functions preventing RLS recursion
-- 48+ RLS policies across 22 tables (100% coverage)
+- Security definer functions preventing tenant isolation recursion
+- 48+ application-level tenant isolation policies across 22 tables (100% coverage)
 - API Gateway with rate limiting and key validation
 
 **Audit & Logging:**
@@ -60,7 +60,7 @@ This document outlines Guardian Flow's comprehensive roadmap to achieve SOC 2 Ty
 - 90-day retention for operational logs
 
 **Data Protection:**
-- Encryption at rest (Supabase managed)
+- Encryption at rest (MongoDB Atlas managed)
 - TLS/HTTPS for data in transit
 - Input validation using Zod schemas
 - SQL injection prevention via parameterized queries
@@ -68,7 +68,7 @@ This document outlines Guardian Flow's comprehensive roadmap to achieve SOC 2 Ty
 **Policy Governance:**
 - Policy-as-code framework in `policy_registry`
 - Agent governance via `agent_policy_bindings`
-- Automated policy enforcement via `policy-enforcer` edge function
+- Automated policy enforcement via `policy-enforcer` Express.js route handler
 
 #### ⚠️ **Gaps Identified (Compliance Blockers)**
 
@@ -128,7 +128,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE javascript /* server-side */;
 
 CREATE TRIGGER on_privilege_elevation
 AFTER INSERT ON public.temporary_access_grants
@@ -162,7 +162,7 @@ CREATE TABLE public.access_review_items (
 );
 ```
 
-**Edge Function: `access-review-scheduler`**
+**Express.js Route Handler: `access-review-scheduler`**
 - Quarterly automatic access review generation
 - Email notifications to reviewers
 - Auto-revoke on missed reviews (after 30 days)
@@ -240,12 +240,12 @@ BEGIN
   
   DELETE FROM audit_logs WHERE created_at < now() - interval '90 days';
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE javascript /* server-side */;
 ```
 
 **2.2.2 SIEM Integration Layer**
 
-**Edge Function: `siem-forwarder`**
+**Express.js Route Handler: `siem-forwarder`**
 ```typescript
 // Forwards high-priority audit events to external SIEM
 interface SIEMEvent {
@@ -384,7 +384,7 @@ CREATE TABLE public.patch_deployments (
 | Medium | 30 days | Planned maintenance |
 | Low | 90 days | Backlog |
 
-**Edge Function: `vulnerability-tracker`**
+**Express.js Route Handler: `vulnerability-tracker`**
 - Webhook integrations for scanner tools
 - Automatic JIRA/Linear ticket creation
 - SLA breach notifications
@@ -412,7 +412,7 @@ CREATE TABLE public.patch_deployments (
 **2.4.1 Key Management Architecture**
 
 **Components:**
-- **Current:** Supabase managed encryption at rest
+- **Current:** MongoDB Atlas managed encryption at rest
 - **Enhancement:** HashiCorp Vault or AWS KMS for application secrets
 - **Application-level encryption:** For PII fields (encryption_keys table)
 
@@ -450,7 +450,7 @@ CREATE TABLE public.key_usage_audit (
 - Database credentials: Rotate every 365 days
 - JWT signing keys: Rotate every 30 days
 
-**Edge Function: `key-rotation-scheduler`**
+**Express.js Route Handler: `key-rotation-scheduler`**
 - Automated rotation triggers
 - Zero-downtime key rotation (dual-key period)
 - Notification to security team
@@ -553,9 +553,9 @@ CREATE TABLE public.post_incident_reviews (
 **Critical Systems Inventory:**
 | System | RTO | RPO | Backup Strategy |
 |--------|-----|-----|-----------------|
-| Supabase Database | 4 hours | 15 minutes | Point-in-time recovery (7 days) |
-| Edge Functions | 1 hour | 0 (stateless) | Multi-region deployment |
-| Authentication | 2 hours | 5 minutes | Supabase Auth replication |
+| MongoDB Atlas Database | 4 hours | 15 minutes | Point-in-time recovery (7 days) |
+| Express.js Route Handlers | 1 hour | 0 (stateless) | Multi-region deployment |
+| Authentication | 2 hours | 5 minutes | Express.js backend auth replication |
 | File Storage | 8 hours | 1 hour | S3 cross-region replication |
 | Frontend App | 30 minutes | 0 | CDN + multiple origins |
 
@@ -660,14 +660,14 @@ CREATE TABLE public.risk_treatment_actions (
 
 | Risk ID | Risk Description | Category | Inherent Risk | Treatment | Owner |
 |---------|------------------|----------|---------------|-----------|-------|
-| RISK-001 | Unauthorized data access via RLS bypass | Security | High (20) | Mitigate | CTO |
+| RISK-001 | Unauthorized data access via tenant isolation bypass | Security | High (20) | Mitigate | CTO |
 | RISK-002 | Third-party API service disruption | Operational | Medium (12) | Transfer | DevOps Lead |
 | RISK-003 | Non-compliance with GDPR/SOC 2 | Compliance | High (16) | Mitigate | Compliance Lead |
 | RISK-004 | Insider threat - privileged user abuse | Security | Medium (12) | Mitigate | Security Lead |
 | RISK-005 | Database backup corruption | Operational | High (15) | Mitigate | DBA |
 | RISK-006 | Key personnel loss (single point of knowledge) | Operational | Medium (9) | Mitigate | CTO |
 | RISK-007 | DDoS attack on public endpoints | Security | Medium (12) | Mitigate | DevOps Lead |
-| RISK-008 | Vendor security breach (Supabase, AWS) | Third-party | Medium (10) | Accept/Transfer | CTO |
+| RISK-008 | Vendor security breach (MongoDB Atlas, AWS) | Third-party | Medium (10) | Accept/Transfer | CTO |
 | RISK-009 | Inadequate incident response readiness | Operational | High (15) | Mitigate | Security Lead |
 | RISK-010 | Unpatched critical vulnerabilities | Security | High (16) | Mitigate | Security Lead |
 
@@ -703,7 +703,7 @@ CREATE TABLE public.risk_treatment_actions (
 **Current Critical Vendors:**
 | Vendor | Service | Data Access | Risk Tier | Assessment Status |
 |--------|---------|-------------|-----------|-------------------|
-| Supabase | Database, Auth, Storage | Full (all customer data) | Tier 1 (Critical) | SOC 2 verified |
+| MongoDB Atlas | Database, Auth, Storage | Full (all customer data) | Tier 1 (Critical) | SOC 2 verified |
 | Lovable AI | AI/ML processing | Transient (query data) | Tier 2 (High) | TBD |
 | AWS/CloudFlare | Infrastructure, CDN | Infrastructure access | Tier 1 (Critical) | SOC 2 verified |
 | Stripe | Payment processing | Payment info (PCI) | Tier 1 (Critical) | PCI DSS certified |
@@ -981,7 +981,7 @@ CREATE TABLE public.phishing_simulations (
 
 **Audit Scope:**
 - All 20 policy documents
-- Technical control testing (RLS, MFA, logging, encryption)
+- Technical control testing (tenant isolation, MFA, logging, encryption)
 - Process review (access reviews, incident response)
 - Personnel interviews
 - Evidence sampling
@@ -1017,7 +1017,7 @@ CREATE TABLE public.phishing_simulations (
 
 **Test Scenarios:**
 1. Authentication bypass attempts
-2. RLS policy circumvention
+2. Tenant isolation circumvention
 3. SQL injection (parameterized queries validation)
 4. XSS and CSRF attacks
 5. Privilege escalation (user → admin)
@@ -1052,12 +1052,12 @@ CREATE TABLE public.phishing_simulations (
 1. **Database Failover Test:** Simulate primary DB failure, restore from backup
 2. **Region Outage Test:** Failover to secondary region
 3. **Ransomware Recovery Test:** Simulate encrypted database, restore from immutable backup
-4. **Edge Function Recovery Test:** Redeploy all functions from source control
+4. **Express.js Route Handler Recovery Test:** Redeploy all functions from source control
 
 **Success Criteria:**
 - Database restoration within 4-hour RTO
 - Data loss <15 minutes (RPO validation)
-- All edge functions operational within 1 hour
+- All Express.js route handlers operational within 1 hour
 - Communication plan executed (no actual customer notification)
 
 **Deliverables:**
@@ -1254,7 +1254,7 @@ CREATE TABLE public.phishing_simulations (
 
 | Metric | Target | Current Baseline |
 |--------|--------|------------------|
-| RLS Policy Coverage | 100% | 100% ✅ |
+| Tenant Isolation Coverage | 100% | 100% ✅ |
 | Audit Log Retention | 7 years | 90 days ⚠️ |
 | MFA Enrollment Rate | 100% (admins) | 100% ✅ |
 | Vulnerability Remediation SLA Compliance | 95% | TBD |
@@ -1307,7 +1307,7 @@ CREATE TABLE public.phishing_simulations (
 |------|------------------|-----------------|
 | **Compliance Manager** | Program management, auditor liaison, evidence collection | 100% (FTE) |
 | **Security Engineer** | Technical control implementation, vulnerability management | 75% (0.75 FTE) |
-| **Backend Engineer** | Database schema changes, edge function development | 50% (0.5 FTE) |
+| **Backend Engineer** | Database schema changes, Express.js route handler development | 50% (0.5 FTE) |
 | **DevOps Engineer** | Infrastructure security, monitoring, DR testing | 50% (0.5 FTE) |
 | **Frontend Engineer** | Security UI components (access reviews, training portal) | 25% (0.25 FTE) |
 | **CTO** | Executive sponsor, steering committee chair | 10% (0.1 FTE) |
@@ -1330,7 +1330,7 @@ CREATE TABLE public.phishing_simulations (
 | CC1.2 | Board oversight | ✅ Complete | CTO reports to board |
 | CC2.1 | Risk assessment | ⚠️ Partial | Formalize risk register |
 | CC3.1 | Security objectives defined | ✅ Complete | In ISMS policy |
-| CC5.1 | Logical access controls | ✅ Complete | RBAC + RLS policies |
+| CC5.1 | Logical access controls | ✅ Complete | RBAC + application-level tenant isolation policies |
 | CC5.2 | MFA implementation | ✅ Complete | High-risk actions |
 | CC6.1 | Logging and monitoring | ⚠️ Partial | Extend retention to 7 years |
 | CC7.1 | Threat detection | ⚠️ Partial | Implement SIEM alerting |

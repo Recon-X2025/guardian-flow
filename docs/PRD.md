@@ -358,7 +358,7 @@ Eliminate operational inefficiency in field service organizations by combining r
 - Multi-tenant data isolation
 - Stateless API (JWT, no server sessions)
 - Database connection pooling (pg, max 20)
-- Edge function distribution (Supabase)
+- Edge function distribution (Express.js backend)
 - API rate limiting per tenant
 - Optional Redis for shared session state across instances
 - nginx reverse proxy with static asset CDN caching (1-year immutable)
@@ -385,7 +385,7 @@ Eliminate operational inefficiency in field service organizations by combining r
 | Version | Date | Highlights |
 |---------|------|-----------|
 | 6.1 | Jan 2026 | Production hardening: TLS, token revocation, email, backups, Terraform, monitoring |
-| 6.0 | Jan 2026 | Real ML models, PaaS capabilities, 131 edge functions |
+| 6.0 | Jan 2026 | Real ML models, PaaS capabilities, 131 Express.js route handlers |
 | 5.x | 2025 | Domain modularization, comprehensive testing |
 | 4.x | 2025 | Multi-tenant architecture, payment gateways |
 | 3.x | 2025 | AI assistant, anomaly detection |

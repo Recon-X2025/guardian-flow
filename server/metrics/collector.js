@@ -61,11 +61,10 @@ class MetricsCollector {
     }
 
     if (dbPool) {
-      lines.push('# HELP db_pool_total Total pool connections');
-      lines.push('# TYPE db_pool_total gauge');
-      lines.push(`db_pool_total ${dbPool.totalCount || 0}`);
-      lines.push(`db_pool_idle ${dbPool.idleCount || 0}`);
-      lines.push(`db_pool_waiting ${dbPool.waitingCount || 0}`);
+      lines.push('# HELP db_connections Database connection status');
+      lines.push('# TYPE db_connections gauge');
+      const connected = dbPool.topology?.isConnected?.() ? 1 : 0;
+      lines.push(`db_connections_active ${connected}`);
     }
 
     lines.push(`# HELP nodejs_heap_bytes Node.js heap usage`);
@@ -85,9 +84,7 @@ class MetricsCollector {
       requests: this.requestCounts,
       errors: this.errorCounts,
       database: {
-        total: dbPool?.totalCount || 0,
-        idle: dbPool?.idleCount || 0,
-        waiting: dbPool?.waitingCount || 0,
+        connected: dbPool?.topology?.isConnected?.() ? true : false,
       },
       memory: process.memoryUsage(),
       timestamp: new Date().toISOString(),

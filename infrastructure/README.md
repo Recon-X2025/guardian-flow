@@ -3,12 +3,12 @@
 ## Quick Start (Docker Compose)
 
 ```bash
-# Development
-docker compose up postgres server
+# Development — starts the backend server (MongoDB Atlas is used remotely)
+docker compose up server
 
 # Production (requires .env with credentials)
 cp .env.production.example .env
-# Edit .env with real values
+# Edit .env with real values (including MONGODB_URI)
 docker compose up -d
 ```
 
@@ -19,6 +19,7 @@ docker compose up -d
 - Terraform >= 1.0
 - ACM certificate for your domain
 - ECR repository with app image
+- MongoDB Atlas cluster provisioned with connection URI
 
 ### Steps
 
@@ -36,7 +37,8 @@ docker compose up -d
    terraform plan \
      -var="ecr_repository=<ECR_URL>" \
      -var="ssl_certificate_arn=<ACM_ARN>" \
-     -var="frontend_url=https://your-domain.com"
+     -var="frontend_url=https://your-domain.com" \
+     -var="mongodb_uri=mongodb+srv://user:pass@cluster.mongodb.net/guardianflow?retryWrites=true&w=majority"
    terraform apply
    ```
 
@@ -47,36 +49,38 @@ docker compose up -d
 
 ### What Gets Created
 - VPC with public/private subnets
-- RDS PostgreSQL 14 with automated backups (7-day retention)
 - ECS Fargate cluster (2 instances by default)
 - Application Load Balancer with HTTPS
-- Secrets Manager for credentials
+- Secrets Manager for credentials (MONGODB_URI, JWT_SECRET)
 - CloudWatch log group
 - CloudFront CDN distribution
 
+> **Note:** MongoDB Atlas is a fully managed cloud database and is *not* provisioned by this Terraform configuration. Manage your Atlas cluster, network peering / PrivateLink, and backup policies through the MongoDB Atlas console or the `mongodbatlas` Terraform provider.
+
 ## Database Backups
 
-### Docker Compose
-Backups run automatically at 2 AM UTC via the `backup` service.
+MongoDB Atlas provides automated continuous backups with point-in-time restore. Configure backup policies (snapshot schedule, retention period) through the Atlas console or API.
 
+### On-Demand Snapshots
+
+Use the Atlas CLI or console to create on-demand snapshots:
 ```bash
-# Manual backup
-docker compose exec backup /usr/local/bin/backup-database.sh
-
-# Restore
-docker compose exec backup /usr/local/bin/restore-database.sh /backups/<file>.sql.gz
+atlas backups snapshots create <clusterName> --desc "manual backup"
 ```
 
-### AWS
-RDS automated backups with 7-day retention. Point-in-time recovery available.
+### Restore
+
+Restore from the Atlas console or CLI:
+```bash
+atlas backups restores start automated --clusterName <clusterName> --snapshotId <id> --targetClusterName <clusterName>
+```
 
 ## Secrets Management
 
 ### Environment Variables (Default)
 Set values in `.env` file. Required in production:
 - `JWT_SECRET` (64+ chars)
-- `DB_PASSWORD` (16+ chars, non-default)
-- `DB_USER` (non-default)
+- `MONGODB_URI` (MongoDB Atlas connection string)
 - `FRONTEND_URL`
 
 ### AWS Secrets Manager

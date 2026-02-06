@@ -8,11 +8,8 @@ Create `server/.env` with the following content:
 
 ```env
 # Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=guardianflow
-DB_USER=postgres
-DB_PASSWORD=postgres
+MONGODB_URI=mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/
+MONGODB_DB_NAME=guardianflow
 
 # JWT Secret (change in production!)
 JWT_SECRET=your-secret-key-change-in-production-use-strong-random-string
@@ -43,19 +40,13 @@ PAYPAL_CLIENT_ID=your_paypal_client_id_here
 PAYPAL_CLIENT_SECRET=your_paypal_client_secret_here
 PAYPAL_MODE=sandbox
 ```
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-read_file
-
-### 2. Set Up PostgreSQL Database
+### 2. Set Up MongoDB Atlas Connection
 
 ```bash
-# Create database
-createdb guardianflow
+# No local database setup required - using MongoDB Atlas cloud
+# The connection is configured in your .env file
 
-# Run initial schema
-psql -U postgres -d guardianflow -f server/scripts/init-db.sql
-
-# Run migrations
+# Run migrations (creates collections if needed)
 cd server
 npm run migrate
 ```
@@ -83,9 +74,10 @@ You should see:
 ## Troubleshooting
 
 ### Database Connection Error
-- Ensure PostgreSQL is running: `pg_isready`
-- Check credentials in `server/.env`
-- Verify database exists: `psql -l | grep guardianflow`
+- Ensure MongoDB Atlas connection string is correct in `server/.env`
+- Check that your IP address is whitelisted in MongoDB Atlas
+- Verify credentials: `MONGODB_URI` and `MONGODB_DB_NAME`
+- Test connection: `node -e "require('mongodb').MongoClient.connect(process.env.MONGODB_URI, (err, client) => { console.log(err ? 'Error: ' + err : 'Connected!'); client && client.close(); })"`
 
 ### Port Already in Use
 - Change `PORT` in `server/.env`
@@ -99,5 +91,5 @@ You should see:
 
 1. Start the frontend: `npm run dev` (from project root)
 2. Test authentication at `/auth`
-3. Migrate more edge functions as needed
+3. Migrate more API function handlers as needed
 

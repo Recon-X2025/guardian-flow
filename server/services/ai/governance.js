@@ -3,7 +3,7 @@ import { insertOne, findMany, aggregate, updateOne, countDocuments } from '../..
 
 export async function logAIDecision(model, input, output, confidence, tenantId) {
   const doc = {
-    _id: randomUUID(),
+    id: randomUUID(),
     model,
     input_summary: typeof input === 'string' ? input.slice(0, 500) : JSON.stringify(input).slice(0, 500),
     output_summary: typeof output === 'string' ? output.slice(0, 500) : JSON.stringify(output).slice(0, 500),
@@ -23,7 +23,7 @@ export async function getModelHealth() {
   try {
     const stats = await aggregate('ai_usage_logs', [
       { $group: {
-        _id: { model: '$model', feature: '$feature' },
+        id: { model: '$model', feature: '$feature' },
         total_calls: { $sum: 1 },
         avg_latency_ms: { $avg: '$duration_ms' },
         total_tokens: { $sum: '$total_tokens' },
@@ -34,8 +34,8 @@ export async function getModelHealth() {
     ]);
 
     return stats.map(s => ({
-      model: s._id.model,
-      feature: s._id.feature,
+      model: s.id.model,
+      feature: s.id.feature,
       total_calls: s.total_calls,
       avg_latency_ms: Math.round(s.avg_latency_ms),
       total_tokens: s.total_tokens,
@@ -74,7 +74,7 @@ export async function seedModelRegistry() {
     try {
       await updateOne('model_registry',
         { model_name: model.model_name },
-        { $setOnInsert: { _id: randomUUID(), ...model, usage_count: 0, created_at: new Date() }, $set: { active: true } },
+        { $setOnInsert: { id: randomUUID(), ...model, usage_count: 0, created_at: new Date() }, $set: { active: true } },
         { upsert: true }
       );
       created++;

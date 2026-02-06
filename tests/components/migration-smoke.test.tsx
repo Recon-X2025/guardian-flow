@@ -1,6 +1,7 @@
 /**
- * Smoke tests to verify migrated components use apiClient correctly
- * These tests check that components import and use apiClient instead of supabase
+ * Smoke tests to verify components use apiClient correctly
+ * These tests check that components import and use apiClient (backed by MongoDB Atlas)
+ * and do not contain any legacy Supabase references.
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
@@ -10,7 +11,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-describe('Migration Smoke Tests', () => {
+describe('API Client Smoke Tests', () => {
   const componentsDir = path.join(__dirname, '../../src/components');
   
   const migratedComponents = [
@@ -42,7 +43,7 @@ describe('Migration Smoke Tests', () => {
 
   describe('Import Verification', () => {
     it.each([...migratedComponents, ...analyticsComponents])(
-      'should use apiClient import in %s',
+      'should use apiClient import (not legacy Supabase) in %s',
       (componentPath) => {
         const filePath = path.join(componentsDir, componentPath);
         
@@ -56,10 +57,10 @@ describe('Migration Smoke Tests', () => {
         // Should import apiClient
         expect(content).toMatch(/import.*apiClient.*from.*@\/integrations\/api\/client/);
         
-        // Should NOT import supabase
+        // Should NOT import legacy Supabase client
         expect(content).not.toMatch(/import.*supabase.*from.*@\/integrations\/supabase/);
         
-        // Should NOT use supabase. pattern (method calls)
+        // Should NOT use legacy supabase. pattern (method calls)
         // Allow comment mentions but not actual usage
         const lines = content.split('\n');
         const codeLines = lines.filter(line => 
@@ -69,7 +70,7 @@ describe('Migration Smoke Tests', () => {
         );
         const codeContent = codeLines.join('\n');
         
-        // Check for supabase. usage (not in comments)
+        // Check for legacy supabase. usage (not in comments)
         expect(codeContent).not.toMatch(/supabase\.from/);
         expect(codeContent).not.toMatch(/supabase\.auth/);
         expect(codeContent).not.toMatch(/supabase\.storage/);
@@ -78,7 +79,7 @@ describe('Migration Smoke Tests', () => {
     );
   });
 
-  describe('Hook Migration', () => {
+  describe('Hook Verification', () => {
     it('should use apiClient in useOfflineSync hook', () => {
       const hookPath = path.join(__dirname, '../../src/hooks/useOfflineSync.tsx');
       
@@ -129,21 +130,21 @@ describe('Migration Smoke Tests', () => {
     });
   });
 
-  describe('No Supabase References', () => {
-    it('should have zero supabase imports in components directory', () => {
+  describe('No Legacy Supabase References', () => {
+    it('should have zero legacy Supabase imports in components directory', () => {
       const files = getAllTsxFiles(componentsDir);
       let supabaseImportCount = 0;
       
       files.forEach(file => {
         const content = fs.readFileSync(file, 'utf-8');
-        // Check for supabase imports (excluding comments)
+        // Check for legacy Supabase imports (excluding comments)
         const importLines = content
           .split('\n')
           .filter(line => line.includes('import') && !line.trim().startsWith('//'));
-        
+
         importLines.forEach(line => {
           if (line.includes('supabase') && !line.includes('@/integrations/api/client')) {
-            // This is a real supabase import, not the alias
+            // This is a legacy Supabase import, not the API client alias
             if (!line.includes('// Supabase') && !line.includes('* Supabase')) {
               supabaseImportCount++;
             }

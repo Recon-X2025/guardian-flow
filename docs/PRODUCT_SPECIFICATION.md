@@ -24,8 +24,8 @@ The platform serves organizations managing field service operations — from dis
 | State Management | TanStack React Query 5.83, React Context |
 | Routing | React Router DOM 6.30 |
 | Backend API | Express.js 4.18, Node.js 18+ |
-| Database | PostgreSQL 14+ (SSL in production) |
-| Edge Functions | Supabase Deno Runtime (131 functions) |
+| Database | MongoDB Atlas (SSL in production) |
+| Route Handlers | Node.js/Express.js Runtime (131 handlers) |
 | Authentication | JWT (1h access + 30-day refresh tokens), bcryptjs, MFA |
 | Token Security | JTI-based revocation, blacklist table, signout-all |
 | Email | Nodemailer (SMTP), password reset delivery |
@@ -38,7 +38,7 @@ The platform serves organizations managing field service operations — from dis
 | Caching | Optional Redis (falls back to in-memory) |
 | Infrastructure | AWS Terraform (VPC, RDS, ECS Fargate, ALB, CloudFront, Secrets Manager) |
 | CI/CD | GitHub Actions (API + E2E tests) |
-| Containerization | Docker (multi-stage), Docker Compose (nginx, server, postgres, backup, redis) |
+| Containerization | Docker (multi-stage), Docker Compose (nginx, server, mongodb, backup, redis) |
 | Input Validation | Zod schemas on API endpoints |
 | Testing | Playwright 1.58, Jest 30.2, Vitest 1.6, k6 |
 | PDF/Reports | jsPDF 3.0 |
@@ -61,10 +61,10 @@ The platform serves organizations managing field service operations — from dis
           │            │                │
           ▼            ▼                ▼
 ┌──────────────┐ ┌───────────┐ ┌──────────────────┐
-│ Express API  │ │ Supabase  │ │ Supabase Edge    │
-│ (:3001)      │ │ Auth/DB   │ │ Functions (131)  │
-│ - Auth+JWT   │ │ - RLS     │ │ - Business logic │
-│ - ML/AI      │ │ - Storage │ │ - Agents         │
+│ Express API  │ │ MongoDB   │ │ Edge             │
+│ (:3001)      │ │ Atlas     │ │ Functions (131)  │
+│ - Auth+JWT   │ │ - Tenant  │ │ - Business logic │
+│ - ML/AI      │ │   Isolat. │ │ - Agents         │
 │ - Payments   │ │           │ │ - Workflows      │
 │ - Metrics    │ │           │ │                  │
 └──────┬───────┘ └─────┬─────┘ └────────┬─────────┘
@@ -72,7 +72,7 @@ The platform serves organizations managing field service operations — from dis
        └───────────────┼────────────────┘
                        ▼
               ┌─────────────────┐     ┌──────────┐
-              │  PostgreSQL 14+ │     │  Redis   │
+              │  MongoDB Atlas  │     │  Redis   │
               │  30+ tables     │     │ (optional)│
               │  SSL, backups   │     │  cache   │
               └─────────────────┘     └──────────┘
@@ -233,7 +233,7 @@ The codebase is organized into 12 domains under `src/domains/`:
 ### 6.1 Authentication Flow
 
 1. User submits credentials → Express `/api/auth/signin` (Zod-validated)
-2. Server validates against PostgreSQL `users` table (bcrypt)
+2. Server validates against MongoDB Atlas `users` collection (bcrypt)
 3. Access token (1h, includes JTI) + refresh token (30d, SHA-256 hashed in DB) issued
 4. On access token expiry → `POST /api/auth/refresh` with refresh token → new rotated pair
 5. Session restored on app load via `/api/auth/me`
@@ -279,7 +279,7 @@ The codebase is organized into 12 domains under `src/domains/`:
 | Algorithm | Logistic Regression (gradient descent) |
 | Features | days_since_maintenance, failure_rate, maintenance_count, equipment_age, events_per_month, days_since_last_failure |
 | Output | Risk probability (0-1), Risk level (CRITICAL/HIGH/MEDIUM/LOW) |
-| Training data | Asset lifecycle events from PostgreSQL |
+| Training data | Asset lifecycle events from MongoDB Atlas |
 | Accuracy | ~85% |
 | Inference | Dot product + sigmoid on normalized features |
 
@@ -316,7 +316,7 @@ The codebase is organized into 12 domains under `src/domains/`:
 
 ---
 
-## 8. Edge Functions (131)
+## 8. Express.js Route Handlers (131)
 
 Organized into functional groups:
 

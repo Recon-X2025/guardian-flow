@@ -9,8 +9,8 @@
 
 ### 1. Photo Validation UI Migration
 - ✅ Migrated `PhotoCapturePage.tsx` to use `apiClient`
-- ✅ Replaced `supabase.from('photo_validations')` with `apiClient.from()`
-- ✅ Replaced `supabase.from('work_orders')` with `apiClient.from()`
+- ✅ Replaced `apiClient.from('photo_validations')` with `apiClient.from()`
+- ✅ Replaced `apiClient.from('work_orders')` with `apiClient.from()`
 - ✅ Backend validation endpoint exists and is ready
 
 **Files Modified:**
@@ -25,7 +25,7 @@
 
 ### 2. Payment Gateway Migration
 - ✅ Migrated `Payments.tsx` to use `apiClient`
-- ✅ Fixed Supabase reference in `fetchPendingPayments`
+- ✅ Fixed legacy API reference in `fetchPendingPayments`
 - ✅ Backend payment routes exist (`server/routes/payments.js`)
 
 **Files Modified:**
@@ -53,7 +53,7 @@
 ### Immediate (Today)
 1. Test PhotoCapturePage.tsx migration
 2. Verify Payments.tsx works with apiClient
-3. Check for any remaining Supabase references
+3. Check for any remaining legacy API references
 
 ### This Week
 1. Complete Photo Validation UI (90% → 100%)
@@ -68,7 +68,7 @@
 
 ## 📝 Notes
 
-- Both pages now use `apiClient` instead of `supabase`
+- Both pages now use `apiClient` instead of `apiClient`
 - Backend endpoints are ready and functional
 - Need to add payment gateway integration (Stripe/Razorpay)
 - Photo validation backend is complete, just needs UI polish

@@ -6,10 +6,33 @@ import { Calendar, Clock, User, MapPin, CheckCircle2, AlertCircle } from 'lucide
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 
+interface SchedulerWorkOrder {
+  id: string;
+  wo_number?: string;
+  status: string;
+  technician_id?: string;
+  completed_at?: string;
+  created_at: string;
+  ticket?: {
+    symptom?: string;
+    site_address?: string;
+  };
+  technician?: {
+    full_name?: string;
+  };
+}
+
+interface Technician {
+  id: string;
+  full_name?: string;
+  email?: string;
+  user_roles?: { role: string }[];
+}
+
 export default function Scheduler() {
   const { toast } = useToast();
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
-  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<SchedulerWorkOrder[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,12 +57,12 @@ export default function Scheduler() {
       if (woData.error) throw woData.error;
       if (techData.error) throw techData.error;
 
-      setWorkOrders(woData.data || []);
-      setTechnicians(techData.data || []);
-    } catch (error: any) {
+      setWorkOrders((woData.data || []) as SchedulerWorkOrder[]);
+      setTechnicians((techData.data || []) as Technician[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading data",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -62,10 +85,10 @@ export default function Scheduler() {
       });
 
       fetchData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error assigning technician",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }

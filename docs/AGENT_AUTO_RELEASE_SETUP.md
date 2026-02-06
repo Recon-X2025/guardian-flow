@@ -21,7 +21,7 @@ When the agent is enabled, it performs the following actions **automatically eve
    - Creates notifications for stakeholders
 
 3. **Real-Time UI Updates**
-   - Changes are immediately reflected in the UI via Supabase Realtime
+   - Changes are immediately reflected in the UI via WebSocket
    - No page refresh needed to see agent actions
    - Live status indicators show when agent is active
 
@@ -37,7 +37,7 @@ select cron.schedule(
   '*/5 * * * *',
   $$
   select net.http_post(
-    url:='https://PROJECT_REF.supabase.co/functions/v1/ops-agent-processor',
+    url:='https://YOUR_API_HOST/functions/v1/ops-agent-processor',
     headers:='{"Content-Type": "application/json"}'::jsonb
   ) as request_id;
   $$
@@ -170,7 +170,7 @@ ORDER BY wo.created_at DESC;
 The Pending Validation page includes:
 - Live status indicator (pulsing green dot when active)
 - Agent activity banner with detailed status
-- Real-time work order updates via Supabase Realtime
+- Real-time work order updates via WebSocket
 - Badges showing agent-released work orders
 
 ## Troubleshooting
@@ -191,7 +191,7 @@ The Pending Validation page includes:
    ```
 
 3. **Check agent processor logs:**
-   Look for `[ops-agent-processor]` entries in edge function logs
+   Look for `[ops-agent-processor]` entries in Express.js route handler logs
 
 4. **Verify cron job is scheduled:**
    ```sql
@@ -218,7 +218,7 @@ The Pending Validation page includes:
 ### Manual Trigger (for testing)
 ```bash
 # Trigger agent processor manually
-curl -X POST https://PROJECT_REF.supabase.co/functions/v1/ops-agent-processor
+curl -X POST https://YOUR_API_HOST/functions/v1/ops-agent-processor
 ```
 
 ## Architecture
@@ -233,7 +233,7 @@ curl -X POST https://PROJECT_REF.supabase.co/functions/v1/ops-agent-processor
                              ▼
                   ┌─────────────────────┐
                   │  ops-agent-processor │
-                  │   (Edge Function)    │
+                  │ (Express.js Handler) │
                   └──────────┬───────────┘
                              │
                 ┌────────────┴────────────┐
@@ -263,7 +263,7 @@ curl -X POST https://PROJECT_REF.supabase.co/functions/v1/ops-agent-processor
                              ▼
                   ┌─────────────────────┐
                   │  Realtime UI Update  │
-                  │  (Supabase Channel)  │
+                  │  (WebSocket Channel)  │
                   └─────────────────────┘
 ```
 

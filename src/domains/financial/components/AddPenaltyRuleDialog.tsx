@@ -75,10 +75,10 @@ export function AddPenaltyRuleDialog({ open, onOpenChange, onSuccess }: AddPenal
         disputeAllowed: true,
         mfaRequired: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Error adding penalty rule',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: 'destructive',
       });
     } finally {

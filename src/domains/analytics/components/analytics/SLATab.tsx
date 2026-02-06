@@ -9,8 +9,15 @@ export function SLATab() {
   return <EnhancedSLATab />;
 }
 
+interface SLALegacyMetrics {
+  total: number;
+  completed: number;
+  breached: number;
+  compliance: string;
+}
+
 export function SLATabLegacy() {
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<SLALegacyMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

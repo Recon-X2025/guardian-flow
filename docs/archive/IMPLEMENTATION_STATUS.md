@@ -4,7 +4,7 @@
 
 ### Backend Infrastructure
 - [x] Express.js server setup
-- [x] PostgreSQL connection and query utilities
+- [x] MongoDB Atlas connection and query utilities
 - [x] JWT authentication middleware
 - [x] Database routes (CRUD operations)
 - [x] File storage system (local filesystem)
@@ -12,13 +12,13 @@
 - [x] Migration scripts for database schema
 
 ### Frontend Integration
-- [x] API client with Supabase-like interface
+- [x] API client with legacy service-like interface
 - [x] Auth context migration
 - [x] File storage client methods
 - [x] WebSocket client implementation
 - [x] Auth methods (getUser, getSession, onAuthStateChange)
 
-### Edge Functions Migrated
+### Express.js Route Handlers Migrated
 - [x] `check-warranty` - Check warranty status
 - [x] `health-monitor` - System health checks
 - [x] `system-detect` - System information
@@ -27,7 +27,7 @@
 
 ## ⚠️ Partially Implemented
 
-### Edge Functions (Need Full Migration)
+### Express.js Route Handlers (Need Full Migration)
 - [ ] `seed-demo-data` - Placeholder created
 - [ ] `create-demo-workorders` - Placeholder created
 - [ ] `seed-test-accounts` - Needs implementation
@@ -50,13 +50,13 @@
 - [ ] `generate-compliance-report` - Needs implementation
 - [ ] And 100+ more functions...
 
-## 🔄 Migration Guide for Edge Functions
+## 🔄 Migration Guide for Express.js Route Handlers
 
-To migrate an edge function:
+To migrate an Express.js route handler:
 
 1. **Read the original function:**
    ```bash
-   cat supabase/functions/function-name/index.ts
+   # Review original function handler logic
    ```
 
 2. **Create route in `server/routes/functions.js`:**
@@ -65,8 +65,8 @@ To migrate an edge function:
      try {
        const { param1, param2 } = req.body;
        
-       // Migrate logic from Deno edge function
-       // Replace context.supabase with direct database queries
+       // Migrate logic from legacy handler to Express.js route handler
+       // Replace legacy context calls with direct database queries
        const result = await getOne('SELECT ...', [param1]);
        
        res.json({ success: true, data: result });
@@ -78,10 +78,10 @@ To migrate an edge function:
    ```
 
 3. **Key replacements:**
-   - `context.supabase.from('table')` → `getOne()` or `getMany()` or `query()`
-   - `context.supabase.functions.invoke()` → Direct function call or HTTP request
+   - `context.db.from('collection')` → `getOne()` or `getMany()` or `query()`
+   - `context.functions.invoke()` → Direct function call or HTTP request
    - `validateAuth()` → `authenticateToken` middleware
-   - `Deno.env.get()` → `process.env`
+   - Legacy `env.get()` → `process.env`
    - `createErrorResponse()` → `res.status().json()`
 
 4. **Test the function:**
@@ -106,12 +106,12 @@ To migrate an edge function:
 - Authentication via JWT token
 
 ### Database
-- All Supabase migrations have been converted
+- All legacy service migrations have been converted
 - `auth.users` replaced with `users` table
-- RLS policies removed (implement in application layer if needed)
+- Application-level tenant isolation implemented
 
 ### Authentication
-- JWT-based auth replaces Supabase Auth
+- JWT-based auth replaces legacy service Auth
 - Session stored in localStorage
 - Token expires after 7 days (configurable)
 
@@ -122,7 +122,7 @@ To migrate an edge function:
    - Functions called frequently
    - Functions with business logic
 
-2. **Add more edge functions:**
+2. **Add more Express.js route handlers:**
    - Use the template in `server/scripts/create-more-functions.js`
    - Migrate one function at a time
    - Test thoroughly before deploying
@@ -138,7 +138,7 @@ To migrate an edge function:
    - Add rate limiting
 
 5. **Production deployment:**
-   - Set up PostgreSQL on Vultr
+   - Set up MongoDB Atlas cluster
    - Configure reverse proxy (nginx)
    - Set up SSL certificates
    - Configure environment variables

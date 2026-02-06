@@ -12,10 +12,25 @@ import { TechnicianMap } from '@/domains/shared/components/TechnicianMap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRBAC } from '@/domains/auth/contexts/RBACContext';
 
+interface Technician {
+  id: string;
+  employee_id: string;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  status?: string;
+  certification_level?: string;
+  certifications?: string[];
+  specializations?: string[];
+  availability?: string;
+}
+
 export default function Technicians() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
   const { tenantId, hasRole, loading: rbacLoading } = useRBAC();
   const isSysAdmin = hasRole('sys_admin');
 
@@ -40,7 +55,7 @@ export default function Technicians() {
       let data = result.data || [];
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        data = data.filter((t: any) => 
+        data = data.filter((t: Technician) =>
           t.first_name?.toLowerCase().includes(searchLower) ||
           t.last_name?.toLowerCase().includes(searchLower) ||
           t.employee_id?.toLowerCase().includes(searchLower)
@@ -115,7 +130,7 @@ export default function Technicians() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {technicians.map((tech: any) => (
+                  {technicians.map((tech: Technician) => (
                     <TableRow key={tech.id}>
                       <TableCell className="font-mono text-sm">
                         {tech.employee_id}
@@ -196,7 +211,7 @@ export default function Technicians() {
 
         <TabsContent value="map">
           <Card className="p-6">
-            <TechnicianMap technicians={(technicians || []) as any} />
+            <TechnicianMap technicians={technicians || []} />
           </Card>
         </TabsContent>
 
@@ -208,7 +223,7 @@ export default function Technicians() {
             </div>
             {technicians && technicians.length > 0 ? (
               <div className="space-y-4">
-                {technicians.map((tech: any) => (
+                {technicians.map((tech: Technician) => (
                   <div key={tech.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">

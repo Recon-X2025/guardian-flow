@@ -4,36 +4,30 @@
 
 The migration file has been created at:
 ```
-supabase/migrations/20251125210826_comprehensive_invoice_template.sql
+server/scripts/migrations/comprehensive_invoice_template.js
 ```
 
-### Option A: Using Supabase CLI (Recommended)
-
-If you're using Supabase locally or have the CLI configured:
+### Option A: Using Node.js Migration Runner (Recommended)
 
 ```bash
 # Navigate to your project root
 cd /Users/kathikiyer/Documents/GitHub/GuardianFlow
 
 # Apply the migration
-supabase migration up
+cd server && npm run migrate
 ```
 
-### Option B: Manual Application
+### Option B: MongoDB Atlas UI
 
-If you're using a hosted Supabase instance or need to apply manually:
+1. Go to MongoDB Atlas UI → Database → Collections
+2. Apply the migration script manually
 
-1. Go to your Supabase Dashboard
-2. Navigate to SQL Editor
-3. Copy the contents of `supabase/migrations/20251125210826_comprehensive_invoice_template.sql`
-4. Paste and execute the SQL
-
-### Option C: Using Database Connection
+### Option C: Using mongosh
 
 If you have direct database access:
 
 ```bash
-psql -h your-db-host -U your-user -d your-database -f supabase/migrations/20251125210826_comprehensive_invoice_template.sql
+mongosh guardianflow --file server/scripts/migrations/comprehensive_invoice_template.js
 ```
 
 ## Step 2: Verify Migration
@@ -152,7 +146,7 @@ If the migration fails, check:
 
 1. **Duplicate Types**: Some enum types might already exist. The migration uses `DO $$ BEGIN ... EXCEPTION` blocks to handle this gracefully.
 
-2. **Missing Dependencies**: Ensure the `tenants` table exists if you're using tenant isolation.
+2. **Missing Dependencies**: Ensure the `tenants` collection exists if you're using tenant isolation.
 
 3. **Permissions**: Ensure the database user has CREATE TABLE and ALTER TABLE permissions.
 
@@ -165,7 +159,7 @@ If the migration fails, check:
 ### Invoice Not Saving
 
 1. Check browser console for API errors
-2. Verify RLS policies allow the current user to insert/update
+2. Verify tenant isolation allows the current user to insert/update
 3. Check that required fields are filled (supplier name, customer name, at least one line item)
 
 ## Next Steps

@@ -4,7 +4,7 @@ This document outlines all stability and production-readiness improvements appli
 
 ## 🎯 Overview
 
-The v3.0 hardening focused on **10 critical stability improvements** to prevent build failures, ensure adaptive deployment across Supabase Full and Lovable Cloud restricted environments, and enable production-scale agentic autonomy.
+The v3.0 hardening focused on **10 critical stability improvements** to prevent build failures, ensure adaptive deployment across Express.js backend Full and Lovable Cloud restricted environments, and enable production-scale agentic autonomy.
 
 ---
 
@@ -45,7 +45,7 @@ The v3.0 hardening focused on **10 critical stability improvements** to prevent 
 
 **Problem**: Previous builds failed on Lovable Cloud due to pgvector and trigger assumptions.
 
-**Solution**: Enhanced `system-detect` edge function:
+**Solution**: Enhanced `system-detect` Express.js route handler:
 - Auto-detects pgvector availability
 - Caches detection results (5-minute TTL)
 - Stores mode in `system_config` table
@@ -53,7 +53,7 @@ The v3.0 hardening focused on **10 critical stability improvements** to prevent 
 
 **Code Pattern**:
 ```typescript
-if (db_mode === 'SUPABASE_FULL') {
+if (db_mode === 'FULL_BACKEND') {
   storeEmbeddingInPgVector(...);
 } else {
   callExternalVectorStore('pinecone', embeddingData);
@@ -77,14 +77,14 @@ if (db_mode === 'SUPABASE_FULL') {
 - `agent_queue`: Pending agent actions with priority, retry logic, scheduling
 - `agent_trace_logs`: Partial progress tracking per step
 
-### New Edge Function
+### New Express.js Route Handler
 - `agent-processor`: Runs every 15 seconds via scheduled job
 - Processes ONE agent loop at a time (`MAX_CONCURRENT_LOOPS = 1`)
 - 20-second timeout per loop
 - Exponential backoff retry (max 3 attempts)
 
 **Benefits**:
-- No edge function timeouts
+- No Express.js route handler timeouts
 - Autonomous agent execution
 - Full traceability of partial progress
 - Self-healing retry mechanism
@@ -118,7 +118,7 @@ function evaluatePolicy(policy, context, depth = 0) {
 
 **Problem**: No trace lineage between workflows, agents, and events.
 
-**Solution**: Created `/supabase/functions/_shared/correlation.ts`:
+**Solution**: Created `/server/services/correlation.ts`:
 
 ```typescript
 export function generateCorrelationId(): string {
@@ -143,7 +143,7 @@ export function propagateCorrelationHeaders(correlationId: string) {
 - `observability_traces`
 - `audit_stream`
 - `agent_queue`
-- All edge functions
+- All Express.js route handlers
 
 **Benefits**:
 - End-to-end observability
@@ -245,7 +245,7 @@ UPDATE model_registry SET target_sla_ms = 2000 WHERE model_id LIKE '%pro%';
 
 **Problem**: Nondeterministic hashing caused inconsistent feature rollouts.
 
-**Solution**: Created `/supabase/functions/_shared/feature-rollout.ts`:
+**Solution**: Created `/server/services/feature-rollout.ts`:
 
 ```typescript
 export function hashTenantId(tenantId: string): number {
@@ -280,7 +280,7 @@ export function isFeatureEnabledForTenant(
 
 **Problem**: No enforcement of runtime constraints.
 
-**Solution**: Applied to all agent and workflow edge functions:
+**Solution**: Applied to all agent and workflow Express.js route handlers:
 
 ```typescript
 const MAX_CONCURRENT_LOOPS = 1;      // One at a time
@@ -289,11 +289,11 @@ const EDGE_CACHE_TTL = 300;          // 5min detection cache
 const MAX_RECURSION_DEPTH = 5;       // Policy depth limit
 ```
 
-**Config File** (`supabase/config.toml`):
-```toml
-[functions.agent-processor]
-verify_jwt = false
-timeout = 20
+**Config File** (`server/server.js`):
+```javascript
+// Agent processor route configuration
+app.use('/api/functions/agent-processor', agentProcessorRoute);
+// Timeout: 20s
 ```
 
 **Benefits**:
@@ -323,20 +323,19 @@ timeout = 20
 ### For Lovable.dev
 The system auto-configures on first boot. No manual steps required.
 
-### For Supabase Full
+### For Express.js backend Full
 Run the detection endpoint once:
 ```bash
-curl -X POST https://your-project.supabase.co/functions/v1/system-detect
+curl -X POST https://api.guardianflow.com/api/functions/system-detect
 ```
 
 Result is cached for 5 minutes and stored in `system_config`.
 
 ### For Scheduled Agent Processing
-Create a Supabase Edge Function cron:
+Create a scheduled cron job:
 ```bash
-supabase functions schedule create agent-processor \
-  --schedule "*/15 * * * * *" \
-  --region us-east-1
+node-cron schedule '*/15 * * * * *' for agent-processor
+# Or use PM2 cron restart: pm2 start agent-processor --cron "*/15 * * * *"
 ```
 
 ---
@@ -344,7 +343,7 @@ supabase functions schedule create agent-processor \
 ## 🔐 Security Notes
 
 All improvements maintain existing security postures:
-- RLS policies enforced on new tables
+- Application-level tenant isolation policies enforced on new tables
 - Service role key required for agent-processor
 - Correlation IDs don't leak tenant data
 - Feature rollout hashing is deterministic but not reversible
@@ -380,7 +379,7 @@ All improvements maintain existing security postures:
 
 All 10 critical stability improvements from the engineering review have been successfully implemented. The system now:
 
-- **Adapts** automatically to Supabase Full or Lovable Cloud
+- **Adapts** automatically to Express.js backend Full or Lovable Cloud
 - **Recovers** from failures via compensation and retries
 - **Traces** every operation end-to-end
 - **Scales** to production loads without timeouts

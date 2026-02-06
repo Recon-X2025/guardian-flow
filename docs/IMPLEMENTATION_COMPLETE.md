@@ -23,7 +23,7 @@
 
 ### 2. Precheck Orchestration ✅
 **Location**: `/work-orders` → "Run Precheck" button
-- Triggers `precheck-orchestrator` edge function
+- Triggers `precheck-orchestrator` Express.js route handler
 - Runs inventory cascade check
 - Runs warranty verification
 - Checks photo validation status
@@ -32,7 +32,7 @@
 
 ### 3. Service Order Generation ✅
 **Location**: `/work-orders` → "Generate SO" button
-- Triggers `generate-service-order` edge function
+- Triggers `generate-service-order` Express.js route handler
 - Renders HTML service order with all details
 - Generates QR code for photo evidence
 - Auto-creates invoice on completion
@@ -40,7 +40,7 @@
 
 ### 4. SaPOS AI Offers ✅
 **Location**: `/work-orders` → "SaPOS" button
-- Triggers `generate-sapos-offers` edge function
+- Triggers `generate-sapos-offers` Express.js route handler
 - Uses Lovable AI (Gemini 2.5 Flash) - **FREE during promotion**
 - Generates 2-3 contextual offers based on:
   - Customer warranty status
@@ -139,14 +139,14 @@ graph TD
 
 ## 🛡️ Security Features Implemented
 
-### Row-Level Security (RLS)
-- ✅ All tables have RLS enabled
+### Application-Level Tenant Isolation
+- ✅ All collections have tenant isolation enabled
 - ✅ Tenant isolation for partner data
 - ✅ User-scoped policies for personal data
 - ✅ Role-based access for sensitive operations
 
 ### API Authorization
-- ✅ All 10 edge functions enforce auth
+- ✅ All 10 Express.js route handlers enforce auth
 - ✅ Permission checking via shared middleware
 - ✅ Tenant scoping in queries
 - ✅ 403 errors with correlation IDs
@@ -248,7 +248,7 @@ npx playwright test
 
 ### Security & Compliance
 - 🔐 Zero security vulnerabilities in RBAC implementation
-- 🔐 Complete tenant isolation (verified via RLS)
+- 🔐 Complete tenant isolation (verified via middleware)
 - 🔐 All sensitive actions require authentication
 - 🔐 MFA enforcement for overrides
 - 🔐 Complete audit trail
@@ -266,9 +266,9 @@ npx playwright test
 - ⚡ Clear error messages with toast notifications
 
 ### Backend Architecture
-- 🏗️ 10 edge functions (all with auth middleware)
+- 🏗️ 10 Express.js route handlers (all with auth middleware)
 - 🏗️ Shared auth utilities for consistency
-- 🏗️ Comprehensive RLS policies
+- 🏗️ Comprehensive tenant isolation policies
 - 🏗️ Tenant-scoped queries
 
 ---

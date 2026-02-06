@@ -7,14 +7,52 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/domains/shared/hooks/use-toast";
 import { Key, TrendingUp, Download, RefreshCw, Copy, Plus } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { useAuth } from '@/domains/auth/contexts/AuthContext';
+
+// Type definitions
+interface TenantApiKey {
+  id: string;
+  tenant_id: string;
+  api_key: string;
+  name: string;
+  status: string;
+  rate_limit: number;
+  expiry_date: string;
+  last_used_at?: string;
+  created_at: string;
+}
+
+interface UsageLog {
+  endpoint: string;
+  timestamp: string;
+  status_code: number;
+}
+
+interface UsageDataPoint {
+  date: string;
+  total: number;
+  success: number;
+  error: number;
+}
+
+interface BillingData {
+  id: string;
+  tenant_id: string;
+  api_calls: number;
+  amount_due: number;
+  status: string;
+  billing_cycle_start: string;
+  billing_cycle_end: string;
+}
 
 export default function DeveloperConsole() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [apiKeys, setApiKeys] = useState<any[]>([]);
-  const [usageData, setUsageData] = useState<any[]>([]);
-  const [billingData, setBillingData] = useState<any>(null);
+  const { user } = useAuth();
+  const [apiKeys, setApiKeys] = useState<TenantApiKey[]>([]);
+  const [usageData, setUsageData] = useState<UsageDataPoint[]>([]);
+  const [billingData, setBillingData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
@@ -23,7 +61,6 @@ export default function DeveloperConsole() {
   }, []);
 
   const checkAccess = async () => {
-    const { user } = useAuth();
     if (!user) {
       navigate('/auth');
       return;
@@ -36,7 +73,8 @@ export default function DeveloperConsole() {
       .eq('id', user.id)
       .single();
 
-    if (!profile?.tenant_id) {
+    const profileData = profile as { tenant_id?: string } | null;
+    if (!profileData?.tenant_id) {
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -46,8 +84,8 @@ export default function DeveloperConsole() {
       return;
     }
 
-    setTenantId(profile.tenant_id);
-    loadData(profile.tenant_id);
+    setTenantId(profileData.tenant_id);
+    loadData(profileData.tenant_id);
   };
 
   const loadData = async (tid: string) => {
@@ -60,7 +98,7 @@ export default function DeveloperConsole() {
         .eq('tenant_id', tid)
         .order('created_at', { ascending: false });
 
-      setApiKeys(keys || []);
+      setApiKeys((keys || []) as TenantApiKey[]);
 
       // Load usage analytics
       const thirtyDaysAgo = new Date();
@@ -73,7 +111,7 @@ export default function DeveloperConsole() {
         .gte('timestamp', thirtyDaysAgo.toISOString());
 
       if (usage) {
-        const grouped = groupUsageByDate(usage);
+        const grouped = groupUsageByDate(usage as UsageLog[]);
         setUsageData(grouped);
       }
 
@@ -83,12 +121,12 @@ export default function DeveloperConsole() {
         .select('*')
         .eq('tenant_id', tid)
         .order('billing_cycle_start', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
-      setBillingData(billing);
+      const billingArray = billing as BillingData[] | null;
+      setBillingData(billingArray && billingArray.length > 0 ? billingArray[0] : null);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading data:', error);
       toast({
         variant: "destructive",
@@ -100,8 +138,8 @@ export default function DeveloperConsole() {
     }
   };
 
-  const groupUsageByDate = (usage: any[]) => {
-    const grouped: any = {};
+  const groupUsageByDate = (usage: UsageLog[]): UsageDataPoint[] => {
+    const grouped: Record<string, UsageDataPoint> = {};
     usage.forEach(log => {
       const date = new Date(log.timestamp).toISOString().split('T')[0];
       if (!grouped[date]) {
@@ -114,7 +152,7 @@ export default function DeveloperConsole() {
         grouped[date].error++;
       }
     });
-    return Object.values(grouped).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
   };
 
   const generateApiKey = async () => {
@@ -143,11 +181,11 @@ export default function DeveloperConsole() {
       });
 
       loadData(tenantId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };
@@ -167,11 +205,11 @@ export default function DeveloperConsole() {
       });
 
       if (tenantId) loadData(tenantId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   };

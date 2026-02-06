@@ -10,16 +10,34 @@ import { useActionPermissions } from '@/domains/auth/hooks/useActionPermissions'
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRBAC } from '@/domains/auth/contexts/RBACContext';
 
+interface DispatchWorkOrder {
+  id: string;
+  wo_number?: string;
+  status: string;
+  technician_id?: string;
+  parts_reserved?: boolean;
+  check_in_at?: string;
+  check_out_at?: string;
+  created_at: string;
+  ticket?: {
+    symptom?: string;
+    site_address?: string;
+  };
+  technician?: {
+    full_name?: string;
+  };
+}
+
 export default function Dispatch() {
   const { toast } = useToast();
   const { roles } = useRBAC();
   const dispatchPerms = useActionPermissions('dispatch');
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [workOrders, setWorkOrders] = useState<DispatchWorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [geoDialogOpen, setGeoDialogOpen] = useState(false);
   const [selectedWOId, setSelectedWOId] = useState<string | null>(null);
   const [checkMode, setCheckMode] = useState<'check-in' | 'check-out'>('check-in');
-  
+
   // Check if user is view-only
   const isViewOnly = !dispatchPerms.create && !dispatchPerms.edit && !dispatchPerms.execute;
 
@@ -36,11 +54,11 @@ export default function Dispatch() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setWorkOrders(data || []);
-    } catch (error: any) {
+      setWorkOrders((data || []) as DispatchWorkOrder[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading work orders",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -63,10 +81,10 @@ export default function Dispatch() {
       });
 
       fetchWorkOrders();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error updating status",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }

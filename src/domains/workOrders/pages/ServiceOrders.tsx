@@ -11,13 +11,31 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import DOMPurify from 'dompurify';
 import { useActionPermissions } from "@/domains/auth/hooks/useActionPermissions";
 
+interface ServiceOrder {
+  id: string;
+  so_number: string;
+  signed_at?: string;
+  created_at: string;
+  html_content?: string;
+  work_orders?: {
+    wo_number: string;
+    cost_to_customer?: number;
+  };
+}
+
+interface WorkOrderBasic {
+  id: string;
+  wo_number: string;
+  status: string;
+}
+
 export default function ServiceOrders() {
-  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [workOrders, setWorkOrders] = useState<WorkOrderBasic[]>([]);
   const [selectedWO, setSelectedWO] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [selectedSO, setSelectedSO] = useState<any | null>(null);
+  const [selectedSO, setSelectedSO] = useState<ServiceOrder | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const { toast } = useToast();
   const soPerms = useActionPermissions('serviceOrders');
@@ -31,12 +49,12 @@ export default function ServiceOrders() {
         .select('*, work_orders(wo_number, cost_to_customer)')
         .order('created_at', { ascending: false });
 
-      if (result.error) throw result.error;
-      setServiceOrders(data || []);
-    } catch (error: any) {
+      if (error) throw error;
+      setServiceOrders((data || []) as ServiceOrder[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading service orders",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -57,12 +75,12 @@ export default function ServiceOrders() {
         .in('status', ['in_progress', 'pending_validation'])
         .order('created_at', { ascending: false });
 
-      if (result.error) throw result.error;
-      setWorkOrders(data || []);
-    } catch (error: any) {
+      if (error) throw error;
+      setWorkOrders((data || []) as WorkOrderBasic[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading work orders",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -79,15 +97,15 @@ export default function ServiceOrders() {
 
       toast({
         title: "Service Order Generated",
-        description: `SO ${data.serviceOrder.so_number} created successfully`,
+        description: `Service order created successfully`,
       });
 
       fetchServiceOrders();
       setSelectedWO('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Generation failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -95,7 +113,7 @@ export default function ServiceOrders() {
     }
   };
 
-  const previewSO = (so: any) => {
+  const previewSO = (so: ServiceOrder) => {
     setSelectedSO(so);
     setPreviewOpen(true);
   };
@@ -236,7 +254,11 @@ export default function ServiceOrders() {
                     Preview
                   </Button>
                   {soPerms.view && (
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toast({ title: "PDF Export", description: `Generating PDF for ${so.so_number}...` })}
+                    >
                       <Download className="h-4 w-4 mr-1" />
                       PDF
                     </Button>

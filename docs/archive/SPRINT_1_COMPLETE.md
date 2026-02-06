@@ -158,7 +158,7 @@ Fix blocking issues in Photo Validation and Invoice Payment Status
 
 ## Deployment Checklist
 
-- [ ] Run database migration: `psql -d guardian_flow -f server/scripts/migrations/add-payment-status.sql`
+- [ ] Run database migration: `mongosh guardian_flow --file server/scripts/migrations/add-payment-status.js`
 - [ ] Restart backend server to load new routes
 - [ ] Verify photo validation endpoint is accessible
 - [ ] Verify payment endpoints are accessible

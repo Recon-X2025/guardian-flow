@@ -39,5 +39,15 @@ export default defineConfig(({ mode }) => ({
     commonjsOptions: {
       include: [/node_modules/],
     },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-recharts': ['recharts'],
+          'vendor-ui': ['@radix-ui/react-tooltip', '@radix-ui/react-dialog', '@radix-ui/react-popover', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+        },
+      },
+    },
   },
 }));

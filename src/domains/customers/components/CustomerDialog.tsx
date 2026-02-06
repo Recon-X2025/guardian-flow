@@ -5,7 +5,14 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { apiClient } from '@/integrations/api/client';
 
-export function CustomerDialog({ open, onOpenChange, customer, onSuccess }: any) {
+interface CustomerDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  customer?: { id: string; company_name?: string; email?: string } | null;
+  onSuccess: () => void;
+}
+
+export function CustomerDialog({ open, onOpenChange, customer, onSuccess }: CustomerDialogProps) {
   const [formData, setFormData] = useState(customer || {});
 
   const handleSubmit = async (e: React.FormEvent) => {

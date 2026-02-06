@@ -312,8 +312,8 @@ GROUP BY DATE_TRUNC('minute', sm.recorded_at), sm.metric_name;
 
 **Key System Metrics:**
 - **Database Connection Pool:** Active connections, queue depth
-- **Edge Function Execution Time:** Avg, p95, p99 per function
-- **Memory Usage:** Per edge function and overall
+- **Express.js Route Handler Execution Time:** Avg, p95, p99 per function
+- **Memory Usage:** Per Express.js route handler and overall
 - **Error Rate:** Errors per minute by function
 - **Uptime:** Percentage of time services are available
 

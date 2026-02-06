@@ -61,7 +61,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
-import { useRBAC } from "@/domains/auth/contexts/RBACContext";
+import { useRBAC, type AppRole } from "@/domains/auth/contexts/RBACContext";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { MODULE_RELEVANT_ROLES, type AuthModule } from "@/domains/auth/lib/authRedirects";
 import { apiClient } from "@/integrations/api/client";
@@ -264,7 +264,7 @@ export function AppSidebar() {
       // If item belongs to a different module, check if user has access to that module
       if (itemModule && itemModule !== currentModule) {
         const itemModuleRoles = MODULE_RELEVANT_ROLES[itemModule] || [];
-        const hasAccessToItemModule = itemModuleRoles.some(role => hasRole(role as any));
+        const hasAccessToItemModule = itemModuleRoles.some(role => hasRole(role as AppRole));
         // Only show if user has explicit access to that module
         if (!hasAccessToItemModule) {
           return false;
@@ -274,7 +274,7 @@ export function AppSidebar() {
       // For items in the current module, check if user has relevant role
       if (itemModule === currentModule) {
         const moduleRoles = MODULE_RELEVANT_ROLES[currentModule] || [];
-        const hasModuleRole = moduleRoles.some(role => hasRole(role as any));
+        const hasModuleRole = moduleRoles.some(role => hasRole(role as AppRole));
         if (!hasModuleRole) {
           return false;
         }
@@ -283,7 +283,7 @@ export function AppSidebar() {
 
     // Check role-based access first (more specific)
     if (item.roles && item.roles.length > 0) {
-      return hasAnyRole(item.roles as any);
+      return hasAnyRole(item.roles as AppRole[]);
     }
 
     // Check permission-based access

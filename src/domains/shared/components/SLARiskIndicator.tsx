@@ -8,19 +8,28 @@ interface SLARiskIndicatorProps {
   workOrderId: string;
 }
 
+interface SLAPrediction {
+  breach_probability: number;
+  contributing_factors?: {
+    hours_elapsed?: number;
+    time_remaining?: number;
+    current_status?: string;
+  };
+}
+
 export function SLARiskIndicator({ workOrderId }: SLARiskIndicatorProps) {
-  const [prediction, setPrediction] = useState<any>(null);
+  const [prediction, setPrediction] = useState<SLAPrediction | null>(null);
 
   useEffect(() => {
     fetchPrediction();
     // Set up real-time subscription using apiClient
     const channel = apiClient.channel(`sla_prediction_${workOrderId}`)
-      .on('postgres_changes', {
+      .on('db_changes', {
         event: '*',
         schema: 'public',
         table: 'sla_predictions',
         filter: `work_order_id=eq.${workOrderId}`,
-      }, (payload: any) => {
+      }, (payload: { new: SLAPrediction }) => {
         setPrediction(payload.new);
       })
       .subscribe();

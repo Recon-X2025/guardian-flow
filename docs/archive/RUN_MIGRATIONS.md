@@ -1,25 +1,25 @@
 # How to Run Database Migrations
 
 ## 🔍 **Issue**
-`psql` command not found in PATH. PostgreSQL might be installed but not accessible directly.
+`mongosh` command not found in PATH. MongoDB Atlas might be installed but not accessible directly.
 
 ---
 
 ## ✅ **Solution Options**
 
-### **Option 1: Find and Use Full Path to psql**
+### **Option 1: Find and Use Full Path to mongosh**
 
-PostgreSQL is often installed via Homebrew. Try these paths:
+MongoDB Atlas is often installed via Homebrew. Try these paths:
 
 ```bash
 # Try common Homebrew locations
-/usr/local/bin/psql
-/opt/homebrew/bin/psql
-/usr/local/opt/postgresql@15/bin/psql
-/usr/local/opt/postgresql/bin/psql
+/usr/local/bin/mongosh
+/opt/homebrew/bin/mongosh
+/usr/local/opt/mongodb-community/bin/mongosh
+/usr/local/opt/mongodb-community/bin/mongosh
 
 # Or find it
-find /usr -name psql 2>/dev/null
+find /usr -name mongosh 2>/dev/null
 ```
 
 ### **Option 2: Use Node.js Migration Script**
@@ -31,23 +31,23 @@ cd server
 npm run migrate
 ```
 
-### **Option 3: Add PostgreSQL to PATH**
+### **Option 3: Add MongoDB Atlas to PATH**
 
-If PostgreSQL is installed via Homebrew:
+If MongoDB Atlas is installed via Homebrew:
 
 ```bash
 # Add to your ~/.zshrc or ~/.bashrc
-export PATH="/usr/local/opt/postgresql@15/bin:$PATH"
+export PATH="/usr/local/opt/mongodb-community/bin:$PATH"
 # or
-export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+export PATH="/opt/homebrew/opt/mongodb-community/bin:$PATH"
 
 # Then reload
 source ~/.zshrc  # or source ~/.bashrc
 ```
 
-### **Option 4: Use PostgreSQL GUI Tool**
+### **Option 4: Use MongoDB Atlas GUI Tool**
 
-If you have pgAdmin or another PostgreSQL GUI:
+If you have MongoDB Compass or the MongoDB Atlas UI:
 - Open the SQL query tool
 - Copy the contents of the migration files
 - Paste and execute
@@ -66,21 +66,21 @@ File: `server/scripts/migrations/add-payment-gateways.sql`
 
 ## 🔧 **Manual Execution Steps**
 
-1. **Find PostgreSQL installation:**
+1. **Find MongoDB Atlas installation:**
    ```bash
-   brew services list | grep postgresql
+   brew services list | grep mongodb-community
    ```
 
-2. **Get full path to psql:**
+2. **Get full path to mongosh:**
    ```bash
-   brew --prefix postgresql@15
-   # Then: <path>/bin/psql
+   brew --prefix mongodb-community
+   # Then: <path>/bin/mongosh
    ```
 
 3. **Run migrations:**
    ```bash
-   <full-path-to-psql> -U postgres -d guardianflow -f server/scripts/migrations/add-faq-system.sql
-   <full-path-to-psql> -U postgres -d guardianflow -f server/scripts/migrations/add-payment-gateways.sql
+   mongosh guardianflow --file server/scripts/migrations/add-faq-system.sql
+   mongosh guardianflow --file server/scripts/migrations/add-payment-gateways.sql
    ```
 
 ---

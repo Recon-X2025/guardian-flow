@@ -212,7 +212,7 @@ const customConfig = getAuthConfig("platform", {
 
 ### Authentication Flow
 1. User enters credentials
-2. Supabase Auth validates credentials
+2. Express.js API Auth validates credentials
 3. JWT token issued with user metadata
 4. RBAC permissions loaded from `user_roles` table
 5. User redirected to module-specific landing page
@@ -227,7 +227,7 @@ const customConfig = getAuthConfig("platform", {
 - Enforced on sign-up
 - Real-time validation feedback
 - Visual checklist for user guidance
-- Server-side validation via Supabase Auth
+- Server-side validation via Express.js API Auth
 
 ### Compliance Features
 - Audit logging of all authentication events
@@ -404,18 +404,18 @@ const config = getAuthConfig("platform", whiteLabel);
 **Solution:** Ensure OAuth credentials configured in Google Cloud Console with correct redirect URLs
 
 **Issue:** Password reset email not received
-**Solution:** Check Supabase email settings and SMTP configuration
+**Solution:** Check Express.js API email settings and SMTP configuration
 
 **Issue:** Caps Lock warning not showing
 **Solution:** Ensure `getModifierState("CapsLock")` is supported in browser
 
 ### Debug Checklist
-- [ ] Verify Supabase project URL and anon key
+- [ ] Verify Express.js API project URL and anon key
 - [ ] Check browser console for errors
-- [ ] Confirm redirect URLs match in Supabase settings
+- [ ] Confirm redirect URLs match in Express.js API settings
 - [ ] Test with different browsers/devices
 - [ ] Check network tab for failed API calls
-- [ ] Verify user exists in Supabase Auth users table
+- [ ] Verify user exists in Express.js API Auth users table
 
 ---
 

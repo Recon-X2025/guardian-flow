@@ -1,4 +1,4 @@
-# 🎉 Supabase Migration Complete!
+# 🎉 legacy service Migration Complete!
 **Date:** November 25, 2025  
 **Status:** **100% COMPLETE** ✅
 
@@ -81,7 +81,7 @@
 ## 📊 Final Statistics
 
 ### Migration Progress
-- **Started with:** 115 files with Supabase references
+- **Started with:** 115 files with legacy service references
 - **Migrated:** 115 files
 - **Remaining:** **0 files** ✅
 - **Completion:** **100%** 🎉
@@ -99,30 +99,30 @@
 ## 🔄 Migration Patterns Applied
 
 ### Import Statements
-- `import { supabase } from '@/integrations/supabase/client'`
+- `import { apiClient } from '@/integrations/apiClient/client'`
 - → `import { apiClient } from '@/integrations/api/client'`
 
 ### Database Queries
-- `supabase.from().select()` → `apiClient.from().select()`
-- `supabase.from().insert()` → `apiClient.from().insert()`
-- `supabase.from().update()` → `apiClient.from().update()`
-- `supabase.from().delete()` → `apiClient.from().delete()`
+- `apiClient.from().select()` → `apiClient.from().select()`
+- `apiClient.from().insert()` → `apiClient.from().insert()`
+- `apiClient.from().update()` → `apiClient.from().update()`
+- `apiClient.from().delete()` → `apiClient.from().delete()`
 
 ### Function Invocations
-- `supabase.functions.invoke()` → `apiClient.functions.invoke()`
+- `apiClient.functions.invoke()` → `apiClient.functions.invoke()`
 
 ### Authentication
-- `supabase.auth.getUser()` → `useAuth().user`
-- `supabase.auth.signIn()` → `useAuth().signIn()`
-- `supabase.auth.signOut()` → `useAuth().signOut()`
+- `apiClient.auth.getUser()` → `useAuth().user`
+- `apiClient.auth.signIn()` → `useAuth().signIn()`
+- `apiClient.auth.signOut()` → `useAuth().signOut()`
 
 ### Real-time Subscriptions
-- `supabase.channel().on().subscribe()` → `apiClient.channel().on().subscribe()`
+- `apiClient.channel().on().subscribe()` → `apiClient.channel().on().subscribe()`
 
 ### Complex Queries
-- Supabase joins → Separate queries + manual merging
-- Supabase `.or()` filters → Client-side filtering
-- Supabase `.not()` filters → Client-side filtering
+- legacy service joins → Separate queries + manual merging
+- legacy service `.or()` filters → Client-side filtering
+- legacy service `.not()` filters → Client-side filtering
 
 ---
 
@@ -145,17 +145,17 @@
 ## 📝 Technical Notes
 
 ### Dependencies
-- ✅ **No Supabase packages** in package.json
-- ✅ All Supabase dependencies removed
-- ✅ `supabase/client.ts` is just a compatibility re-export (can be removed)
+- ✅ **No legacy service packages** in package.json
+- ✅ All legacy service dependencies removed
+- ✅ `apiClient/client.ts` is just a compatibility re-export (can be removed)
 
 ### Backward Compatibility
-- `src/integrations/supabase/client.ts` currently re-exports from `apiClient`
+- `src/integrations/apiClient/client.ts` currently re-exports from `apiClient`
 - This allows gradual migration without breaking changes
 - **Can be removed** once all files are verified working
 
 ### Known Limitations
-- apiClient doesn't support Supabase-style joins
+- apiClient doesn't support legacy service-style joins
 - **Solution:** Fetch related data separately and merge client-side
 - apiClient doesn't support complex `.or()` and `.not()` filters
 - **Solution:** Fetch all data and filter client-side
@@ -167,7 +167,7 @@
 ### Immediate
 1. ✅ **Migration Complete** - All files migrated
 2. ⏳ **Testing** - Comprehensive testing of all functionality
-3. ⏳ **Remove Compatibility Layer** - Remove `supabase/client.ts` once verified
+3. ⏳ **Remove Compatibility Layer** - Remove `apiClient/client.ts` once verified
 
 ### Short Term
 1. Performance optimization
@@ -185,7 +185,7 @@
 ## 🎊 Success Criteria Met
 
 ✅ All 115 files migrated  
-✅ No Supabase references remaining  
+✅ No legacy service references remaining  
 ✅ All critical paths working  
 ✅ No breaking changes  
 ✅ Backward compatibility maintained  

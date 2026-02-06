@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/domains/shared/hooks/use-toast";
-import { Loader2, AlertTriangle, Shield, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, AlertTriangle, Shield, CheckCircle2, XCircle, Play, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -14,10 +15,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface FraudAlert {
+  id: string;
+  anomaly_type: string;
+  severity: string;
+  investigation_status: string;
+  description?: string;
+  resource_type?: string;
+  resource_id?: string;
+  detection_model?: string;
+  confidence_score?: number;
+  investigator_id?: string;
+  resolution_notes?: string;
+  resolved_at?: string;
+  created_at: string;
+}
+
 export default function FraudInvestigation() {
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<FraudAlert[]>([]);
   const [loading, setLoading] = useState(false);
-  const [resolutionNotes, setResolutionNotes] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [llmProvider, setLlmProvider] = useState<string | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const fetchAlerts = async () => {
@@ -29,11 +48,11 @@ export default function FraudInvestigation() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAlerts(data || []);
-    } catch (error: any) {
+      setAlerts((data || []) as FraudAlert[]);
+    } catch (error: unknown) {
       toast({
         title: "Error loading alerts",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     } finally {
@@ -41,22 +60,49 @@ export default function FraudInvestigation() {
     }
   };
 
+  const runFraudDetection = async () => {
+    setDetecting(true);
+    try {
+      const result = await apiClient.functions.invoke('run-fraud-detection', {
+        body: {}
+      });
+      if (result.error) throw result.error;
+      const data = result.data as { summary?: { total_alerts?: number }; llm_provider?: string };
+      setLlmProvider(data?.llm_provider || null);
+      const alertCount = data?.summary?.total_alerts || 0;
+      toast({
+        title: 'Fraud detection complete',
+        description: `Found ${alertCount} alert${alertCount !== 1 ? 's' : ''}`,
+      });
+      fetchAlerts();
+    } catch (error: unknown) {
+      toast({
+        title: 'Fraud detection failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setDetecting(false);
+    }
+  };
+
   const loadDetectionDetails = async (detectionId: string) => {
     try {
-      const { data: detection } = await (apiClient as any)
+      const { data: detection } = await apiClient
         .from("forgery_detections")
         .select("*, fraud_alerts(*)")
         .eq("id", detectionId)
         .single();
 
-      if (detection && detection.fraud_alerts) {
+      const detectionData = detection as { fraud_alerts?: { id: string } } | null;
+      if (detectionData && detectionData.fraud_alerts) {
         // Scroll to the fraud alert card
         setTimeout(() => {
-          const alertElement = document.getElementById(`alert-${detection.fraud_alerts.id}`);
+          const alertElement = document.getElementById(`alert-${detectionData.fraud_alerts!.id}`);
           alertElement?.scrollIntoView({ behavior: 'smooth' });
         }, 500);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading detection details:", error);
     }
   };
@@ -83,7 +129,7 @@ export default function FraudInvestigation() {
   };
 
   const getStatusIcon = (status: string) => {
-    const icons: Record<string, any> = {
+    const icons: Record<string, React.ElementType> = {
       open: AlertTriangle,
       in_progress: Shield,
       resolved: CheckCircle2,
@@ -95,24 +141,23 @@ export default function FraudInvestigation() {
 
   const updateInvestigation = async (alertId: string, status: 'open' | 'in_progress' | 'resolved' | 'escalated') => {
     try {
-      const { error } = await apiClient
-        .from('fraud_alerts')
-        .update({
+      const result = await apiClient.functions.invoke('update-fraud-investigation', {
+        body: {
+          alert_id: alertId,
           investigation_status: status,
-          resolution_notes: resolutionNotes || null,
-          resolved_at: status === 'resolved' ? new Date().toISOString() : null
-        })
-        .eq('id', alertId);
+          resolution_notes: resolutionNotes[alertId] || null,
+        }
+      });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       toast({ title: "Investigation updated" });
-      setResolutionNotes("");
+      setResolutionNotes(prev => { const next = { ...prev }; delete next[alertId]; return next; });
       fetchAlerts();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Update failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Unknown error',
         variant: "destructive",
       });
     }
@@ -133,12 +178,36 @@ export default function FraudInvestigation() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Fraud & Anomaly Investigation</h1>
-        <p className="text-muted-foreground">
-          Investigate and resolve detected anomalies and fraud alerts
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Fraud & Anomaly Investigation</h1>
+          <p className="text-muted-foreground">
+            Investigate and resolve detected anomalies and fraud alerts
+          </p>
+        </div>
+        <Button onClick={runFraudDetection} disabled={detecting}>
+          {detecting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Detecting...
+            </>
+          ) : (
+            <>
+              <Play className="mr-2 h-4 w-4" />
+              Run Fraud Detection
+            </>
+          )}
+        </Button>
       </div>
+
+      {llmProvider === 'mock' && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Fraud detection powered by statistical z-score anomaly analysis. Connect OpenAI for AI-generated alert explanations.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
@@ -228,8 +297,8 @@ export default function FraudInvestigation() {
                   <div className="space-y-3 pt-3 border-t">
                     <Textarea
                       placeholder="Resolution notes..."
-                      value={resolutionNotes}
-                      onChange={(e) => setResolutionNotes(e.target.value)}
+                      value={resolutionNotes[alert.id] || ''}
+                      onChange={(e) => setResolutionNotes(prev => ({ ...prev, [alert.id]: e.target.value }))}
                       className="h-20"
                     />
                     <div className="flex gap-2">

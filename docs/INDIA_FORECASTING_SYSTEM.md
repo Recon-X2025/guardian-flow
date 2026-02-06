@@ -91,7 +91,7 @@ Stores forecast predictions:
 - `upper_bound`: Upper confidence bound
 - `confidence`: Prediction confidence score
 
-## Edge Functions
+## Express.js Route Handlers
 
 ### `/seed-india-data`
 Generates synthetic India operational data.
@@ -212,7 +212,7 @@ Implementation: Set up cron job to call `/run-forecast-now` monthly.
 ### Seeding Failed
 1. Check database connection
 2. Verify sufficient storage space
-3. Review edge function logs for errors
+3. Review Express.js route handler logs for errors
 4. Ensure tenant_id is valid
 
 ### Low Forecast Accuracy
@@ -244,7 +244,7 @@ Implementation: Set up cron job to call `/run-forecast-now` monthly.
 ## Support
 
 For issues or questions:
-1. Check edge function logs via Lovable Cloud backend
+1. Check Express.js route handler logs via Lovable Cloud backend
 2. Review `agent_trace_logs` table for execution traces
 3. Query `forecast_queue` for job status
 4. Examine `events_log` for system events
@@ -255,7 +255,7 @@ The forecast system can be integrated with external systems:
 
 ```typescript
 // Get forecasts programmatically
-const { data } = await supabase
+const { data } = await db
   .from('forecast_outputs')
   .select('*')
   .eq('geography_level', 'state')
@@ -266,8 +266,8 @@ const { data } = await supabase
 
 ## Security
 
-- All edge functions require JWT authentication
-- RLS policies protect tenant data isolation
+- All Express.js route handlers require JWT authentication
+- Application-level tenant isolation policies protect tenant data isolation
 - Seed info accessible only to admins
 - Forecast outputs filtered by tenant_id
 

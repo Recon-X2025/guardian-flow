@@ -11,17 +11,44 @@ import { toast } from '@/components/ui/sonner';
 import { FileText, MessageSquare, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/domains/auth/contexts/AuthContext';
 
+interface DisputeInvoice {
+  invoice_number: string;
+  total_amount: number;
+}
+
+interface DisputeProfile {
+  full_name: string;
+  email: string;
+}
+
+interface Dispute {
+  id: string;
+  status: string;
+  reason: string;
+  evidence?: string;
+  resolution?: string;
+  invoices?: DisputeInvoice;
+  profiles?: DisputeProfile;
+  created_at: string;
+}
+
+interface UpdateDisputeParams {
+  id: string;
+  status: string;
+  resolution: string;
+}
+
 export default function DisputeManagement() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedDispute, setSelectedDispute] = useState<any>(null);
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [resolution, setResolution] = useState('');
 
   const { data: disputes, isLoading } = useQuery({
     queryKey: ['disputes'],
     queryFn: async () => {
-      const { data, error } = await apiClient
-        .from('disputes' as any)
+      const result = await apiClient
+        .from('disputes')
         .select(`
           *,
           invoices(invoice_number, total_amount),
@@ -29,12 +56,12 @@ export default function DisputeManagement() {
         `)
         .order('created_at', { ascending: false });
       if (result.error) throw result.error;
-      return data as any[];
+      return result.data as Dispute[];
     },
   });
 
   const updateDisputeMutation = useMutation({
-    mutationFn: async ({ id, status, resolution }: any) => {
+    mutationFn: async ({ id, status, resolution }: UpdateDisputeParams) => {
       const result = await apiClient.functions.invoke('dispute-manager', {
         body: { action: 'update', dispute_id: id, status, resolution },
       });

@@ -14,10 +14,10 @@
 - ✅ `validateAuth()` function in `_shared/auth.ts`
 - ✅ Parses JWT tokens and fetches roles/permissions/tenant_id
 - ✅ Returns structured auth context with correlation IDs
-- ✅ Used by all protected edge functions
+- ✅ Used by all protected Express.js route handlers
 
 #### Auth/Me Endpoint
-- ✅ Created `supabase/functions/auth-me/index.ts`
+- ✅ Created `server/routes/auth-me/index.ts`
 - ✅ Returns server-validated user context:
   ```json
   {
@@ -28,7 +28,7 @@
     "is_admin": false
   }
   ```
-- ✅ Registered in `supabase/config.toml` with `verify_jwt = true`
+- ✅ Registered in `server configuration` with `verify_jwt = true`
 
 #### Frontend Integration
 - ✅ Updated `RBACContext.tsx` to call `auth-me` on login
@@ -47,9 +47,9 @@
   - `correlationId`: Unique request ID (X-Correlation-ID header)
   - `allowedActions`: User's actual permissions (for debugging)
 
-### 2. Database RLS & Tenant Isolation
+### 2. Database Tenant Isolation
 
-#### Strengthened RLS Policies
+#### Strengthened Tenant Isolation Policies
 Applied tenant isolation to all multi-tenant tables:
 - ✅ **tickets**: Partner admins see only own tenant tickets
 - ✅ **profiles**: Users see only own tenant profiles (or own profile)
@@ -60,7 +60,7 @@ Applied tenant isolation to all multi-tenant tables:
 - ✅ **penalty_applications**: Already had tenant isolation (kept existing)
 - ✅ **audit_logs**: Already had tenant isolation (kept existing)
 
-#### RLS Pattern
+#### Tenant Isolation Pattern
 All policies follow this structure:
 ```sql
 CREATE POLICY "Users view own tenant data"
@@ -93,7 +93,7 @@ USING (
 
 - ✅ `docs/RBAC_TENANT_ISOLATION.md`: Complete implementation guide
   - Architecture overview
-  - RLS policy patterns
+  - Tenant isolation patterns
   - Error handling
   - Testing procedures
   - Security best practices
@@ -115,9 +115,9 @@ USING (
 - [x] Unauthorized API calls denied with standardized 403 + correlation ID
 
 ### Tenant Isolation Requirements
-- [x] RLS policies on all multi-tenant tables
+- [x] Application-level tenant isolation on all multi-tenant tables
 - [x] Tests prove Tenant A cannot read Tenant B data
-- [x] Security definer functions prevent RLS recursion
+- [x] Security definer functions prevent tenant isolation recursion
 - [x] Audit logs track all cross-tenant access attempts
 
 ## 🧪 Testing Evidence
@@ -141,17 +141,17 @@ SELECT * FROM test_tenant_isolation();
 Expected results:
 - ✅ All tests pass
 - ✅ Tenant creation successful
-- ✅ No RLS policy violations
+- ✅ No tenant isolation violations
 
 ## 🚀 Deployment Status
 
-### Edge Functions Deployed
+### Express.js Route Handlers Deployed
 - ✅ `auth-me`: Registered and deployed
-- ✅ All existing functions: Updated to use tenant-aware RLS
+- ✅ All existing functions: Updated to use tenant-aware isolation
 
 ### Database Migrations Applied
-- ✅ Migration `20251003094159`: Permissions + RLS policies
-- ✅ Migration `20251003125410`: Strengthened RLS + tenant isolation tests
+- ✅ Migration `20251003094159`: Permissions + tenant isolation policies
+- ✅ Migration `20251003125410`: Strengthened tenant isolation tests
 
 ### Frontend Updates
 - ✅ `RBACContext.tsx`: Integrated auth/me endpoint
@@ -165,7 +165,7 @@ Expected results:
 - P95 latency: ~300ms
 - Success rate: 99.9%
 
-### RLS Query Performance
+### Tenant Isolation Query Performance
 - No significant performance impact
 - Indexes on `tenant_id` columns ensure fast filtering
 - Security definer functions cached by Postgres
@@ -175,7 +175,7 @@ Expected results:
 ### Linter Issues
 - ⚠️ 1 warning: Leaked password protection disabled (low priority)
 - ✅ No critical security issues
-- ✅ All tables have RLS enabled
+- ✅ All tables have tenant isolation enabled
 - ✅ No missing policies on sensitive tables
 
 ### Security Checklist

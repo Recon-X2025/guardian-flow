@@ -25,7 +25,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 **Focus:** Establish security baseline and tenant isolation
 
 **Deliverables:**
-- [ ] Enhanced RBAC/RLS policies for analytics data access
+- [ ] Enhanced RBAC/application-level tenant isolation policies for analytics data access
 - [ ] Data-level permission framework (row, column, cell-level security)
 - [ ] Tenant isolation validation for analytics workspace
 - [ ] KMS integration architecture design
@@ -35,7 +35,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 
 **Acceptance Criteria:**
 - Zero cross-tenant data leakage in test scenarios
-- All analytics tables have RLS policies enforced
+- All analytics tables have application-level tenant isolation enforced
 - Audit logs capture 100% of data access attempts
 - KMS integration plan approved
 
@@ -96,7 +96,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 **Focus:** Build scalable batch data ingestion
 
 **Deliverables:**
-- [ ] Database connectors (PostgreSQL, MySQL, SQL Server, Oracle)
+- [ ] Database connectors (MongoDB Atlas, MySQL, SQL Server, Oracle)
 - [ ] Cloud storage connectors (S3, Azure Blob, GCS)
 - [ ] File format support (CSV, JSON, Parquet, Avro, XML)
 - [ ] Batch scheduling engine with cron support
@@ -121,7 +121,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 **Deliverables:**
 - [ ] IoT sensor data ingestion (MQTT, HTTP)
 - [ ] API webhook ingestion framework
-- [ ] Streaming data processing (Kafka/Supabase Realtime)
+- [ ] Streaming data processing (Kafka/WebSocket)
 - [ ] Near real-time data transformation
 - [ ] ERP/CRM integration connectors (Salesforce, SAP, Dynamics)
 - [ ] Third-party API adapters (extensible framework)
@@ -447,7 +447,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 
 | Milestone | Sprint | Date | Deliverable |
 |-----------|--------|------|-------------|
-| **Security Foundation Complete** | 3 | Week 6 | Full RBAC/RLS and compliance infrastructure |
+| **Security Foundation Complete** | 3 | Week 6 | Full RBAC/tenant isolation and compliance infrastructure |
 | **Data Ingestion Operational** | 6 | Week 12 | Batch and streaming ingestion with ETL |
 | **AI/ML Platform Live** | 10 | Week 20 | Predictive analytics and NLP operational |
 | **Dashboard Platform Launch** | 13 | Week 26 | Full visualization and collaboration suite |
@@ -465,7 +465,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 - 1x Engineering Manager
 - 1x Security Architect
 - 2x Frontend Engineers (React/TypeScript)
-- 3x Backend Engineers (Node.js/Deno/PostgreSQL)
+- 3x Backend Engineers (Node.js/Express.js/MongoDB Atlas)
 - 1x Data Engineer
 - 1x ML/AI Engineer
 - 1x DevOps Engineer
@@ -507,7 +507,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 - **API Performance:** 1000+ requests/second with <200ms latency
 
 ### Security & Compliance Metrics
-- **Access Control:** 100% enforcement of RBAC/RLS policies
+- **Access Control:** 100% enforcement of RBAC/application-level tenant isolation policies
 - **Audit Coverage:** 100% of data and access operations logged
 - **Compliance:** SOC 2 and ISO 27001 evidence generation automated
 - **Vulnerability Response:** <24 hours mean time to patch critical issues
@@ -529,7 +529,7 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 ## Dependencies & Prerequisites
 
 ### External Dependencies
-- Lovable Cloud / Supabase infrastructure operational
+- Express.js backend / MongoDB Atlas infrastructure operational
 - KMS solution selected and accessible
 - SIEM integration endpoints documented
 - ERP/CRM system access for integrations
@@ -537,8 +537,8 @@ This sprint plan breaks down the Enterprise Data Analytics Platform into 16 two-
 
 ### Technical Prerequisites
 - Guardian Flow v6.1.0 baseline functional
-- PostgreSQL 14+ with required extensions
-- Deno runtime for edge functions
+- MongoDB Atlas 14+ with required extensions
+- Node.js runtime for Express.js route handlers
 - React 18+ for frontend development
 - Lovable AI access configured
 

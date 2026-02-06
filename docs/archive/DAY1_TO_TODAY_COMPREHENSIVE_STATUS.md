@@ -15,8 +15,8 @@ Guardian Flow has evolved from basic work order management to a comprehensive en
 - **Features Completed**: 171 (95%)
 - **Features Pending**: 9 (5%)
 - **Broken/Non-Functional**: 3 (1.7%)
-- **Total Edge Functions**: 77/77 operational
-- **Total Database Tables**: 131 with full RLS
+- **Total Express.js Route Handlers**: 77/77 operational
+- **Total Database Collections**: 131 with full tenant isolation
 - **Test Accounts**: 174 seeded successfully
 
 ---
@@ -55,11 +55,11 @@ Guardian Flow has evolved from basic work order management to a comprehensive en
 | `/auth-me` Endpoint | ✅ 100% | Server-validated RBAC context |
 | Frontend RBAC Integration | ✅ 100% | `RBACContext.tsx` with caching |
 | Standardized API Error Handling | ✅ 100% | `apiClient.ts` with correlation IDs |
-| RLS Policies (All Tables) | ✅ 100% | 20+ tables with tenant isolation |
+| Tenant Isolation (All Collections) | ✅ 100% | 20+ collections with tenant isolation |
 | Security Definer Functions | ✅ 100% | `has_role()`, `has_permission()` |
 | Tenant Isolation Testing | ✅ 100% | Playwright E2E tests |
 | Audit Logging | ✅ 100% | All sensitive actions tracked |
-| MFA System | ✅ 100% | Request/verify edge functions |
+| MFA System | ✅ 100% | Request/verify Express.js route handlers |
 | Override Request Workflow | ✅ 100% | Create/approve/reject with MFA |
 | 174 Test Accounts | ✅ 100% | 4 partners × 40 engineers + platform |
 
@@ -88,7 +88,7 @@ Guardian Flow has evolved from basic work order management to a comprehensive en
 | Finance Module | ✅ 100% | Invoices + penalties + charts |
 | Add Inventory Item | ✅ 100% | Dialog-based CRUD |
 | Add Penalty Rule | ✅ 100% | Matrix configuration |
-| Validate Photos Edge Function | ✅ 100% | SHA256 + GPS + timestamps |
+| Validate Photos Route Handler | ✅ 100% | SHA256 + GPS + timestamps |
 
 **Phase 2 Completion**: 93% (13/14 features)  
 **Known Issues**: Photo validation UI not fully integrated  
@@ -190,11 +190,11 @@ Guardian Flow has evolved from basic work order management to a comprehensive en
 
 ### 1. Photo Validation UI Integration ⚠️ HIGH
 **Status**: 70% Complete  
-**Issue**: Photo capture UI exists but not fully connected to validate-photos edge function
+**Issue**: Photo capture UI exists but not fully connected to validate-photos Express.js route handler
 
 **What Works**:
 - ✅ Photo capture component
-- ✅ validate-photos edge function (SHA256, GPS, timestamps)
+- ✅ validate-photos Express.js route handler (SHA256, GPS, timestamps)
 - ✅ Backend validation logic
 
 **What's Broken**:
@@ -208,7 +208,7 @@ Guardian Flow has evolved from basic work order management to a comprehensive en
 ```typescript
 // In PhotoCapturePage.tsx
 // Add automatic validation after photo upload
-await supabase.functions.invoke('validate-photos', {
+await apiClient.functions.invoke('validate-photos', {
   body: { workOrderId, photos }
 });
 ```
@@ -236,7 +236,7 @@ await supabase.functions.invoke('validate-photos', {
 
 **Fix Required**:
 - Integrate Stripe/Razorpay SDK
-- Add payment edge function
+- Add payment Express.js route handler
 - Update invoice status on payment
 
 **Estimated Fix Time**: 1 week  
@@ -475,7 +475,7 @@ await supabase.functions.invoke('validate-photos', {
 ### Week 2 (Nov 8-14)
 3. ✅ **Implement Payment Gateway** (P1)
    - Integrate Stripe/Razorpay SDK
-   - Add payment edge function
+   - Add payment Express.js route handler
    - Test payment confirmation flow
 
 4. ✅ **Add Stock Adjustments** (P2)
@@ -530,8 +530,8 @@ await supabase.functions.invoke('validate-photos', {
 ## 🏆 Key Achievements to Date
 
 ### Technical Excellence ✅
-- 77/77 edge functions operational
-- 131 database tables with complete RLS
+- 77/77 Express.js route handlers operational
+- 131 database collections with complete tenant isolation
 - Zero security vulnerabilities (95/100 health)
 - 95% automation rate
 - <500ms average API response time

@@ -31,12 +31,17 @@ interface OptimizedRoute {
   estimated_duration_hours: number;
 }
 
+interface TechnicianBasic {
+  id: string;
+  full_name: string;
+}
+
 export default function RouteOptimization() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);
   const [workOrders, setWorkOrders] = useState<WorkOrderWithLocation[]>([]);
-  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [technicians, setTechnicians] = useState<TechnicianBasic[]>([]);
   const [selectedTechId, setSelectedTechId] = useState<string>('all');
   const [optimizedRoutes, setOptimizedRoutes] = useState<OptimizedRoute[]>([]);
 
@@ -66,16 +71,16 @@ export default function RouteOptimization() {
       const { data: techs, error: techError } = await apiClient
         .from('profiles')
         .select('id, full_name')
-        .in('id', [...new Set((wos || []).map((wo: any) => wo.technician_id).filter(Boolean))]);
+        .in('id', [...new Set((wos || []).map((wo: WorkOrderWithLocation) => wo.technician_id).filter(Boolean))]);
 
       if (techError) throw techError;
 
       setWorkOrders(wos || []);
       setTechnicians(techs || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Error loading data',
-        description: err.message,
+        description: err instanceof Error ? err.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {
@@ -116,10 +121,10 @@ export default function RouteOptimization() {
         title: 'Routes Optimized',
         description: `Generated ${routes.length} optimized route(s)`,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: 'Error optimizing routes',
-        description: err.message,
+        description: err instanceof Error ? err.message : 'An error occurred',
         variant: 'destructive',
       });
     } finally {

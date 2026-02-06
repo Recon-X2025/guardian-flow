@@ -192,7 +192,7 @@ Pages Migration:          ░░░░░░░░░░░░░░░░░░
 ### What This Means:
 - ✅ **Core functionality works** - Features are 92.5% complete
 - ✅ **Components are ready** - All migrated to apiClient
-- ⏳ **Pages need work** - 40 pages still use Supabase
+- ⏳ **Pages need work** - 40 pages still use legacy API
 - 🎯 **Path to 100%:** Migrate pages → Complete missing features
 
 ---

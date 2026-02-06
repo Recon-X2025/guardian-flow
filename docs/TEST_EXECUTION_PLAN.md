@@ -130,7 +130,7 @@ GROUP BY t.name;
 2. GPS stamping
 3. Hash generation
 4. Upload to backend
-5. Validation via `validate-photos` edge function
+5. Validation via `validate-photos` Express.js route handler
 6. Anomaly detection
 
 **Test When Implemented**:
@@ -151,7 +151,7 @@ GROUP BY t.name;
 ### Test 6: Precheck Orchestration
 **Status**: ⚠️ **EDGE FUNCTION EXISTS - UI PLACEHOLDER**
 
-**Implemented**: `precheck-orchestrator` edge function
+**Implemented**: `precheck-orchestrator` Express.js route handler
 **Missing**: UI to trigger precheck and display results
 
 **Test When UI Implemented**:
@@ -171,7 +171,7 @@ GROUP BY t.name;
 ### Test 7: SaPOS Offer Generation
 **Status**: ⚠️ **EDGE FUNCTION EXISTS - UI PLACEHOLDER**
 
-**Implemented**: `generate-sapos-offers` edge function (uses Lovable AI)
+**Implemented**: `generate-sapos-offers` Express.js route handler (uses Lovable AI)
 **Missing**: UI to trigger generation and display offers
 
 **Test When UI Implemented**:
@@ -190,7 +190,7 @@ GROUP BY t.name;
 ### Test 8: Service Order Generation
 **Status**: ⚠️ **EDGE FUNCTION EXISTS - UI PLACEHOLDER**
 
-**Implemented**: `generate-service-order` edge function
+**Implemented**: `generate-service-order` Express.js route handler
 **Missing**: UI to trigger generation, view HTML, and capture signatures
 
 **Test When UI Implemented**:
@@ -234,7 +234,7 @@ GROUP BY t.name;
 ### Test 10: Override Request & MFA Approval
 **Status**: ✅ **IMPLEMENTED - READY TO TEST**
 
-**Implemented**: Both edge functions + UI components exist
+**Implemented**: Both Express.js route handlers + UI components exist
 **Test Steps**:
 1. Log in as `ops@techcorp.com`
 2. Navigate to Work Orders
@@ -282,7 +282,7 @@ GROUP BY t.name;
 ### Test 13: Warranty Check Integration
 **Status**: ✅ **IMPLEMENTED - READY TO TEST**
 
-**Edge Function**: `check-warranty` exists
+**Express.js Route Handler**: `check-warranty` exists
 **Test Steps**:
 1. Create work order with unit serial: TEST-SERIAL-001
 2. Insert warranty record:
@@ -302,7 +302,7 @@ VALUES ('TEST-SERIAL-001', '2024-01-01', '2026-01-01', 'premium');
 ### Test 14: Inventory Cascade Check
 **Status**: ✅ **IMPLEMENTED - READY TO TEST**
 
-**Edge Function**: `check-inventory` exists
+**Express.js Route Handler**: `check-inventory` exists
 **Test Steps**:
 1. Insert test inventory:
 ```sql
@@ -312,7 +312,7 @@ VALUES ('PART-TEST-001', 'Test Part', 50.00, false);
 INSERT INTO stock_levels (item_id, location, qty_available, qty_reserved)
 SELECT id, 'main', 10, 0 FROM inventory_items WHERE sku = 'PART-TEST-001';
 ```
-2. Call edge function with parts: [{ sku: 'PART-TEST-001', quantity: 1 }]
+2. Call Express.js route handler with parts: [{ sku: 'PART-TEST-001', quantity: 1 }]
 3. ✅ PASS: Returns available=true, source='main'
 4. Test unavailable part (qty_available = 0)
 5. ✅ PASS: Returns available=false, source='procurement_required'
@@ -409,11 +409,11 @@ LIMIT 10;
 ### Immediate Actions (Next 1-2 Days)
 1. ✅ **COMPLETED**: Seed test accounts - DONE
 2. 🔴 **DO NEXT**: Run Critical Tests 1-3 (Auth & RBAC)
-3. 🟡 **THEN**: Test implemented edge functions (Tests 10, 13, 14, 15)
+3. 🟡 **THEN**: Test implemented Express.js route handlers (Tests 10, 13, 14, 15)
 4. 📝 **DOCUMENT**: Log all failures and bugs
 
 ### Short-Term (Next Week)
-1. Build UI integrations for existing edge functions
+1. Build UI integrations for existing Express.js route handlers
 2. Connect end-to-end workflows
 3. Replace placeholder pages with functional logic
 
@@ -438,8 +438,8 @@ LIMIT 10;
 
 If you encounter issues during testing:
 1. Check audit logs: `SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50;`
-2. Check edge function logs via Lovable Cloud dashboard
-3. Verify RLS policies: `\d+ <table_name>` in psql
+2. Check Express.js route handler logs via Lovable Cloud dashboard
+3. Verify tenant isolation policies: inspect collection in mongosh
 4. Review network requests in DevTools
 
 **Critical Failures**: Stop testing and investigate immediately
