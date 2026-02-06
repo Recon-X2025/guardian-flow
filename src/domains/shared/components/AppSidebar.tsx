@@ -308,12 +308,12 @@ export function AppSidebar() {
     return (
       <Sidebar collapsible="icon">
         <SidebarContent>
-          <div className="flex items-center gap-2 px-4 py-4">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <Wrench className="h-5 w-5 text-white" />
+          <div className="flex items-center gap-3 px-4 py-4">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="text-sm font-bold text-sidebar-foreground">Guardian Flow</span>
+              <span className="text-sm font-bold bg-gradient-to-r from-[#7C3AED] to-[#2563EB] bg-clip-text text-transparent">Guardian Flow</span>
               <span className="text-xs text-muted-foreground">Loading...</span>
             </div>
           </div>
@@ -327,13 +327,13 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className="flex items-center gap-2 px-4 py-4">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-            <Wrench className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-3 px-4 py-4">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold text-sidebar-foreground">Guardian Flow</span>
-            <span className="text-xs text-muted-foreground">Field Service Platform</span>
+            <span className="text-sm font-bold bg-gradient-to-r from-[#7C3AED] to-[#2563EB] bg-clip-text text-transparent">Guardian Flow</span>
+            <span className="text-xs text-muted-foreground">Enterprise AI Platform</span>
           </div>
         </div>
 
@@ -350,8 +350,8 @@ export function AppSidebar() {
                         end={item.url === "/"}
                         className={({ isActive }) =>
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "hover:bg-sidebar-accent/50"
+                            ? "bg-[#2563EB]/10 text-[#2563EB] border-l-2 border-[#2563EB] font-medium"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                         }
                       >
                         <item.icon className="h-4 w-4" />
