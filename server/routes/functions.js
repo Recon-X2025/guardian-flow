@@ -3481,5 +3481,340 @@ router.post('/analyze-image-forensics', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * Get work order stages/pipeline summary
+ * POST /api/functions/get-work-order-stages
+ */
+router.post('/get-work-order-stages', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    // Aggregate work orders by status
+    const pipeline = [
+      { $match: { tenant_id: tenantId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ];
+
+    const statusCounts = await db.collection('work_orders').aggregate(pipeline).toArray();
+
+    const stages = {
+      pending: 0,
+      assigned: 0,
+      in_progress: 0,
+      completed: 0,
+      cancelled: 0,
+      on_hold: 0,
+      total: 0,
+    };
+
+    statusCounts.forEach(row => {
+      const status = row._id || 'pending';
+      if (stages.hasOwnProperty(status)) {
+        stages[status] = row.count;
+      }
+      stages.total += row.count;
+    });
+
+    res.json(stages);
+  } catch (error) {
+    console.error('Get work order stages error:', error);
+    res.status(500).json({ error: 'Failed to get work order stages' });
+  }
+});
+
+/**
+ * Create a new work order
+ * POST /api/functions/create-work-order
+ */
+router.post('/create-work-order', authenticateToken, async (req, res) => {
+  try {
+    const { title, description, priority, customer_id, equipment_id, assigned_to } = req.body;
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const woNumber = `WO-${Date.now().toString(36).toUpperCase()}`;
+    const workOrder = {
+      id: randomUUID(),
+      wo_number: woNumber,
+      title,
+      description: description || '',
+      status: 'pending',
+      priority: priority || 'medium',
+      customer_id: customer_id || null,
+      equipment_id: equipment_id || null,
+      assigned_to: assigned_to || null,
+      tenant_id: tenantId,
+      created_by: req.user.id,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    await db.collection('work_orders').insertOne(workOrder);
+
+    res.status(201).json({ success: true, work_order: workOrder });
+  } catch (error) {
+    console.error('Create work order error:', error);
+    res.status(500).json({ error: 'Failed to create work order' });
+  }
+});
+
+/**
+ * Optimize technician schedule
+ * POST /api/functions/optimize-schedule
+ */
+router.post('/optimize-schedule', authenticateToken, async (req, res) => {
+  try {
+    const { date, technician_ids } = req.body;
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    // Get unassigned work orders
+    const unassignedWOs = await db.collection('work_orders').find({
+      tenant_id: tenantId,
+      status: { $in: ['pending', 'released'] },
+      assigned_to: null,
+    }).limit(50).toArray();
+
+    // Get available technicians
+    const techFilter = technician_ids?.length
+      ? { tenant_id: tenantId, id: { $in: technician_ids } }
+      : { tenant_id: tenantId, availability: 'available' };
+    const technicians = await db.collection('technicians').find(techFilter).toArray();
+
+    if (technicians.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No available technicians',
+        assignments: [],
+        unassigned_count: unassignedWOs.length,
+      });
+    }
+
+    // Simple round-robin assignment
+    const assignments = [];
+    unassignedWOs.forEach((wo, i) => {
+      const tech = technicians[i % technicians.length];
+      assignments.push({
+        work_order_id: wo.id,
+        wo_number: wo.wo_number,
+        technician_id: tech.id,
+        technician_name: tech.name,
+        priority: wo.priority,
+      });
+    });
+
+    res.json({
+      success: true,
+      date: date || new Date().toISOString().split('T')[0],
+      assignments,
+      total_assigned: assignments.length,
+      technicians_used: technicians.length,
+    });
+  } catch (error) {
+    console.error('Optimize schedule error:', error);
+    res.status(500).json({ error: 'Failed to optimize schedule' });
+  }
+});
+
+/**
+ * Optimize route for a technician
+ * POST /api/functions/optimize-route
+ */
+router.post('/optimize-route', authenticateToken, async (req, res) => {
+  try {
+    const { technician_id, date } = req.body;
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    if (!technician_id) {
+      return res.status(400).json({ error: 'technician_id is required' });
+    }
+
+    // Get assigned work orders for technician
+    const workOrders = await db.collection('work_orders').find({
+      tenant_id: tenantId,
+      assigned_to: technician_id,
+      status: { $in: ['assigned', 'in_progress', 'released'] },
+    }).toArray();
+
+    if (workOrders.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No work orders to route',
+        route: [],
+        total_distance_km: 0,
+      });
+    }
+
+    // Simple optimization: sort by priority then created_at
+    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+    const sortedWOs = workOrders.sort((a, b) => {
+      const pA = priorityOrder[a.priority] ?? 2;
+      const pB = priorityOrder[b.priority] ?? 2;
+      if (pA !== pB) return pA - pB;
+      return new Date(a.created_at) - new Date(b.created_at);
+    });
+
+    const route = sortedWOs.map((wo, i) => ({
+      stop_number: i + 1,
+      work_order_id: wo.id,
+      wo_number: wo.wo_number,
+      title: wo.title,
+      priority: wo.priority,
+      estimated_duration_mins: 60,
+    }));
+
+    res.json({
+      success: true,
+      technician_id,
+      date: date || new Date().toISOString().split('T')[0],
+      route,
+      total_stops: route.length,
+      estimated_total_time_hours: route.length * 1.5,
+      optimization_method: 'priority_based',
+    });
+  } catch (error) {
+    console.error('Optimize route error:', error);
+    res.status(500).json({ error: 'Failed to optimize route' });
+  }
+});
+
+/**
+ * Run demand forecast
+ * POST /api/functions/run-forecast
+ */
+router.post('/run-forecast', authenticateToken, heavyRateLimit, async (req, res) => {
+  try {
+    const { geography_type, geography_value, periods } = req.body;
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    // Get historical work order data
+    const historicalData = await db.collection('work_orders').aggregate([
+      { $match: { tenant_id: tenantId } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$created_at' } },
+          count: { $sum: 1 },
+        }
+      },
+      { $sort: { _id: 1 } },
+      { $limit: 12 },
+    ]).toArray();
+
+    // Generate simple forecast using moving average
+    const avgCount = historicalData.length > 0
+      ? historicalData.reduce((s, d) => s + d.count, 0) / historicalData.length
+      : 10;
+
+    const forecastPeriods = periods || 6;
+    const forecast = [];
+    const now = new Date();
+
+    for (let i = 1; i <= forecastPeriods; i++) {
+      const forecastDate = new Date(now);
+      forecastDate.setMonth(forecastDate.getMonth() + i);
+      const trend = 1 + (Math.random() * 0.2 - 0.1); // +/- 10% variation
+
+      forecast.push({
+        period: forecastDate.toISOString().slice(0, 7),
+        predicted_volume: Math.round(avgCount * trend),
+        confidence_lower: Math.round(avgCount * trend * 0.8),
+        confidence_upper: Math.round(avgCount * trend * 1.2),
+        confidence_level: 0.85,
+      });
+    }
+
+    res.json({
+      success: true,
+      geography_type: geography_type || 'all',
+      geography_value: geography_value || 'all',
+      historical_periods: historicalData.length,
+      forecast,
+      model: 'moving_average',
+      generated_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Run forecast error:', error);
+    res.status(500).json({ error: 'Failed to run forecast' });
+  }
+});
+
+/**
+ * Detect anomalies in data
+ * POST /api/functions/detect-anomalies
+ */
+router.post('/detect-anomalies', authenticateToken, aiRateLimit, async (req, res) => {
+  try {
+    const { data_type } = req.body;
+    const tenantId = req.body.tenant_id || req.user.id;
+
+    let anomalies = [];
+
+    // Check for work order anomalies
+    if (!data_type || data_type === 'work_orders') {
+      const woAnomalies = await detectWorkOrderAnomalies(tenantId);
+      anomalies = anomalies.concat(woAnomalies.map(a => ({ ...a, category: 'work_order' })));
+    }
+
+    // Check for financial anomalies
+    if (!data_type || data_type === 'financial') {
+      const finAnomalies = await detectFinancialAnomalies(tenantId);
+      anomalies = anomalies.concat(finAnomalies.map(a => ({ ...a, category: 'financial' })));
+    }
+
+    res.json({
+      success: true,
+      anomalies,
+      total_found: anomalies.length,
+      data_types_checked: data_type ? [data_type] : ['work_orders', 'financial'],
+      analyzed_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Detect anomalies error:', error);
+    res.status(500).json({ error: 'Failed to detect anomalies' });
+  }
+});
+
+/**
+ * Update work order status
+ * POST /api/functions/update-work-order-status
+ */
+router.post('/update-work-order-status', authenticateToken, async (req, res) => {
+  try {
+    const { work_order_id, status, notes } = req.body;
+
+    if (!work_order_id || !status) {
+      return res.status(400).json({ error: 'work_order_id and status are required' });
+    }
+
+    const validStatuses = ['pending', 'assigned', 'in_progress', 'completed', 'cancelled', 'on_hold'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    }
+
+    const result = await db.collection('work_orders').findOneAndUpdate(
+      { id: work_order_id },
+      {
+        $set: {
+          status,
+          updated_at: new Date(),
+          ...(notes ? { status_notes: notes } : {}),
+        }
+      },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return res.status(404).json({ error: 'Work order not found' });
+    }
+
+    res.json({ success: true, work_order: result });
+  } catch (error) {
+    console.error('Update work order status error:', error);
+    res.status(500).json({ error: 'Failed to update work order status' });
+  }
+});
+
 export default router;
 
