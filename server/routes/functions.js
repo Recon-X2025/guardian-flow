@@ -182,6 +182,8 @@ router.post('/system-detect', optionalAuth, async (req, res) => {
   try {
     const systemInfo = {
       db_mode: 'MONGODB_ATLAS',
+      ai_provider: getProvider(),
+      ai_model: process.env.OPENAI_MODEL || 'gpt-4o',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
       features: {
@@ -189,6 +191,7 @@ router.post('/system-detect', optionalAuth, async (req, res) => {
         auth: 'JWT',
         storage: 'local',
         realtime: 'websocket',
+        ai: getProvider() === 'openai' ? 'GPT-4o' : 'mock',
       },
     };
 

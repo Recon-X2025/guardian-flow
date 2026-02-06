@@ -11,7 +11,7 @@ async function getOpenAIClient() {
   return openaiClient;
 }
 
-function getProvider() {
+export function getProvider() {
   return process.env.AI_PROVIDER || 'mock';
 }
 
@@ -31,10 +31,65 @@ function generateMockResponse(messages, opts = {}) {
     return `Anomaly Detection Results:\n\n- Several data points deviate significantly from established baselines.\n- Z-score analysis reveals outliers in completion time and cost metrics.\n- Pattern analysis suggests potential irregularities requiring human review.\n\nConfidence: 85%. Recommend detailed investigation of flagged items.`;
   }
   if (lower.includes('forecast') || lower.includes('predict')) {
-    return `Forecast Analysis:\n\n- **Trend**: Moderate upward trajectory based on historical patterns.\n- **Seasonality**: Q2-Q3 typically shows 15-30% volume increase.\n- **Confidence Factors**: Data completeness (good), historical depth (adequate), external factors (moderate uncertainty).\n\nThe forecast model suggests steady growth with seasonal fluctuations.`;
+    // Extract geography info from the prompt for context-aware explanation
+    const geoMatch = lastMessage.match(/Geography:\s*(\w+)\s*=\s*(.+)/);
+    const geo = geoMatch ? `${geoMatch[1]} ${geoMatch[2]}` : 'the selected region';
+    const trendMatch = lastMessage.match(/Trend:\s*(\w+)/);
+    const trendDir = trendMatch ? trendMatch[1] : 'Moderate upward';
+    return `The forecast for ${geo} shows a ${trendDir.toLowerCase()} trajectory based on historical work order patterns. Seasonal analysis reveals higher volumes during Q2-Q3, typically a 15-30% increase driven by increased equipment usage in warmer months. The model confidence is moderate, with data completeness being the primary factor. We recommend monitoring actual vs predicted volumes weekly and retraining the model if deviation exceeds 20%.`;
   }
   if (lower.includes('offer') || lower.includes('upsell') || lower.includes('recommend')) {
-    return `Based on the customer profile and service history, I recommend:\n\n1. **Extended Warranty Plus** - Given the equipment age and usage patterns, extended coverage would provide significant value.\n2. **Preventive Maintenance Plan** - Regular maintenance could reduce future breakdown risk by ~40%.\n3. **Performance Upgrade Package** - Current workload suggests the customer would benefit from enhanced specifications.`;
+    // Extract context from the prompt for personalized mock responses
+    const customerMatch = lastMessage.match(/Customer:\s*(.+?)[\n,]/);
+    const customerName = customerMatch ? customerMatch[1].trim() : 'the customer';
+    const equipmentMatch = lastMessage.match(/Equipment:\s*(.+?)[\n,]/) || lastMessage.match(/Model:\s*(.+?)[\n,]/);
+    const equipmentModel = equipmentMatch ? equipmentMatch[1].trim() : 'their equipment';
+    const warrantyMatch = lastMessage.match(/Warranty.*?:\s*(active|expired)/i);
+    const warrantyActive = warrantyMatch ? warrantyMatch[1].toLowerCase() === 'active' : false;
+    const issueMatch = lastMessage.match(/Issue:\s*(.+?)[\n,]/) || lastMessage.match(/Symptom:\s*(.+?)[\n,]/);
+    const issue = issueMatch ? issueMatch[1].trim() : 'service needs';
+
+    // Check if structured JSON is expected
+    if (lower.includes('json') || lower.includes('return as json') || lower.includes('personalized service offers')) {
+      const offers = [];
+      if (!warrantyActive) {
+        offers.push({
+          title: `Extended Warranty for ${equipmentModel}`,
+          description: `Comprehensive coverage for ${customerName}'s ${equipmentModel} with priority support and no deductibles on parts and labor.`,
+          offer_type: 'extended_warranty',
+          price: 299.99,
+          value_proposition: `Protect ${equipmentModel} against unexpected repair costs — save up to 60% over the next 2 years.`,
+          warranty_conflicts: false,
+        });
+      } else {
+        offers.push({
+          title: `Warranty Extension for ${equipmentModel}`,
+          description: `Extend ${customerName}'s active warranty coverage beyond the current end date with enhanced SLA terms.`,
+          offer_type: 'warranty_extension',
+          price: 199.99,
+          value_proposition: `Lock in continued coverage for ${equipmentModel} before the current warranty expires.`,
+          warranty_conflicts: false,
+        });
+      }
+      offers.push({
+        title: `Preventive Maintenance Plan — ${equipmentModel}`,
+        description: `Quarterly scheduled maintenance for ${customerName}'s ${equipmentModel} to prevent issues like "${issue}" from recurring.`,
+        offer_type: 'maintenance_plan',
+        price: 149.99,
+        value_proposition: `Reduce breakdown risk by ~40% and extend ${equipmentModel} lifespan by up to 3 years.`,
+        warranty_conflicts: false,
+      });
+      offers.push({
+        title: `Performance Optimization — ${equipmentModel}`,
+        description: `Hardware and software tuning for ${customerName}'s ${equipmentModel} to maximize throughput and reliability.`,
+        offer_type: 'upgrade',
+        price: 199.99,
+        value_proposition: `Boost ${equipmentModel} productivity with up to 25% faster processing and improved reliability.`,
+        warranty_conflicts: false,
+      });
+      return JSON.stringify(offers);
+    }
+    return `Based on ${customerName}'s profile and service history with ${equipmentModel}, I recommend:\n\n1. **${warrantyActive ? 'Warranty Extension' : 'Extended Warranty Plus'}** - ${warrantyActive ? 'Extend current active warranty with enhanced SLA terms.' : 'Equipment warranty has expired — extended coverage provides significant value.'}\n2. **Preventive Maintenance Plan** - Regular maintenance could reduce future breakdown risk by ~40% for ${equipmentModel}.\n3. **Performance Upgrade Package** - Based on recent "${issue}" issue, optimization could improve reliability.`;
   }
   if (lower.includes('schedule') || lower.includes('assign') || lower.includes('optimize')) {
     return `Schedule Optimization Results:\n\n- Assignments optimized based on skill match, proximity, and workload balance.\n- Priority weighting: SLA urgency (3x), skill match (2x), travel distance (1x).\n- Estimated improvement: 15-20% reduction in travel time, better skill utilization.`;
@@ -46,7 +101,7 @@ function generateMockResponse(messages, opts = {}) {
     return `Equipment Maintenance Analysis:\n\n- Failure probability calculated using logistic regression on service history, age, and usage patterns.\n- High-risk equipment identified based on MTBF analysis.\n- Recommended action: Schedule preventive maintenance for units exceeding 80% failure probability threshold.`;
   }
   if (lower.includes('nlp') || lower.includes('query') || lower.includes('database')) {
-    return `I've analyzed your natural language query and generated a safe MongoDB aggregation pipeline. The query is scoped to your tenant and limited to 1000 results for safety.`;
+    return `I've analyzed your natural language query and generated a safe MongoDB find query. The query is scoped to your tenant and limited to 500 results for safety.`;
   }
 
   // Default response
@@ -67,8 +122,9 @@ export async function chatCompletion(messages, opts = {}) {
   try {
     if (provider === 'openai' && process.env.OPENAI_API_KEY) {
       const client = await getOpenAIClient();
+      const model = opts.model || process.env.OPENAI_MODEL || 'gpt-4o';
       const response = await client.chat.completions.create({
-        model: opts.model || 'gpt-4o-mini',
+        model,
         messages,
         temperature: opts.temperature ?? 0.7,
         max_tokens: opts.max_tokens || 2000,
@@ -101,7 +157,7 @@ export async function chatCompletion(messages, opts = {}) {
   const duration = Date.now() - start;
   try {
     await insertOne('ai_usage_logs', {
-      _id: randomUUID(),
+      id: randomUUID(),
       provider: result.provider,
       model: result.model,
       operation: 'chat_completion',
@@ -124,8 +180,9 @@ export async function* chatCompletionStream(messages, opts = {}) {
   if (provider === 'openai' && process.env.OPENAI_API_KEY) {
     try {
       const client = await getOpenAIClient();
+      const model = opts.model || process.env.OPENAI_MODEL || 'gpt-4o';
       const stream = await client.chat.completions.create({
-        model: opts.model || 'gpt-4o-mini',
+        model,
         messages,
         temperature: opts.temperature ?? 0.7,
         max_tokens: opts.max_tokens || 2000,
@@ -191,8 +248,9 @@ export async function visionAnalysis(imageUrl, prompt) {
   if (provider === 'openai' && process.env.OPENAI_API_KEY) {
     try {
       const client = await getOpenAIClient();
+      const visionModel = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || 'gpt-4o';
       const response = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: visionModel,
         messages: [{
           role: 'user',
           content: [
@@ -208,13 +266,43 @@ export async function visionAnalysis(imageUrl, prompt) {
     }
   }
 
-  // Mock vision analysis
+  // Mock vision analysis - deterministic based on prompt content
+  const isForensic = prompt.toLowerCase().includes('forgery') || prompt.toLowerCase().includes('forensic') || prompt.toLowerCase().includes('tamper');
+  if (isForensic) {
+    // Deterministic hash from imageUrl to produce consistent results
+    let hash = 0;
+    for (let i = 0; i < (imageUrl || '').length; i++) {
+      hash = ((hash << 5) - hash + imageUrl.charCodeAt(i)) | 0;
+    }
+    const suspicion = Math.abs(hash % 100) / 100;
+    const isSuspicious = suspicion > 0.7;
+    return {
+      analysis: JSON.stringify({
+        forgery_detected: isSuspicious,
+        forgery_type: isSuspicious ? 'metadata_inconsistency' : null,
+        confidence: isSuspicious ? 0.65 + (suspicion - 0.7) : 0.85 + (0.7 - suspicion) * 0.1,
+        findings: isSuspicious ? [
+          { type: 'exif_mismatch', severity: 'medium', description: 'EXIF timestamps show editing software modification after capture date.' },
+          { type: 'compression_anomaly', severity: 'low', description: 'JPEG compression artifacts suggest re-saving from different software.' },
+        ] : [],
+        metadata: {
+          timestamp: new Date().toISOString(),
+          camera: 'iPhone 14 Pro',
+          software: isSuspicious ? 'Adobe Photoshop 25.0' : null,
+        },
+        quality_score: isSuspicious ? 0.6 : 0.88,
+        recommendation: isSuspicious ? 'review' : 'pass',
+      }),
+      provider: 'mock',
+      model: 'mock-vision-forensics',
+    };
+  }
   return {
     analysis: JSON.stringify({
       quality_score: 0.85,
       is_stock_photo: false,
       contains_equipment: true,
-      serial_number_visible: Math.random() > 0.3,
+      serial_number_visible: Math.abs(((imageUrl || '').length * 7) % 10) > 3,
       lighting: 'adequate',
       blur_score: 0.15,
       anomalies: [],
