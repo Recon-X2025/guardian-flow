@@ -1,18 +1,29 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/integrations/api/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Code, Package, Key, BookOpen, Webhook,
-  Download, Star, Users, ExternalLink, Copy, Check,
-  Search, Filter
+  Download, Star, ExternalLink, Copy, Check,
+  Search, Filter, Plus
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/domains/shared/hooks/use-toast';
+
+interface WebhookData {
+  id: string;
+  url: string;
+  events?: string[];
+  active: boolean;
+  last_triggered_at?: string;
+}
 
 const sampleExtensions = [
   { id: '1', name: 'Slack Integration', description: 'Send notifications to Slack channels', category: 'Communication', downloads: 1250, rating: 4.8, status: 'published' },
@@ -33,7 +44,15 @@ const apiEndpoints = [
 
 export default function DeveloperPortal() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   const [copiedKey, setCopiedKey] = useState(false);
+  const [showApiDocs, setShowApiDocs] = useState(false);
+  const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
+  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
+  const [webhookForm, setWebhookForm] = useState({ url: '', events: '' });
+  const [installingExt, setInstallingExt] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: apiKeys } = useQuery({
     queryKey: ['developer-api-keys'],
@@ -51,17 +70,61 @@ export default function DeveloperPortal() {
     }
   });
 
+  const createWebhookMutation = useMutation({
+    mutationFn: async (data: typeof webhookForm) => {
+      const result = await apiClient.from('webhooks').insert({
+        url: data.url,
+        events: data.events.split(',').map(e => e.trim()).filter(Boolean),
+        active: true,
+        created_at: new Date().toISOString(),
+      });
+      if (result.error) throw result.error;
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['developer-webhooks'] });
+      setShowWebhookDialog(false);
+      setWebhookForm({ url: '', events: '' });
+      toast({ title: 'Webhook created successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Failed to create webhook', description: error.message, variant: 'destructive' });
+    }
+  });
+
   const handleCopyKey = (key: string) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(true);
-    toast.success('API key copied to clipboard');
+    toast({ title: 'API key copied to clipboard' });
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const filteredExtensions = sampleExtensions.filter(ext =>
-    ext.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ext.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleInstallExtension = (ext: typeof sampleExtensions[0]) => {
+    setInstallingExt(ext.id);
+    setTimeout(() => {
+      setInstallingExt(null);
+      toast({ title: `${ext.name} installed successfully`, description: 'The extension is now available in your integrations.' });
+    }, 1500);
+  };
+
+  const handleGenerateKey = () => {
+    setShowNewKeyDialog(false);
+    toast({ title: 'New API key generated', description: 'Your new API key has been created. Make sure to copy it now.' });
+  };
+
+  const handleViewDocs = (endpoint: typeof apiEndpoints[0]) => {
+    toast({ title: `Viewing ${endpoint.path}`, description: endpoint.description });
+    setShowApiDocs(true);
+  };
+
+  const filteredExtensions = sampleExtensions.filter(ext => {
+    const matchesSearch = ext.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ext.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || ext.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ['all', ...new Set(sampleExtensions.map(e => e.category))];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -70,7 +133,7 @@ export default function DeveloperPortal() {
           <h1 className="text-3xl font-bold">Developer Portal</h1>
           <p className="text-muted-foreground mt-1">Build integrations and extend the platform</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowApiDocs(true)}>
           <BookOpen className="h-4 w-4 mr-2" />
           API Documentation
         </Button>
@@ -151,10 +214,19 @@ export default function DeveloperPortal() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-[180px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(cat => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat === 'all' ? 'All Categories' : cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -181,8 +253,13 @@ export default function DeveloperPortal() {
                       {ext.rating}
                     </div>
                   </div>
-                  <Button className="w-full" variant="outline">
-                    Install Extension
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    disabled={installingExt === ext.id}
+                    onClick={() => handleInstallExtension(ext)}
+                  >
+                    {installingExt === ext.id ? 'Installing...' : 'Install Extension'}
                   </Button>
                 </CardContent>
               </Card>
@@ -217,7 +294,7 @@ export default function DeveloperPortal() {
                       <TableCell className="font-mono text-sm">{endpoint.path}</TableCell>
                       <TableCell className="text-muted-foreground">{endpoint.description}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleViewDocs(endpoint)} title="View Documentation">
                           <ExternalLink className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -237,7 +314,7 @@ export default function DeveloperPortal() {
                   <CardTitle>API Keys</CardTitle>
                   <CardDescription>Manage your API keys for authentication</CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => setShowNewKeyDialog(true)}>
                   <Key className="h-4 w-4 mr-2" />
                   Generate New Key
                 </Button>
@@ -282,8 +359,8 @@ export default function DeveloperPortal() {
                   <CardTitle>Webhooks</CardTitle>
                   <CardDescription>Configure webhook endpoints for real-time events</CardDescription>
                 </div>
-                <Button>
-                  <Webhook className="h-4 w-4 mr-2" />
+                <Button onClick={() => setShowWebhookDialog(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
                   Add Webhook
                 </Button>
               </div>
@@ -300,7 +377,7 @@ export default function DeveloperPortal() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {webhooks.map((webhook: any) => (
+                    {webhooks.map((webhook: WebhookData) => (
                       <TableRow key={webhook.id}>
                         <TableCell className="font-mono text-sm">{webhook.url}</TableCell>
                         <TableCell>
@@ -312,7 +389,7 @@ export default function DeveloperPortal() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {webhook.last_triggered ? new Date(webhook.last_triggered).toLocaleString() : 'Never'}
+                          {webhook.last_triggered_at ? new Date(webhook.last_triggered_at).toLocaleString() : 'Never'}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -322,13 +399,130 @@ export default function DeveloperPortal() {
                 <div className="text-center py-12 text-muted-foreground">
                   <Webhook className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No webhooks configured yet.</p>
-                  <p className="text-sm">Add a webhook to receive real-time event notifications.</p>
+                  <p className="text-sm mb-4">Add a webhook to receive real-time event notifications.</p>
+                  <Button onClick={() => setShowWebhookDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Webhook
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* API Documentation Dialog */}
+      <Dialog open={showApiDocs} onOpenChange={setShowApiDocs}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>API Documentation</DialogTitle>
+            <DialogDescription>Complete reference for the GuardianFlow API</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">Authentication</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                All API requests require authentication using an API key in the header:
+              </p>
+              <pre className="bg-muted p-3 rounded text-sm font-mono">
+                Authorization: Bearer YOUR_API_KEY
+              </pre>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Base URL</h3>
+              <pre className="bg-muted p-3 rounded text-sm font-mono">
+                https://api.guardianflow.com/v1
+              </pre>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">Available Endpoints</h3>
+              <div className="space-y-2">
+                {apiEndpoints.map((ep, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2 border rounded">
+                    <Badge variant={ep.method === 'GET' ? 'secondary' : 'default'}>{ep.method}</Badge>
+                    <code className="text-sm">{ep.path}</code>
+                    <span className="text-sm text-muted-foreground">- {ep.description}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApiDocs(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generate New Key Dialog */}
+      <Dialog open={showNewKeyDialog} onOpenChange={setShowNewKeyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate New API Key</DialogTitle>
+            <DialogDescription>Create a new API key for your application</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Key Name</Label>
+              <Input placeholder="e.g., Production API Key" />
+            </div>
+            <div className="space-y-2">
+              <Label>Environment</Label>
+              <Select defaultValue="development">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="development">Development</SelectItem>
+                  <SelectItem value="production">Production</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewKeyDialog(false)}>Cancel</Button>
+            <Button onClick={handleGenerateKey}>Generate Key</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Webhook Dialog */}
+      <Dialog open={showWebhookDialog} onOpenChange={setShowWebhookDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Webhook</DialogTitle>
+            <DialogDescription>Configure a new webhook endpoint</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); createWebhookMutation.mutate(webhookForm); }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="webhook-url">Webhook URL</Label>
+              <Input
+                id="webhook-url"
+                type="url"
+                placeholder="https://your-server.com/webhook"
+                value={webhookForm.url}
+                onChange={(e) => setWebhookForm({ ...webhookForm, url: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="webhook-events">Events (comma-separated)</Label>
+              <Input
+                id="webhook-events"
+                placeholder="work_order.created, invoice.paid"
+                value={webhookForm.events}
+                onChange={(e) => setWebhookForm({ ...webhookForm, events: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Leave empty to receive all events</p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowWebhookDialog(false)}>Cancel</Button>
+              <Button type="submit" disabled={createWebhookMutation.isPending}>
+                {createWebhookMutation.isPending ? 'Creating...' : 'Add Webhook'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

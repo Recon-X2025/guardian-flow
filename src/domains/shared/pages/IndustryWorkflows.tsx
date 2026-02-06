@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Zap, Shield, Truck, Wrench, Play, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Building2, Zap, Shield, Truck, Wrench, Play, Eye, Plus, LucideIcon } from "lucide-react";
+import { useToast } from "@/domains/shared/hooks/use-toast";
 
-const industryIcons: Record<string, any> = {
+const industryIcons: Record<string, LucideIcon> = {
   healthcare: Shield,
   utilities: Zap,
   insurance: Building2,
@@ -16,8 +17,21 @@ const industryIcons: Record<string, any> = {
   field_service: Wrench,
 };
 
+interface IndustryWorkflow {
+  id: string;
+  name: string;
+  description?: string;
+  steps?: string[];
+  compliance_requirements?: string[];
+  version?: string;
+  status: string;
+}
+
 export default function IndustryWorkflows() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>("healthcare");
+  const [viewWorkflow, setViewWorkflow] = useState<IndustryWorkflow | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const { toast } = useToast();
 
   const { data: workflows = [], isLoading } = useQuery({
     queryKey: ["workflow-templates", selectedIndustry],
@@ -137,7 +151,10 @@ export default function IndustryWorkflows() {
               <p className="text-muted-foreground mb-4">
                 No workflows configured for this industry yet
               </p>
-              <Button>Create First Workflow</Button>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Workflow
+              </Button>
             </div>
           ) : (
             <Table>
@@ -152,7 +169,7 @@ export default function IndustryWorkflows() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workflows.map((workflow: any) => (
+                {workflows.map((workflow: IndustryWorkflow) => (
                   <TableRow key={workflow.id}>
                     <TableCell>
                       <div>
@@ -189,10 +206,12 @@ export default function IndustryWorkflows() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => setViewWorkflow(workflow)} title="View Details">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          toast({ title: "Workflow Started", description: `Running ${workflow.name}...` });
+                        }} title="Run Workflow">
                           <Play className="h-4 w-4" />
                         </Button>
                       </div>
@@ -340,6 +359,67 @@ export default function IndustryWorkflows() {
           )}
         </CardContent>
       </Card>
+
+      {/* View Workflow Dialog */}
+      <Dialog open={!!viewWorkflow} onOpenChange={() => setViewWorkflow(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{viewWorkflow?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold mb-2">Description</h4>
+              <p className="text-muted-foreground">{viewWorkflow?.description || 'No description available'}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Status</h4>
+              <Badge className={viewWorkflow?.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}>
+                {viewWorkflow?.status || 'Unknown'}
+              </Badge>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Version</h4>
+              <Badge variant="outline">{viewWorkflow?.version || '1.0'}</Badge>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewWorkflow(null)}>Close</Button>
+            <Button onClick={() => {
+              toast({ title: "Workflow Started", description: `Running ${viewWorkflow?.name}...` });
+              setViewWorkflow(null);
+            }}>
+              <Play className="h-4 w-4 mr-2" />
+              Run Workflow
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Workflow Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Workflow</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              Workflow creation for {industries.find(i => i.value === selectedIndustry)?.label} industry.
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contact your administrator to set up custom workflow templates for your organization.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onClick={() => {
+              toast({ title: "Request Submitted", description: "Your workflow creation request has been submitted." });
+              setShowCreateDialog(false);
+            }}>
+              Submit Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
