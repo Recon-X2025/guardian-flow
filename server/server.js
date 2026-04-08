@@ -15,6 +15,10 @@ import knowledgeBaseRoutes from './routes/knowledge-base.js';
 import faqsRoutes from './routes/faqs.js';
 import mlRoutesFactory from './routes/ml.js';
 import aiRoutes from './routes/ai.js';
+import securityMonitorRoutes from './routes/security-monitor.js';
+import logFrontendErrorRoutes from './routes/log-frontend-error.js';
+import slaMonitorRoutes from './routes/sla-monitor.js';
+import partnerApiGatewayRoutes from './routes/partner-api-gateway.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -128,6 +132,10 @@ app.use('/api/faqs', faqsRoutes);
 app.use('/api/ml/train', mlTrainLimiter);
 app.use('/api/ml', mlRoutesFactory());
 app.use('/api/ai', aiRoutes);
+app.use('/api/security', securityMonitorRoutes);
+app.use('/api/log-error', logFrontendErrorRoutes);
+app.use('/api/sla', slaMonitorRoutes);
+app.use('/api/partner', partnerApiGatewayRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
