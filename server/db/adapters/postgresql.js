@@ -257,16 +257,19 @@ async function updateOne(table, filter, update, opts = {}) {
 
     let sql;
     if (opts.upsert) {
-      // Upsert: try insert first, then update on conflict
-      const colsList = [...setKeys, ...Object.keys(filter)];
-      const uniqueColsList = [...new Set(colsList)].map(k => `"${k}"`).join(', ');
-      const allVals = [...Object.values(setData), ...whereVals];
-      const placeholders = [...Object.values(setData), ...Object.values(filter)]
-        .map((_, i) => `$${i + 1}`)
-        .join(', ');
-      sql = `INSERT INTO "${table}" (${uniqueColsList}) VALUES (${placeholders})
-             ON CONFLICT DO UPDATE SET ${setClause} RETURNING *`;
-      const { rows } = await pool.query(sql, allVals);
+      // Build INSERT … ON CONFLICT (filter_cols) DO UPDATE SET …
+      // The conflict target is derived from the filter keys (the lookup columns).
+      const filterKeys    = Object.keys(filter);
+      const conflictCols  = filterKeys.map(k => `"${k}"`).join(', ');
+      const allKeys       = [...new Set([...filterKeys, ...setKeys])];
+      const allValues     = allKeys.map(k => (setData[k] !== undefined ? setData[k] : filter[k]));
+      const colsList      = allKeys.map(k => `"${k}"`).join(', ');
+      const placeholders  = allKeys.map((_, i) => `$${i + 1}`).join(', ');
+      const updateClause  = setKeys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+
+      sql = `INSERT INTO "${table}" (${colsList}) VALUES (${placeholders})
+             ON CONFLICT (${conflictCols}) DO UPDATE SET ${updateClause} RETURNING *`;
+      const { rows } = await pool.query(sql, allValues);
       logQuery('Executed upsert', { table, duration: Date.now() - start });
       return rows[0] || null;
     }

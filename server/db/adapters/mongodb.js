@@ -81,6 +81,9 @@ mongoClient.on('serverHeartbeatFailed',  ()    => { connected = false; });
 // ── Helper ────────────────────────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
 
+/** MongoDB error code for duplicate key / unique-constraint violation */
+const MONGO_DUPLICATE_KEY = 11000;
+
 function logQuery(label, meta) {
   if (!isProduction) {
     console.log(label, meta);
@@ -165,7 +168,7 @@ async function insertOne(table, doc) {
     return { ...doc, _id: result.insertedId };
   } catch (error) {
     // Duplicate key — return null (matches ON CONFLICT DO NOTHING behaviour)
-    if (error.code === 11000) return null;
+    if (error.code === MONGO_DUPLICATE_KEY) return null;
     console.error('Insert error', { collection: table, error: error.message });
     throw error;
   }
@@ -180,7 +183,7 @@ async function insertMany(table, docs) {
     return docs.map((doc, i) => ({ ...doc, _id: result.insertedIds[i] }));
   } catch (error) {
     // Partial insert with duplicates
-    if (error.code === 11000) return docs;
+    if (error.code === MONGO_DUPLICATE_KEY) return docs;
     console.error('InsertMany error', { collection: table, error: error.message });
     throw error;
   }

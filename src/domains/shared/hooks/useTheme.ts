@@ -60,6 +60,7 @@ export function ThemeProvider({
     const handler = () => applyTheme("system");
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
+    // mq is stable for the lifetime of this effect — no memo needed
   }, [theme]);
 
   const setTheme = React.useCallback(

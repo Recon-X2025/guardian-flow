@@ -9,19 +9,21 @@ async function ensureIndexes() {
   if (indexesReady) return;
   const adapter = await getAdapter();
   try {
-    // TTL index auto-deletes expired tokens
-    await adapter.ensureIndex('token_blacklist', {
-      keys: { expires_at: 1 },
-      options: { expireAfterSeconds: 0 },
-    });
-    await adapter.ensureIndex('token_blacklist', {
-      keys: { jti: 1 },
-      options: { unique: true },
-    });
-    await adapter.ensureIndex('user_token_revocations', {
-      keys: { user_id: 1 },
-      options: { unique: true },
-    });
+    await Promise.all([
+      // TTL index auto-deletes expired tokens
+      adapter.ensureIndex('token_blacklist', {
+        keys: { expires_at: 1 },
+        options: { expireAfterSeconds: 0 },
+      }),
+      adapter.ensureIndex('token_blacklist', {
+        keys: { jti: 1 },
+        options: { unique: true },
+      }),
+      adapter.ensureIndex('user_token_revocations', {
+        keys: { user_id: 1 },
+        options: { unique: true },
+      }),
+    ]);
   } catch {
     // Indexes may already exist
   }

@@ -22,9 +22,11 @@ function hashToken(token) {
 async function ensureRefreshTokensIndexes() {
   const adapter = await getAdapter();
   try {
-    await adapter.ensureIndex('refresh_tokens', { keys: { token_hash: 1 } });
-    await adapter.ensureIndex('refresh_tokens', { keys: { user_id: 1 } });
-    await adapter.ensureIndex('refresh_tokens', { keys: { expires_at: 1 }, options: { expireAfterSeconds: 0 } });
+    await Promise.all([
+      adapter.ensureIndex('refresh_tokens', { keys: { token_hash: 1 } }),
+      adapter.ensureIndex('refresh_tokens', { keys: { user_id: 1 } }),
+      adapter.ensureIndex('refresh_tokens', { keys: { expires_at: 1 }, options: { expireAfterSeconds: 0 } }),
+    ]);
   } catch {
     // Indexes may already exist
   }
@@ -33,8 +35,10 @@ async function ensureRefreshTokensIndexes() {
 async function ensurePasswordResetIndexes() {
   const adapter = await getAdapter();
   try {
-    await adapter.ensureIndex('password_reset_tokens', { keys: { token_hash: 1 } });
-    await adapter.ensureIndex('password_reset_tokens', { keys: { expires_at: 1 }, options: { expireAfterSeconds: 0 } });
+    await Promise.all([
+      adapter.ensureIndex('password_reset_tokens', { keys: { token_hash: 1 } }),
+      adapter.ensureIndex('password_reset_tokens', { keys: { expires_at: 1 }, options: { expireAfterSeconds: 0 } }),
+    ]);
   } catch {
     // Indexes may already exist
   }
@@ -88,9 +92,9 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = randomUUID();
+    const adapter = await getAdapter();
 
-    await transaction(async (session) => {
-      const adapter = await getAdapter();
+    await transaction(async () => {
       // Create user
       await adapter.insertOne('users', {
         id: userId,
@@ -438,7 +442,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res)
 
     await ensurePasswordResetIndexes();
 
-    // Invalidate previous tokens
+    // Invalidate previous tokens (adapter.updateOne applies to all matching rows)
     const adapter = await getAdapter();
     await adapter.updateOne(
       'password_reset_tokens',
