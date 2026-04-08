@@ -1,4 +1,4 @@
-import { db } from './client.js';
+import { getAdapter } from './factory.js';
 import logger from '../utils/logger.js';
 
 // In-memory cache for fast lookups (single-instance)
@@ -7,14 +7,21 @@ let indexesReady = false;
 
 async function ensureIndexes() {
   if (indexesReady) return;
+  const adapter = await getAdapter();
   try {
     // TTL index auto-deletes expired tokens
-    await db.collection('token_blacklist').createIndex(
-      { expires_at: 1 },
-      { expireAfterSeconds: 0 }
-    );
-    await db.collection('token_blacklist').createIndex({ jti: 1 }, { unique: true });
-    await db.collection('user_token_revocations').createIndex({ user_id: 1 }, { unique: true });
+    await adapter.ensureIndex('token_blacklist', {
+      keys: { expires_at: 1 },
+      options: { expireAfterSeconds: 0 },
+    });
+    await adapter.ensureIndex('token_blacklist', {
+      keys: { jti: 1 },
+      options: { unique: true },
+    });
+    await adapter.ensureIndex('user_token_revocations', {
+      keys: { user_id: 1 },
+      options: { unique: true },
+    });
   } catch {
     // Indexes may already exist
   }
@@ -23,8 +30,10 @@ async function ensureIndexes() {
 
 export async function revokeAccessToken(jti, userId, expiresAt, reason = 'manual') {
   await ensureIndexes();
+  const adapter = await getAdapter();
   blacklistCache.add(jti);
-  await db.collection('token_blacklist').updateOne(
+  await adapter.updateOne(
+    'token_blacklist',
     { jti },
     {
       $setOnInsert: {
@@ -43,7 +52,8 @@ export async function revokeAccessToken(jti, userId, expiresAt, reason = 'manual
 export async function isTokenRevoked(jti) {
   if (blacklistCache.has(jti)) return true;
   await ensureIndexes();
-  const row = await db.collection('token_blacklist').findOne({
+  const adapter = await getAdapter();
+  const row = await adapter.findOne('token_blacklist', {
     jti,
     expires_at: { $gt: new Date() },
   });
@@ -56,7 +66,9 @@ export async function isTokenRevoked(jti) {
 
 export async function revokeAllUserTokens(userId) {
   await ensureIndexes();
-  await db.collection('user_token_revocations').updateOne(
+  const adapter = await getAdapter();
+  await adapter.updateOne(
+    'user_token_revocations',
     { user_id: userId },
     { $set: { user_id: userId, revoked_at: new Date() } },
     { upsert: true }
@@ -66,7 +78,8 @@ export async function revokeAllUserTokens(userId) {
 
 export async function isUserTokenRevokedBefore(userId, issuedAt) {
   try {
-    const row = await db.collection('user_token_revocations').findOne({ user_id: userId });
+    const adapter = await getAdapter();
+    const row = await adapter.findOne('user_token_revocations', { user_id: userId });
     if (!row) return false;
     return new Date(row.revoked_at) > new Date(issuedAt * 1000);
   } catch {

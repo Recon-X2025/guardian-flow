@@ -15,7 +15,8 @@ import knowledgeBaseRoutes from './routes/knowledge-base.js';
 import faqsRoutes from './routes/faqs.js';
 import mlRoutesFactory from './routes/ml.js';
 import aiRoutes from './routes/ai.js';
-import { db, client, isConnected } from './db/client.js';
+import { isConnected } from './db/client.js';
+import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
 import WebSocketManager from './websocket/server.js';
 import { correlationId } from './middleware/correlationId.js';
@@ -91,7 +92,8 @@ const healthCheck = async (req, res) => {
   let dbStatus = 'unknown';
   if (isConnected()) {
     try {
-      await db.admin().ping();
+      const adapter = await getAdapter();
+      await adapter.ping();
       dbStatus = 'connected';
     } catch {
       dbStatus = 'error';
@@ -186,13 +188,15 @@ function shutdown(signal) {
       logger.info('WebSocket server closed');
     }
 
-    // Close MongoDB client
-    client.close().then(() => {
-      logger.info('MongoDB client closed');
-      process.exit(0);
-    }).catch(() => {
-      process.exit(1);
-    });
+    // Close DB connection via adapter
+    try {
+      const adapter = await getAdapter();
+      await adapter.close();
+      logger.info('Database connection closed');
+    } catch {
+      // ignore
+    }
+    process.exit(0);
   });
 
   // Force exit after 10 seconds

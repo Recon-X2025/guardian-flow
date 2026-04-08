@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import './styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -75,7 +76,8 @@
     --pub-text-muted: 215 20% 65%;
   }
 
-  .dark {
+  .dark,
+  [data-theme="dark"] {
     /* Dark theme - same as light for consistency */
     --background: 222 47% 7%;
     --foreground: 214 32% 91%;
