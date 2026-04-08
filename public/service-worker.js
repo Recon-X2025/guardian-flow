@@ -1,67 +1,107 @@
-const CACHE_NAME = 'guardian-flow-v1';
-const OFFLINE_URL = '/offline.html';
+const CACHE_VERSION = 'gf-v1';
+const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
+const API_CACHE = `${CACHE_VERSION}-api`;
 
-const CACHE_ASSETS = [
+const STATIC_ASSETS = [
   '/',
-  '/offline.html',
+  '/index.html',
   '/manifest.json',
 ];
 
-// Install event - cache assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(CACHE_ASSETS);
-    })
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
-// Activate event - clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith('gf-') && key !== STATIC_CACHE && key !== DYNAMIC_CACHE && key !== API_CACHE)
+          .map((key) => caches.delete(key))
+      )
+    )
   );
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(OFFLINE_URL);
-      })
-    );
+  const { request } = event;
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET') return;
+
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirstWithTimeout(request, API_CACHE, 5000));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          if (event.request.method === 'GET') {
-            cache.put(event.request, fetchResponse.clone());
-          }
-          return fetchResponse;
-        });
-      });
-    }).catch(() => {
-      // Return a fallback for failed requests
-      if (event.request.destination === 'image') {
-        return caches.match('/placeholder.svg');
-      }
-    })
-  );
+  if (STATIC_ASSETS.includes(url.pathname) || url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  event.respondWith(networkFirst(request, DYNAMIC_CACHE));
 });
 
-// Background sync for offline actions
+async function networkFirstWithTimeout(request, cacheName, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const networkResponse = await fetch(request, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch {
+    clearTimeout(timeoutId);
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return new Response(JSON.stringify({ error: 'Network unavailable' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch {
+    return new Response('Offline', { status: 503 });
+  }
+}
+
+async function networkFirst(request, cacheName) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return new Response('Offline', { status: 503 });
+  }
+}
+
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-offline-queue') {
     event.waitUntil(syncOfflineQueue());
@@ -69,39 +109,27 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncOfflineQueue() {
-  try {
-    const response = await fetch('/api/sync-offline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('Offline sync failed:', error);
-    throw error;
-  }
+  const clients = await self.clients.matchAll();
+  clients.forEach((client) => client.postMessage({ type: 'SYNC_OFFLINE_QUEUE' }));
 }
 
-// Push notifications
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Guardian Flow';
-  const options = {
-    body: data.body || 'New notification',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
-    data: data.url,
-  };
-
+  if (!event.data) return;
+  const data = event.data.json();
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(data.title || 'Guardian Flow', {
+      body: data.body || '',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/badge-72x72.png',
+      data: data.url ? { url: data.url } : {},
+      actions: data.actions || [],
+    })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  if (event.notification.data) {
-    event.waitUntil(
-      clients.openWindow(event.notification.data)
-    );
+  if (event.notification.data?.url) {
+    event.waitUntil(clients.openWindow(event.notification.data.url));
   }
 });
