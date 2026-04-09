@@ -320,6 +320,25 @@ async function runMigrations() {
           await db.collection('sso_configs').createIndex({ protocol: 1, enabled: 1 }).catch(() => {});
         },
       },
+      {
+        version: '012_sprint2_currency',
+        description: 'Create exchange_rates collection and indexes; add currency field indexes on financial collections',
+        async run() {
+          // ── exchange_rates ────────────────────────────────────────────────
+          // Primary lookup: base + target rate for a given date
+          await db.collection('exchange_rates').createIndex(
+            { base: 1, target: 1, date: -1 },
+          ).catch(() => {});
+
+          // ── currency field indexes on financial collections ────────────────
+          // Fast currency-filtered queries on invoices
+          await db.collection('invoices').createIndex({ currency: 1 }).catch(() => {});
+          // Fast currency-filtered queries on payments
+          await db.collection('payments').createIndex({ currency: 1 }).catch(() => {});
+          // Fast currency-filtered queries on quotes
+          await db.collection('quotes').createIndex({ currency: 1 }).catch(() => {});
+        },
+      },
     ];
 
     for (const migration of migrations) {
