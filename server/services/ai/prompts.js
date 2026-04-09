@@ -54,3 +54,72 @@ RULES:
     user: (anomaly) => `Explain this anomaly:\n\nType: ${anomaly.type}\nEntity: ${anomaly.entity_type} ${anomaly.entity_id}\nMetric Value: ${anomaly.value}\nExpected Range: ${anomaly.expected_min} - ${anomaly.expected_max}\nZ-Score: ${anomaly.z_score}\n\nProvide a brief explanation and recommended action.`,
   },
 };
+
+const PROMPTS_COL = 'ai_prompts';
+
+export async function createPrompt(tenantId, data) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const { randomUUID } = await import('crypto');
+  const adapter = await getAdapter();
+  const doc = {
+    id: randomUUID(),
+    tenant_id: tenantId,
+    name: data.name,
+    template: data.template,
+    variables: data.variables || [],
+    description: data.description || '',
+    version: 1,
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+  await adapter.insertOne(PROMPTS_COL, doc);
+  return doc;
+}
+
+export async function updatePrompt(tenantId, id, data) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  const existing = await adapter.findOne(PROMPTS_COL, { id, tenant_id: tenantId });
+  if (!existing) throw new Error('Prompt not found');
+  const updates = {
+    ...( data.name !== undefined && { name: data.name }),
+    ...( data.template !== undefined && { template: data.template }),
+    ...( data.variables !== undefined && { variables: data.variables }),
+    ...( data.description !== undefined && { description: data.description }),
+    version: (existing.version || 1) + 1,
+    updated_at: new Date(),
+  };
+  await adapter.updateOne(PROMPTS_COL, { id, tenant_id: tenantId }, { $set: updates });
+  return { ...existing, ...updates };
+}
+
+export async function deletePrompt(tenantId, id) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  await adapter.deleteMany(PROMPTS_COL, { id, tenant_id: tenantId });
+  return { deleted: true };
+}
+
+export async function testPrompt(tenantId, id, variables) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  const prompt = await adapter.findOne(PROMPTS_COL, { id, tenant_id: tenantId });
+  if (!prompt) throw new Error('Prompt not found');
+  let rendered = prompt.template;
+  for (const [key, value] of Object.entries(variables || {})) {
+    rendered = rendered.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), String(value));
+  }
+  return { rendered, model: 'mock', response: `This is a mock response to: "${rendered.slice(0, 100)}"` };
+}
+
+export async function listStoredPrompts(tenantId) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  return adapter.findMany(PROMPTS_COL, { tenant_id: tenantId }, { sort: { updated_at: -1 }, limit: 100 });
+}
+
+export async function getStoredPrompt(tenantId, id) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  return adapter.findOne(PROMPTS_COL, { id, tenant_id: tenantId });
+}

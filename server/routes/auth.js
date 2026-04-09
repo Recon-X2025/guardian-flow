@@ -1,8 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { randomUUID, createHash } from 'crypto';
-import { db } from '../db/client.js';
-import { findOne, findMany, transaction } from '../db/query.js';
+import { getAdapter } from '../db/factory.js';
+import { findOne, findMany, transaction, aggregate } from '../db/query.js';
 import { generateToken, authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
 import { sendPasswordResetEmail } from '../services/email.js';
@@ -20,19 +20,25 @@ function hashToken(token) {
 }
 
 async function ensureRefreshTokensIndexes() {
+  const adapter = await getAdapter();
   try {
-    await db.collection('refresh_tokens').createIndex({ token_hash: 1 });
-    await db.collection('refresh_tokens').createIndex({ user_id: 1 });
-    await db.collection('refresh_tokens').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
+    await Promise.all([
+      adapter.ensureIndex('refresh_tokens', { keys: { token_hash: 1 } }),
+      adapter.ensureIndex('refresh_tokens', { keys: { user_id: 1 } }),
+      adapter.ensureIndex('refresh_tokens', { keys: { expires_at: 1 }, options: { expireAfterSeconds: 0 } }),
+    ]);
   } catch {
     // Indexes may already exist
   }
 }
 
 async function ensurePasswordResetIndexes() {
+  const adapter = await getAdapter();
   try {
-    await db.collection('password_reset_tokens').createIndex({ token_hash: 1 });
-    await db.collection('password_reset_tokens').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 });
+    await Promise.all([
+      adapter.ensureIndex('password_reset_tokens', { keys: { token_hash: 1 } }),
+      adapter.ensureIndex('password_reset_tokens', { keys: { expires_at: 1 }, options: { expireAfterSeconds: 0 } }),
+    ]);
   } catch {
     // Indexes may already exist
   }
@@ -40,10 +46,11 @@ async function ensurePasswordResetIndexes() {
 
 async function createRefreshToken(userId) {
   await ensureRefreshTokensIndexes();
+  const adapter = await getAdapter();
   const refreshToken = randomUUID();
   const hash = hashToken(refreshToken);
   const expiresAt = new Date(Date.now() + REFRESH_EXPIRY_MS);
-  await db.collection('refresh_tokens').insertOne({
+  await adapter.insertOne('refresh_tokens', {
     id: randomUUID(),
     user_id: userId,
     token_hash: hash,
@@ -52,13 +59,14 @@ async function createRefreshToken(userId) {
   });
   // Clean up old tokens for this user (keep max 5)
   try {
-    const allTokens = await db.collection('refresh_tokens')
-      .find({ user_id: userId })
-      .sort({ created_at: -1 })
-      .toArray();
+    const allTokens = await adapter.findMany(
+      'refresh_tokens',
+      { user_id: userId },
+      { sort: { created_at: -1 } }
+    );
     if (allTokens.length > 5) {
       const toDelete = allTokens.slice(5).map(t => t.id);
-      await db.collection('refresh_tokens').deleteMany({ id: { $in: toDelete } });
+      await adapter.deleteMany('refresh_tokens', { id: { $in: toDelete } });
     }
   } catch { /* ignore */ }
   return { refreshToken, expiresAt };
@@ -84,35 +92,36 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = randomUUID();
+    const adapter = await getAdapter();
 
-    await transaction(async (session) => {
+    await transaction(async () => {
       // Create user
-      await db.collection('users').insertOne({
+      await adapter.insertOne('users', {
         id: userId,
         email,
         password_hash: hashedPassword,
         full_name: fullName,
         active: true,
         created_at: new Date(),
-      }, { session });
+      });
 
       // Create profile
-      await db.collection('profiles').insertOne({
+      await adapter.insertOne('profiles', {
         id: userId,
         email,
         full_name: fullName,
         created_at: new Date(),
-      }, { session });
+      });
 
       // Check if this is the first user
-      const userCount = await db.collection('users').countDocuments({}, { session });
+      const userCount = await adapter.countDocuments('users', {});
       const defaultRole = userCount <= 1 ? 'admin' : 'technician';
 
-      await db.collection('user_roles').insertOne({
+      await adapter.insertOne('user_roles', {
         user_id: userId,
         role: defaultRole,
         created_at: new Date(),
-      }, { session });
+      });
     });
 
     const token = generateToken(userId);
@@ -244,12 +253,12 @@ router.get('/me', authenticateToken, async (req, res) => {
     let permissions = [];
 
     try {
-      const rolePerms = await db.collection('role_permissions').aggregate([
+      const rolePerms = await aggregate('role_permissions', [
         { $match: { role: { $in: roles } } },
         { $lookup: { from: 'permissions', localField: 'permission_id', foreignField: 'id', as: 'perm' } },
         { $unwind: '$perm' },
         { $group: { _id: null, names: { $addToSet: '$perm.name' } } },
-      ]).toArray();
+      ]);
 
       permissions = rolePerms[0]?.names || [];
 
@@ -395,7 +404,8 @@ router.post('/refresh', validate(refreshSchema), async (req, res) => {
     }
 
     // Delete old refresh token (rotation)
-    await db.collection('refresh_tokens').deleteOne({ id: stored.id });
+    const adapter = await getAdapter();
+    await adapter.deleteMany('refresh_tokens', { id: stored.id });
 
     // Issue new tokens
     const accessToken = generateToken(user.id);
@@ -432,8 +442,10 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res)
 
     await ensurePasswordResetIndexes();
 
-    // Invalidate previous tokens
-    await db.collection('password_reset_tokens').updateMany(
+    // Invalidate previous tokens (adapter.updateOne applies to all matching rows)
+    const adapter = await getAdapter();
+    await adapter.updateOne(
+      'password_reset_tokens',
       { user_id: user.id, used: false },
       { $set: { used: true } }
     );
@@ -442,7 +454,7 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res)
     const hash = hashToken(resetToken);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    await db.collection('password_reset_tokens').insertOne({
+    await adapter.insertOne('password_reset_tokens', {
       id: randomUUID(),
       user_id: user.id,
       token_hash: hash,
@@ -495,19 +507,22 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
 
     // Hash new password and update user
     const hashedPassword = await bcrypt.hash(new_password, 10);
-    await db.collection('users').updateOne(
+    const resetAdapter = await getAdapter();
+    await resetAdapter.updateOne(
+      'users',
       { id: stored.user_id },
       { $set: { password_hash: hashedPassword } }
     );
 
     // Mark token as used
-    await db.collection('password_reset_tokens').updateOne(
+    await resetAdapter.updateOne(
+      'password_reset_tokens',
       { id: stored.id },
       { $set: { used: true } }
     );
 
     // Invalidate all refresh tokens for this user
-    await db.collection('refresh_tokens').deleteMany({ user_id: stored.user_id }).catch(() => {});
+    await resetAdapter.deleteMany('refresh_tokens', { user_id: stored.user_id }).catch(() => {});
 
     logger.info('Password reset completed', { userId: stored.user_id });
 
@@ -523,7 +538,8 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res) =
  */
 router.post('/signout', authenticateToken, async (req, res) => {
   try {
-    await db.collection('refresh_tokens').deleteMany({ user_id: req.user.id }).catch(() => {});
+    const signoutSimpleAdapter = await getAdapter();
+    await signoutSimpleAdapter.deleteMany('refresh_tokens', { user_id: req.user.id }).catch(() => {});
     logger.info('User signed out', { userId: req.user.id });
     res.json({ message: 'Signed out successfully' });
   } catch (error) {
@@ -540,7 +556,8 @@ router.post('/signout-all', authenticateToken, async (req, res) => {
       await revokeAccessToken(req.user.tokenData.jti, req.user.id, req.user.tokenData.exp, 'signout_all');
     }
     await revokeAllUserTokens(req.user.id);
-    await db.collection('refresh_tokens').deleteMany({ user_id: req.user.id }).catch(() => {});
+    const signoutAdapter = await getAdapter();
+    await signoutAdapter.deleteMany('refresh_tokens', { user_id: req.user.id }).catch(() => {});
     logger.info('User signed out from all devices', { userId: req.user.id });
     res.json({ message: 'Signed out from all devices' });
   } catch (error) {
@@ -574,7 +591,9 @@ router.post('/assign-admin', authenticateToken, async (req, res) => {
     }
 
     // Assign admin role (upsert)
-    await db.collection('user_roles').updateOne(
+    const adminAdapter = await getAdapter();
+    await adminAdapter.updateOne(
+      'user_roles',
       { user_id: targetUser.id, role: 'admin' },
       { $setOnInsert: { user_id: targetUser.id, role: 'admin', created_at: new Date() } },
       { upsert: true }

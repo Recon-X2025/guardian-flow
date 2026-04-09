@@ -312,3 +312,46 @@ export async function visionAnalysis(imageUrl, prompt) {
     model: 'mock-vision',
   };
 }
+
+export async function createFineTuneJob(tenantId, config) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  const { randomUUID } = await import('crypto');
+  const job = {
+    id: randomUUID(),
+    tenant_id: tenantId,
+    base_model: config.baseModel,
+    dataset: config.dataset || null,
+    epochs: config.epochs || 3,
+    learning_rate: config.learningRate || 0.0001,
+    batch_size: config.batchSize || 8,
+    status: 'queued',
+    progress: 0,
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+  await adapter.insertOne('llm_finetune_jobs', job);
+  return job;
+}
+
+export async function getFineTuneJob(tenantId, jobId) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  return adapter.findOne('llm_finetune_jobs', { id: jobId, tenant_id: tenantId });
+}
+
+export async function listFineTuneJobs(tenantId) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  return adapter.findMany('llm_finetune_jobs', { tenant_id: tenantId }, { sort: { created_at: -1 }, limit: 50 });
+}
+
+export async function cancelFineTuneJob(tenantId, jobId) {
+  const { getAdapter } = await import('../../db/factory.js');
+  const adapter = await getAdapter();
+  const job = await adapter.findOne('llm_finetune_jobs', { id: jobId, tenant_id: tenantId });
+  if (!job) throw new Error('Job not found');
+  if (['completed', 'failed'].includes(job.status)) throw new Error('Cannot cancel a finished job');
+  await adapter.updateOne('llm_finetune_jobs', { id: jobId, tenant_id: tenantId }, { $set: { status: 'cancelled', updated_at: new Date() } });
+  return { jobId, status: 'cancelled' };
+}

@@ -3592,16 +3592,45 @@ router.post('/optimize-schedule', authenticateToken, async (req, res) => {
       });
     }
 
-    // Simple round-robin assignment
+    // Load technician skill profiles for scoring
+    const allTechSkills = await db.collection('technician_skills').find({ tenant_id: tenantId }).toArray();
+    const skillsByTech = {};
+    for (const ts of allTechSkills) {
+      if (!skillsByTech[ts.technician_id]) skillsByTech[ts.technician_id] = [];
+      skillsByTech[ts.technician_id].push(ts);
+    }
+
+    function scoreSkillMatch(techId, requiredSkills) {
+      if (!requiredSkills || requiredSkills.length === 0) return { skillMatchPercent: 100, certificationValid: true, finalScore: 100 };
+      const techSkills = skillsByTech[techId] || [];
+      const matched = techSkills.filter(s => requiredSkills.includes(s.skill_id));
+      const allValid = matched.every(s => !s.expiry_date || new Date(s.expiry_date) > new Date());
+      return {
+        skillMatchPercent: (matched.length / requiredSkills.length) * 100,
+        certificationValid: allValid,
+        finalScore: (matched.length / requiredSkills.length) * 100 * (allValid ? 1 : 0.5),
+      };
+    }
+
+    // Assign best-matched technician per work order using skill scoring
     const assignments = [];
-    unassignedWOs.forEach((wo, i) => {
-      const tech = technicians[i % technicians.length];
+    unassignedWOs.forEach((wo) => {
+      const requiredSkills = wo.required_skills || wo.skill_tags || [];
+      const scored = technicians.map(tech => ({
+        tech,
+        ...scoreSkillMatch(tech.id, requiredSkills),
+      })).sort((a, b) => b.finalScore - a.finalScore);
+
+      const best = scored[0];
       assignments.push({
         work_order_id: wo.id,
         wo_number: wo.wo_number,
-        technician_id: tech.id,
-        technician_name: tech.name,
+        technician_id: best.tech.id,
+        technician_name: best.tech.name,
         priority: wo.priority,
+        skill_match_percent: best.skillMatchPercent,
+        certification_valid: best.certificationValid,
+        skill_score: best.finalScore,
       });
     });
 

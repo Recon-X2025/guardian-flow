@@ -63,6 +63,8 @@ const Documents = lazy(() => import("@/domains/shared/pages/Documents"));
 const Webhooks = lazy(() => import("@/domains/shared/pages/Webhooks"));
 const Marketplace = lazy(() => import("@/domains/marketplace/pages/Marketplace"));
 const DisputeManagement = lazy(() => import("@/domains/financial/pages/DisputeManagement"));
+const GeneralLedger = lazy(() => import("@/domains/financial/pages/GeneralLedger"));
+const AccountsPayable = lazy(() => import("@/domains/financial/pages/AccountsPayable"));
 const ABTestManager = lazy(() => import("@/domains/shared/pages/ABTestManager"));
 const SystemHealth = lazy(() => import("@/domains/shared/pages/SystemHealth"));
 const ComplianceDashboard = lazy(() => import("@/domains/fraud/pages/ComplianceDashboard"));
@@ -101,10 +103,22 @@ const AnalyticsAuth = lazy(() => import("@/domains/auth/pages/auth/AnalyticsAuth
 const CustomerAuth = lazy(() => import("@/domains/auth/pages/auth/CustomerAuth"));
 const TrainingAuth = lazy(() => import("@/domains/auth/pages/auth/TrainingAuth"));
 const TrainingPlatform = lazy(() => import("@/domains/training/pages/TrainingPlatform"));
+const OrgManagementConsole = lazy(() => import("@/domains/org/pages/OrgManagementConsole"));
+const AssetRegister = lazy(() => import("@/domains/workOrders/pages/AssetRegister"));
+const ConnectorManagement = lazy(() => import("@/domains/org/pages/ConnectorManagement"));
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
 const MaintenanceCalendar = lazy(() => import("@/domains/workOrders/pages/MaintenanceCalendar"));
+const DecisionLedger = lazy(() => import("@/domains/flowspace/pages/DecisionLedger"));
+const ExecutionConsole = lazy(() => import("@/domains/dex/pages/ExecutionConsole"));
+const SsoCallback = lazy(() => import("@/domains/auth/pages/SsoCallback"));
+const TechnicianProfile = lazy(() => import("@/domains/workOrders/pages/TechnicianProfile"));
+const SkillsAdmin = lazy(() => import("@/domains/org/pages/SkillsAdmin"));
+const ScheduleOptimiser = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimiser"));
+const CustomerBooking = lazy(() => import("@/domains/customers/pages/CustomerBooking"));
+const Customer360 = lazy(() => import("@/domains/customers/pages/Customer360"));
+const CommsHub = lazy(() => import("@/domains/shared/pages/CommsHub"));
 
 const queryClient = new QueryClient();
 
@@ -159,6 +173,8 @@ const App = () => (
                   <Route path="/auth/customer" element={<SuspenseWrap><CustomerAuth /></SuspenseWrap>} />
                   <Route path="/auth/training" element={<SuspenseWrap><TrainingAuth /></SuspenseWrap>} />
                   <Route path="/auth/platform" element={<SuspenseWrap><UnifiedPlatformAuth /></SuspenseWrap>} />
+                  {/* SSO callback — must precede generic /auth */}
+                  <Route path="/auth/sso-callback" element={<SuspenseWrap><SsoCallback /></SuspenseWrap>} />
                   {/* Generic /auth route must come LAST */}
                   <Route path="/auth" element={<SuspenseWrap><UnifiedPlatformAuth /></SuspenseWrap>} />
                   <Route path="/developer" element={<SuspenseWrap><DeveloperLanding /></SuspenseWrap>} />
@@ -595,6 +611,22 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/general-ledger" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><GeneralLedger /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/accounts-payable" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AccountsPayable /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/ab-tests" element={
                     <ProtectedRoute>
                       <RoleGuard permissions={["mlops.view"]} showError={true}>
@@ -657,6 +689,92 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
                         <AppLayout><SuspenseWrap><AdminConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/org-console" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><OrgManagementConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* FlowSpace — Decision Ledger */}
+                  <Route path="/flowspace" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","finance_manager","auditor"]} permissions={["audit.read"]} showError={true}>
+                        <AppLayout><SuspenseWrap><DecisionLedger /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* DEX — Execution Console */}
+                  <Route path="/dex" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} permissions={["wo.read"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ExecutionConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Technician Profile */}
+                  <Route path="/technician-profile/:techId" element={
+                    <ProtectedRoute>
+                      <AppLayout><SuspenseWrap><TechnicianProfile /></SuspenseWrap></AppLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Skills Admin */}
+                  <Route path="/skills-admin" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} permissions={["org.manage"]} showError={true}>
+                        <AppLayout><SuspenseWrap><SkillsAdmin /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Schedule Optimiser */}
+                  <Route path="/schedule-optimiser" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ScheduleOptimiser /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Customer Self-Scheduling (public) */}
+                  <Route path="/book" element={<SuspenseWrap><CustomerBooking /></SuspenseWrap>} />
+
+                  {/* Customer 360 */}
+                  <Route path="/customer360/:customerId" element={
+                    <ProtectedRoute>
+                      <AppLayout><SuspenseWrap><Customer360 /></SuspenseWrap></AppLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Comms Hub */}
+                  <Route path="/comms-hub" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent"]} showError={true}>
+                        <AppLayout><SuspenseWrap><CommsHub /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/asset-register" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","technician"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AssetRegister /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/connector-management" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ConnectorManagement /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

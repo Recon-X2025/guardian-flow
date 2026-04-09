@@ -15,7 +15,34 @@ import knowledgeBaseRoutes from './routes/knowledge-base.js';
 import faqsRoutes from './routes/faqs.js';
 import mlRoutesFactory from './routes/ml.js';
 import aiRoutes from './routes/ai.js';
-import { db, client, isConnected } from './db/client.js';
+import securityMonitorRoutes from './routes/security-monitor.js';
+import logFrontendErrorRoutes from './routes/log-frontend-error.js';
+import slaMonitorRoutes from './routes/sla-monitor.js';
+import partnerApiGatewayRoutes from './routes/partner-api-gateway.js';
+import orgRoutes from './routes/org.js';
+import flowspaceRoutes from './routes/flowspace.js';
+import dexRoutes from './routes/dex.js';
+import ssoRoutes from './routes/sso.js';
+import currencyRoutes from './routes/currency.js';
+import ledgerRoutes from './routes/ledger.js';
+import skillsRoutes from './routes/skills.js';
+import scheduleRoutes from './routes/schedule.js';
+import customerBookingRoutes from './routes/customer-booking.js';
+import customer360Routes from './routes/customer360.js';
+import commsRoutes from './routes/comms.js';
+import assetsRoutes from './routes/assets.js';
+import connectorsRoutes from './routes/connectors.js';
+import mlExperimentsRoutes from './routes/ml-experiments.js';
+import xaiRoutes from './routes/xai.js';
+import finetuneRoutes from './routes/finetune.js';
+import visionRoutes from './routes/vision.js';
+import assetsHealthRoutes from './routes/assets-health.js';
+import knowledgeQueryRoutes from './routes/knowledge-query.js';
+import anomaliesRoutes from './routes/anomalies.js';
+import aiGovernanceRoutes from './routes/ai-governance.js';
+import aiPromptsRoutes from './routes/ai-prompts.js';
+import { isConnected } from './db/client.js';
+import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
 import WebSocketManager from './websocket/server.js';
 import { correlationId } from './middleware/correlationId.js';
@@ -91,7 +118,8 @@ const healthCheck = async (req, res) => {
   let dbStatus = 'unknown';
   if (isConnected()) {
     try {
-      await db.admin().ping();
+      const adapter = await getAdapter();
+      await adapter.ping();
       dbStatus = 'connected';
     } catch {
       dbStatus = 'error';
@@ -126,6 +154,32 @@ app.use('/api/faqs', faqsRoutes);
 app.use('/api/ml/train', mlTrainLimiter);
 app.use('/api/ml', mlRoutesFactory());
 app.use('/api/ai', aiRoutes);
+app.use('/api/security', securityMonitorRoutes);
+app.use('/api/log-error', logFrontendErrorRoutes);
+app.use('/api/sla', slaMonitorRoutes);
+app.use('/api/partner', partnerApiGatewayRoutes);
+app.use('/api/org', orgRoutes);
+app.use('/api/flowspace', flowspaceRoutes);
+app.use('/api/dex', dexRoutes);
+app.use('/api/sso', ssoRoutes);
+app.use('/api/currency', currencyRoutes);
+app.use('/api/ledger', authenticateToken, ledgerRoutes);
+app.use('/api/skills', authenticateToken, skillsRoutes);
+app.use('/api/schedule', authenticateToken, scheduleRoutes);
+app.use('/api/customer-booking', customerBookingRoutes);
+app.use('/api/customer360', customer360Routes);
+app.use('/api/comms', commsRoutes);
+app.use('/api/assets', assetsRoutes);
+app.use('/api/connectors', connectorsRoutes);
+app.use('/api/ml', mlExperimentsRoutes);
+app.use('/api/ml', xaiRoutes);
+app.use('/api/ai', finetuneRoutes);
+app.use('/api/ai', visionRoutes);
+app.use('/api/assets', assetsHealthRoutes);
+app.use('/api/knowledge', knowledgeQueryRoutes);
+app.use('/api/analytics', anomaliesRoutes);
+app.use('/api/ai', aiGovernanceRoutes);
+app.use('/api/ai', aiPromptsRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
@@ -186,13 +240,15 @@ function shutdown(signal) {
       logger.info('WebSocket server closed');
     }
 
-    // Close MongoDB client
-    client.close().then(() => {
-      logger.info('MongoDB client closed');
-      process.exit(0);
-    }).catch(() => {
-      process.exit(1);
-    });
+    // Close DB connection via adapter
+    try {
+      const adapter = await getAdapter();
+      await adapter.close();
+      logger.info('Database connection closed');
+    } catch {
+      // ignore
+    }
+    process.exit(0);
   });
 
   // Force exit after 10 seconds

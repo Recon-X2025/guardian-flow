@@ -1,70 +1,46 @@
-import { MongoClient } from 'mongodb';
-import dotenv from 'dotenv';
-import { validateDatabaseCredentials } from '../config/dbValidation.js';
+/**
+ * @file server/db/client.js
+ * @description
+ * Backward-compatible re-export shim.
+ *
+ * Existing code that does:
+ *   import { db, client, isConnected } from '../db/client.js';
+ * continues to work without modification.
+ *
+ * When DB_ADAPTER=mongodb (default):
+ *   - `db`     → raw mongodb.Db object (supports cursor API, createIndex, etc.)
+ *   - `client` → raw MongoClient       (supports sessions, close())
+ *   - `isConnected` → live heartbeat tracker
+ *
+ * When DB_ADAPTER=postgresql:
+ *   - `db`     → null  (callers using raw MongoDB cursor API need migration)
+ *   - `client` → null
+ *   - `isConnected` → pg pool live-check
+ *
+ * New code should import from the factory instead:
+ *   import { getAdapter } from './factory.js';
+ */
 
-dotenv.config();
+import { getAdapterName } from './factory.js';
 
-// Validate credentials in production
-try {
-  validateDatabaseCredentials();
-} catch (err) {
-  console.error(err.message);
-  if (process.env.NODE_ENV === 'production') process.exit(1);
-}
+let db     = null;
+let client = null;
+let isConnected = () => false;
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/';
-const DB_NAME = process.env.DB_NAME || 'guardianflow';
-const MAX_RETRIES = parseInt(process.env.DB_CONNECT_RETRIES || '5', 10);
-const RETRY_DELAY_MS = parseInt(process.env.DB_RETRY_DELAY_MS || '3000', 10);
+const adapterName = getAdapterName();
 
-const client = new MongoClient(MONGODB_URI, {
-  maxPoolSize: parseInt(process.env.DB_POOL_MAX || '20', 10),
-  connectTimeoutMS: parseInt(process.env.DB_POOL_CONNECT_TIMEOUT || '5000', 10),
-  serverSelectionTimeoutMS: parseInt(process.env.DB_POOL_CONNECT_TIMEOUT || '5000', 10),
-});
-
-const db = client.db(DB_NAME);
-
-/** Track connection state for health checks */
-let connected = false;
-
-async function connectWithRetry(retries = MAX_RETRIES) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      await client.connect();
-      connected = true;
-      console.log('✅ Connected to MongoDB Atlas database');
-      return;
-    } catch (err) {
-      console.error(`❌ MongoDB connection attempt ${attempt}/${retries} failed:`, err.message);
-      if (attempt < retries) {
-        const delay = RETRY_DELAY_MS * attempt;
-        console.log(`   Retrying in ${delay}ms...`);
-        await new Promise(r => setTimeout(r, delay));
-      }
-    }
-  }
-  console.error('❌ All MongoDB connection attempts failed');
-  if (process.env.NODE_ENV === 'production') {
-    process.exit(-1);
-  }
-  // In development, server starts but health check reports degraded
-}
-
-connectWithRetry();
-
-client.on('error', (err) => {
-  console.error('❌ Unexpected MongoDB error', err.message);
-  connected = false;
-});
-
-// Re-track connection when topology changes
-client.on('topologyOpening', () => { connected = false; });
-client.on('serverHeartbeatSucceeded', () => { connected = true; });
-client.on('serverHeartbeatFailed', () => { connected = false; });
-
-function isConnected() {
-  return connected;
+if (adapterName === 'mongodb') {
+  // Import synchronously from the MongoDB adapter module.
+  // The adapter module starts the connection on import, exactly as before.
+  const mongo = await import('./adapters/mongodb.js');
+  db          = mongo.db;
+  client      = mongo.mongoClient;
+  isConnected = mongo.default.isConnected;
+} else {
+  // PostgreSQL (or future adapters): raw `db` / `client` are not applicable.
+  // Import the adapter so its connection is started.
+  const pgMod = await import('./adapters/postgresql.js');
+  isConnected = pgMod.default.isConnected;
 }
 
 export { db, client, isConnected };

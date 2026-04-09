@@ -83,3 +83,34 @@ export async function seedModelRegistry() {
 
   return { created, total: models.length };
 }
+
+export async function listAuditLog(tenantId, filters = {}) {
+  const query = { ...(tenantId ? { tenant_id: tenantId } : {}) };
+  if (filters.model) query.model = filters.model;
+  if (filters.from) query.created_at = { $gte: new Date(filters.from) };
+  return findMany('ai_audit_log', query, { sort: { created_at: -1 }, limit: filters.limit || 100 });
+}
+
+export async function createPolicy(tenantId, policy) {
+  const { randomUUID: uuid } = await import('crypto');
+  const doc = {
+    id: uuid(),
+    tenant_id: tenantId,
+    name: policy.name,
+    description: policy.description || '',
+    rules: policy.rules || [],
+    enabled: policy.enabled !== false,
+    created_at: new Date(),
+    updated_at: new Date(),
+  };
+  await insertOne('ai_governance_policies', doc);
+  return doc;
+}
+
+export async function listPolicies(tenantId) {
+  return findMany('ai_governance_policies', { tenant_id: tenantId }, { sort: { created_at: -1 }, limit: 100 });
+}
+
+export async function getModelRegistry(tenantId) {
+  return findMany('model_registry', {}, { sort: { usage_count: -1 }, limit: 50 });
+}

@@ -26,6 +26,56 @@ interface Prediction {
   };
 }
 
+interface AtRiskAsset {
+  assetId: string;
+  serialNumber?: string;
+  model?: string;
+  healthScore: number;
+  failureProbability: number;
+  riskLevel: string;
+  recommendedAction?: string;
+}
+
+function AtRiskSection() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['at-risk-assets'],
+    queryFn: async () => {
+      const res = await fetch('/api/assets/at-risk');
+      if (!res.ok) throw new Error('Failed to load at-risk assets');
+      return res.json();
+    },
+  });
+
+  const assets: AtRiskAsset[] = data?.assets || [];
+
+  if (isLoading) return <div className="text-sm text-muted-foreground py-2">Loading at-risk assets...</div>;
+  if (assets.length === 0) return null;
+
+  return (
+    <Card className="p-6 border-destructive">
+      <div className="flex items-center gap-2 mb-4">
+        <AlertTriangle className="h-5 w-5 text-destructive" />
+        <h2 className="text-lg font-semibold text-destructive">At-Risk Assets</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {assets.map(asset => (
+          <div key={asset.assetId} className="p-3 border rounded-md space-y-1">
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-sm">{asset.model || asset.serialNumber || asset.assetId}</span>
+              <Badge variant="destructive">{asset.riskLevel}</Badge>
+            </div>
+            <div className="text-xs text-muted-foreground">Health: {asset.healthScore}%</div>
+            <div className="text-xs text-muted-foreground">Failure prob: {(asset.failureProbability * 100).toFixed(1)}%</div>
+            {asset.recommendedAction && (
+              <div className="text-xs text-orange-600">{asset.recommendedAction}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export default function PredictiveMaintenance() {
   const [running, setRunning] = useState(false);
   const [modelInfo, setModelInfo] = useState<{ ai_provider?: string; llm_provider?: string; model_info?: { trained?: boolean; data_points?: number } } | null>(null);
@@ -121,6 +171,8 @@ export default function PredictiveMaintenance() {
           </AlertDescription>
         </Alert>
       )}
+
+      <AtRiskSection />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-6">
