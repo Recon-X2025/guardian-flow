@@ -104,6 +104,8 @@ const CustomerAuth = lazy(() => import("@/domains/auth/pages/auth/CustomerAuth")
 const TrainingAuth = lazy(() => import("@/domains/auth/pages/auth/TrainingAuth"));
 const TrainingPlatform = lazy(() => import("@/domains/training/pages/TrainingPlatform"));
 const OrgManagementConsole = lazy(() => import("@/domains/org/pages/OrgManagementConsole"));
+const AssetRegister = lazy(() => import("@/domains/workOrders/pages/AssetRegister"));
+const ConnectorManagement = lazy(() => import("@/domains/org/pages/ConnectorManagement"));
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
@@ -757,6 +759,22 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent"]} showError={true}>
                         <AppLayout><SuspenseWrap><CommsHub /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/asset-register" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","technician"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AssetRegister /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/connector-management" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ConnectorManagement /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

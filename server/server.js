@@ -30,6 +30,8 @@ import scheduleRoutes from './routes/schedule.js';
 import customerBookingRoutes from './routes/customer-booking.js';
 import customer360Routes from './routes/customer360.js';
 import commsRoutes from './routes/comms.js';
+import assetsRoutes from './routes/assets.js';
+import connectorsRoutes from './routes/connectors.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -158,6 +160,8 @@ app.use('/api/schedule', authenticateToken, scheduleRoutes);
 app.use('/api/customer-booking', customerBookingRoutes);
 app.use('/api/customer360', customer360Routes);
 app.use('/api/comms', commsRoutes);
+app.use('/api/assets', assetsRoutes);
+app.use('/api/connectors', connectorsRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

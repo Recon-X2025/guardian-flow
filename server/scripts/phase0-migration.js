@@ -447,6 +447,67 @@ async function runMigrations() {
           ).catch(() => {});
         },
       },
+      {
+        version: '017_sprint13_assets',
+        description: 'Asset install base and parent-child hierarchy indexes',
+        async run() {
+          // ── assets ────────────────────────────────────────────────────────
+          await db.collection('assets').createIndex(
+            { tenant_id: 1, serial_number: 1 },
+            { unique: true },
+          ).catch(() => {});
+          await db.collection('assets').createIndex(
+            { tenant_id: 1, parent_id: 1 },
+          ).catch(() => {});
+          await db.collection('assets').createIndex(
+            { tenant_id: 1, category: 1 },
+          ).catch(() => {});
+
+          // ── asset_relationships ───────────────────────────────────────────
+          await db.collection('asset_relationships').createIndex(
+            { tenant_id: 1, parent_id: 1, child_id: 1 },
+            { unique: true },
+          ).catch(() => {});
+
+          // ── asset_service_history ─────────────────────────────────────────
+          await db.collection('asset_service_history').createIndex(
+            { tenant_id: 1, asset_id: 1, date: -1 },
+          ).catch(() => {});
+        },
+      },
+      {
+        version: '018_sprint15_connectors',
+        description: 'ERP/CRM connector configuration and sync log indexes',
+        async run() {
+          // ── connector_configs ─────────────────────────────────────────────
+          await db.collection('connector_configs').createIndex(
+            { tenant_id: 1, connector_type: 1 },
+            { unique: true },
+          ).catch(() => {});
+
+          // ── connector_sync_log ────────────────────────────────────────────
+          await db.collection('connector_sync_log').createIndex(
+            { tenant_id: 1, connector_id: 1, synced_at: -1 },
+          ).catch(() => {});
+        },
+      },
+      {
+        version: '019_sprint17_p2_indexes',
+        description: 'Performance indexes for Phase 2 features',
+        async run() {
+          // ── schedule_assignments — compound query index ───────────────────
+          await db.collection('schedule_assignments').createIndex(
+            { tenant_id: 1, date: 1, status: 1 },
+          ).catch(() => {});
+
+          // ── communication_threads — high-cardinality sort index ───────────
+          // Note: A TTL index (expireAfterSeconds) is intentionally omitted;
+          // thread retention is managed at the application layer.
+          await db.collection('communication_threads').createIndex(
+            { tenant_id: 1, created_at: -1 },
+          ).catch(() => {});
+        },
+      },
     ];
 
     for (const migration of migrations) {
