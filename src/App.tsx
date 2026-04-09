@@ -101,6 +101,7 @@ const AnalyticsAuth = lazy(() => import("@/domains/auth/pages/auth/AnalyticsAuth
 const CustomerAuth = lazy(() => import("@/domains/auth/pages/auth/CustomerAuth"));
 const TrainingAuth = lazy(() => import("@/domains/auth/pages/auth/TrainingAuth"));
 const TrainingPlatform = lazy(() => import("@/domains/training/pages/TrainingPlatform"));
+const OrgManagementConsole = lazy(() => import("@/domains/org/pages/OrgManagementConsole"));
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
@@ -657,6 +658,14 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
                         <AppLayout><SuspenseWrap><AdminConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/org-console" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><OrgManagementConsole /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

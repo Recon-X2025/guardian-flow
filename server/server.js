@@ -19,6 +19,7 @@ import securityMonitorRoutes from './routes/security-monitor.js';
 import logFrontendErrorRoutes from './routes/log-frontend-error.js';
 import slaMonitorRoutes from './routes/sla-monitor.js';
 import partnerApiGatewayRoutes from './routes/partner-api-gateway.js';
+import orgRoutes from './routes/org.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -136,6 +137,7 @@ app.use('/api/security', securityMonitorRoutes);
 app.use('/api/log-error', logFrontendErrorRoutes);
 app.use('/api/sla', slaMonitorRoutes);
 app.use('/api/partner', partnerApiGatewayRoutes);
+app.use('/api/org', orgRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
