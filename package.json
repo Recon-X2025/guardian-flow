@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "cd server && node --watch server.js",
+    "dev:all": "node server/server.js & npx vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

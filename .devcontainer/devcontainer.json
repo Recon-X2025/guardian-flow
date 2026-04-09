@@ -1,0 +1,48 @@
+{
+  "name": "Guardian Flow Dev",
+  "dockerComposeFile": "docker-compose.devcontainer.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/guardian-flow",
+
+  "features": {},
+
+  "forwardPorts": [5175, 3001],
+  "portsAttributes": {
+    "5175": {
+      "label": "Frontend (Vite)",
+      "onAutoForward": "openBrowser"
+    },
+    "3001": {
+      "label": "Backend (Express)",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "postCreateCommand": "npm install && (cd server && npm install) && cp -n .env.example .env || true && node server/scripts/phase0-migration.js || true",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "mongodb.mongodb-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+      }
+    }
+  },
+
+  "remoteEnv": {
+    "MONGODB_URI": "mongodb://mongo:27017/",
+    "DB_NAME": "guardianflow",
+    "JWT_SECRET": "dev-only-secret-change-in-production",
+    "NODE_ENV": "development",
+    "PORT": "3001",
+    "VITE_API_URL": "http://localhost:3001",
+    "AI_PROVIDER": "mock"
+  }
+}
