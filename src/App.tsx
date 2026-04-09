@@ -63,6 +63,8 @@ const Documents = lazy(() => import("@/domains/shared/pages/Documents"));
 const Webhooks = lazy(() => import("@/domains/shared/pages/Webhooks"));
 const Marketplace = lazy(() => import("@/domains/marketplace/pages/Marketplace"));
 const DisputeManagement = lazy(() => import("@/domains/financial/pages/DisputeManagement"));
+const GeneralLedger = lazy(() => import("@/domains/financial/pages/GeneralLedger"));
+const AccountsPayable = lazy(() => import("@/domains/financial/pages/AccountsPayable"));
 const ABTestManager = lazy(() => import("@/domains/shared/pages/ABTestManager"));
 const SystemHealth = lazy(() => import("@/domains/shared/pages/SystemHealth"));
 const ComplianceDashboard = lazy(() => import("@/domains/fraud/pages/ComplianceDashboard"));
@@ -597,6 +599,22 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard permissions={["finance.view"]} showError={true}>
                         <AppLayout><SuspenseWrap><DisputeManagement /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/general-ledger" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><GeneralLedger /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/accounts-payable" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AccountsPayable /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

@@ -24,6 +24,7 @@ import flowspaceRoutes from './routes/flowspace.js';
 import dexRoutes from './routes/dex.js';
 import ssoRoutes from './routes/sso.js';
 import currencyRoutes from './routes/currency.js';
+import ledgerRoutes from './routes/ledger.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -146,6 +147,7 @@ app.use('/api/flowspace', flowspaceRoutes);
 app.use('/api/dex', dexRoutes);
 app.use('/api/sso', ssoRoutes);
 app.use('/api/currency', currencyRoutes);
+app.use('/api/ledger', authenticateToken, ledgerRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

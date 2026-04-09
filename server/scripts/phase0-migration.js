@@ -339,6 +339,37 @@ async function runMigrations() {
           await db.collection('quotes').createIndex({ currency: 1 }).catch(() => {});
         },
       },
+      {
+        version: '013_sprint3_ledger',
+        description: 'Chart of accounts, journal entries, accounting periods',
+        async run() {
+          // ── chart_of_accounts ─────────────────────────────────────────────
+          await db.collection('chart_of_accounts').createIndex(
+            { tenant_id: 1, account_code: 1 },
+            { unique: true },
+          ).catch(() => {});
+          await db.collection('chart_of_accounts').createIndex(
+            { tenant_id: 1, account_type: 1 },
+          ).catch(() => {});
+
+          // ── journal_entries ───────────────────────────────────────────────
+          await db.collection('journal_entries').createIndex(
+            { tenant_id: 1, created_at: -1 },
+          ).catch(() => {});
+          await db.collection('journal_entries').createIndex(
+            { tenant_id: 1, period_id: 1 },
+          ).catch(() => {});
+          await db.collection('journal_entries').createIndex(
+            { tenant_id: 1, status: 1 },
+          ).catch(() => {});
+
+          // ── accounting_periods ────────────────────────────────────────────
+          await db.collection('accounting_periods').createIndex(
+            { tenant_id: 1, year: 1, month: 1 },
+            { unique: true },
+          ).catch(() => {});
+        },
+      },
     ];
 
     for (const migration of migrations) {
