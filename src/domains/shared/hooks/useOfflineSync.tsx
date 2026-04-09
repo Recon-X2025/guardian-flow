@@ -134,8 +134,10 @@ export function useOfflineSync() {
   return {
     isOnline,
     queueAction,
+    queueMutation: queueAction,
     syncQueue,
     queue,
+    pendingCount: queue.length,
     syncing,
   };
 }
