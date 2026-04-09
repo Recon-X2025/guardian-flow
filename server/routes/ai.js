@@ -7,6 +7,7 @@ import { detectWorkOrderAnomalies, detectFinancialAnomalies } from '../services/
 import { getModelHealth, getGovernanceLogs, seedModelRegistry } from '../services/ai/governance.js';
 import { findMany, countDocuments } from '../db/query.js';
 import { db } from '../db/client.js';
+import { writeDecisionRecord } from '../services/flowspace.js';
 
 const router = express.Router();
 
@@ -20,6 +21,27 @@ router.post('/rag/query', authenticateToken, async (req, res) => {
     if (!question) return res.status(400).json({ error: 'question is required' });
 
     const result = await rag.query(question, req.user.id, topK || 5);
+
+    // FlowSpace: record every RAG decision for AI Act auditability
+    writeDecisionRecord({
+      tenantId: req.user.id,
+      domain: 'ai',
+      actorType: 'ai',
+      actorId: result.model || 'rag-engine',
+      action: 'rag_query_answered',
+      rationale: question,
+      context: {
+        topK: topK || 5,
+        sourceCount: result.sources?.length ?? 0,
+        question,
+      },
+      confidenceScore: result.confidence ?? null,
+      modelVersion: result.model ?? null,
+    }).catch(err => {
+      // Fire-and-forget: do not fail the request if FlowSpace write fails
+      console.warn('FlowSpace write failed (rag_query):', err.message);
+    });
+
     res.json(result);
   } catch (error) {
     console.error('RAG query error:', error);
@@ -322,6 +344,21 @@ router.post('/fraud-detection', authenticateToken, async (req, res) => {
       model: result.model,
       provider: result.provider,
     });
+
+    // FlowSpace: record fraud detection decision
+    writeDecisionRecord({
+      tenantId: req.user.id,
+      domain: 'finance',
+      actorType: 'ai',
+      actorId: result.model || 'fraud-detection',
+      action: 'fraud_risk_assessed',
+      rationale: result.content,
+      context: { invoice_id, risk_score: riskScore },
+      confidenceScore: riskScore < 30 ? 0.9 : riskScore < 60 ? 0.6 : 0.85,
+      modelVersion: result.model ?? null,
+      entityType: invoice_id ? 'invoice' : null,
+      entityId: invoice_id ?? null,
+    }).catch(err => console.warn('FlowSpace write failed (fraud_detection):', err.message));
   } catch (error) {
     console.error('Fraud detection error:', error);
     res.status(500).json({ error: 'Fraud detection failed' });

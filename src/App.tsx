@@ -106,6 +106,9 @@ const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/Schedule
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
 const MaintenanceCalendar = lazy(() => import("@/domains/workOrders/pages/MaintenanceCalendar"));
+const DecisionLedger = lazy(() => import("@/domains/flowspace/pages/DecisionLedger"));
+const ExecutionConsole = lazy(() => import("@/domains/dex/pages/ExecutionConsole"));
+const SsoCallback = lazy(() => import("@/domains/auth/pages/SsoCallback"));
 
 const queryClient = new QueryClient();
 
@@ -160,6 +163,8 @@ const App = () => (
                   <Route path="/auth/customer" element={<SuspenseWrap><CustomerAuth /></SuspenseWrap>} />
                   <Route path="/auth/training" element={<SuspenseWrap><TrainingAuth /></SuspenseWrap>} />
                   <Route path="/auth/platform" element={<SuspenseWrap><UnifiedPlatformAuth /></SuspenseWrap>} />
+                  {/* SSO callback — must precede generic /auth */}
+                  <Route path="/auth/sso-callback" element={<SuspenseWrap><SsoCallback /></SuspenseWrap>} />
                   {/* Generic /auth route must come LAST */}
                   <Route path="/auth" element={<SuspenseWrap><UnifiedPlatformAuth /></SuspenseWrap>} />
                   <Route path="/developer" element={<SuspenseWrap><DeveloperLanding /></SuspenseWrap>} />
@@ -666,6 +671,24 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin", "tenant_admin"]} showError={true}>
                         <AppLayout><SuspenseWrap><OrgManagementConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* FlowSpace — Decision Ledger */}
+                  <Route path="/flowspace" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","finance_manager","auditor"]} permissions={["audit.read"]} showError={true}>
+                        <AppLayout><SuspenseWrap><DecisionLedger /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* DEX — Execution Console */}
+                  <Route path="/dex" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} permissions={["wo.read"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ExecutionConsole /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

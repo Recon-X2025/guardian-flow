@@ -268,6 +268,58 @@ async function runMigrations() {
           await db.collection('translations').createIndex({ key: 1, locale: 1 }, { unique: true }).catch(() => {});
         },
       },
+      {
+        version: '011_sprint1_flowspace_dex_sso',
+        description: 'Create indexes for Sprint 1: FlowSpace decision_records, DEX execution_contexts, and SSO sso_configs collections',
+        run: async () => {
+          // ── decision_records (FlowSpace) ───────────────────────────────────
+          // Primary access pattern: tenant + domain + timestamp (ledger view)
+          await db.collection('decision_records').createIndex(
+            { tenant_id: 1, domain: 1, created_at: -1 },
+          ).catch(() => {});
+          // Secondary: tenant + entity (WO-scoped record lookup)
+          await db.collection('decision_records').createIndex(
+            { tenant_id: 1, entity_type: 1, entity_id: 1, created_at: -1 },
+          ).catch(() => {});
+          // Lineage walk: follow lineage_parent_id chains
+          await db.collection('decision_records').createIndex(
+            { tenant_id: 1, lineage_parent_id: 1 },
+          ).catch(() => {});
+          // Actor filter
+          await db.collection('decision_records').createIndex(
+            { tenant_id: 1, actor_type: 1, actor_id: 1 },
+          ).catch(() => {});
+          // Unique record lookup
+          await db.collection('decision_records').createIndex({ id: 1 }, { unique: true }).catch(() => {});
+          // TTL: retain 7 years for EU AI Act Art. 13 compliance (never auto-delete by default)
+          // Note: index expiry intentionally NOT set — retention managed by data governance policy
+
+          // ── execution_contexts (DEX) ───────────────────────────────────────
+          // Active context dashboard: tenant + stage
+          await db.collection('execution_contexts').createIndex(
+            { tenant_id: 1, current_stage: 1, updated_at: -1 },
+          ).catch(() => {});
+          // Entity lookup: find context for a given WO/invoice/etc.
+          await db.collection('execution_contexts').createIndex(
+            { tenant_id: 1, entity_type: 1, entity_id: 1 },
+          ).catch(() => {});
+          // Flow ID lookup
+          await db.collection('execution_contexts').createIndex(
+            { tenant_id: 1, flow_id: 1 },
+          ).catch(() => {});
+          // Unique context lookup
+          await db.collection('execution_contexts').createIndex({ id: 1 }, { unique: true }).catch(() => {});
+
+          // ── sso_configs ───────────────────────────────────────────────────
+          // One SSO config per tenant
+          await db.collection('sso_configs').createIndex(
+            { tenant_id: 1 },
+            { unique: true },
+          ).catch(() => {});
+          // Protocol filter (find tenants using SAML vs OIDC)
+          await db.collection('sso_configs').createIndex({ protocol: 1, enabled: 1 }).catch(() => {});
+        },
+      },
     ];
 
     for (const migration of migrations) {
