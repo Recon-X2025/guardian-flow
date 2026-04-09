@@ -340,6 +340,33 @@ async function runMigrations() {
         },
       },
       {
+        version: '014_sprint4_skills',
+        description: 'Skills, certifications, technician_skills collections',
+        async run() {
+          // ── skills ────────────────────────────────────────────────────────
+          await db.collection('skills').createIndex(
+            { tenant_id: 1, name: 1 },
+            { unique: true },
+          ).catch(() => {});
+
+          // ── certifications ────────────────────────────────────────────────
+          await db.collection('certifications').createIndex(
+            { tenant_id: 1, name: 1 },
+          ).catch(() => {});
+
+          // ── technician_skills ─────────────────────────────────────────────
+          await db.collection('technician_skills').createIndex(
+            { tenant_id: 1, technician_id: 1 },
+          ).catch(() => {});
+          await db.collection('technician_skills').createIndex(
+            { tenant_id: 1, skill_id: 1 },
+          ).catch(() => {});
+          await db.collection('technician_skills').createIndex(
+            { tenant_id: 1, technician_id: 1, skill_id: 1, certification_id: 1 },
+          ).catch(() => {});
+        },
+      },
+      {
         version: '013_sprint3_ledger',
         description: 'Chart of accounts, journal entries, accounting periods',
         async run() {

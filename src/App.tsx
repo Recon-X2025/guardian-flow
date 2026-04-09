@@ -111,6 +111,8 @@ const MaintenanceCalendar = lazy(() => import("@/domains/workOrders/pages/Mainte
 const DecisionLedger = lazy(() => import("@/domains/flowspace/pages/DecisionLedger"));
 const ExecutionConsole = lazy(() => import("@/domains/dex/pages/ExecutionConsole"));
 const SsoCallback = lazy(() => import("@/domains/auth/pages/SsoCallback"));
+const TechnicianProfile = lazy(() => import("@/domains/workOrders/pages/TechnicianProfile"));
+const SkillsAdmin = lazy(() => import("@/domains/org/pages/SkillsAdmin"));
 
 const queryClient = new QueryClient();
 
@@ -707,6 +709,22 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} permissions={["wo.read"]} showError={true}>
                         <AppLayout><SuspenseWrap><ExecutionConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Technician Profile */}
+                  <Route path="/technician-profile/:techId" element={
+                    <ProtectedRoute>
+                      <AppLayout><SuspenseWrap><TechnicianProfile /></SuspenseWrap></AppLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Skills Admin */}
+                  <Route path="/skills-admin" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} permissions={["org.manage"]} showError={true}>
+                        <AppLayout><SuspenseWrap><SkillsAdmin /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

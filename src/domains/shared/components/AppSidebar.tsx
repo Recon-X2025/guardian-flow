@@ -180,6 +180,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Templates", url: "/templates", icon: ClipboardList, permissions: ["admin.config"] },
       { title: "Admin Console", url: "/admin", icon: Shield, roles: ["sys_admin", "tenant_admin"] },
       { title: "Org Console", url: "/org-console", icon: Building2, roles: ["sys_admin", "tenant_admin"] },
+      { title: "Skills Admin", url: "/skills-admin", icon: BookOpen, roles: ["sys_admin", "tenant_admin", "ops_manager"] },
       { title: "Compliance Center", url: "/compliance", icon: Shield, permissions: ["admin.config"] },
       { title: "System Health", url: "/system-health", icon: Heart, permissions: ["admin.config"] },
       { title: "Help & Training", url: "/help", icon: GraduationCap },
