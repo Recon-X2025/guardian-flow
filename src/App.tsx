@@ -114,6 +114,9 @@ const SsoCallback = lazy(() => import("@/domains/auth/pages/SsoCallback"));
 const TechnicianProfile = lazy(() => import("@/domains/workOrders/pages/TechnicianProfile"));
 const SkillsAdmin = lazy(() => import("@/domains/org/pages/SkillsAdmin"));
 const ScheduleOptimiser = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimiser"));
+const CustomerBooking = lazy(() => import("@/domains/customers/pages/CustomerBooking"));
+const Customer360 = lazy(() => import("@/domains/customers/pages/Customer360"));
+const CommsHub = lazy(() => import("@/domains/shared/pages/CommsHub"));
 
 const queryClient = new QueryClient();
 
@@ -735,6 +738,25 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
                         <AppLayout><SuspenseWrap><ScheduleOptimiser /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Customer Self-Scheduling (public) */}
+                  <Route path="/book" element={<SuspenseWrap><CustomerBooking /></SuspenseWrap>} />
+
+                  {/* Customer 360 */}
+                  <Route path="/customer360/:customerId" element={
+                    <ProtectedRoute>
+                      <AppLayout><SuspenseWrap><Customer360 /></SuspenseWrap></AppLayout>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Comms Hub */}
+                  <Route path="/comms-hub" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent"]} showError={true}>
+                        <AppLayout><SuspenseWrap><CommsHub /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

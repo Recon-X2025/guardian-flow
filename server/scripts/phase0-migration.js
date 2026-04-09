@@ -388,6 +388,35 @@ async function runMigrations() {
         },
       },
       {
+        version: '016_sprint11_comms',
+        description: 'Communication threads and customer 360',
+        async run() {
+          // ── communication_threads ─────────────────────────────────────────
+          await db.collection('communication_threads').createIndex(
+            { tenant_id: 1, customer_id: 1 },
+          ).catch(() => {});
+          await db.collection('communication_threads').createIndex(
+            { tenant_id: 1, work_order_id: 1 },
+          ).catch(() => {});
+          await db.collection('communication_threads').createIndex(
+            { tenant_id: 1, channel: 1, created_at: -1 },
+          ).catch(() => {});
+
+          // ── customer_csat ─────────────────────────────────────────────────
+          await db.collection('customer_csat').createIndex(
+            { tenant_id: 1, customer_id: 1, work_order_id: 1 },
+          ).catch(() => {});
+
+          // ── customer_bookings ─────────────────────────────────────────────
+          await db.collection('customer_bookings').createIndex(
+            { tenant_id: 1, customer_id: 1 },
+          ).catch(() => {});
+          await db.collection('customer_bookings').createIndex(
+            { tenant_id: 1, date: 1 },
+          ).catch(() => {});
+        },
+      },
+      {
         version: '013_sprint3_ledger',
         description: 'Chart of accounts, journal entries, accounting periods',
         async run() {
