@@ -120,6 +120,32 @@ const CustomerBooking = lazy(() => import("@/domains/customers/pages/CustomerBoo
 const Customer360 = lazy(() => import("@/domains/customers/pages/Customer360"));
 const CommsHub = lazy(() => import("@/domains/shared/pages/CommsHub"));
 
+// Sprint 29–52 lazy imports
+const IoTDashboard = lazy(() => import("@/domains/workOrders/pages/IoTDashboard"));
+const MaintenanceTriggers = lazy(() => import("@/domains/workOrders/pages/MaintenanceTriggers"));
+const RevenueRecognition = lazy(() => import("@/domains/financial/pages/RevenueRecognition"));
+const BudgetPlanner = lazy(() => import("@/domains/financial/pages/BudgetPlanner"));
+const FlowDesigner = lazy(() => import("@/domains/dex/pages/FlowDesigner"));
+const SLAEngine = lazy(() => import("@/domains/shared/pages/SLAEngine"));
+const CustomerSuccess = lazy(() => import("@/domains/customers/pages/CustomerSuccess"));
+const ESGReporting = lazy(() => import("@/domains/analytics/pages/ESGReporting"));
+const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
+const InventoryOptimisation = lazy(() => import("@/domains/inventory/pages/InventoryOptimisation"));
+const AuditFramework = lazy(() => import("@/domains/fraud/pages/AuditFramework"));
+const PlatformConfig = lazy(() => import("@/domains/shared/pages/PlatformConfig"));
+const FederatedLearning = lazy(() => import("@/domains/shared/pages/FederatedLearning"));
+const DEXMarketplace = lazy(() => import("@/domains/dex/pages/DEXMarketplace"));
+const NeuroConsole = lazy(() => import("@/domains/shared/pages/NeuroConsole"));
+const WhiteLabelPortal = lazy(() => import("@/domains/org/pages/WhiteLabelPortal"));
+const PartnerGateway = lazy(() => import("@/domains/customers/pages/PartnerGateway"));
+const ReportingEngine = lazy(() => import("@/domains/analytics/pages/ReportingEngine"));
+const FieldAppConfig = lazy(() => import("@/domains/shared/pages/FieldAppConfig"));
+const ObservabilityEnhanced = lazy(() => import("@/domains/shared/pages/ObservabilityEnhanced"));
+const DataResidency = lazy(() => import("@/domains/org/pages/DataResidency"));
+const AIEthics = lazy(() => import("@/domains/shared/pages/AIEthics"));
+const E2ETestSuite = lazy(() => import("@/domains/shared/pages/E2ETestSuite"));
+const LaunchReadiness = lazy(() => import("@/domains/shared/pages/LaunchReadiness"));
+
 const queryClient = new QueryClient();
 
 function PageFallback() {
@@ -780,6 +806,176 @@ const App = () => (
                   } />
 
                   {/* Catch-all for 404 */}
+                  {/* Sprint 29–52 routes */}
+                  <Route path="/iot-dashboard" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><IoTDashboard /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/maintenance-triggers" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><MaintenanceTriggers /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/revenue-recognition" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","finance_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><RevenueRecognition /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/budgeting" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","finance_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><BudgetPlanner /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dex-flows" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><FlowDesigner /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/sla-engine" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><SLAEngine /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/customer-success" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent"]} showError={true}>
+                        <AppLayout><SuspenseWrap><CustomerSuccess /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/esg-reporting" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","finance_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ESGReporting /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/digital-twin" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><DigitalTwin /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/inventory-optimisation" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><InventoryOptimisation /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/audit-framework" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","auditor"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AuditFramework /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/platform-config" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><PlatformConfig /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/federated-learning" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><FederatedLearning /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dex-marketplace" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><DEXMarketplace /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/neuro-console" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><NeuroConsole /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/white-label" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><WhiteLabelPortal /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/partner-gateway" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","partner_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><PartnerGateway /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/reporting-engine" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","finance_manager","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ReportingEngine /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/field-app-config" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><FieldAppConfig /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/observability-enhanced" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ObservabilityEnhanced /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/data-residency" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><DataResidency /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/ai-ethics" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AIEthics /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/e2e-tests" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><E2ETestSuite /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/launch-readiness" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin"]} showError={true}>
+                        <AppLayout><SuspenseWrap><LaunchReadiness /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="*" element={<SuspenseWrap><NotFound /></SuspenseWrap>} />
                 </Routes>
               </Suspense>

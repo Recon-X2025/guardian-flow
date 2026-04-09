@@ -65,6 +65,7 @@ import dataResidencyRoutes from './routes/data-residency.js';
 import aiEthicsRoutes from './routes/ai-ethics.js';
 import e2eTestsRoutes from './routes/e2e-tests.js';
 import launchReadinessRoutes from './routes/launch-readiness.js';
+import cbmRoutes from './routes/cbm.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -228,6 +229,7 @@ app.use('/api/data-residency', authenticateToken, dataResidencyRoutes);
 app.use('/api/ai-ethics', authenticateToken, aiEthicsRoutes);
 app.use('/api/e2e', authenticateToken, e2eTestsRoutes);
 app.use('/api/launch', authenticateToken, launchReadinessRoutes);
+app.use('/api/cbm', authenticateToken, cbmRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
