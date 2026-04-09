@@ -25,8 +25,15 @@ import logger from '../utils/logger.js';
 const router = express.Router();
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Constants
 // ---------------------------------------------------------------------------
+
+/** Roles that can be assigned to organisation members. */
+const MEMBER_VALID_ROLES = [
+  'tenant_admin', 'ops_manager', 'finance_manager', 'dispatcher',
+  'technician', 'support_agent', 'fraud_investigator', 'auditor',
+  'billing_agent', 'partner_admin', 'customer',
+];
 
 /**
  * Resolve the tenant_id for the currently-authenticated user.
@@ -306,14 +313,15 @@ router.post('/:id/members/invite', authenticateToken, async (req, res) => {
     if (!org) return res.status(404).json({ error: 'Organisation not found' });
 
     const { email, role = 'tenant_admin', full_name } = req.body;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // Simple structural check: must have exactly one @ with content before and after,
+    // and a dot somewhere in the domain part. Using split to avoid ReDoS.
+    const emailParts = typeof email === 'string' ? email.split('@') : [];
+    if (emailParts.length !== 2 || !emailParts[0] || !emailParts[1] || !emailParts[1].includes('.')) {
       return res.status(400).json({ error: 'Valid email required' });
     }
 
-    const VALID_ROLES = ['tenant_admin', 'ops_manager', 'finance_manager', 'dispatcher',
-      'technician', 'support_agent', 'fraud_investigator', 'auditor', 'billing_agent', 'partner_admin', 'customer'];
-    if (!VALID_ROLES.includes(role)) {
-      return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+    if (!MEMBER_VALID_ROLES.includes(role)) {
+      return res.status(400).json({ error: `role must be one of: ${MEMBER_VALID_ROLES.join(', ')}` });
     }
 
     const now      = new Date();
@@ -359,10 +367,8 @@ router.patch('/:id/members/:uid', authenticateToken, async (req, res) => {
     const { role, active } = req.body;
 
     if (role !== undefined) {
-      const VALID_ROLES = ['tenant_admin', 'ops_manager', 'finance_manager', 'dispatcher',
-        'technician', 'support_agent', 'fraud_investigator', 'auditor', 'billing_agent', 'partner_admin', 'customer'];
-      if (!VALID_ROLES.includes(role)) {
-        return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+      if (!MEMBER_VALID_ROLES.includes(role)) {
+        return res.status(400).json({ error: `role must be one of: ${MEMBER_VALID_ROLES.join(', ')}` });
       }
       // Replace the user's primary role in user_roles
       await adapter.deleteMany('user_roles', { user_id: uid });
