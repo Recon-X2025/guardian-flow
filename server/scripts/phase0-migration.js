@@ -273,7 +273,9 @@ async function runMigrations() {
         description: 'Create indexes for Sprint 1: FlowSpace decision_records, DEX execution_contexts, and SSO sso_configs collections',
         run: async () => {
           // ── decision_records (FlowSpace) ───────────────────────────────────
-          // Primary access pattern: tenant + domain + timestamp (ledger view)
+          // Primary access pattern: tenant + domain + timestamp (ledger view).
+          // Compound index { tenant_id: 1, domain: 1, created_at: -1 } satisfies
+          // the < 200ms requirement for FlowSpace ledger queries (Sprint 6 hardening).
           await db.collection('decision_records').createIndex(
             { tenant_id: 1, domain: 1, created_at: -1 },
           ).catch(() => {});
@@ -363,6 +365,25 @@ async function runMigrations() {
           ).catch(() => {});
           await db.collection('technician_skills').createIndex(
             { tenant_id: 1, technician_id: 1, skill_id: 1, certification_id: 1 },
+          ).catch(() => {});
+        },
+      },
+      {
+        version: '015_sprint7_scheduler',
+        description: 'Schedule assignments and solver runs',
+        async run() {
+          // ── schedule_assignments ──────────────────────────────────────────
+          await db.collection('schedule_assignments').createIndex(
+            { tenant_id: 1, date: 1 },
+          ).catch(() => {});
+          await db.collection('schedule_assignments').createIndex(
+            { tenant_id: 1, work_order_id: 1 },
+          ).catch(() => {});
+          await db.collection('schedule_assignments').createIndex(
+            { tenant_id: 1, run_id: 1 },
+          ).catch(() => {});
+          await db.collection('schedule_assignments').createIndex(
+            { tenant_id: 1, status: 1 },
           ).catch(() => {});
         },
       },

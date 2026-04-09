@@ -26,6 +26,7 @@ import ssoRoutes from './routes/sso.js';
 import currencyRoutes from './routes/currency.js';
 import ledgerRoutes from './routes/ledger.js';
 import skillsRoutes from './routes/skills.js';
+import scheduleRoutes from './routes/schedule.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -150,6 +151,7 @@ app.use('/api/sso', ssoRoutes);
 app.use('/api/currency', currencyRoutes);
 app.use('/api/ledger', authenticateToken, ledgerRoutes);
 app.use('/api/skills', authenticateToken, skillsRoutes);
+app.use('/api/schedule', authenticateToken, scheduleRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

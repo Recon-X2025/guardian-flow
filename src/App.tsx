@@ -113,6 +113,7 @@ const ExecutionConsole = lazy(() => import("@/domains/dex/pages/ExecutionConsole
 const SsoCallback = lazy(() => import("@/domains/auth/pages/SsoCallback"));
 const TechnicianProfile = lazy(() => import("@/domains/workOrders/pages/TechnicianProfile"));
 const SkillsAdmin = lazy(() => import("@/domains/org/pages/SkillsAdmin"));
+const ScheduleOptimiser = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimiser"));
 
 const queryClient = new QueryClient();
 
@@ -725,6 +726,15 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} permissions={["org.manage"]} showError={true}>
                         <AppLayout><SuspenseWrap><SkillsAdmin /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  {/* Schedule Optimiser */}
+                  <Route path="/schedule-optimiser" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ScheduleOptimiser /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />
