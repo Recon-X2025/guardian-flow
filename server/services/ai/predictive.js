@@ -165,3 +165,77 @@ export async function generateMaintenancePredictions(tenantId) {
 
   return predictions;
 }
+
+export async function getAssetHealth(tenantId, assetId) {
+  const equipment = await findOne('equipment', { id: assetId, tenant_id: tenantId });
+  if (!equipment) throw new Error('Asset not found');
+
+  const predictions = await findMany('maintenance_predictions', { equipment_id: assetId, tenant_id: tenantId }, { sort: { predicted_at: -1 }, limit: 1 });
+  const prediction = predictions[0];
+
+  const failureProbability = prediction ? prediction.failure_probability / 100 : 0.1;
+  const healthScore = Math.round((1 - failureProbability) * 100);
+
+  const now = new Date();
+  const predictedFailureDate = prediction?.days_since_last_service
+    ? new Date(now.getTime() + (prediction.mtbf_days || 180) * 24 * 3600 * 1000)
+    : null;
+  const recommendedServiceDate = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+
+  return {
+    assetId,
+    healthScore,
+    failureProbability,
+    predictedFailureDate,
+    recommendedServiceDate,
+    riskLevel: prediction?.risk_level || 'low',
+    lastServiceDays: prediction?.days_since_last_service || 0,
+  };
+}
+
+export async function getAtRiskAssets(tenantId, limit = 10) {
+  const predictions = await findMany('maintenance_predictions',
+    { tenant_id: tenantId, risk_level: { $in: ['critical', 'high'] } },
+    { sort: { failure_probability: -1 }, limit }
+  );
+  return predictions.map(p => ({
+    assetId: p.equipment_id,
+    serialNumber: p.serial_number,
+    model: p.model,
+    healthScore: Math.round((1 - p.failure_probability / 100) * 100),
+    failureProbability: p.failure_probability / 100,
+    riskLevel: p.risk_level,
+    recommendedAction: p.recommended_action,
+  }));
+}
+
+export async function predictFailureProbability(tenantId, assetId) {
+  const equipment = await findOne('equipment', { id: assetId, tenant_id: tenantId });
+  if (!equipment) throw new Error('Asset not found');
+
+  const serviceHistory = await findMany('work_orders',
+    { tenant_id: tenantId, equipment_id: assetId, status: 'completed' },
+    { sort: { updated_at: -1 }, limit: 20 }
+  );
+
+  const equipmentAge = equipment.purchase_date
+    ? (Date.now() - new Date(equipment.purchase_date).getTime()) / (1000 * 3600 * 24)
+    : 365;
+  const totalFailures = serviceHistory.filter(wo => wo.failure_type).length;
+  const daysSinceLastService = serviceHistory.length > 0
+    ? (Date.now() - new Date(serviceHistory[0].updated_at).getTime()) / (1000 * 3600 * 24)
+    : 90;
+
+  const b0 = -3.0, b1 = 0.008, b2 = 0.15, b3 = 0.002;
+  const logit = b0 + b1 * daysSinceLastService + b2 * totalFailures + b3 * equipmentAge;
+  const failureProbability = Math.round(100 / (1 + Math.exp(-logit))) / 100;
+  const healthScore = Math.round((1 - failureProbability) * 100);
+  const now = new Date();
+
+  return {
+    healthScore,
+    failureProbability,
+    predictedFailureDate: new Date(now.getTime() + (1 - failureProbability) * 365 * 24 * 3600 * 1000),
+    recommendedServiceDate: new Date(now.getTime() + 30 * 24 * 3600 * 1000),
+  };
+}

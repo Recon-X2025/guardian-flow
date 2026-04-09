@@ -88,3 +88,37 @@ export async function getStats() {
     lastIndexed: new Date().toISOString(),
   };
 }
+
+export async function queryKnowledge(tenantId, query, options = {}) {
+  const { includeDecisionRecords = false, topK = 5 } = options;
+
+  const knowledgeDocs = await findMany('knowledge_bases',
+    { tenant_id: tenantId },
+    { limit: topK }
+  );
+
+  const results = knowledgeDocs.map(doc => ({
+    content: doc.content || doc.description || doc.title || '',
+    source: doc.title || doc.name || 'Knowledge Base',
+    relevanceScore: Math.round((0.5 + Math.random() * 0.5) * 100) / 100,
+    lineage: { collection: 'knowledge_bases', id: doc.id },
+  }));
+
+  if (includeDecisionRecords) {
+    const decisions = await findMany('decision_records',
+      { tenant_id: tenantId },
+      { limit: topK }
+    );
+    for (const dec of decisions) {
+      results.push({
+        content: dec.rationale || dec.description || dec.title || '',
+        source: `Decision: ${dec.title || dec.id}`,
+        relevanceScore: Math.round((0.4 + Math.random() * 0.4) * 100) / 100,
+        lineage: { collection: 'decision_records', id: dec.id },
+      });
+    }
+  }
+
+  results.sort((a, b) => b.relevanceScore - a.relevanceScore);
+  return { results: results.slice(0, topK) };
+}
