@@ -22,6 +22,7 @@
 
 import express from 'express';
 import { randomUUID } from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { getAdapter } from '../db/factory.js';
 import { authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
@@ -33,6 +34,18 @@ const VALID_STAGES = [
   'created', 'assigned', 'in_progress', 'pending_review',
   'completed', 'closed', 'failed', 'cancelled',
 ];
+
+// Per-authenticated-user rate limiter: 120 req/min across all DEX endpoints
+const dexLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many DEX requests, please slow down' },
+});
+
+router.use(dexLimiter);
 
 async function resolveTenantId(userId) {
   const adapter = await getAdapter();

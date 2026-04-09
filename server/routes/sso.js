@@ -32,6 +32,7 @@
 
 import express from 'express';
 import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
+import rateLimit from 'express-rate-limit';
 import { getAdapter } from '../db/factory.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { generateToken } from '../middleware/auth.js';
@@ -43,6 +44,15 @@ const COLLECTION = 'sso_configs';
 // OIDC state TTL — 10 minutes
 const OIDC_STATE_TTL_MS = 10 * 60 * 1000;
 const STATE_SECRET = process.env.JWT_SECRET || 'dev-only-secret-do-not-use-in-prod';
+
+// Rate limiter for public SSO endpoints (authorize, callback, SAML ACS)
+const ssoPublicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many SSO requests, please try again later' },
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -298,7 +308,7 @@ router.delete('/config', authenticateToken, async (req, res) => {
  * Performs OIDC discovery, builds the authorization URL, and redirects.
  * The state parameter is a signed, time-limited token carrying the tenantId.
  */
-router.get('/oidc/authorize', async (req, res) => {
+router.get('/oidc/authorize', ssoPublicLimiter, async (req, res) => {
   try {
     const tenantHint = req.query.tenant;
     if (!tenantHint) {
@@ -358,14 +368,18 @@ router.get('/oidc/authorize', async (req, res) => {
  * provisions/looks up the GF user, and redirects to the frontend with
  * a GF access token embedded in the fragment.
  */
-router.get('/oidc/callback', async (req, res) => {
+router.get('/oidc/callback', ssoPublicLimiter, async (req, res) => {
   try {
-    const { code, state, error: idpError, error_description } = req.query;
+    const { code, state, error: idpError } = req.query;
 
     if (idpError) {
-      logger.warn('OIDC IdP error', { idpError, error_description });
+      // Sanitize to only propagate a known safe error code — never reflect raw IdP error
+      const safeError = typeof idpError === 'string' && /^[a-z_]{1,64}$/.test(idpError)
+        ? idpError
+        : 'sso_error';
+      logger.warn('OIDC IdP error', { idpError });
       const frontendUrl = process.env.FRONTEND_URL?.split(',')[0] || 'http://localhost:5173';
-      return res.redirect(`${frontendUrl}/auth?error=${encodeURIComponent(idpError)}`);
+      return res.redirect(`${frontendUrl}/auth?error=${encodeURIComponent(safeError)}`);
     }
 
     if (!code || !state) {
@@ -485,7 +499,7 @@ router.get('/oidc/callback', async (req, res) => {
  * GET /api/sso/saml/metadata?tenant=<tenantId>
  * Returns the SP metadata XML for the specified tenant.
  */
-router.get('/saml/metadata', async (req, res) => {
+router.get('/saml/metadata', ssoPublicLimiter, async (req, res) => {
   try {
     const tenantId = req.query.tenant;
     if (!tenantId) return res.status(400).json({ error: 'tenant query parameter is required' });
@@ -528,7 +542,7 @@ router.get('/saml/metadata', async (req, res) => {
  * (e.g. samlify ≥ 3.x) to fully prevent XML Signature Wrapping attacks.
  * The relay state carries the tenantId so we know which config to use.
  */
-router.post('/saml/acs', express.urlencoded({ extended: false }), async (req, res) => {
+router.post('/saml/acs', ssoPublicLimiter, express.urlencoded({ extended: false }), async (req, res) => {
   try {
     const { SAMLResponse, RelayState } = req.body;
 
@@ -561,8 +575,12 @@ router.post('/saml/acs', express.urlencoded({ extended: false }), async (req, re
       return res.status(400).json({ error: 'Invalid SAML response format' });
     }
 
-    // Extract NameID (email) — simple regex extraction; replaced by XML parser in hardening sprint
-    const nameIdMatch = assertionXml.match(/<(?:[^:>]+:)?NameID[^>]*>([^<]+)<\/(?:[^:>]+:)?NameID>/);
+    // Extract NameID (email) using a bounded, non-backtracking pattern.
+    // The pattern uses possessive-safe bounds: namespace prefix is optional (up to 20 chars),
+    // tag attributes are capped, and the value itself is capped at 254 chars (max email length).
+    // Full XML parsing is handled by samlify in the Sprint 6 hardening sprint.
+    const NAMEID_RE = /<(?:[A-Za-z][A-Za-z0-9]{0,19}:)?NameID[^>]{0,200}>([^<]{1,254})<\/(?:[A-Za-z][A-Za-z0-9]{0,19}:)?NameID>/;
+    const nameIdMatch = assertionXml.match(NAMEID_RE);
     if (!nameIdMatch) {
       return res.status(400).json({ error: 'Could not extract NameID from SAML assertion' });
     }
@@ -572,10 +590,9 @@ router.post('/saml/acs', express.urlencoded({ extended: false }), async (req, re
       return res.status(400).json({ error: 'NameID does not appear to be a valid email address' });
     }
 
-    // Extract optional display name attribute
-    const displayNameMatch = assertionXml.match(
-      /Name="(?:displayName|cn|name|urn:oid:2\.5\.4\.3)"[^>]*>\s*<(?:[^:>]+:)?AttributeValue[^>]*>([^<]+)<\/(?:[^:>]+:)?AttributeValue>/,
-    );
+    // Extract optional display name attribute — bounded, non-backtracking pattern
+    const DISPLAY_NAME_RE = /Name="(?:displayName|cn|name|urn:oid:2\.5\.4\.3)"[^>]{0,200}>\s*<(?:[A-Za-z][A-Za-z0-9]{0,19}:)?AttributeValue[^>]{0,200}>([^<]{1,256})<\/(?:[A-Za-z][A-Za-z0-9]{0,19}:)?AttributeValue>/;
+    const displayNameMatch = assertionXml.match(DISPLAY_NAME_RE);
     const fullName = displayNameMatch ? displayNameMatch[1].trim() : email;
 
     // Validate NotOnOrAfter to prevent assertion replay

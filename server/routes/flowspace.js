@@ -19,6 +19,7 @@
 
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
+import rateLimit from 'express-rate-limit';
 import { getAdapter } from '../db/factory.js';
 import {
   writeDecisionRecord,
@@ -29,6 +30,18 @@ import {
 import logger from '../utils/logger.js';
 
 const router = express.Router();
+
+// Per-authenticated-user rate limiter: 120 req/min across all FlowSpace endpoints
+const flowspaceLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many FlowSpace requests, please slow down' },
+});
+
+router.use(flowspaceLimiter);
 
 /**
  * Resolve the caller's tenant_id from their profile.
