@@ -21,7 +21,11 @@
     "test:api": "jest tests/api/ --passWithNoTests",
     "test:load": "k6 run tests/load/stress-test.js",
     "test:full": "./scripts/test-full.sh --all",
-    "test:all": "npm run test:e2e && npm run test:api && npm run test:load"
+    "test:all": "npm run test:e2e && npm run test:api && npm run test:load",
+    "test:comprehensive-api": "vitest run tests/api/comprehensive-all-routes.api.test.js",
+    "test:e2e:all-pages": "playwright test tests/e2e/comprehensive-all-pages.spec.ts",
+    "test:load:breaking-point": "k6 run tests/load/breaking-point.js",
+    "test:all-comprehensive": "npm run test:comprehensive-api && npm run test:e2e && npm run test:load:breaking-point"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
