@@ -281,7 +281,7 @@ server.listen(PORT, () => {
 function shutdown(signal) {
   logger.info('Shutdown initiated', { signal });
 
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed');
 
     // Close WebSocket
