@@ -453,12 +453,21 @@ describe('9. ML', () => {
     expectSafe(status, 'ml models');
   });
 
-  test('POST /api/ml/predict/failure — stub predict', async () => {
+  test('POST /api/ml/predict/failure — validates prediction body', async () => {
     if (!ok) return;
-    const { status } = await apiPost('/api/ml/predict/failure', {
+    const { status, data } = await apiPost('/api/ml/predict/failure', {
       equipmentId: 'eq-test', features: {},
     }, token);
     expectSafe(status, 'ml predict failure');
+    // If a trained model exists the response must carry prediction fields.
+    // A 404 (no model deployed yet) is acceptable in a cold environment.
+    if (status === 200) {
+      expect(data).toHaveProperty('prediction');
+      const pred = data.prediction;
+      expect(['high_risk', 'medium_risk', 'low_risk']).toContain(pred.risk_level ?? pred.riskLevel);
+      expect(typeof (pred.failure_probability ?? pred.probability)).toBe('number');
+      expect(typeof (pred.confidence_score ?? pred.confidence)).toBe('number');
+    }
   });
 
   test('POST /api/ml/predict/sla', async () => {
@@ -502,10 +511,20 @@ describe('10. AI', () => {
     expectSafe(status, 'ai prompts');
   });
 
-  test('POST /api/ai/vision/analyze — stub request', async () => {
+  test('POST /api/ai/vision/analyze — validates analysis body', async () => {
     if (!ok) return;
-    const { status } = await apiPost('/api/ai/vision/analyze', { imageUrl: 'http://test.invalid/img.jpg' }, token);
+    const { status, data } = await apiPost('/api/ai/vision/analyze', { imageUrl: 'http://test.invalid/img.jpg' }, token);
     expectSafe(status, 'ai vision analyze');
+    if (status === 200) {
+      // Must return at minimum a forgery_detected boolean
+      expect(data).toHaveProperty('forgery_detected');
+      expect(typeof data.forgery_detected).toBe('boolean');
+      if (data.confidence !== undefined) {
+        expect(typeof data.confidence).toBe('number');
+        expect(data.confidence).toBeGreaterThanOrEqual(0);
+        expect(data.confidence).toBeLessThanOrEqual(1);
+      }
+    }
   });
 
   test('GET /api/ai/finetune/jobs', async () => {
