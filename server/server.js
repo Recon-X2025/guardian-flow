@@ -84,6 +84,8 @@ import fixedAssetsRoutes from './routes/fixed-assets.js';
 import intercompanyRoutes from './routes/intercompany.js';
 import eInvoiceRoutes from './routes/e-invoice.js';
 import expensesRoutes from './routes/expenses.js';
+import crmRoutes from './routes/crm.js';
+import surveysRoutes from './routes/surveys.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -268,6 +270,8 @@ app.use('/api/finance/intercompany', authenticateToken, intercompanyRoutes);
 app.use('/api/finance/consolidation', authenticateToken, intercompanyRoutes);
 app.use('/api/finance/invoices', authenticateToken, eInvoiceRoutes);
 app.use('/api/expenses', authenticateToken, expensesRoutes);
+app.use('/api/crm', authenticateToken, crmRoutes);
+app.use('/api/surveys', surveysRoutes); // /respond/:token is public
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

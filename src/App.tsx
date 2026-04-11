@@ -147,6 +147,9 @@ const DataResidency = lazy(() => import("@/domains/org/pages/DataResidency"));
 const AIEthics = lazy(() => import("@/domains/shared/pages/AIEthics"));
 const E2ETestSuite = lazy(() => import("@/domains/shared/pages/E2ETestSuite"));
 const LaunchReadiness = lazy(() => import("@/domains/shared/pages/LaunchReadiness"));
+const ExpenseManagement = lazy(() => import("@/domains/shared/pages/ExpenseManagement"));
+const FixedAssets = lazy(() => import("@/domains/financial/pages/FixedAssets"));
+const CRMPipeline = lazy(() => import("@/domains/customers/pages/CRMPipeline"));
 
 const queryClient = new QueryClient();
 
@@ -669,6 +672,22 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/fixed-assets" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','finance_manager']} permissions={["finance.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><FixedAssets /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/expense-management" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','finance_manager','ops_manager','technician','dispatcher']} permissions={["finance.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><ExpenseManagement /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/ab-tests" element={
                     <ProtectedRoute>
                       <RoleGuard permissions={["mlops.view"]} showError={true}>
@@ -869,6 +888,14 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent"]} showError={true}>
                         <AppLayout><SuspenseWrap><CustomerSuccess /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/crm-pipeline" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent","finance_manager"]} showError={true}>
+                        <AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

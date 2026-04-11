@@ -9,8 +9,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Play } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -236,6 +240,118 @@ function TrialBalanceTab() {
   );
 }
 
+// ── Consolidation Tab ─────────────────────────────────────────────────────────
+
+interface ConsolidationResult {
+  period: string;
+  entityIds: string[];
+  revenue: number;
+  costs: number;
+  pnl: number;
+  icEliminations: { from: string; to: string; amount: number; description: string }[];
+}
+
+function ConsolidationTab() {
+  const [entityInput, setEntityInput] = useState('');
+  const [period, setPeriod]           = useState(new Date().toISOString().slice(0, 7));
+  const [running, setRunning]         = useState(false);
+  const [result, setResult]           = useState<ConsolidationResult | null>(null);
+
+  const handleRun = async () => {
+    const entityIds = entityInput.split(',').map(s => s.trim()).filter(Boolean);
+    if (entityIds.length === 0) {
+      toast.error('Enter at least one entity ID');
+      return;
+    }
+    setRunning(true);
+    try {
+      const res = await fetch('/api/finance/consolidation/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('auth_token') ?? ''}` },
+        body: JSON.stringify({ period, entityIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Consolidation failed');
+      setResult(data);
+      toast.success('Consolidation run complete');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Consolidation failed');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <Card>
+        <CardHeader><CardTitle className="text-base">Run Consolidation</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="entities">Entity IDs (comma-separated)</Label>
+            <Input
+              id="entities"
+              value={entityInput}
+              onChange={e => setEntityInput(e.target.value)}
+              placeholder="e.g. ENT-001, ENT-002, ENT-003"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="cons-period">Period (YYYY-MM)</Label>
+            <Input id="cons-period" type="month" value={period} onChange={e => setPeriod(e.target.value)} />
+          </div>
+          <Button onClick={handleRun} disabled={running || !entityInput.trim()}>
+            {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+            Run Consolidation
+          </Button>
+        </CardContent>
+      </Card>
+
+      {result && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Revenue', value: fmt(result.revenue), color: 'text-green-600' },
+              { label: 'Costs',   value: fmt(result.costs),   color: 'text-red-600'   },
+              { label: 'P&L',     value: fmt(result.pnl),     color: result.pnl >= 0 ? 'text-green-700 font-bold' : 'text-destructive font-bold' },
+            ].map(c => (
+              <Card key={c.label}>
+                <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">{c.label}</CardTitle></CardHeader>
+                <CardContent><div className={`text-xl font-bold ${c.color}`}>{c.value}</div></CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {result.icEliminations?.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold mb-2">Intercompany Eliminations</p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.icEliminations.map((e, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-mono text-sm">{e.from}</TableCell>
+                      <TableCell className="font-mono text-sm">{e.to}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(e.amount)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{e.description}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GeneralLedger() {
@@ -251,6 +367,7 @@ export default function GeneralLedger() {
           <TabsTrigger value="chart-of-accounts">Chart of Accounts</TabsTrigger>
           <TabsTrigger value="journal-entries">Journal Entries</TabsTrigger>
           <TabsTrigger value="trial-balance">Trial Balance</TabsTrigger>
+          <TabsTrigger value="consolidation">Consolidation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="chart-of-accounts" className="mt-4">
@@ -263,6 +380,10 @@ export default function GeneralLedger() {
 
         <TabsContent value="trial-balance" className="mt-4">
           <TrialBalanceTab />
+        </TabsContent>
+
+        <TabsContent value="consolidation" className="mt-4">
+          <ConsolidationTab />
         </TabsContent>
       </Tabs>
     </div>
