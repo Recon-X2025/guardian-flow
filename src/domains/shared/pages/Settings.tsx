@@ -96,7 +96,9 @@ export default function Settings() {
   useEffect(() => {
     fetchProfiles();
     fetchMfaStatus();
-  }, [fetchMfaStatus]);
+    // fetchMfaStatus is stable (empty useCallback deps); fetchProfiles is defined below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchProfiles = async () => {
     try {
