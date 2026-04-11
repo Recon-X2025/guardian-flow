@@ -58,6 +58,10 @@ import mlStudioRoutes from './routes/ml-studio.js';
 import subcontractorsRoutes from './routes/subcontractors.js';
 import developerPortalRoutes from './routes/developer-portal.js';
 import healthRoutes from './routes/health.js';
+import webhookDeliveryRoutes from './routes/webhook-delivery.js';
+import compliancePolicyRoutes from './routes/compliance-policy.js';
+import industryTemplateRoutes from './routes/industry-template.js';
+import modelPerformanceRoutes from './routes/model-performance.js';
 import { auditLogMiddleware } from './middleware/auditLog.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
@@ -215,6 +219,10 @@ app.use('/api/ml-studio', authenticateToken, mlStudioRoutes);
 app.use('/api/subcontractors', authenticateToken, subcontractorsRoutes);
 app.use('/api/developer-portal', authenticateToken, developerPortalRoutes);
 app.use('/api/health-full', healthRoutes);
+app.use('/api/webhooks', webhookDeliveryRoutes);
+app.use('/api/compliance-policy', compliancePolicyRoutes);
+app.use('/api/industry-templates', industryTemplateRoutes);
+app.use('/api/model-performance', modelPerformanceRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

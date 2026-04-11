@@ -135,6 +135,20 @@ const MLStudio = lazy(() => import("@/domains/shared/pages/MLStudio"));
 const Subcontractors = lazy(() => import("@/domains/workOrders/pages/Subcontractors"));
 const SalesSequences = lazy(() => import("@/domains/crm/pages/SalesSequences"));
 const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
+const IoTDashboard = lazy(() => import("@/domains/analytics/pages/IoTDashboard"));
+const AnomalyMonitor = lazy(() => import("@/domains/analytics/pages/AnomalyMonitor"));
+const AutoMLStudio = lazy(() => import("@/domains/analytics/pages/AutoMLStudio"));
+const ExplainabilityDashboard = lazy(() => import("@/domains/analytics/pages/ExplainabilityDashboard"));
+const LLMFineTuner = lazy(() => import("@/domains/analytics/pages/LLMFineTuner"));
+const PromptStudio = lazy(() => import("@/domains/analytics/pages/PromptStudio"));
+const CRMActivityTimeline = lazy(() => import("@/domains/crm/pages/ActivityTimeline"));
+const CRMDealDetail = lazy(() => import("@/domains/crm/pages/DealDetail"));
+const CRMPipelineReport = lazy(() => import("@/domains/crm/pages/PipelineReport"));
+const FinancialStatements = lazy(() => import("@/domains/financial/pages/FinancialStatements"));
+const KnowledgeSearch = lazy(() => import("@/domains/knowledge/pages/KnowledgeSearch"));
+const AIGovernance = lazy(() => import("@/domains/org/pages/AIGovernance"));
+const DefectDetection = lazy(() => import("@/domains/workOrders/pages/DefectDetection"));
+const ShiftCalendar = lazy(() => import("@/domains/workOrders/pages/ShiftCalendar"));
 
 const queryClient = new QueryClient();
 
@@ -824,6 +838,32 @@ const App = () => (
 
                   {/* Operations */}
                   <Route path="/subcontractors" element={<ProtectedRoute><AppLayout><SuspenseWrap><Subcontractors /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* IoT & Analytics */}
+                  <Route path="/iot-dashboard" element={<ProtectedRoute><AppLayout><SuspenseWrap><IoTDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/anomaly-monitor" element={<ProtectedRoute><AppLayout><SuspenseWrap><AnomalyMonitor /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/auto-ml" element={<ProtectedRoute><AppLayout><SuspenseWrap><AutoMLStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/explainability" element={<ProtectedRoute><AppLayout><SuspenseWrap><ExplainabilityDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/llm-finetune" element={<ProtectedRoute><AppLayout><SuspenseWrap><LLMFineTuner /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/prompt-studio" element={<ProtectedRoute><AppLayout><SuspenseWrap><PromptStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* CRM extras */}
+                  <Route path="/crm/activities" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMActivityTimeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/deals/:id" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMDealDetail /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/pipeline-report" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineReport /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Finance */}
+                  <Route path="/financial-statements" element={<ProtectedRoute><AppLayout><SuspenseWrap><FinancialStatements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Knowledge */}
+                  <Route path="/knowledge-search" element={<ProtectedRoute><AppLayout><SuspenseWrap><KnowledgeSearch /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* AI & Org */}
+                  <Route path="/ai-governance" element={<ProtectedRoute><AppLayout><SuspenseWrap><AIGovernance /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Operations */}
+                  <Route path="/defect-detection" element={<ProtectedRoute><AppLayout><SuspenseWrap><DefectDetection /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/shift-calendar" element={<ProtectedRoute><AppLayout><SuspenseWrap><ShiftCalendar /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Catch-all for 404 */}
                   <Route path="*" element={<SuspenseWrap><NotFound /></SuspenseWrap>} />
