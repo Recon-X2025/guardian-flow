@@ -226,6 +226,140 @@ GuardianFlow Goal:  ████████████████░░░░
 
 ---
 
+---
+
+## Additional Gaps Identified — April 2026 Deep Scan
+
+The following gaps were found during a line-by-line audit of the service layer, route files, and frontend pages. They are distinct from the AI feature-parity gaps above and represent **concrete code defects** (random math masquerading as real logic, disconnected frontend pages, and missing operational infrastructure).
+
+---
+
+### G15 — AI Service Layer: Mock Math in Production Service Files
+
+The original analysis noted that high-level route handlers returned mock data. The deeper issue is that the **named AI service modules** — which are consumed by multiple routes — also use `Math.random()` instead of real model calls. This means even routes that *look* wired up are producing noise.
+
+| File | Mock behaviour |
+|---|---|
+| `server/services/ai/vision.js` | Randomly picks defect labels, bounding-box coordinates, and confidence scores. No computer-vision API call. |
+| `server/services/ai/xai.js` | `Math.random()` generates SHAP-style feature importance values, direction (positive/negative), and counterfactual alternatives. No XAI library. |
+| `server/services/ai/automl.js` | Returns random `accuracy`, `loss`, and `duration` for every training run. No AutoML backend. |
+| `server/routes/ai.js` | Price suggestions, transaction risk scores, and equipment failure probability are all `Math.random()`. |
+| `server/routes/customer-success.js` | Churn risk, NPS, usage score, support load, and health score all `Math.random()` — returned for every API request. |
+| `server/services/ai/llm.js` | Defaults to `AI_PROVIDER='mock'` — falls through to keyword-matching responses, not any LLM. No error raised if `OPENAI_API_KEY` is absent. |
+
+**Risk:** Every dashboard widget fed by these services — churn risk, model metrics, XAI explanations, defect detection — is displaying random numbers on every page load. There is no way for an operator to distinguish the numbers from real signal.
+
+---
+
+### G16 — Third-Party Connector Stubs (QuickBooks, Salesforce, SAP)
+
+All three accounting/CRM connectors explicitly declare in their file headers:
+> *"Note: This is a stub implementation; API calls are logged rather than made."*
+
+- `server/services/connectors/quickbooks.js` — logs sync intent, returns empty arrays
+- `server/services/connectors/salesforce.js` — logs sync intent, returns empty arrays
+- `server/services/connectors/sap.js` — logs sync intent, returns empty arrays
+
+The `/api/connectors` route exists and is registered. Customers who configure a QuickBooks/Salesforce integration receive HTTP 200 responses with empty data and no indication that nothing was actually synced. No OAuth flow is implemented for any provider.
+
+---
+
+### G17 — Frontend Pages Rendering Hardcoded JS Arrays Instead of Live API Data
+
+Four analytics/IoT pages import inline mock arrays defined at the top of the file and never make an API call. They are fully disconnected from the backend that does have real data:
+
+| Page | Mock arrays | Real API available |
+|---|---|---|
+| `src/domains/analytics/pages/IoTDashboard.tsx` | `mockDevices`, `mockReadings` | `GET /api/iot-telemetry/devices` + `/readings` |
+| `src/domains/analytics/pages/AnomalyDetection.tsx` | `mockAnomalies` | `GET /api/anomalies` (real z-score/Benford detection exists) |
+| `src/domains/analytics/pages/DigitalTwin.tsx` | `mockTwins`, `mockHistory` | `GET /api/digital-twin/models` |
+| `src/domains/analytics/pages/ESGReporting.tsx` | `mockReports`, `mockBenchmarks` | `GET /api/esg/reports` |
+
+Notably, the anomaly detection backend (`server/services/ai/anomaly.js`) implements real z-score analysis and Benford's Law checking — the frontend just never calls it.
+
+---
+
+### G18 — Route Optimization: Straight-Line Distance Only, No Real Routing
+
+`server/services/ai/routing.js` implements a nearest-neighbour TSP solver using haversine (straight-line, over-the-earth) distance. This is better than the previous hardcoded 15 km stub but has a key defect: it returns `source: 'mock'` in every response and uses only geographic coordinates — no actual road network, no turn restrictions, no traffic data. A route through a city centre will have the same travel time estimate as one through open countryside. No integration with Google Maps Directions, Mapbox, OSRM, or any routing service exists.
+
+---
+
+### G19 — E2E Test Runner Returns Fabricated Results
+
+`server/routes/e2e-tests.js` uses `Math.floor(Math.random() * 200) + 10` to synthesize test execution durations and pass/fail outcomes. Any launch-readiness or CI dashboard that queries this endpoint is displaying invented data. There is no actual test runner behind this route.
+
+---
+
+### G20 — AI Governance Model Catalog Lists `mock/openai` as Provider
+
+`server/services/ai/governance.js` seeds the in-memory/DB model registry with entries where `provider` is set to `'mock/openai'` or `'mock/openai-vision'` for every capability (RAG, NLP Query, Forecast Analyzer, Photo Validator, Offer Generator). The AI Governance dashboard therefore reports monitoring metrics for models that do not exist. Any compliance officer reviewing the governance log sees a healthy catalogue of AI models that have never made a real inference.
+
+---
+
+### G21 — No Vector Database Activation Path
+
+`server/services/ai/embeddings.js` implements cosine similarity entirely in-memory with a comment:
+> *"up to ~50k documents; above that, migrate to pgvector + HNSW indexing"*
+
+There is no migration script, no setup guide, and no environment variable path for activating MongoDB Atlas Vector Search or pgvector. The RAG pipeline silently degrades to in-memory search at any scale. If a tenant indexes a large knowledge base, performance will collapse with no warning or fallback. The `.env.example` does not document `MONGODB_VECTOR_SEARCH_INDEX` or equivalent pgvector setup steps.
+
+---
+
+### G22 — Frontend Has Zero Test Coverage
+
+`tests/unit/` contains 11 server-side test files covering DB adapters, services, and route logic. There are no:
+- React component tests
+- Frontend hook tests
+- API integration tests (frontend ↔ backend contract)
+- Accessibility (a11y) tests
+- Visual regression snapshots
+
+The frontend build process (`npm run build`) will pass even if every component is broken, as long as TypeScript compiles. Any UI regression is invisible until a user reports it.
+
+---
+
+### G23 — `.env.example` Missing ~30 Environment Variables
+
+Dozens of routes and services reference environment variables that are not documented in `.env.example`. Developers and ops teams have no authoritative list of required secrets. Known undocumented variables include:
+
+| Variable | Used by |
+|---|---|
+| `GOOGLE_MAPS_API_KEY` | Route optimization (referenced in comments) |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Payment gateway |
+| `QB_CLIENT_ID` / `QB_CLIENT_SECRET` / `QB_REALM_ID` | QuickBooks connector |
+| `SF_CLIENT_ID` / `SF_CLIENT_SECRET` / `SF_INSTANCE_URL` | Salesforce connector |
+| `SAP_BASE_URL` / `SAP_USERNAME` / `SAP_PASSWORD` | SAP connector |
+| `MODEL_SERVING_URL` | Neuro Console inference endpoint |
+| `FEATURE_NEURO_CONSOLE` | Feature flag for Neuro Console |
+| `MONGODB_VECTOR_SEARCH_INDEX` | Atlas Vector Search index name |
+| `PGVECTOR_ENABLED` | pgvector activation |
+| `TWILIO_FROM_NUMBER` | SMS sending (partially documented) |
+| `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp channel |
+| `ANTHROPIC_API_KEY` | Alternate LLM provider |
+| `FINETUNE_BUCKET` | Fine-tune job artifact storage |
+| `FEDERATED_LEARNING_ROUNDS` | FedAvg configuration |
+
+Without these documented, any new developer environment or production deployment is missing configuration by default and will silently use stub/mock paths.
+
+---
+
+## Summary of Additional Gaps by Category
+
+| # | Gap | Severity | Status |
+|---|---|---|---|
+| G15 | AI service layer random math (vision, XAI, AutoML, customer success, risk scoring) | 🔴 Critical | Mock in production service modules |
+| G16 | Connector stubs — QuickBooks, Salesforce, SAP never make real API calls | 🔴 Critical | Explicit stub declaration in file headers |
+| G17 | 4 frontend pages disconnected from real backend APIs (IoT, Anomaly, Digital Twin, ESG) | 🟡 High | Hardcoded mock arrays |
+| G18 | Route optimization uses straight-line haversine only, no road network | 🟡 High | `source: 'mock'` in every response |
+| G19 | E2E test runner fabricates results with `Math.random()` | 🟡 High | No real runner behind route |
+| G20 | AI governance catalog registers `mock/openai` as live provider | 🟡 High | Misleading compliance dashboard |
+| G21 | No vector DB activation path — in-memory cosine search only | 🟡 High | Silent scale failure, no setup docs |
+| G22 | Zero frontend test coverage | 🟡 Medium | No component, hook, or contract tests |
+| G23 | `.env.example` missing ~30 env vars | 🟡 Medium | Silent mock fallback on misconfigured deployments |
+
+---
+
 ## Sources
 
 - [Gartner Market Guide for Field Service Management 2025](https://www.servicenow.com/lpayr/fsm-2025-market-guide.html)

@@ -344,6 +344,91 @@
 | **M7 — Enterprise Identity** | 16–17 | Per-tenant SSO + SCIM; unified audit log; GDPR tools |
 | **M8 — Mobile + Live** | 18–19 | Real PWA offline sync; WebSocket live feeds |
 | **M9 — KB + Training** | 20 | Document upload + vector index; training enrolment + certificates |
+| **M10 — AI Integrity** | 21 | All Math.random() AI stubs replaced; real logic or honest 501/503 responses |
+| **M11 — Live Connectors** | 22 | QuickBooks, Salesforce, SAP OAuth flows make real API calls |
+| **M12 — Frontend Wired** | 23 | IoT, Anomaly, Digital Twin, ESG pages call real APIs; Governance + E2E honest |
+| **M13 — Infra Completeness** | 24 | Vector DB activation path; 30+ undocumented env vars added; frontend tests scaffolded |
+
+---
+
+## Phase 8 — Code-Quality Gaps from April 2026 Deep Scan  *(Sprints 21–24, ~4 weeks)*
+> These gaps were found in the service layer and frontend and are independent of the feature-parity work above. They can be parallelised with Phase 2–4.
+
+---
+
+### Sprint 21 — De-mock AI Service Modules (G15)
+**Goal:** Replace every `Math.random()` call in production AI service files with either a real model call or an explicit `501 Not Implemented` when no provider is configured.
+
+**Backend**
+- [ ] `server/services/ai/vision.js` — call `llm.visionAnalysis()` (already implemented in `llm.js`); fall back to `501` if `AI_PROVIDER=mock`
+- [ ] `server/services/ai/xai.js` — call `llm.chatCompletion()` with a structured SHAP-explanation prompt; remove all `Math.random()` importance/direction/counterfactual generation
+- [ ] `server/services/ai/automl.js` — store experiment metadata in DB; return `status: 'training'` immediately, update to `status: 'complete'` via background job when real training finishes; remove random accuracy/loss/duration
+- [ ] `server/routes/ai.js` — price suggestions: replace `Math.random()` with average of last 5 invoices for same equipment category; risk score: delegate to `anomaly.detectFinancialAnomalies()`; failure probability: delegate to `predictive.predictMaintenanceNeeds()`
+- [ ] `server/routes/customer-success.js` — compute churn risk from `support_tickets` open count + invoice overdue days + last-activity gap; replace all five `Math.random()` fields with real aggregations
+- [ ] `server/services/ai/llm.js` — raise `503` (not silent mock) when `AI_PROVIDER !== 'mock'` but `OPENAI_API_KEY` is absent; log clear error message
+
+**Tests**
+- [ ] Unit test for each fixed service: assert no `Math.random` output variance across two identical inputs
+
+---
+
+### Sprint 22 — Real Connector OAuth Flows (G16)
+**Goal:** QuickBooks, Salesforce, and SAP connectors make authenticated API calls.
+
+**Backend**
+- [ ] `server/services/connectors/quickbooks.js` — implement QuickBooks Online OAuth 2.0 PKCE flow; `sync('invoices')` calls QBO `/v3/company/{realmId}/query` API; map response to internal invoice schema
+- [ ] `server/services/connectors/salesforce.js` — implement Salesforce Connected App OAuth; `sync('accounts')` calls SF REST `/services/data/vXX.0/sobjects/Account`; `sync('work_orders')` maps to FSL Work Orders
+- [ ] `server/services/connectors/sap.js` — implement SAP Basic Auth + CSRF token pattern for S/4HANA OData; `sync('service_orders')` calls `/sap/opu/odata/sap/API_SERVICE_ORDER_SRV/A_ServiceOrder`
+- [ ] `server/routes/connectors.js` — add `GET /api/connectors/:id/test-connection` endpoint; returns `{ ok, latency_ms, error? }`
+- [ ] Add `QB_CLIENT_ID`, `QB_CLIENT_SECRET`, `QB_REALM_ID`, `SF_CLIENT_ID`, `SF_CLIENT_SECRET`, `SF_INSTANCE_URL`, `SAP_BASE_URL`, `SAP_USERNAME`, `SAP_PASSWORD` to `.env.example`
+
+**Tests**
+- [ ] Mock HTTP client; assert each connector builds correct auth headers and maps response fields
+
+---
+
+### Sprint 23 — Wire Disconnected Frontend Pages to Real APIs (G17, G19, G20)
+**Goal:** IoT, Anomaly Detection, Digital Twin, ESG pages call their real backend endpoints; Governance and E2E dashboards show honest state.
+
+**Frontend**
+- [ ] `src/domains/analytics/pages/IoTDashboard.tsx` — replace `mockDevices`/`mockReadings` with `useQuery` hooks calling `GET /api/iot-telemetry/devices` and `GET /api/iot-telemetry/readings`
+- [ ] `src/domains/analytics/pages/AnomalyDetection.tsx` — replace `mockAnomalies` array with `GET /api/anomalies`; wire "Run Detection" button to `POST /api/anomalies/detect`
+- [ ] `src/domains/analytics/pages/DigitalTwin.tsx` — replace `mockTwins`/`mockHistory` with `GET /api/digital-twin/models` and `GET /api/digital-twin/models/:id/history`
+- [ ] `src/domains/analytics/pages/ESGReporting.tsx` — replace `mockReports`/`mockBenchmarks` with `GET /api/esg/reports`
+- [ ] AI Governance page — surface `provider` field from API; display amber warning badge when any model lists a `mock/*` provider
+- [ ] E2E Tests page — replace the fake-results route with a status message: *"E2E test execution requires Playwright runner — see docs/TESTING_GUIDE.md"*
+
+**Backend**
+- [ ] `server/routes/e2e-tests.js` — remove `Math.random()` duration generation; return `{ status: 'not_configured', message: '...' }` instead of fabricated results
+- [ ] `server/services/ai/governance.js` — remove hardcoded `mock/openai` entries from seed list; populate registry from real `ai_governance_log` collection entries only
+
+---
+
+### Sprint 24 — Vector DB Activation, Frontend Tests, `.env.example` Completeness (G21–G23)
+**Goal:** Establish the path from in-memory cosine search to a production vector DB; add minimal frontend test scaffold; document all env vars.
+
+**Vector DB**
+- [ ] `server/services/ai/embeddings.js` — detect `PGVECTOR_ENABLED=true` and delegate to `pgvector` SQL queries (`SELECT ... ORDER BY embedding <=> $1`); detect `MONGODB_ATLAS_VECTOR_SEARCH_INDEX` and use Atlas `$vectorSearch` aggregation stage; keep in-memory cosine as dev-only fallback
+- [ ] `server/scripts/013-pgvector.sql` — `CREATE EXTENSION IF NOT EXISTS vector; CREATE INDEX ... USING hnsw`
+- [ ] `docs/VECTOR_DB_SETUP.md` — step-by-step guide for both Atlas Vector Search and pgvector paths
+- [ ] Add `PGVECTOR_ENABLED`, `MONGODB_ATLAS_VECTOR_SEARCH_INDEX`, `MONGODB_VECTOR_DIMENSIONS` to `.env.example`
+
+**`.env.example` completeness**
+- [ ] Audit every `process.env.*` reference across all route and service files
+- [ ] Add all undocumented variables with inline comments explaining required format
+- [ ] Group variables by domain: `# AI`, `# Connectors`, `# Comms`, `# Payments`, `# Feature Flags`
+- [ ] Variables to add at minimum: `GOOGLE_MAPS_API_KEY`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `QB_CLIENT_ID`, `QB_CLIENT_SECRET`, `QB_REALM_ID`, `SF_CLIENT_ID`, `SF_CLIENT_SECRET`, `SF_INSTANCE_URL`, `SAP_BASE_URL`, `SAP_USERNAME`, `SAP_PASSWORD`, `MODEL_SERVING_URL`, `FEATURE_NEURO_CONSOLE`, `ANTHROPIC_API_KEY`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `FINETUNE_BUCKET`, `FEDERATED_LEARNING_ROUNDS`
+
+**Frontend tests**
+- [ ] Install `@testing-library/react` + `@testing-library/user-event` (already in vitest ecosystem)
+- [ ] Add `tests/unit/frontend/` directory; vitest config already picks up `tests/unit/**`
+- [ ] Write component tests for the 5 highest-risk components:
+  - `IoTDashboard` — assert real API called, mock arrays gone
+  - `AnomalyDetection` — assert API called, filter works
+  - `CustomerSuccess` — assert churn risk shown, not random
+  - `WorkOrderForm` — assert required field validation
+  - `InvoiceDetail` — assert totals computed correctly
+- [ ] Add `useSocket` hook test: mock WebSocket, assert event payload updates React state
 
 ---
 
@@ -357,4 +442,4 @@
 
 ---
 
-*Last updated: 2026-04-11 | Audit source: `docs/GAP_ANALYSIS.md` + April 2026 feature-parity review*
+*Last updated: 2026-04-11 | Audit source: `docs/GAP_ANALYSIS.md` + April 2026 deep-scan (G15–G23)*
