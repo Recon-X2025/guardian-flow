@@ -124,6 +124,17 @@ const ScheduleOptimiser = lazy(() => import("@/domains/workOrders/pages/Schedule
 const CustomerBooking = lazy(() => import("@/domains/customers/pages/CustomerBooking"));
 const Customer360 = lazy(() => import("@/domains/customers/pages/Customer360"));
 const CommsHub = lazy(() => import("@/domains/shared/pages/CommsHub"));
+const StockMovements = lazy(() => import("@/domains/inventory/pages/StockMovements"));
+const GoodsReceipt = lazy(() => import("@/domains/inventory/pages/GoodsReceipt"));
+const BankReconciliation = lazy(() => import("@/domains/financial/pages/BankReconciliation"));
+const AuditLog = lazy(() => import("@/domains/shared/pages/AuditLog"));
+const ESGDashboard = lazy(() => import("@/domains/esg/pages/ESGDashboard"));
+const DashboardBuilder = lazy(() => import("@/domains/analytics/pages/DashboardBuilder"));
+const ScheduledReports = lazy(() => import("@/domains/analytics/pages/ScheduledReports"));
+const MLStudio = lazy(() => import("@/domains/shared/pages/MLStudio"));
+const Subcontractors = lazy(() => import("@/domains/workOrders/pages/Subcontractors"));
+const SalesSequences = lazy(() => import("@/domains/crm/pages/SalesSequences"));
+const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
 
 const queryClient = new QueryClient();
 
@@ -790,6 +801,29 @@ const App = () => (
                   <Route path="/crm/pipeline" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/crm/pipeline-settings" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineSettings /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/crm/leads" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMLeads /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/sequences" element={<ProtectedRoute><AppLayout><SuspenseWrap><SalesSequences /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Inventory */}
+                  <Route path="/stock-movements" element={<ProtectedRoute><AppLayout><SuspenseWrap><StockMovements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/goods-receipt" element={<ProtectedRoute><AppLayout><SuspenseWrap><GoodsReceipt /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Finance */}
+                  <Route path="/bank-reconciliation" element={<ProtectedRoute><AppLayout><SuspenseWrap><BankReconciliation /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Platform */}
+                  <Route path="/audit-log" element={<ProtectedRoute><AppLayout><SuspenseWrap><AuditLog /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/ml-studio" element={<ProtectedRoute><AppLayout><SuspenseWrap><MLStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* ESG */}
+                  <Route path="/esg-dashboard" element={<ProtectedRoute><AppLayout><SuspenseWrap><ESGDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Analytics */}
+                  <Route path="/dashboard-builder" element={<ProtectedRoute><AppLayout><SuspenseWrap><DashboardBuilder /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/scheduled-reports" element={<ProtectedRoute><AppLayout><SuspenseWrap><ScheduledReports /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/digital-twin" element={<ProtectedRoute><AppLayout><SuspenseWrap><DigitalTwin /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Operations */}
+                  <Route path="/subcontractors" element={<ProtectedRoute><AppLayout><SuspenseWrap><Subcontractors /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Catch-all for 404 */}
                   <Route path="*" element={<SuspenseWrap><NotFound /></SuspenseWrap>} />

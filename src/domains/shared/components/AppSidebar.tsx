@@ -54,6 +54,7 @@ import {
   Zap,
   KanbanSquare,
   SlidersHorizontal,
+  Leaf,
 } from "lucide-react";
 import {
   Sidebar,
@@ -107,6 +108,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Leads",            url: "/crm/leads",             icon: Zap,              permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
       { title: "Pipeline",         url: "/crm/pipeline",          icon: KanbanSquare,     permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
       { title: "Pipeline Settings",url: "/crm/pipeline-settings", icon: SlidersHorizontal, permissions: ["crm.admin"], roles: ["sys_admin","tenant_admin"] },
+      { title: "Sales Sequences",  url: "/crm/sequences",         icon: Zap,              permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
     ],
   },
   {
@@ -120,7 +122,11 @@ const menuGroups: MenuGroup[] = [
       { title: "Route Optimization", url: "/route-optimization", icon: Route, permissions: ["wo.assign"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher"] },
       { title: "Predictive Maintenance", url: "/predictive-maintenance", icon: Gauge, permissions: ["maintenance.view"], roles: ["sys_admin","tenant_admin","ops_manager"] },
       { title: "Inventory", url: "/inventory", icon: Package, permissions: ["inventory.view"], roles: ["sys_admin","tenant_admin","ops_manager","partner_admin"] },
+      { title: "Stock Movements", url: "/stock-movements", icon: Package, permissions: ["inventory.view"], roles: ["sys_admin","tenant_admin","ops_manager"] },
+      { title: "Goods Receipt", url: "/goods-receipt", icon: ShoppingCart, permissions: ["inventory.procure"], roles: ["sys_admin","tenant_admin","ops_manager"] },
       { title: "Procurement", url: "/procurement", icon: ShoppingCart, permissions: ["inventory.procure"], roles: ["sys_admin","tenant_admin","ops_manager"] },
+      { title: "Subcontractors", url: "/subcontractors", icon: Users, permissions: ["wo.read"], roles: ["sys_admin","tenant_admin","ops_manager"] },
+      { title: "Shift Calendar", url: "/shift-calendar", icon: Calendar, permissions: ["wo.assign"], roles: ["sys_admin","tenant_admin","ops_manager"] },
       { title: "Warranty & RMA", url: "/warranty", icon: Shield, permissions: ["warranty.view"], roles: ["sys_admin","tenant_admin","ops_manager","support_agent"] },
       { title: "Photo Capture", url: "/photo-capture", icon: Camera, permissions: ["attachment.upload"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher","technician"] },
     ],
@@ -135,6 +141,8 @@ const menuGroups: MenuGroup[] = [
       { title: "Penalties", url: "/penalties", icon: AlertTriangle, permissions: ["penalty.calculate"], roles: ["sys_admin","tenant_admin","finance_manager"] },
       { title: "Disputes", url: "/disputes", icon: Scale, permissions: ["finance.view"], roles: ["sys_admin","tenant_admin","finance_manager"] },
       { title: "Pricing Calculator", url: "/pricing-calculator", icon: DollarSign },
+      { title: "Financial Statements", url: "/financial-statements", icon: FileBarChart, permissions: ["finance.view"], roles: ["sys_admin","tenant_admin","finance_manager"] },
+      { title: "Bank Reconciliation", url: "/bank-reconciliation", icon: CreditCard, permissions: ["finance.view"], roles: ["sys_admin","tenant_admin","finance_manager"] },
     ],
   },
   {
@@ -164,6 +172,11 @@ const menuGroups: MenuGroup[] = [
       { title: "Compliance Dashboard", url: "/compliance-dashboard", icon: Shield, permissions: ["audit.read"], roles: ["sys_admin","tenant_admin","auditor"] },
       { title: "Observability", url: "/observability", icon: Eye, permissions: ["audit.read"], roles: ["sys_admin","tenant_admin","ops_manager"] },
       { title: "AB Test Manager", url: "/ab-tests", icon: FlaskConical, permissions: ["mlops.view"], roles: ["sys_admin","tenant_admin"] },
+      { title: "Dashboard Builder", url: "/dashboard-builder", icon: BarChart3, permissions: ["audit.read"], roles: ["sys_admin","tenant_admin","ops_manager"] },
+      { title: "Scheduled Reports", url: "/scheduled-reports", icon: FileBarChart, permissions: ["audit.read"], roles: ["sys_admin","tenant_admin","ops_manager"] },
+      { title: "Digital Twin", url: "/digital-twin", icon: Cpu, permissions: ["audit.read"], roles: ["sys_admin","tenant_admin","ops_manager"] },
+      { title: "ML Studio", url: "/ml-studio", icon: Brain, permissions: ["mlops.view"], roles: ["sys_admin","tenant_admin"] },
+      { title: "ESG Dashboard", url: "/esg-dashboard", icon: Leaf, permissions: ["audit.read"], roles: ["sys_admin","tenant_admin","finance_manager"] },
     ],
   },
   {
@@ -197,6 +210,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Skills Admin", url: "/skills-admin", icon: BookOpen, roles: ["sys_admin", "tenant_admin", "ops_manager"] },
       { title: "Compliance Center", url: "/compliance", icon: Shield, permissions: ["admin.config"] },
       { title: "System Health", url: "/system-health", icon: Heart, permissions: ["admin.config"] },
+      { title: "Audit Log", url: "/audit-log", icon: Shield, permissions: ["admin.config"], roles: ["sys_admin","tenant_admin","auditor"] },
       { title: "Help & Training", url: "/help", icon: GraduationCap },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
