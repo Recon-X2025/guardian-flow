@@ -41,6 +41,7 @@ import knowledgeQueryRoutes from './routes/knowledge-query.js';
 import anomaliesRoutes from './routes/anomalies.js';
 import aiGovernanceRoutes from './routes/ai-governance.js';
 import aiPromptsRoutes from './routes/ai-prompts.js';
+import crmRoutes from './routes/crm.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -180,6 +181,7 @@ app.use('/api/knowledge', knowledgeQueryRoutes);
 app.use('/api/analytics', anomaliesRoutes);
 app.use('/api/ai', aiGovernanceRoutes);
 app.use('/api/ai', aiPromptsRoutes);
+app.use('/api/crm', authenticateToken, crmRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

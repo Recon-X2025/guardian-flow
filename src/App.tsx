@@ -106,6 +106,11 @@ const TrainingPlatform = lazy(() => import("@/domains/training/pages/TrainingPla
 const OrgManagementConsole = lazy(() => import("@/domains/org/pages/OrgManagementConsole"));
 const AssetRegister = lazy(() => import("@/domains/workOrders/pages/AssetRegister"));
 const ConnectorManagement = lazy(() => import("@/domains/org/pages/ConnectorManagement"));
+const CRMAccounts = lazy(() => import("@/domains/crm/pages/Accounts"));
+const CRMContacts = lazy(() => import("@/domains/crm/pages/Contacts"));
+const CRMPipeline = lazy(() => import("@/domains/crm/pages/Pipeline"));
+const CRMPipelineSettings = lazy(() => import("@/domains/crm/pages/PipelineSettings"));
+const CRMLeads = lazy(() => import("@/domains/crm/pages/Leads"));
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
@@ -778,6 +783,13 @@ const App = () => (
                       </RoleGuard>
                     </ProtectedRoute>
                   } />
+
+                  {/* CRM */}
+                  <Route path="/crm/accounts" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMAccounts /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/contacts" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMContacts /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/pipeline" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/pipeline-settings" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineSettings /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/leads" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMLeads /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Catch-all for 404 */}
                   <Route path="*" element={<SuspenseWrap><NotFound /></SuspenseWrap>} />

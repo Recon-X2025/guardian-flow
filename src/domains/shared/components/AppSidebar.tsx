@@ -50,6 +50,10 @@ import {
   ScrollText,
   FileBarChart,
   Building2,
+  UserRound,
+  Zap,
+  KanbanSquare,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   Sidebar,
@@ -93,6 +97,16 @@ const menuGroups: MenuGroup[] = [
       { title: "Technicians", url: "/technicians", icon: HardHat, permissions: ["technicians.view"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher"] },
       { title: "Equipment", url: "/equipment", icon: Cog, permissions: ["equipment.view"], roles: ["sys_admin","tenant_admin","ops_manager","technician","partner_admin"] },
       { title: "Contracts", url: "/contracts", icon: ScrollText, permissions: ["contracts.view"], roles: ["sys_admin","tenant_admin","finance_manager"] },
+    ],
+  },
+  {
+    label: "CRM",
+    items: [
+      { title: "Accounts",         url: "/crm/accounts",          icon: Building2,        permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
+      { title: "Contacts",         url: "/crm/contacts",          icon: UserRound,        permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
+      { title: "Leads",            url: "/crm/leads",             icon: Zap,              permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
+      { title: "Pipeline",         url: "/crm/pipeline",          icon: KanbanSquare,     permissions: ["crm.view"], roles: ["sys_admin","tenant_admin","ops_manager","sales_rep"] },
+      { title: "Pipeline Settings",url: "/crm/pipeline-settings", icon: SlidersHorizontal, permissions: ["crm.admin"], roles: ["sys_admin","tenant_admin"] },
     ],
   },
   {
