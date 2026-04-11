@@ -97,6 +97,7 @@ import sdkRoutes from './routes/sdk.js';
 import dispatchRoutes from './routes/dispatch.js';
 import vendorsRoutes from './routes/vendors.js';
 import inventoryRoutes from './routes/inventory.js';
+import financialStatementsRoutes from './routes/financial-statements.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -299,6 +300,7 @@ app.use('/api/sdk', sdkRoutes);
 app.use('/api/dispatch', authenticateToken, dispatchRoutes);
 app.use('/api/vendors', authenticateToken, vendorsRoutes);
 app.use('/api/inventory', authenticateToken, inventoryRoutes);
+app.use('/api/finance/statements', authenticateToken, financialStatementsRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
