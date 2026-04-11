@@ -42,6 +42,23 @@ import anomaliesRoutes from './routes/anomalies.js';
 import aiGovernanceRoutes from './routes/ai-governance.js';
 import aiPromptsRoutes from './routes/ai-prompts.js';
 import crmRoutes from './routes/crm.js';
+import iotTelemetryRoutes from './routes/iot-telemetry.js';
+import slaRulesRoutes from './routes/sla-rules.js';
+import shiftsRoutes from './routes/shifts.js';
+import budgetingRoutes from './routes/budgeting.js';
+import inventoryAdvancedRoutes from './routes/inventory-advanced.js';
+import goodsReceiptRoutes from './routes/goods-receipt.js';
+import bankReconRoutes from './routes/bank-recon.js';
+import mfaRoutes from './routes/mfa.js';
+import auditLogRoutes from './routes/audit-log.js';
+import esgRoutes from './routes/esg.js';
+import dashboardBuilderRoutes from './routes/dashboard-builder.js';
+import scheduledReportsRoutes from './routes/scheduled-reports.js';
+import mlStudioRoutes from './routes/ml-studio.js';
+import subcontractorsRoutes from './routes/subcontractors.js';
+import developerPortalRoutes from './routes/developer-portal.js';
+import healthRoutes from './routes/health.js';
+import { auditLogMiddleware } from './middleware/auditLog.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -182,6 +199,22 @@ app.use('/api/analytics', anomaliesRoutes);
 app.use('/api/ai', aiGovernanceRoutes);
 app.use('/api/ai', aiPromptsRoutes);
 app.use('/api/crm', authenticateToken, crmRoutes);
+app.use('/api/iot-telemetry', authenticateToken, iotTelemetryRoutes);
+app.use('/api/sla-rules', authenticateToken, slaRulesRoutes);
+app.use('/api/shifts', authenticateToken, shiftsRoutes);
+app.use('/api/budgeting', authenticateToken, budgetingRoutes);
+app.use('/api/inventory-adv', authenticateToken, inventoryAdvancedRoutes);
+app.use('/api/goods-receipt', authenticateToken, goodsReceiptRoutes);
+app.use('/api/bank-recon', authenticateToken, bankReconRoutes);
+app.use('/api/mfa', authenticateToken, mfaRoutes);
+app.use('/api/audit-log', authenticateToken, auditLogRoutes);
+app.use('/api/esg', authenticateToken, esgRoutes);
+app.use('/api/dashboards', authenticateToken, dashboardBuilderRoutes);
+app.use('/api/scheduled-reports', authenticateToken, scheduledReportsRoutes);
+app.use('/api/ml-studio', authenticateToken, mlStudioRoutes);
+app.use('/api/subcontractors', authenticateToken, subcontractorsRoutes);
+app.use('/api/developer-portal', authenticateToken, developerPortalRoutes);
+app.use('/api/health-full', healthRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
@@ -210,6 +243,8 @@ app.post('/api/functions/:functionName', authenticateToken, async (req, res) => 
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
+
+app.use(auditLogMiddleware);
 
 // Error handling
 app.use(errorHandler);
@@ -244,8 +279,7 @@ function shutdown(signal) {
 
     // Close DB connection via adapter
     try {
-      const adapter = await getAdapter();
-      await adapter.close();
+      getAdapter().then(adapter => adapter.close()).catch(() => {});
       logger.info('Database connection closed');
     } catch {
       // ignore

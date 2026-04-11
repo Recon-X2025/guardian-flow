@@ -191,4 +191,62 @@ router.get('/records/:id/lineage', authenticateToken, async (req, res) => {
   }
 });
 
+// ── GET /api/flowspace/export ────────────────────────────────────────────────
+
+router.get('/export', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const { from, to, format } = req.query;
+    const { listDecisionRecords: listRecords } = await import('../services/flowspace.js');
+    const filters = {};
+    if (from) filters.since = from;
+    if (to)   filters.until = to;
+    const { records } = await listRecords(tenantId, filters, 1000, 0);
+
+    if (format === 'csv') {
+      if (records.length === 0) {
+        res.setHeader('Content-Type', 'text/csv');
+        return res.send('id,domain,actor_type,actor_id,action,created_at\n');
+      }
+      const headers = Object.keys(records[0]).join(',');
+      const rows = records.map(r => Object.values(r).map(v => JSON.stringify(v ?? '')).join(','));
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="flowspace-export.csv"');
+      return res.send([headers, ...rows].join('\n'));
+    }
+
+    res.json({ records, total: records.length });
+  } catch (error) {
+    logger.error('FlowSpace: export error', { error: error.message });
+    res.status(500).json({ error: 'Failed to export decision records' });
+  }
+});
+
+// ── POST /api/flowspace/attest ───────────────────────────────────────────────
+
+router.post('/attest', authenticateToken, async (req, res) => {
+  try {
+    const { record_ids } = req.body;
+    if (!Array.isArray(record_ids) || record_ids.length === 0) {
+      return res.status(400).json({ error: 'record_ids array is required' });
+    }
+    const tenantId = await resolveTenantId(req.user.id);
+    const adapter  = await getAdapter();
+    const { createHash } = await import('crypto');
+
+    const records = await Promise.all(
+      record_ids.map(id => adapter.findOne('decision_records', { id, tenant_id: tenantId })),
+    );
+    const found = records.filter(Boolean);
+    const hash = createHash('sha256')
+      .update(record_ids.join(',') + JSON.stringify(found))
+      .digest('hex');
+
+    res.json({ hash, record_count: record_ids.length, attested_at: new Date() });
+  } catch (error) {
+    logger.error('FlowSpace: attest error', { error: error.message });
+    res.status(500).json({ error: 'Failed to attest records' });
+  }
+});
+
 export default router;

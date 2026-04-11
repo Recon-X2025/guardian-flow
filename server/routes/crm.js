@@ -727,4 +727,166 @@ router.delete('/pipeline-stages/:id', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ACTIVITIES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const COL_ACTIVITIES = 'crm_activities';
+const COL_SEQUENCES  = 'crm_sequences';
+
+router.get('/activities', async (req, res) => {
+  try {
+    const adapter  = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const filter   = { tenant_id: tenantId };
+    if (req.query.deal_id)    filter.deal_id    = req.query.deal_id;
+    if (req.query.contact_id) filter.contact_id = req.query.contact_id;
+    const activities = await adapter.findMany(COL_ACTIVITIES, filter);
+    res.json({ activities, total: activities.length });
+  } catch (err) {
+    logger.error('CRM: list activities error', { error: err.message });
+    res.status(500).json({ error: 'Failed to list activities' });
+  }
+});
+
+router.post('/activities', async (req, res) => {
+  try {
+    const { type, subject, body, deal_id, contact_id, due_date, completed } = req.body;
+    if (!subject) return res.status(400).json({ error: 'subject is required' });
+    const adapter  = await getAdapter();
+    const activity = {
+      id: randomUUID(), tenant_id: req.user.tenantId, type: type || 'note', subject,
+      body: body || null, deal_id: deal_id || null, contact_id: contact_id || null,
+      due_date: due_date || null, completed: completed || false,
+      created_by: req.user.userId, created_at: new Date(),
+    };
+    await adapter.insertOne(COL_ACTIVITIES, activity);
+    res.status(201).json({ activity });
+  } catch (err) {
+    logger.error('CRM: create activity error', { error: err.message });
+    res.status(500).json({ error: 'Failed to create activity' });
+  }
+});
+
+router.delete('/activities/:id', async (req, res) => {
+  try {
+    const adapter  = await getAdapter();
+    const activity = await adapter.findOne(COL_ACTIVITIES, { id: req.params.id, tenant_id: req.user.tenantId });
+    if (!activity) return res.status(404).json({ error: 'Activity not found' });
+    await adapter.deleteOne(COL_ACTIVITIES, { id: req.params.id, tenant_id: req.user.tenantId });
+    res.json({ deleted: true });
+  } catch (err) {
+    logger.error('CRM: delete activity error', { error: err.message });
+    res.status(500).json({ error: 'Failed to delete activity' });
+  }
+});
+
+router.get('/stats', async (req, res) => {
+  try {
+    const adapter  = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const deals    = await adapter.findMany(COL_DEALS, { tenant_id: tenantId });
+    const total_deals = deals.length;
+    const total_value = deals.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+    const won_deals   = deals.filter(d => JSON.stringify(d).toLowerCase().includes('won')).length;
+    const lost_deals  = deals.filter(d => {
+      const s = (d.stage || d.stage_name || '').toLowerCase();
+      return s.includes('lost');
+    }).length;
+    const avg_deal_size    = total_deals > 0 ? total_value / total_deals : 0;
+    const conversion_rate  = total_deals > 0 ? (won_deals / total_deals) * 100 : 0;
+    res.json({ total_deals, total_value, won_deals, lost_deals, avg_deal_size, conversion_rate });
+  } catch (err) {
+    logger.error('CRM: stats error', { error: err.message });
+    res.status(500).json({ error: 'Failed to get CRM stats' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEQUENCES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+router.get('/sequences', async (req, res) => {
+  try {
+    const adapter   = await getAdapter();
+    const sequences = await adapter.findMany(COL_SEQUENCES, { tenant_id: req.user.tenantId });
+    res.json({ sequences, total: sequences.length });
+  } catch (err) {
+    logger.error('CRM: list sequences error', { error: err.message });
+    res.status(500).json({ error: 'Failed to list sequences' });
+  }
+});
+
+router.post('/sequences', async (req, res) => {
+  try {
+    const { name, steps, status } = req.body;
+    if (!name) return res.status(400).json({ error: 'name is required' });
+    const adapter  = await getAdapter();
+    const sequence = {
+      id: randomUUID(), tenant_id: req.user.tenantId, name, steps: steps || [],
+      status: status || 'active', enrolled_count: 0,
+      created_by: req.user.userId, created_at: new Date(),
+    };
+    await adapter.insertOne(COL_SEQUENCES, sequence);
+    res.status(201).json({ sequence });
+  } catch (err) {
+    logger.error('CRM: create sequence error', { error: err.message });
+    res.status(500).json({ error: 'Failed to create sequence' });
+  }
+});
+
+router.put('/sequences/:id', async (req, res) => {
+  try {
+    const adapter  = await getAdapter();
+    const sequence = await adapter.findOne(COL_SEQUENCES, { id: req.params.id, tenant_id: req.user.tenantId });
+    if (!sequence) return res.status(404).json({ error: 'Sequence not found' });
+    const allowed = ['name', 'steps', 'status'];
+    const updates = {};
+    for (const key of allowed) { if (key in req.body) updates[key] = req.body[key]; }
+    await adapter.updateOne(COL_SEQUENCES, { id: req.params.id, tenant_id: req.user.tenantId }, updates);
+    res.json({ sequence: { ...sequence, ...updates } });
+  } catch (err) {
+    logger.error('CRM: update sequence error', { error: err.message });
+    res.status(500).json({ error: 'Failed to update sequence' });
+  }
+});
+
+router.delete('/sequences/:id', async (req, res) => {
+  try {
+    const adapter  = await getAdapter();
+    const sequence = await adapter.findOne(COL_SEQUENCES, { id: req.params.id, tenant_id: req.user.tenantId });
+    if (!sequence) return res.status(404).json({ error: 'Sequence not found' });
+    await adapter.deleteOne(COL_SEQUENCES, { id: req.params.id, tenant_id: req.user.tenantId });
+    res.json({ deleted: true });
+  } catch (err) {
+    logger.error('CRM: delete sequence error', { error: err.message });
+    res.status(500).json({ error: 'Failed to delete sequence' });
+  }
+});
+
+router.post('/sequences/:id/enroll', async (req, res) => {
+  try {
+    const { contact_id } = req.body;
+    if (!contact_id) return res.status(400).json({ error: 'contact_id is required' });
+    const adapter  = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const sequence = await adapter.findOne(COL_SEQUENCES, { id: req.params.id, tenant_id: tenantId });
+    if (!sequence) return res.status(404).json({ error: 'Sequence not found' });
+    await adapter.updateOne(COL_SEQUENCES, { id: req.params.id, tenant_id: tenantId }, {
+      enrolled_count: (sequence.enrolled_count || 0) + 1,
+    });
+    const firstActivity = {
+      id: randomUUID(), tenant_id: tenantId, type: 'email',
+      subject: 'Sequence: ' + sequence.name + ' Step 1',
+      contact_id, deal_id: null, body: null, due_date: null, completed: false,
+      created_by: req.user.userId, created_at: new Date(),
+    };
+    await adapter.insertOne(COL_ACTIVITIES, firstActivity);
+    res.json({ enrolled: true, activity: firstActivity });
+  } catch (err) {
+    logger.error('CRM: enroll sequence error', { error: err.message });
+    res.status(500).json({ error: 'Failed to enroll in sequence' });
+  }
+});
+
 export default router;
