@@ -80,6 +80,10 @@ import complianceCertsRoutes from './routes/compliance-certs.js';
 import vehicleStockRoutes from './routes/vehicle-stock.js';
 import accountsPayableRoutes from './routes/accounts-payable.js';
 import supplierPortalRoutes from './routes/supplier-portal.js';
+import fixedAssetsRoutes from './routes/fixed-assets.js';
+import intercompanyRoutes from './routes/intercompany.js';
+import eInvoiceRoutes from './routes/e-invoice.js';
+import expensesRoutes from './routes/expenses.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -259,6 +263,11 @@ app.use('/api/assets', complianceCertsRoutes);
 app.use('/api/technicians', authenticateToken, vehicleStockRoutes);
 app.use('/api/ap', authenticateToken, accountsPayableRoutes);
 app.use('/api/suppliers', supplierPortalRoutes);
+app.use('/api/finance/fixed-assets', authenticateToken, fixedAssetsRoutes);
+app.use('/api/finance/intercompany', authenticateToken, intercompanyRoutes);
+app.use('/api/finance/consolidation', authenticateToken, intercompanyRoutes);
+app.use('/api/finance/invoices', authenticateToken, eInvoiceRoutes);
+app.use('/api/expenses', authenticateToken, expensesRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
