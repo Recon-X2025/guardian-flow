@@ -75,6 +75,7 @@ import crewRoutes from './routes/crew.js';
 import crowdRoutes from './routes/crowd.js';
 import emailToWoRoutes from './routes/email-to-wo.js';
 import workOrdersMultidayRoutes from './routes/work-orders-multiday.js';
+import workOrdersRoutes from './routes/work-orders.js';
 import territoriesRoutes from './routes/territories.js';
 import mfaRoutes from './routes/mfa.js';
 import assetGraphRoutes from './routes/asset-graph.js';
@@ -93,6 +94,9 @@ import anomalyRoutes from './routes/anomaly.js';
 import webhooksRoutes from './routes/webhooks.js';
 import siemRoutes from './routes/siem.js';
 import sdkRoutes from './routes/sdk.js';
+import dispatchRoutes from './routes/dispatch.js';
+import vendorsRoutes from './routes/vendors.js';
+import inventoryRoutes from './routes/inventory.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -270,6 +274,8 @@ app.use('/api/webhook-delivery', authenticateToken, webhookDeliveryRoutes);
 app.use('/api/compliance', compliancePolicyRoutes);
 app.use('/api/model-performance', modelPerformanceMonitorRoutes);
 app.use('/api/work-orders', crewRoutes);
+app.use('/api/work-orders', authenticateToken, workOrdersRoutes);
+app.use('/api/wo-templates', authenticateToken, workOrdersRoutes);
 app.use('/api/crowd', crowdRoutes);
 app.use('/api/work-orders', crowdRoutes); // provides /:id/assign-crowd
 app.use('/api/work-orders', authenticateToken, emailToWoRoutes);
@@ -290,6 +296,9 @@ app.use('/api/crm', authenticateToken, crmRoutes);
 app.use('/api/surveys', surveysRoutes); // /respond/:token is public
 app.use('/api/admin/siem', authenticateToken, siemRoutes);
 app.use('/api/sdk', sdkRoutes);
+app.use('/api/dispatch', authenticateToken, dispatchRoutes);
+app.use('/api/vendors', authenticateToken, vendorsRoutes);
+app.use('/api/inventory', authenticateToken, inventoryRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
