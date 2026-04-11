@@ -69,6 +69,9 @@ import cbmRoutes from './routes/cbm.js';
 import webhookDeliveryRoutes from './routes/webhook-delivery.js';
 import compliancePolicyRoutes from './routes/compliance-policy.js';
 import modelPerformanceMonitorRoutes from './routes/model-performance-monitor.js';
+import crewRoutes from './routes/crew.js';
+import territoriesRoutes from './routes/territories.js';
+import mfaRoutes from './routes/mfa.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -236,6 +239,9 @@ app.use('/api/cbm', authenticateToken, cbmRoutes);
 app.use('/api/webhook-delivery', authenticateToken, webhookDeliveryRoutes);
 app.use('/api/compliance', compliancePolicyRoutes);
 app.use('/api/model-performance', modelPerformanceMonitorRoutes);
+app.use('/api/work-orders', crewRoutes);
+app.use('/api/territories', authenticateToken, territoriesRoutes);
+app.use('/api/auth/mfa', authLimiter, mfaRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
