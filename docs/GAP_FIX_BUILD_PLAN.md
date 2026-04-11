@@ -348,6 +348,10 @@
 | **M11 — Live Connectors** | 22 | QuickBooks, Salesforce, SAP OAuth flows make real API calls |
 | **M12 — Frontend Wired** | 23 | IoT, Anomaly, Digital Twin, ESG pages call real APIs; Governance + E2E honest |
 | **M13 — Infra Completeness** | 24 | Vector DB activation path; 30+ undocumented env vars added; frontend tests scaffolded |
+| **M14 — Frontend Mock Eliminated** | 25–27 | All remaining 64+ frontend pages replaced with live API calls; zero hardcoded mock arrays in production UI |
+| **M15 — Real AI Active** | 28–30 | LLM prompts deployed; Google Maps routing live; constraint-based dispatch optimizer running; defect detection end-to-end |
+| **M16 — IoT Automation** | 31 | IoT threshold → auto-WO trigger pipeline live; real device feeds; PM prediction from sensor data |
+| **M17 — Market Differentiators** | 32–33 | Agentic AI dispatcher; customer self-service chatbot; i18n en/es/fr; WCAG 2.1 AA; Playwright E2E suite; OpenAPI docs at `/api/docs` |
 
 ---
 
@@ -432,6 +436,233 @@
 
 ---
 
+## Phase 9 — Frontend Mock Sweep  *(Sprints 25–27, ~3 weeks)*
+> Removes all remaining hardcoded `const mock*` arrays from production frontend pages and replaces them with live API calls. 64 pages identified across 8 domains. Sprint 23 addressed 4 of them; these three sprints address the rest.
+
+---
+
+### Sprint 25 — Financial Pages Mock Sweep
+**Goal:** Invoicing, Budgeting, Payments, Revenue Recognition, Quotes, Pricing Calculator — all show live DB data.
+
+**Frontend**
+- [ ] `src/domains/financial/pages/Invoicing.tsx` — replace `mockInvoices` with `useQuery → GET /api/invoices`; wire create/edit/void actions
+- [ ] `src/domains/financial/pages/Budgeting.tsx` — replace `mockBudgets`/`mockCategories` with `GET /api/budgeting/budgets`; wire allocation save
+- [ ] `src/domains/financial/pages/Payments.tsx` — replace `mockPayments`/`mockTransactions` with `GET /api/payments`; wire refund and partial-pay actions
+- [ ] `src/domains/financial/pages/RevenueRecognition.tsx` — replace `mockSchedules`/`mockEntries` with `GET /api/revenue-recognition/schedules`
+- [ ] `src/domains/financial/pages/Quotes.tsx` — replace `mockQuotes` with `GET /api/quotes`; wire approve/reject/convert-to-invoice
+- [ ] `src/domains/financial/pages/PricingCalculator.tsx` — replace `mockPricingRules` with `GET /api/pricing`; wire rule CRUD
+
+**Backend**
+- [ ] Verify `GET /api/quotes` and `GET /api/pricing` endpoints exist; create if missing (CRUD only, no ML needed here)
+
+**Tests**
+- [ ] Snapshot test for each page: assert no static array rendered when API returns empty
+
+---
+
+### Sprint 26 — Fraud, Customers, DEX, and Org Pages Mock Sweep
+**Goal:** Remaining mock arrays in fraud investigation, customer success, partner gateway, DEX, and org management pages removed.
+
+**Frontend**
+- [ ] `src/domains/fraud/pages/AuditFramework.tsx` — replace `mockAuditEvents`/`mockPolicies` with `GET /api/audit-framework/events` and `GET /api/compliance-policy/policies`
+- [ ] `src/domains/fraud/pages/ForgeryDetection.tsx` — replace `mockDocuments`/`mockAlerts` with `GET /api/vision/forgery-cases`; wire "Analyse Document" upload to `POST /api/vision/analyse`
+- [ ] `src/domains/customers/pages/CustomerSuccess.tsx` — replace five `Math.random()` health scores with `GET /api/customer-success/health`; display real churn risk from Sprint 21 fix
+- [ ] `src/domains/customers/pages/PartnerGateway.tsx` — replace `mockPartners`/`mockDeals` with `GET /api/partner/list`
+- [ ] `src/domains/dex/pages/FlowDesigner.tsx` — replace `mockNodes`/`mockEdges` with `GET /api/dex/flows/:id`; wire save to `PUT /api/dex/flows/:id`
+- [ ] `src/domains/dex/pages/DEXMarketplace.tsx` — replace `mockListings` with `GET /api/dex/marketplace/listings`
+- [ ] `src/domains/org/pages/WhiteLabelPortal.tsx` — replace `mockBranding`/`mockDomains` with `GET /api/org/white-label`; wire save
+- [ ] `src/domains/org/pages/DataResidency.tsx` — replace `mockRegions`/`mockPolicies` with `GET /api/data-residency/config`; wire policy update
+
+**Backend**
+- [ ] `GET /api/vision/forgery-cases` — list forgery review items from `vision_cases` collection
+- [ ] `GET /api/org/white-label` + `PUT /api/org/white-label` — persist branding config per tenant
+- [ ] `GET /api/data-residency/config` + `PUT /api/data-residency/config` — persist residency policy per tenant
+
+---
+
+### Sprint 27 — Shared Pages + WorkOrders Mock Sweep
+**Goal:** All remaining shared-domain and work-order pages wired to real APIs. After this sprint, `const mock` should appear only in `tests/` directories.
+
+**Frontend**
+- [ ] `src/domains/shared/pages/NeuroConsole.tsx` — replace `mockModels`/`mockJobs` with `GET /api/neuro-console/models`; replace random inference metrics with real `GET /api/neuro-console/stats`
+- [ ] `src/domains/shared/pages/LaunchReadiness.tsx` — replace `mockChecks` with `GET /api/launch-readiness/checks`; wire re-run action
+- [ ] `src/domains/shared/pages/AIEthics.tsx` — replace `mockPrinciples`/`mockAssessments` with `GET /api/ai-ethics/assessments`
+- [ ] `src/domains/shared/pages/SLAEngine.tsx` — replace `mockRules`/`mockBreaches` with `GET /api/sla/rules` and `GET /api/sla/breaches`
+- [ ] `src/domains/shared/pages/PlatformConfig.tsx` — replace `mockSettings` with `GET /api/platform-config`; wire save to `PUT /api/platform-config`
+- [ ] `src/domains/shared/pages/ObservabilityEnhanced.tsx` — replace `mockTraces`/`mockMetrics` with `GET /api/observability/traces` and `GET /api/metrics`
+- [ ] `src/domains/workOrders/pages/MaintenanceTriggers.tsx` — replace `mockTriggers` with `GET /api/maintenance-triggers`; wire enable/disable toggle
+
+**Backend**
+- [ ] `GET /api/launch-readiness/checks` — compute live readiness state from: DB connectivity, env vars present, AI provider configured, last migration run
+- [ ] `GET /api/neuro-console/models` and `GET /api/neuro-console/stats` — serve from `ml_models` and `ml_experiments` collections; no random values
+
+**CI gate**
+- [ ] Add grep CI check: fail build if any `src/domains/**/*.tsx` file contains `const mock` outside a `*.test.*` file
+
+---
+
+## Phase 10 — Real AI Activation  *(Sprints 28–30, ~3 weeks)*
+> These sprints activate the AI infrastructure that was scaffolded but never truly wired end-to-end: LLM prompts for each FSM use-case, real routing via Google Maps, a constraint-based scheduling optimizer, and full defect-detection pipeline.
+
+---
+
+### Sprint 28 — LLM Prompt Deployment + AI Provider Hardening
+**Goal:** Every AI feature that calls `llm.chatCompletion()` has a production-quality prompt, token budget, retry policy, and graceful degradation. `AI_PROVIDER=openai` becomes the deployable default.
+
+**Backend**
+- [ ] `server/services/ai/prompts.js` — add/complete prompt templates for: WO pre-visit summary, SLA breach brief, offer recommendation JSON, KB search synthesis, anomaly narrative, forecast explanation, XAI SHAP narrative
+- [ ] `server/services/ai/llm.js` — enforce token budget per call type (e.g. summary ≤ 512 tokens output); add exponential back-off retry (3 attempts) on 429/503; emit `ai_call` analytics event with `{ model, tokens_in, tokens_out, latency_ms, feature }`
+- [ ] `server/routes/ai.js` — wire all seven features above to the corresponding prompt; switch default from `mock` to `openai` when `OPENAI_API_KEY` is present
+- [ ] Streaming: `GET /api/ai/stream-summary` — SSE endpoint that proxies OpenAI stream; consumed by NeuroConsole and Assistant pages
+- [ ] Add `OPENAI_MODEL` (default `gpt-4o-mini`), `ANTHROPIC_API_KEY`, `AI_MAX_TOKENS`, `AI_RETRY_ATTEMPTS` to `.env.example`
+
+**Frontend**
+- [ ] `src/domains/shared/pages/NeuroConsole.tsx` — consume `GET /api/ai/stream-summary` via EventSource; render streamed tokens progressively
+- [ ] Any page with "Generate Summary" or "Ask AI" button — wire to streaming endpoint; show typing indicator
+
+**Tests**
+- [ ] Unit: mock OpenAI client; assert each prompt template renders required fields and stays within token budget
+- [ ] Integration: assert 429 triggers retry and eventually returns result or structured error
+
+---
+
+### Sprint 29 — Real Route Optimization (Google Maps / OSRM)
+**Goal:** Replace haversine stub with a real routing API; return actual drive time and distance for every technician-to-job leg.
+
+**Backend**
+- [ ] `server/services/ai/routing.js` — when `GOOGLE_MAPS_API_KEY` is set: call Google Maps Directions API (`/maps/api/directions/json`) for each origin→destination pair; cache results in `route_cache` collection (TTL 24 h) to control API spend; fall back to haversine + 40 km/h average when API unavailable
+- [ ] `server/routes/schedule.js` — `POST /api/schedule/optimize-route` — accept `{ technician_id, work_order_ids }`, call `routing.optimizeRoute()`, return ordered stops with `{ drive_time_min, distance_km, polyline }`
+- [ ] Add traffic-aware option: pass `departure_time=now` to Google Maps when `ROUTING_TRAFFIC_AWARE=true`
+- [ ] Add `GOOGLE_MAPS_API_KEY`, `ROUTING_PROVIDER` (`google`|`osrm`|`haversine`), `ROUTING_TRAFFIC_AWARE` to `.env.example`
+
+**Frontend**
+- [ ] `src/domains/workOrders/pages/RouteOptimization.tsx` — replace straight-line stub with results from `POST /api/schedule/optimize-route`; render polyline on Leaflet map if `VITE_MAPS_PROVIDER=leaflet`; show drive time + distance per leg
+- [ ] Show "source: google-maps" badge in UI; remove hardcoded `15 km` assumption
+
+**Tests**
+- [ ] Mock Google Maps HTTP response; assert correct drive time extracted and cached
+- [ ] Assert fallback activates when API key absent
+
+---
+
+### Sprint 30 — Constraint-Based Scheduling Optimizer + Defect Detection Pipeline
+**Goal:** Dispatch board gains AI-assisted technician matching (skills + location + parts + SLA urgency). Photo uploads run through real vision model and store structured findings.
+
+**Backend — Scheduling Optimizer**
+- [ ] `server/services/ai/scheduler.js` — `suggestAssignment(workOrderId)`:
+  1. Fetch WO required skills, location, urgency score (from SLA service)
+  2. Fetch available technicians with their skills, current location (last GPS ping or home address), and open calendar slots
+  3. Score each technician: `skill_match × 0.4 + proximity × 0.3 + availability × 0.2 + workload_balance × 0.1`
+  4. Return top-3 candidates with score breakdown
+- [ ] `server/routes/schedule.js` — `GET /api/schedule/suggest/:workOrderId` — return ranked technician suggestions with reasoning; persist suggestion to `dispatch_suggestions` for FlowSpace audit trail
+- [ ] `server/routes/schedule.js` — `POST /api/schedule/accept-suggestion` — assign technician from suggestion; record accepted/rejected in FlowSpace decision log
+
+**Backend — Defect Detection**
+- [ ] `server/services/ai/vision.js` — `analyseDefect(imageBase64, assetId)`:
+  1. Call `llm.visionAnalysis()` with structured prompt requesting JSON: `{ defects: [{ type, severity, component, confidence, bounding_box? }] }`
+  2. Store result in `defect_findings` collection linked to asset
+  3. If `severity === 'critical'` → auto-raise a high-priority WO via WO service
+- [ ] `server/routes/vision.js` — `POST /api/vision/analyse-defect` — accept multipart image upload; call `vision.analyseDefect()`; return structured findings
+- [ ] `server/routes/assets.js` — `GET /api/assets/:id/defect-history` — list defect findings for asset
+
+**Frontend**
+- [ ] `src/domains/workOrders/pages/Dispatch.tsx` — "Suggest Technician" button calls `GET /api/schedule/suggest/:id`; show ranked candidates with score bar; "Accept" button calls `POST /api/schedule/accept-suggestion`
+- [ ] `src/domains/workOrders/pages/DefectDetection.tsx` — upload photo → calls `POST /api/vision/analyse-defect`; render findings list with severity badges; show "Critical — WO raised" alert when applicable
+- [ ] `src/domains/workOrders/pages/AssetRegister.tsx` — add "Defect History" tab calling `GET /api/assets/:id/defect-history`
+
+**Tests**
+- [ ] Scheduler: unit test scoring formula with known inputs; assert top candidate matches expected
+- [ ] Vision: mock LLM response; assert critical defect triggers WO creation
+
+---
+
+## Phase 11 — Differentiators  *(Sprints 31–33, ~3 weeks)*
+> Capabilities that take GuardianFlow from "competitive parity" to "market differentiator": agentic AI, IoT automation pipeline, customer self-service chatbot, i18n, WCAG 2.1 AA, and the full Playwright E2E + OpenAPI documentation layer.
+
+---
+
+### Sprint 31 — IoT → Auto-WO Trigger Pipeline
+**Goal:** Real IoT readings automatically raise maintenance work orders when thresholds are breached; PM prediction runs on sensor time-series.
+
+**Backend**
+- [ ] `server/services/iot.js` — `evaluateTriggers(tenantId)`: query latest reading per device; compare against `iot_thresholds` collection; when breached, call WO service to raise a WO with `source: 'iot_trigger'`; debounce: skip if same device raised a WO in last 4 h
+- [ ] `server/routes/iot-telemetry.js` — `POST /api/iot-telemetry/thresholds` (CRUD for per-device alert rules); `POST /api/iot-telemetry/evaluate` (trigger manual evaluation run)
+- [ ] Background job (Bull/cron) — run `evaluateTriggers` every 5 min per tenant; register in Sprint 3's job engine
+- [ ] `server/services/ai/predictive.js` — `forecastFailure(deviceId)`: sliding-window z-score over last 30 readings; if z > 2.5, set `predicted_failure_in_days` and attach to next scheduled PM; store prediction in `predictive_forecasts`
+- [ ] `server/routes/iot-telemetry.js` — `GET /api/iot-telemetry/devices/:id/forecast` — return failure forecast for a device
+
+**Frontend**
+- [ ] `src/domains/workOrders/pages/MaintenanceTriggers.tsx` — now wired (Sprint 27); extend: show "IoT Triggered" badge on WOs raised automatically; link to triggering reading
+- [ ] `src/domains/workOrders/pages/IoTDashboard.tsx` — add threshold editor panel; show per-device forecast bar ("Predicted failure in N days")
+- [ ] `src/domains/workOrders/pages/PredictiveMaintenance.tsx` — integrate `GET /api/iot-telemetry/devices/:id/forecast` results into calendar view; highlight high-risk assets in red
+
+---
+
+### Sprint 32 — Agentic AI Dispatcher + Customer Self-Service Chatbot
+**Goal:** Autonomous dispatch agent handles routine WO triage end-to-end; customer chatbot allows self-service booking and status lookup.
+
+**Backend — Agentic Dispatcher**
+- [ ] `server/services/ai/agent.js` — `runDispatchAgent(workOrderId)`: LLM tool-calling loop with tools: `get_wo_details`, `list_available_technicians`, `suggest_assignment`, `assign_technician`, `notify_customer`; max 5 tool-call rounds; persist each step to FlowSpace decision log; human-in-the-loop: pause if confidence < 0.7 and escalate
+- [ ] `server/routes/ai.js` — `POST /api/ai/dispatch-agent` — trigger agent for a WO; return `{ status: 'assigned'|'escalated', steps: [...], assignee? }`
+- [ ] Rate limit dispatch agent: max 10 concurrent agent runs per tenant; queue excess
+
+**Backend — Customer Self-Service Chatbot**
+- [ ] `server/routes/customer-booking.js` — `POST /api/customer-booking/chat` — stateless chat endpoint; accepts `{ session_id, message, tenant_id }`; LLM with tools: `lookup_booking(ref)`, `get_technician_eta(booking_id)`, `create_booking(details)`, `cancel_booking(ref)`; returns `{ reply, actions? }`
+- [ ] Booking intent recognition: when message contains booking intent, call `create_booking` tool and confirm details before committing
+- [ ] Rate limit: 20 messages/min per session
+
+**Frontend**
+- [ ] `src/domains/workOrders/pages/Dispatch.tsx` — "Auto-Dispatch" toggle: when enabled, calls `POST /api/ai/dispatch-agent`; show agent reasoning steps in expandable panel; "Override" button to revert to manual
+- [ ] `src/domains/customers/pages/CustomerPortal.tsx` — add chat widget in bottom-right corner; connects to `POST /api/customer-booking/chat`; shows typing indicator while agent responds
+
+**Tests**
+- [ ] Agent: mock all tools; assert agent selects best technician and stops within 5 rounds
+- [ ] Chatbot: assert booking intent triggers `create_booking` tool call and confirmation step
+
+---
+
+### Sprint 33 — i18n, WCAG 2.1 AA, Playwright E2E Suite, OpenAPI Docs
+**Goal:** GuardianFlow is internationalised, accessible, E2E tested against real flows, and has machine-readable API documentation suitable for enterprise procurement RFPs.
+
+**i18n**
+- [ ] Install `react-i18next`; create `src/i18n/` with `en.json`, `es.json`, `fr.json` locale files
+- [ ] Extract all hardcoded UI strings from the 10 highest-traffic pages (WorkOrders, Dispatch, Invoicing, Customers, Dashboard, KB, Scheduler, Payments, Analytics, Settings) into locale JSON
+- [ ] Add language selector to app header; persist choice in `localStorage`; default to browser locale
+- [ ] Backend: accept `Accept-Language` header; return error messages in requested language (en/es/fr)
+
+**Accessibility (WCAG 2.1 AA)**
+- [ ] Install `eslint-plugin-jsx-a11y`; add to eslint config; fix all `error`-level violations across codebase
+- [ ] Audit all icon-only buttons: add `aria-label` to every one
+- [ ] Ensure all form inputs have associated `<label>` or `aria-labelledby`
+- [ ] Add `role="alert"` to all toast/notification components
+- [ ] Keyboard navigation: verify modal traps focus; Escape closes modal; Dispatch board is keyboard-navigable
+- [ ] Colour contrast: verify all text meets 4.5:1 ratio against `--gf-*` token backgrounds; fix failing tokens in `src/styles/tokens.css`
+
+**Playwright E2E Suite**
+- [ ] Install Playwright (`@playwright/test`); configure `playwright.config.ts` pointing at `http://localhost:5173`
+- [ ] Remove stub E2E runner page entirely; replace with real suite
+- [ ] Write E2E tests for top-10 journeys:
+  1. Log in as technician → view assigned WO → update status → complete
+  2. Dispatcher creates WO → uses auto-suggest → assigns technician
+  3. Admin creates invoice → approves → marks paid
+  4. Customer books appointment via self-service chatbot
+  5. Upload photo on WO → defect detected → high-priority WO auto-raised
+  6. IoT threshold breached → trigger fires → WO created
+  7. Run KB search → get RAG answer
+  8. PM plan auto-raises scheduled WO
+  9. SCIM provisioning creates user → user logs in
+  10. Tenant admin customises white-label theme → customer sees branded portal
+- [ ] Add `npm run test:e2e` script; run in CI on PR to main
+
+**OpenAPI Documentation**
+- [ ] Install `swagger-jsdoc` + `swagger-ui-express`
+- [ ] Add JSDoc `@swagger` annotations to all routes in `server/routes/`
+- [ ] Mount Swagger UI at `GET /api/docs`; accessible in dev and staging only (not production unless `SWAGGER_ENABLED=true`)
+- [ ] Export `openapi.json` as build artifact for enterprise procurement portal uploads
+- [ ] Add `SWAGGER_ENABLED` to `.env.example`
+
+---
+
 ## Definition of Done (per sprint)
 1. All new routes have unit tests in `tests/unit/`
 2. DB migration script is idempotent and added to `server/scripts/`
@@ -442,4 +673,4 @@
 
 ---
 
-*Last updated: 2026-04-11 | Audit source: `docs/GAP_ANALYSIS.md` + April 2026 deep-scan (G15–G23)*
+*Last updated: 2026-04-11 | Audit source: `docs/GAP_ANALYSIS.md` + April 2026 deep-scan (G15–G23) + competitive gap analysis (Phases 9–11)*
