@@ -286,7 +286,7 @@ export function AnalyticsSecurity() {
               <CardTitle>Access Control Policies</CardTitle>
               <CardDescription>Fine-grained access control and authorization rules</CardDescription>
             </div>
-            <Button onClick={() => toast({ title: "New Policy", description: "Policy creation dialog coming soon" })}>
+            <Button disabled title="Policy creation is not yet available">
               <Plus className="h-4 w-4 mr-2" />
               New Policy
             </Button>

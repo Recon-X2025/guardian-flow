@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
@@ -11,7 +11,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { apiClient } from '@/integrations/api/client';
+import { toast } from '@/components/ui/sonner';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,15 +30,6 @@ interface SupplierInvoice {
   purchase_order?: string;
   receipt_ref?: string;
 }
-
-// ── Placeholder data ──────────────────────────────────────────────────────────
-
-const SAMPLE_INVOICES: SupplierInvoice[] = [
-  { id: '1', invoice_number: 'INV-2024-001', supplier: 'Acme Supplies', amount: 12500, currency: 'USD', due_date: '2024-02-15', status: 'pending' },
-  { id: '2', invoice_number: 'INV-2024-002', supplier: 'TechParts Co.', amount: 4800, currency: 'USD', due_date: '2024-02-20', status: 'matched', purchase_order: 'PO-001', receipt_ref: 'REC-001' },
-  { id: '3', invoice_number: 'INV-2024-003', supplier: 'FieldTools Ltd.', amount: 2200, currency: 'USD', due_date: '2024-03-01', status: 'approved', purchase_order: 'PO-002', receipt_ref: 'REC-002' },
-  { id: '4', invoice_number: 'INV-2024-004', supplier: 'Global Parts', amount: 9100, currency: 'USD', due_date: '2024-01-31', status: 'paid', purchase_order: 'PO-003', receipt_ref: 'REC-003' },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -174,14 +167,47 @@ function ApprovalQueueTab({ invoices, onApprove, onReject }: {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AccountsPayable() {
-  const [invoices, setInvoices] = useState<SupplierInvoice[]>(SAMPLE_INVOICES);
+  const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleApprove = (id: string) => {
-    setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'approved' } : inv));
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const { data, error } = await apiClient
+          .from('supplier_invoices')
+          .select('*')
+          .order('due_date', { ascending: true })
+          .then();
+        if (error) throw new Error(String(error));
+        setInvoices((data as SupplierInvoice[]) ?? []);
+      } catch (err) {
+        console.error('Failed to load supplier invoices:', err);
+        toast.error('Could not load supplier invoices');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInvoices();
+  }, []);
+
+  const handleApprove = async (id: string) => {
+    try {
+      await apiClient.from('supplier_invoices').update({ status: 'approved' }).eq('id', id);
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'approved' } : inv));
+      toast.success('Invoice approved');
+    } catch {
+      toast.error('Failed to approve invoice');
+    }
   };
 
-  const handleReject = (id: string) => {
-    setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'rejected' } : inv));
+  const handleReject = async (id: string) => {
+    try {
+      await apiClient.from('supplier_invoices').update({ status: 'rejected' }).eq('id', id);
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'rejected' } : inv));
+      toast.success('Invoice rejected');
+    } catch {
+      toast.error('Failed to reject invoice');
+    }
   };
 
   return (
@@ -191,25 +217,35 @@ export default function AccountsPayable() {
         <p className="text-muted-foreground text-sm mt-1">Manage supplier invoices, 3-way matching, and approval workflows.</p>
       </div>
 
-      <Tabs defaultValue="invoices">
-        <TabsList>
-          <TabsTrigger value="invoices">Supplier Invoices</TabsTrigger>
-          <TabsTrigger value="match">3-Way Match</TabsTrigger>
-          <TabsTrigger value="approval">Approval Queue</TabsTrigger>
-        </TabsList>
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" /> Loading invoices…
+        </div>
+      ) : (
+        <Tabs defaultValue="invoices">
+          <TabsList>
+            <TabsTrigger value="invoices">Supplier Invoices</TabsTrigger>
+            <TabsTrigger value="match">3-Way Match</TabsTrigger>
+            <TabsTrigger value="approval">Approval Queue</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="invoices" className="mt-4">
-          <SupplierInvoicesTab invoices={invoices} />
-        </TabsContent>
+          <TabsContent value="invoices" className="mt-4">
+            {invoices.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12">No supplier invoices found.</p>
+            ) : (
+              <SupplierInvoicesTab invoices={invoices} />
+            )}
+          </TabsContent>
 
-        <TabsContent value="match" className="mt-4">
-          <ThreeWayMatchTab invoices={invoices} />
-        </TabsContent>
+          <TabsContent value="match" className="mt-4">
+            <ThreeWayMatchTab invoices={invoices} />
+          </TabsContent>
 
-        <TabsContent value="approval" className="mt-4">
-          <ApprovalQueueTab invoices={invoices} onApprove={handleApprove} onReject={handleReject} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="approval" className="mt-4">
+            <ApprovalQueueTab invoices={invoices} onApprove={handleApprove} onReject={handleReject} />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }

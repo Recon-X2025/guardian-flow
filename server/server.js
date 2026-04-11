@@ -66,6 +66,9 @@ import aiEthicsRoutes from './routes/ai-ethics.js';
 import e2eTestsRoutes from './routes/e2e-tests.js';
 import launchReadinessRoutes from './routes/launch-readiness.js';
 import cbmRoutes from './routes/cbm.js';
+import webhookDeliveryRoutes from './routes/webhook-delivery.js';
+import compliancePolicyRoutes from './routes/compliance-policy.js';
+import modelPerformanceMonitorRoutes from './routes/model-performance-monitor.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -230,6 +233,9 @@ app.use('/api/ai-ethics', authenticateToken, aiEthicsRoutes);
 app.use('/api/e2e', authenticateToken, e2eTestsRoutes);
 app.use('/api/launch', authenticateToken, launchReadinessRoutes);
 app.use('/api/cbm', authenticateToken, cbmRoutes);
+app.use('/api/webhook-delivery', authenticateToken, webhookDeliveryRoutes);
+app.use('/api/compliance', compliancePolicyRoutes);
+app.use('/api/model-performance', modelPerformanceMonitorRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*

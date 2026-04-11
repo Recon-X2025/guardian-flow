@@ -54,7 +54,7 @@ export default function CustomerSuccess() {
           ))}
         </TabsContent>
         <TabsContent value="cohorts" className="mt-4">
-          <Card><CardHeader><CardTitle className="text-sm">Cohort Analysis</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Cohort breakdown by segment and tenure coming soon.</p></CardContent></Card>
+          <Card><CardHeader><CardTitle className="text-sm">Cohort Analysis</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">No cohort data available yet. Cohort breakdown by segment and tenure will appear here once customer data is collected.</p></CardContent></Card>
         </TabsContent>
       </Tabs>
     </div>

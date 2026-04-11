@@ -320,8 +320,7 @@ export default function Customer360() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground text-sm">
-                Document storage integration coming soon. Contracts, warranty docs, and service
-                reports will appear here.
+                Document management is not yet enabled for this customer. Contact your administrator to enable document storage integration.
               </p>
             </CardContent>
           </Card>

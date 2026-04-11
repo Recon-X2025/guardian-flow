@@ -101,7 +101,9 @@ export function EnhancedSLATab() {
       }, 0) / (completed.length || 1) / (1000 * 60 * 60);
 
       const compliance = total > 0 ? ((total - breached.length) / total * 100) : 100;
-      const firstTimeFixRate = 85 + Math.random() * 10; // Placeholder - would need actual FTF data
+      // First-time fix rate: completed work orders resolved in a single attempt
+      const firstTimeFixes = completed.filter(wo => !wo.attempt_count || wo.attempt_count <= 1).length;
+      const firstTimeFixRate = completed.length > 0 ? (firstTimeFixes / completed.length * 100) : 0;
 
       setMetrics({
         compliance,
