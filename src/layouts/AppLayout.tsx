@@ -14,8 +14,9 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Tickets",      path: "/tickets",      icon: "🎫" },
   { label: "Customers",    path: "/customers",    icon: "👥" },
   { label: "Technicians",  path: "/technicians",  icon: "👷" },
-  { label: "Invoices",     path: "/invoices",     icon: "💰" },
-  { label: "Analytics",    path: "/analytics",    icon: "📊" },
+  { label: "Invoices",     path: "/invoices",         icon: "💰" },
+  { label: "AP",           path: "/accounts-payable", icon: "📑" },
+  { label: "Analytics",    path: "/analytics",        icon: "📊" },
   { label: "Settings",     path: "/settings",     icon: "⚙️" },
 ];
 

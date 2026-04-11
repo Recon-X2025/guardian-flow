@@ -78,6 +78,8 @@ import mfaRoutes from './routes/mfa.js';
 import assetGraphRoutes from './routes/asset-graph.js';
 import complianceCertsRoutes from './routes/compliance-certs.js';
 import vehicleStockRoutes from './routes/vehicle-stock.js';
+import accountsPayableRoutes from './routes/accounts-payable.js';
+import supplierPortalRoutes from './routes/supplier-portal.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -255,6 +257,8 @@ app.use('/api/auth/mfa', authLimiter, mfaRoutes);
 app.use('/api/assets', assetGraphRoutes);
 app.use('/api/assets', complianceCertsRoutes);
 app.use('/api/technicians', authenticateToken, vehicleStockRoutes);
+app.use('/api/ap', authenticateToken, accountsPayableRoutes);
+app.use('/api/suppliers', supplierPortalRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
