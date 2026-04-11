@@ -114,4 +114,123 @@ router.get('/models/:id/history', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/digital-twin/twins
+router.post('/twins', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const { asset_id } = req.body;
+    if (!asset_id) return res.status(400).json({ error: 'asset_id is required' });
+    const adapter = await getAdapter();
+    const now = new Date().toISOString();
+    const twin = {
+      id: randomUUID(),
+      tenant_id: tenantId,
+      asset_id,
+      schema: { metrics: [], relationships: [] },
+      current_state: {},
+      simulation_history: [],
+      created_at: now,
+      updated_at: now,
+    };
+    await adapter.insertOne('digital_twins', twin);
+    res.status(201).json({ twin });
+  } catch (err) {
+    logger.error('Digital twin create error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/digital-twin/twins
+router.get('/twins', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const adapter = await getAdapter();
+    const twins = await adapter.findMany('digital_twins', { tenant_id: tenantId }, { limit: 50 });
+    res.json({ twins });
+  } catch (err) {
+    logger.error('Digital twins list error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/digital-twin/twins/:id
+router.get('/twins/:id', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const adapter = await getAdapter();
+    const twin = await adapter.findOne('digital_twins', { id: req.params.id, tenant_id: tenantId });
+    if (!twin) return res.status(404).json({ error: 'Twin not found' });
+    res.json({ twin });
+  } catch (err) {
+    logger.error('Digital twin get error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /api/digital-twin/twins/:id/state
+router.put('/twins/:id/state', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const { metrics } = req.body;
+    if (!metrics || typeof metrics !== 'object') return res.status(400).json({ error: 'metrics object is required' });
+    const adapter = await getAdapter();
+    const twin = await adapter.findOne('digital_twins', { id: req.params.id, tenant_id: tenantId });
+    if (!twin) return res.status(404).json({ error: 'Twin not found' });
+    const now = new Date().toISOString();
+    const newState = { ...twin.current_state, ...metrics };
+    const snapshot = { timestamp: now, state: newState };
+    const history = Array.isArray(twin.simulation_history) ? twin.simulation_history : [];
+    const updatedHistory = [...history, snapshot].slice(-100);
+    await adapter.updateOne('digital_twins', { id: twin.id }, {
+      current_state: newState,
+      simulation_history: updatedHistory,
+      updated_at: now,
+    });
+    res.json({ twin: { ...twin, current_state: newState, simulation_history: updatedHistory, updated_at: now } });
+  } catch (err) {
+    logger.error('Digital twin state update error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/digital-twin/twins/:id/simulate
+router.post('/twins/:id/simulate', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const { inputChanges = {}, timesteps = 10 } = req.body;
+    const adapter = await getAdapter();
+    const twin = await adapter.findOne('digital_twins', { id: req.params.id, tenant_id: tenantId });
+    if (!twin) return res.status(404).json({ error: 'Twin not found' });
+
+    // Linear state-space: start from current_state merged with inputChanges, hold constant
+    const initialState = { ...twin.current_state, ...inputChanges };
+    const trajectory = [];
+    for (let step = 0; step <= timesteps; step++) {
+      trajectory.push({ step, state: { ...initialState } });
+    }
+
+    // Check IoT rules for this twin's asset_id
+    const rules = await adapter.findMany('iot_rules', { tenant_id: tenantId, device_id: twin.asset_id, active: true }, { limit: 50 });
+    const alertsProjected = [];
+    for (const rule of rules) {
+      const val = initialState[rule.metric];
+      if (val === undefined) continue;
+      let violated = false;
+      if (rule.condition === 'gt' && val > rule.threshold) violated = true;
+      if (rule.condition === 'lt' && val < rule.threshold) violated = true;
+      if (rule.condition === 'gte' && val >= rule.threshold) violated = true;
+      if (rule.condition === 'lte' && val <= rule.threshold) violated = true;
+      if (rule.condition === 'eq' && val === rule.threshold) violated = true;
+      if (violated) {
+        alertsProjected.push({ ruleId: rule.id, metric: rule.metric, condition: rule.condition, threshold: rule.threshold, projectedValue: val });
+      }
+    }
+
+    res.json({ trajectory, alertsProjected });
+  } catch (err) {
+    logger.error('Digital twin simulate error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
