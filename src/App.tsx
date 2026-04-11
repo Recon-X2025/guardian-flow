@@ -47,6 +47,7 @@ const Assistant = lazy(() => import("@/domains/shared/pages/Assistant"));
 const ModelOrchestration = lazy(() => import("@/domains/shared/pages/ModelOrchestration"));
 const HelpTraining = lazy(() => import("@/domains/training/pages/HelpTraining"));
 const AnomalyDetection = lazy(() => import("@/domains/analytics/pages/AnomalyDetection"));
+const AnomalyMonitor = lazy(() => import("@/domains/analytics/pages/AnomalyMonitor"));
 const AgentDashboard = lazy(() => import("@/domains/shared/pages/AgentDashboard"));
 const RAGEngine = lazy(() => import("@/domains/knowledge/pages/RAGEngine"));
 const Prompts = lazy(() => import("@/domains/shared/pages/Prompts"));
@@ -578,6 +579,14 @@ const App = () => (
                     <ProtectedRoute>
                       <RoleGuard permissions={["fraud.view"]} showError={true}>
                         <AppLayout><SuspenseWrap><AnomalyDetection /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/anomaly-monitor" element={
+                    <ProtectedRoute>
+                      <RoleGuard permissions={["fraud.view"]} showError={true}>
+                        <AppLayout><SuspenseWrap><AnomalyMonitor /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />
