@@ -663,6 +663,372 @@
 
 ---
 
+## Phase 12 — Enterprise FSM Parity (Sprints 34–36, ~3 weeks)
+> **Source:** `docs/COMPETITIVE_GAP_ANALYSIS.md` Modules A, B, C, I  
+> Gaps vs. ServiceNow Enterprise FSM, Salesforce Field Service, D365 Field Service, IFS Cloud, SAP FSM, Oracle Field Service
+
+### Sprint 34 — Crew WO + Gantt Dispatch Board + MFA + Territory Planning
+**Goal:** Close the three most critical FSM differentiators absent from every competitor analysis: crew-based work orders, a true visual dispatch Gantt, multi-factor authentication, and territory planning for large field operations.
+
+**Backend — Crew Work Orders**
+- [ ] DB migration `011-crew-work-orders.js`: add `crew_members[]`, `crew_lead`, `min_crew_size`, `max_crew_size` to `work_orders` collection; index on `crew_members`
+- [ ] `POST /api/work-orders/:id/crew` — add/remove crew members; validate all members are technicians with required skills; emit `crew_updated` WS event
+- [ ] `GET /api/work-orders/:id/crew` — return crew with availability + certification status per member
+
+**Backend — Territory Planning**
+- [ ] DB migration `012-territories.js`: new `territories` collection — `{tenantId, name, polygon: GeoJSON, defaultTechnicianIds[], managerIds[]}`
+- [ ] `POST /api/territories` — create territory (polygon via GeoJSON); `GET /api/territories`; `PUT /api/territories/:id`; `DELETE /api/territories/:id`
+- [ ] `GET /api/territories/:id/work-orders` — return WOs whose site address falls within polygon (geospatial query)
+- [ ] `GET /api/territories/:id/technicians` — technicians assigned to territory with current WO load
+
+**Backend — MFA (TOTP)**
+- [ ] Install `speakeasy` + `qrcode` packages; add `mfa_secret`, `mfa_enabled` fields to users collection
+- [ ] `POST /api/auth/mfa/enroll` — generate TOTP secret; return QR code data URL; do NOT save until verified
+- [ ] `POST /api/auth/mfa/verify-enroll` — accept 6-digit TOTP code; if valid, save `mfa_secret` + set `mfa_enabled: true`; return backup codes (hashed)
+- [ ] `POST /api/auth/mfa/validate` — accept TOTP code at login step 2; issue JWT only on valid code; rate-limit to 5 attempts/min per user
+- [ ] `POST /api/auth/mfa/disable` — require current password + TOTP code; clears MFA secret
+
+**Frontend — Dispatch Gantt**
+- [ ] Install `@dhx/trial-suite` or equivalent lightweight Gantt lib (check for licence cost; if cost-prohibitive use `react-big-calendar` with resource view); render technician rows, WO blocks, travel-time gaps
+- [ ] `src/domains/workOrders/pages/Dispatch.tsx` — replace current list dispatch with Gantt view; each row = 1 technician; drag WO block to reassign; click WO block to open detail drawer; colour-code by SLA status (green/amber/red)
+- [ ] Real-time update: Gantt reacts to WS `assignment_updated` and `work_order_updated` events without page reload
+
+**Frontend — Territory Management Page**
+- [ ] `src/domains/shared/pages/TerritoryManagement.tsx` — new page; render territories on interactive map (Leaflet); draw polygon to create territory; assign technicians; show WO density heatmap overlay
+- [ ] Add route `/territories` in `src/App.tsx`; add to sidebar under Scheduling
+
+**Frontend — MFA Enrollment Flow**
+- [ ] `src/domains/auth/pages/auth/MFAEnroll.tsx` — step-by-step: show QR code → ask user to scan with TOTP app → enter 6-digit code to verify → show backup codes → done
+- [ ] `src/domains/shared/pages/Settings.tsx` — add "Security" tab: enable/disable MFA; show MFA status badge
+
+**Tests**
+- [ ] `tests/unit/mfa.test.js` — enroll, validate correct TOTP, reject incorrect TOTP, rate-limit exceeded
+- [ ] `tests/unit/territories.test.js` — CRUD, geospatial lookup of WOs within polygon
+
+---
+
+### Sprint 35 — Crowd Marketplace WO + Email→WO AI + Capacity Demand Forecasting + Multi-day WO
+**Goal:** Enable enterprise operations that subcontract to partner networks, use Copilot-style email-to-WO, forecast capacity gaps weeks ahead, and span WOs over multiple days.
+
+**Backend — Crowd / Contractor WO Assignment**
+- [ ] DB migration `013-crowd.js`: add `crowd_partner_id`, `crowd_status` (pending_acceptance / accepted / declined / completed) to `work_orders`; new `crowd_partners` collection — `{tenantId, orgName, contactEmail, skills[], territories[], certifications[], status}`
+- [ ] `POST /api/crowd/partners` — invite partner org; send invitation email; `GET /api/crowd/partners`; `PUT /api/crowd/partners/:id/approve`
+- [ ] `POST /api/work-orders/:id/assign-crowd` — dispatch WO to crowd partner; set `crowd_status: pending_acceptance`; emit webhook `crowd_assignment_created` to partner's registered webhook URL
+- [ ] `POST /api/crowd/inbound/accept` — partner accepts WO (HMAC-signed inbound webhook)
+- [ ] `POST /api/crowd/inbound/decline` — partner declines; WO reverts to unassigned pool
+
+**Backend — Email → WO Auto-Creation**
+- [ ] `POST /api/work-orders/from-email` — accepts `{subject, body, senderEmail, tenantId}`; calls LLM (GPT-4o via `server/services/ai/llm.js`) with prompt to extract: `{title, description, priority, customerRef, siteAddress, requiredSkills}`; creates WO draft with `status: draft`; returns `{ workOrderId, extracted, confidence }`
+- [ ] Confidence < 0.6 → set `status: pending_review` rather than `draft`; flag for human review
+- [ ] `GET /api/work-orders?status=pending_review` — queue for dispatcher review
+
+**Backend — Capacity Demand Forecasting**
+- [ ] `GET /api/scheduling/capacity-forecast?weeks=4&territory=:id` — returns per-week demand forecast: `{week, forecastedWOs, availableCapacity, gap}`; demand from time-series model (Prophet via Python sidecar or simple Holt-Winters in JS); capacity from scheduled technician hours
+- [ ] `GET /api/scheduling/capacity-forecast/gaps` — return weeks where `gap > 0`; suggest whether to hire, use crowd, or defer
+
+**Backend — Multi-Day Work Orders**
+- [ ] DB migration: add `multi_day: Boolean`, `planned_start_date`, `planned_end_date`, `daily_schedule[]: [{date, technician_id, planned_hours}]` to `work_orders`
+- [ ] `PUT /api/work-orders/:id/daily-schedule` — set daily schedule entries; each entry creates a slot in dispatch board
+- [ ] `GET /api/work-orders/:id/daily-schedule` — return per-day schedule with completion status
+
+**Frontend**
+- [ ] `src/domains/customers/pages/PartnerGateway.tsx` — replace mock partner list with real crowd partner CRUD; show pending WOs awaiting acceptance; show WO acceptance/decline audit trail
+- [ ] `src/domains/workOrders/pages/WorkOrders.tsx` — add "Email Import" button → paste raw email → call `/api/work-orders/from-email` → review extracted fields → confirm/edit → save as WO
+- [ ] `src/domains/workOrders/pages/Scheduler.tsx` — add "Capacity Forecast" panel: bar chart of forecasted demand vs available capacity per week; red highlight on gap weeks; one-click to open crowd partner page to address gap
+- [ ] `src/domains/workOrders/pages/WorkOrders.tsx` — add multi-day WO flag; show date range badge on WO card
+
+**Tests**
+- [ ] Email→WO: mock LLM; assert extracted fields match expected WO shape; test confidence threshold logic
+- [ ] Capacity forecast: assert output structure; assert gap detection
+- [ ] Crowd: accept + decline flow; verify `crowd_status` transitions
+
+---
+
+### Sprint 36 — Offline Mobile PWA + Asset CMDB Graph + Truck Stock + Compliance Certificates
+**Goal:** Technicians can work without connectivity; assets have enterprise-grade dependency tracking; mobile inventory and compliance cert expiry tracking are live.
+
+**Backend — Asset Dependency Graph (CMDB-style)**
+- [ ] DB migration `014-asset-graph.js`: add `parent_asset_id`, `child_asset_ids[]`, `dependency_type` (hosts / powers / connects_to / contains) to `assets` collection; create index on `parent_asset_id`
+- [ ] `GET /api/assets/:id/graph` — return asset + all ancestors + all descendants to depth 3; include impact score (number of dependent assets)
+- [ ] `POST /api/assets/:id/dependencies` — add dependency relationship; `DELETE /api/assets/:id/dependencies/:relId`
+
+**Backend — Compliance Certificate Tracking**
+- [ ] DB migration: new `asset_compliance_certs` collection — `{assetId, tenantId, certType (calibration/safety/insurance/warranty), issuer, issuedDate, expiryDate, documentUrl, status (valid/expiring_soon/expired)}`
+- [ ] `POST /api/assets/:id/compliance-certs` — add certificate; `GET /api/assets/:id/compliance-certs`
+- [ ] Cron job `compliance-cert-monitor.js` — daily scan: set `status: expiring_soon` if expiry within 30 days; set `expired` if past; emit notification to asset owner + tenant admin
+
+**Backend — Truck Stock / Mobile Inventory**
+- [ ] DB migration: new `technician_vehicles` collection — `{technicianId, tenantId, vehicleRef, stockItems[]: [{partId, qty, minQty}]}`
+- [ ] `GET /api/technicians/:id/vehicle-stock` — return current truck stock
+- [ ] `POST /api/technicians/:id/vehicle-stock/consume` — deduct parts used on a WO; trigger restock alert if qty < `minQty`
+- [ ] `POST /api/technicians/:id/vehicle-stock/restock` — record restock from warehouse
+
+**Frontend — PWA Offline**
+- [ ] Add `vite-plugin-pwa` to `vite.config.ts`; configure service worker to cache: app shell, WorkOrders page, WO detail, Dispatch board, KnowledgeBase
+- [ ] Implement IndexedDB offline queue: when offline, store `PUT /api/work-orders/:id/status` and `POST /api/work-orders/:id/notes` calls; replay queue on reconnect with conflict detection (last-write-wins on status, append-only on notes)
+- [ ] Offline indicator banner in app header when `navigator.onLine === false`
+
+**Frontend — Asset Dependency Graph**
+- [ ] `src/domains/workOrders/pages/AssetRegister.tsx` — add "Dependencies" tab: render asset dependency graph using D3 force-directed layout; show impact score badge; click node to navigate to that asset's record
+
+**Frontend — Compliance Certs**
+- [ ] `src/domains/workOrders/pages/AssetRegister.tsx` — add "Compliance" tab: list certificates with expiry countdown; red badge on expired, amber on expiring within 30 days; upload document (S3/local storage)
+
+**Frontend — Truck Stock**
+- [ ] `src/domains/shared/pages/Technicians.tsx` — add "Vehicle Stock" panel per technician: show parts, quantities, low-stock alerts; "Consume" button links to a WO
+
+**Tests**
+- [ ] Asset graph: CRUD relationships; depth-3 traversal returns correct nodes
+- [ ] Cert monitor: expiry date logic; correct `status` transitions
+- [ ] Truck stock: consume deducts correctly; restock alert triggered at minQty
+
+---
+
+## Phase 13 — Financial & CRM Enterprise Grade (Sprints 37–39, ~3 weeks)
+> **Source:** `docs/COMPETITIVE_GAP_ANALYSIS.md` Modules D and E  
+> Gaps vs. SAP S/4HANA, Oracle Fusion Financials, Workday, Salesforce Sales Cloud, HubSpot Enterprise
+
+### Sprint 37 — Accounts Payable + Supplier Portal + ASC 606 Revenue Engine
+**Goal:** GuardianFlow gains a real Accounts Payable module (enterprise prerequisite) and a standards-compliant ASC 606 / IFRS 15 revenue recognition engine.
+
+**Backend — Accounts Payable**
+- [ ] DB migration `015-accounts-payable.js`: new `ap_invoices` collection — `{tenantId, vendorId, invoiceNo, invoiceDate, dueDate, lineItems[], currency, totalAmount, status (received/matched/approved/paid/disputed), purchaseOrderRef, goodsReceiptRef, threeWayMatchStatus}`
+- [ ] `POST /api/ap/invoices` — create AP invoice; `GET /api/ap/invoices`; `PUT /api/ap/invoices/:id/approve`; `PUT /api/ap/invoices/:id/pay`; `PUT /api/ap/invoices/:id/dispute`
+- [ ] 3-way match engine: `POST /api/ap/invoices/:id/match` — compare AP invoice to PO and goods receipt; return match result (exact / partial / exception); auto-approve exact matches; flag exceptions for manual review
+- [ ] Payment run: `POST /api/ap/payment-runs` — batch pay all approved AP invoices due by a given date; generate payment file (CSV); update `status: paid`
+
+**Backend — Supplier Portal (self-service AP)**
+- [ ] `POST /api/suppliers/portal/submit-invoice` — supplier-facing endpoint (separate auth scope `supplier`); submit invoice with PDF attachment; creates `ap_invoice` in received status
+- [ ] `GET /api/suppliers/portal/invoices` — supplier sees their own invoices and payment status
+
+**Backend — ASC 606 / IFRS 15 Revenue Recognition Engine**
+- [ ] DB migration `016-revenue-recognition.js`: new `revenue_contracts` collection — `{tenantId, customerId, contractNo, performanceObligations[], transactionPrice, allocationMethod, status}`; new `revenue_schedules` collection — `{contractId, obligationId, recognitionDate, amount, recognized: Boolean}`
+- [ ] `POST /api/revenue/contracts` — create revenue contract with performance obligations; auto-calculate SSP (standalone selling price) allocation across obligations
+- [ ] `POST /api/revenue/contracts/:id/recognize` — trigger recognition for obligations satisfied in a period; create journal entries; update `revenue_schedules`
+- [ ] `GET /api/revenue/contracts/:id/waterfall` — return period-by-period recognition schedule (deferred → earned waterfall)
+- [ ] `GET /api/revenue/reports/asc606-disclosure` — return contract assets, contract liabilities, remaining performance obligations for financial statement disclosure
+
+**Frontend**
+- [ ] `src/domains/financial/pages/AccountsPayable.tsx` — new page: AP invoice list with status badges; 3-way match indicator; bulk approve/pay; supplier portal link; aging report (0–30, 31–60, 61–90, 90+ days)
+- [ ] `src/domains/financial/pages/RevenueRecognition.tsx` — replace mock with real waterfall chart per contract; period picker; ASC 606 disclosure report export
+
+**Tests**
+- [ ] 3-way match: exact match auto-approves; line item variance > 5% raises exception
+- [ ] ASC 606: SSP allocation across 3 obligations sums to transaction price; waterfall schedule totals to contract value
+
+---
+
+### Sprint 38 — Intercompany Consolidation + Fixed Assets + Global e-Invoicing + Expense Management
+**Goal:** Enterprise customers operating across multiple legal entities get consolidation, fixed asset depreciation, country-specific e-invoicing, and technician expense claims.
+
+**Backend — Fixed Assets & Depreciation**
+- [ ] DB migration `017-fixed-assets.js`: new `fixed_assets` collection — `{tenantId, assetName, assetClass, acquisitionDate, acquisitionCost, depreciationMethod (straight_line/declining_balance/units_of_production), usefulLifeMonths, residualValue, bookValue, disposalDate}`
+- [ ] Depreciation run: `POST /api/finance/fixed-assets/depreciation-run?period=YYYY-MM` — calculate depreciation for all assets in period; create journal entries; update `bookValue`
+- [ ] `POST /api/finance/fixed-assets` — add asset; `GET /api/finance/fixed-assets`; `PUT /api/finance/fixed-assets/:id/dispose` — calculate gain/loss on disposal
+
+**Backend — Intercompany Transactions & Consolidation**
+- [ ] DB migration `018-intercompany.js`: add `entity_id` to `tenants`; new `intercompany_transactions` collection — `{fromEntityId, toEntityId, transactionType, amount, currency, eliminations[]}`
+- [ ] `POST /api/finance/intercompany/transactions` — record IC transaction
+- [ ] `POST /api/finance/consolidation/run?period=YYYY-MM` — generate consolidated P&L and Balance Sheet: sum all entity GLs, eliminate IC transactions, apply FX translation; return consolidated trial balance
+
+**Backend — Global e-Invoicing**
+- [ ] `POST /api/finance/invoices/:id/e-invoice` — given invoice + `countryCode`; apply country-specific format: `{ PEPPOL_BIS: UBL XML, CFDI: MX SAT XML, FatturaPA: IT XML, Generic: JSON-LD }` — start with PEPPOL and CFDI; stub others
+- [ ] Store generated e-invoice document; add `e_invoice_status`, `e_invoice_format`, `submission_ref` to invoice record
+
+**Backend — Expense Management**
+- [ ] DB migration `019-expenses.js`: new `expense_claims` collection — `{technicianId, tenantId, claims[]: {date, category, amount, currency, receiptUrl, description}, totalAmount, status (draft/submitted/approved/rejected/paid), approvedBy}`
+- [ ] `POST /api/expenses` — create expense claim; `PUT /api/expenses/:id/submit`; `PUT /api/expenses/:id/approve`; `PUT /api/expenses/:id/reject`; `POST /api/expenses/:id/receipt-upload` — upload receipt image
+- [ ] Policy engine: flag expenses exceeding per-diem limits (configurable per tenant per category); auto-reject out-of-policy if tenant setting `auto_reject_out_of_policy: true`
+
+**Frontend**
+- [ ] `src/domains/financial/pages/GeneralLedger.tsx` — add "Consolidation" tab: entity selector; period picker; consolidated trial balance table with IC eliminations shown separately
+- [ ] New page `src/domains/financial/pages/FixedAssets.tsx` — register asset; depreciation schedule; net book value chart; disposal workflow
+- [ ] `src/domains/financial/pages/Invoicing.tsx` — add "Generate e-Invoice" button; country selector; preview XML before sending; download/send
+- [ ] New page `src/domains/shared/pages/ExpenseManagement.tsx` — technician submits claim + receipt photo; manager approves; finance exports to payroll
+
+**Tests**
+- [ ] Depreciation: straight-line on a 60-month asset produces correct monthly charge
+- [ ] Consolidation: 2-entity with IC transaction; elimination reduces consolidated revenue + cost
+- [ ] Expense policy: over-per-diem expense flagged; auto-reject when policy enabled
+
+---
+
+### Sprint 39 — CRM Pipeline + Contact Org Chart + NPS/CSAT + Marketing Automation (Light)
+**Goal:** GuardianFlow gains basic CRM capability — deal pipeline, org-chart contacts, customer satisfaction measurement, and lightweight marketing campaigns — to compete with Salesforce/HubSpot for prospects managing the full customer lifecycle.
+
+**Backend — CRM Pipeline**
+- [ ] DB migration `020-crm.js`: new `deals` collection — `{tenantId, title, accountId, contactId, stage, amount, probability, expectedCloseDate, owner, notes[]}`; pipeline stages configurable per tenant
+- [ ] `POST /api/crm/deals`; `GET /api/crm/deals`; `PUT /api/crm/deals/:id`; `PUT /api/crm/deals/:id/stage`; `DELETE /api/crm/deals/:id`
+- [ ] `GET /api/crm/pipeline/summary` — return deal count + weighted ARR per stage; forecast this month's close
+- [ ] Activity auto-log: `POST /api/crm/activities` — `{type: email|call|meeting|note, dealId?, contactId?, summary, timestamp}`
+
+**Backend — NPS / CSAT Surveys**
+- [ ] DB migration `021-surveys.js`: new `survey_responses` collection — `{tenantId, surveyType (nps/csat), workOrderId?, customerId, score, comment, respondedAt}`
+- [ ] `POST /api/surveys/send` — trigger survey send (email via `server/services/notifications.js`) after WO status = completed; include unique response link
+- [ ] `POST /api/surveys/respond/:token` — public endpoint; accept `{score, comment}`; save response
+- [ ] `GET /api/surveys/analytics` — return NPS (promoters – detractors), CSAT average, response rate, trend by week
+
+**Frontend**
+- [ ] New page `src/domains/customers/pages/CRMPipeline.tsx` — Kanban board with configurable stages; drag deal card between stages; deal value and probability visible on card; click to open deal detail with activity timeline; forecast widget in sidebar
+- [ ] `src/domains/customers/pages/Customers.tsx` — add "Contacts" tab with org chart view (D3 tree rendering parent-child contact relationships within an account)
+- [ ] `src/domains/customers/pages/CustomerSuccess.tsx` — add NPS trend line chart; CSAT score per technician; response rate gauge; "Send Survey" button on completed WOs
+- [ ] `src/domains/customers/pages/CustomerPortal.tsx` — embed NPS survey widget post-appointment; 1-click NPS score + optional comment
+
+**Tests**
+- [ ] Pipeline: stage transition valid/invalid transitions; weighted ARR calculation
+- [ ] NPS: score 9 = promoter, score 6 = detractor; NPS calculation correct
+- [ ] Survey: token is single-use; duplicate submission rejected
+
+---
+
+## Phase 14 — Platform Intelligence & Standards (Sprints 40–42, ~3 weeks)
+> **Source:** `docs/COMPETITIVE_GAP_ANALYSIS.md` Modules F, G, H, I, J  
+> Gaps vs. Databricks AI/BI, Azure IoT, PTC ThingWorx, IBM watsonx.governance, Azure Entra, MuleSoft
+
+### Sprint 40 — NLP-to-SQL Analytics + Streaming Anomaly + ESG Scope Engine + Webhook Hardening
+**Goal:** Analytics queries can be asked in natural language; anomaly detection is real-time streaming; ESG reporting has an actual Scope 1/2/3 calculation; webhooks are production-grade with delivery guarantees.
+
+**Backend — NLP-to-SQL (Analytics Query Engine)**
+- [ ] `POST /api/analytics/nlp-query` — accepts `{question: string, tenantId}`; calls LLM with schema context (table names, columns, sample rows) to generate SQL; execute SQL against read-replica analytics DB; return `{sql, results, chartType: suggested}`
+- [ ] Schema context: auto-generate from DB adapter `getTableSchema()` method; inject up to 3000 tokens of schema
+- [ ] Safety: wrap generated SQL in a read-only transaction; reject any DDL/DML statements; max 10,000 row result cap
+- [ ] Rate limit: 20 NLP queries / hour per tenant
+
+**Frontend — NLP Query Interface**
+- [ ] `src/domains/shared/pages/NLPQueryInterface.tsx` — connect to `POST /api/analytics/nlp-query`; show "Thinking…" state; render result as auto-selected chart type (bar/line/table/number); show generated SQL in expandable "How was this calculated?" panel
+
+**Backend — Real-Time Streaming Anomaly Detection**
+- [ ] Add `server/services/streaming/anomaly-stream.js` — WebSocket consumer: subscribe to `iot_telemetry` channel; apply CUSUM (cumulative sum) anomaly algorithm in-process; when anomaly detected emit `anomaly_alert` WS event to tenant subscribers
+- [ ] `GET /api/anomaly/stream` — WebSocket upgrade endpoint; tenant-scoped stream of anomaly events
+
+**Frontend — Anomaly Monitor**
+- [ ] `src/domains/analytics/pages/AnomalyMonitor.tsx` — connect to WS `anomaly_alert` events; render live event feed with asset name, metric, threshold breach value, and timestamp; alert count badge in sidebar
+
+**Backend — ESG Scope 1/2/3 Engine**
+- [ ] DB migration `022-esg.js`: new `esg_activities` collection — `{tenantId, period, scope (1/2/3), activityType, quantity, unit, emissionFactor, co2eKg}`; new `esg_emission_factors` collection (seed with IPCC default factors)
+- [ ] `POST /api/esg/activities` — record activity (fuel consumption, electricity, supply chain spend)
+- [ ] `GET /api/esg/reports/scope?year=YYYY` — return Scope 1/2/3 totals; breakdown by activity type; trend vs prior year
+- [ ] `GET /api/esg/reports/cdp-template` — return JSON mapped to CDP response template headings (water, energy, Scope 1/2/3, governance); export as CSV
+
+**Frontend — ESG Reporting**
+- [ ] `src/domains/analytics/pages/ESGReporting.tsx` — replace mock with real Scope 1/2/3 donut chart; activity log table; CDP/GRI template export button; year-over-year trend
+
+**Backend — Webhook Hardening**
+- [ ] Add `server/services/webhooks/delivery.js` — delivery queue: store outgoing webhook attempts in DB; retry with exponential back-off (1min, 5min, 30min, 2hr, 24hr); mark `dead_letter` after 5 failed attempts; expose `GET /api/webhooks/:id/delivery-log` for debugging
+- [ ] HMAC-SHA256 signature: sign outgoing payload with tenant webhook secret; add `X-GuardianFlow-Signature` header; document in OpenAPI
+- [ ] `GET /api/webhooks/events` — return available event types with schema for each
+
+**Frontend — Webhooks**
+- [ ] `src/domains/shared/pages/Webhooks.tsx` — show per-webhook delivery log with status (delivered/failed/dead_letter); "Retry" button for failed deliveries; show HMAC secret (masked) with rotate button
+
+**Tests**
+- [ ] NLP-to-SQL: mock LLM to return known SQL; assert read-only enforcement rejects UPDATE
+- [ ] Anomaly stream: inject synthetic telemetry spike; assert CUSUM triggers alert within 3 data points
+- [ ] ESG: Scope totals sum correctly; zero-emission month returns 0 not null
+- [ ] Webhook delivery: retry schedule correct; dead-letter after 5th failure; HMAC signature verifiable
+
+---
+
+### Sprint 41 — Real MQTT Device Ingestion + Digital Twin Computation + RUL Model + Dev Sandbox
+**Goal:** IoT is no longer mock — real device data flows in; digital twins have live computation; asset degradation is modelled with Remaining Useful Life; enterprise developers get isolated sandbox tenants.
+
+**Backend — Real MQTT Ingestion**
+- [ ] Install `mqtt` package; add `server/services/iot/mqtt-broker.js` — MQTT client connects to configurable `MQTT_BROKER_URL`; subscribes to `gf/{tenantId}/devices/+/telemetry`; validates payload schema; upserts to `iot_readings` collection; emits WS `iot_telemetry` event
+- [ ] `POST /api/iot/devices/register` — register a device with its expected metrics schema; return device credentials (client ID + password for MQTT auth)
+- [ ] `GET /api/iot/devices` — list registered devices + last seen timestamp + last reading values
+- [ ] Threshold rules: `POST /api/iot/rules` — `{deviceId, metric, condition: gt|lt|eq, threshold, action: create_work_order|send_alert}`; engine evaluates on each incoming reading
+
+**Backend — Digital Twin Real Computation**
+- [ ] DB migration `023-digital-twins.js`: new `digital_twins` collection — `{tenantId, assetId, schema: {metrics[], relationships[]}, currentState: {}, simulationHistory[]}`
+- [ ] `PUT /api/digital-twins/:id/state` — update twin state from IoT reading; propagate state to dependent twins (parent propagation)
+- [ ] `POST /api/digital-twins/:id/simulate` — run forward simulation: given current state + input changes, project state over N timesteps using linear state-space model; return `{trajectory[], alertsProjected[]}`
+
+**Backend — Remaining Useful Life (RUL) Model**
+- [ ] `server/services/ai/rul-model.js` — fit exponential degradation model on asset's historical telemetry: `y = a * exp(-b*t)` + noise; extrapolate to reach failure threshold; return `{estimatedRULDays, confidence, degradationCurve[]}`
+- [ ] `GET /api/assets/:id/rul` — call RUL model on asset's telemetry history; return RUL estimate; store as `rul_estimate` on asset record
+- [ ] Cron: daily `rul-refresh.js` — recalculate RUL for all assets with IoT data; flag assets with RUL < 30 days for preventive maintenance scheduling
+
+**Backend — Developer Sandbox**
+- [ ] `POST /api/admin/sandbox/provision` — sys_admin only; create isolated sandbox tenant: `{tenantId: "sandbox-XXXXXX", tier: "sandbox", seeded: true}`; seed with demo work orders, technicians, assets, invoices
+- [ ] `POST /api/admin/sandbox/:tenantId/reset` — wipe and re-seed sandbox tenant data
+- [ ] `DELETE /api/admin/sandbox/:tenantId` — deprovision (only sandbox-prefixed tenants)
+- [ ] Sandbox tenants: rate-limited to 100 API calls/hour; all webhooks go to a mock endpoint (no real outbound)
+
+**Frontend**
+- [ ] `src/domains/workOrders/pages/IoTDashboard.tsx` — replace mock with live data from `GET /api/iot/devices`; show MQTT connection status badge; real sensor readings update via WS; threshold rule builder UI
+- [ ] `src/domains/analytics/pages/DigitalTwin.tsx` — replace mock with real twin state from API; add "Simulate" panel: slider for input variable → run simulation → show projected state trajectory as line chart
+- [ ] `src/domains/workOrders/pages/PredictiveMaintenance.tsx` — add RUL column to asset list: "Est. RUL: 47 days"; colour-code critical (<14 days = red, 14–30 = amber); click to see degradation curve chart
+- [ ] `src/domains/shared/pages/DeveloperPortal.tsx` — add "Sandbox" tab: provision sandbox button; API key for sandbox shown; reset sandbox button; sandbox rate limit indicator
+
+**Tests**
+- [ ] MQTT ingest: mock broker publish → assert `iot_readings` inserted and WS event emitted
+- [ ] Threshold rule: publish reading exceeding rule → assert WO created
+- [ ] RUL model: synthetic degradation data → assert RUL estimate within 10% of analytical solution
+- [ ] Sandbox: provision creates isolated tenant; reset wipes only that tenant's data
+
+---
+
+### Sprint 42 — EU AI Act Governance + LLM Monitoring + Model Risk Tiers + SIEM Export + SDK/CLI
+**Goal:** GuardianFlow meets enterprise AI governance requirements (EU AI Act readiness), monitors LLM usage for safety, classifies all models by risk tier, exports audit logs to SIEM tools, and ships a developer SDK.
+
+**Backend — EU AI Act Model Risk Classification**
+- [ ] DB migration `024-ai-governance.js`: add `risk_tier` (minimal / limited / high / prohibited), `eu_ai_act_category`, `intended_purpose`, `high_risk_justification`, `last_review_date` to models registered in `model_registry`
+- [ ] `PUT /api/ai-governance/models/:id/risk-tier` — set risk tier with justification; require 2nd approver for `high` or `prohibited` tier changes (approval workflow)
+- [ ] `GET /api/ai-governance/compliance-report` — return: total models by tier, high-risk models with justification, models overdue for review (>90 days), EU AI Act Article 9 conformity checklist status
+
+**Backend — LLM Monitoring**
+- [ ] `server/middleware/llm-monitor.js` — wraps all LLM calls; logs: `{tenantId, model, prompt_tokens, completion_tokens, latency_ms, endpoint, timestamp}`; runs content safety checks on completion: profanity filter + PII detection (regex-based, no external API)
+- [ ] `GET /api/ai-governance/llm-usage` — return per-tenant LLM usage: calls/day, token budget used vs limit, content safety flags count
+- [ ] Token budget enforcement: `server/services/ai/llm.js` — check tenant's monthly token budget before each call; return `429 token_budget_exceeded` if over limit
+
+**Backend — SIEM Export**
+- [ ] `server/services/audit/siem-export.js` — batch export audit log to SIEM-compatible format: CEF (Common Event Format) or JSON over HTTPS POST; configurable endpoint URL per tenant; scheduled hourly export or real-time streaming via webhook
+- [ ] `POST /api/admin/siem/configure` — set `{siem_endpoint_url, format: cef|json, auth_token}`; `POST /api/admin/siem/test` — send test event
+
+**Backend — Developer SDK**
+- [ ] Create `sdk/` directory: `sdk/js/guardianflow-sdk.js` — JavaScript/Node.js SDK wrapping all public API endpoints: `WorkOrders`, `Technicians`, `Invoicing`, `IoT`, `Analytics`; auto-retry on 429; includes TypeScript types in `sdk/js/types.d.ts`
+- [ ] `GET /api/sdk/download` — return download URL for latest SDK tarball
+- [ ] `sdk/README.md` — quickstart guide: authenticate, list work orders, create WO
+
+**Frontend**
+- [ ] `src/domains/org/pages/AIGovernance.tsx` — replace mock registry with real model list from `GET /api/ai-governance/models`; risk tier badge per model (colour-coded: green/yellow/orange/red); "Review" button opens risk classification form; EU AI Act compliance report view
+- [ ] `src/domains/shared/pages/AIEthics.tsx` — wire to real bias metrics from `GET /api/ai-governance/models/:id/bias-report`; show SHAP top-5 features; real fairness score from model monitoring data
+- [ ] `src/domains/shared/pages/Observability.tsx` — add "LLM Usage" tab: token consumption per tenant; content safety flag count; budget utilisation gauge
+- [ ] `src/domains/org/pages/ConnectorManagement.tsx` — add SIEM export configuration panel
+- [ ] `src/domains/shared/pages/DeveloperPortal.tsx` — add "SDK" tab: download SDK button; TypeScript types viewer; quickstart code snippet
+
+**Tests**
+- [ ] Risk tier: `high` tier change without 2nd approver returns 403; with approver returns 200
+- [ ] LLM monitor: mock LLM call; assert usage log created; PII in output triggers flag
+- [ ] Token budget: over-budget call returns 429
+- [ ] SIEM export: mock HTTP server; assert CEF-formatted events received at SIEM endpoint
+
+---
+
+## Milestone Summary (updated)
+
+| Milestone | Description | Sprints | Status |
+|-----------|-------------|---------|--------|
+| **M1** | Core platform: auth, WO, RBAC, multi-tenant | 1–2 | ✅ Complete |
+| **M2** | Scheduling + dispatch foundations | 3 | ✅ Complete |
+| **M3** | Financial lifecycle | 4 | ✅ Complete |
+| **M4** | Inventory + assets | 5–6 | ✅ Complete |
+| **M5** | Knowledge base + KB search | 7–8 | ✅ Complete |
+| **M6** | Analytics + reporting | 9–11 | ✅ Complete |
+| **M7** | Platform infrastructure | 12–15 | ✅ Complete |
+| **M8** | Security + compliance foundations | 16–18 | ✅ Complete |
+| **M9** | AI infrastructure (real) | 19–21 | ✅ Complete |
+| **M10** | Operations hardening | 22–24 | ✅ Complete |
+| **M11** | Mock sweep: all pages use real APIs | 25–27 | 🔄 Planned |
+| **M12** | Real AI activation | 28–30 | 🔄 Planned |
+| **M13** | Differentiators: agentic AI, IoT→WO, i18n, E2E | 31–33 | 🔄 Planned |
+| **M14** | Enterprise FSM: crew, crowd, territory, mobile | 34–36 | 🔄 Planned (new) |
+| **M15** | Enterprise Finance + CRM | 37–39 | 🔄 Planned (new) |
+| **M16** | Platform intelligence: NLP analytics, ESG, IoT live, RUL | 40–41 | 🔄 Planned (new) |
+| **M17** | AI governance, SIEM, SDK, EU AI Act | 42 | 🔄 Planned (new) |
+
+---
+
 ## Definition of Done (per sprint)
 1. All new routes have unit tests in `tests/unit/`
 2. DB migration script is idempotent and added to `server/scripts/`
@@ -673,4 +1039,4 @@
 
 ---
 
-*Last updated: 2026-04-11 | Audit source: `docs/GAP_ANALYSIS.md` + April 2026 deep-scan (G15–G23) + competitive gap analysis (Phases 9–11)*
+*Last updated: 2026-04-11 | Audit source: `docs/GAP_ANALYSIS.md` + April 2026 deep-scan (G15–G23) + `docs/COMPETITIVE_GAP_ANALYSIS.md` enterprise market research (Phases 12–14, Sprints 34–42)*
