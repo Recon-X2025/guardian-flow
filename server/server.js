@@ -75,6 +75,9 @@ import emailToWoRoutes from './routes/email-to-wo.js';
 import workOrdersMultidayRoutes from './routes/work-orders-multiday.js';
 import territoriesRoutes from './routes/territories.js';
 import mfaRoutes from './routes/mfa.js';
+import assetGraphRoutes from './routes/asset-graph.js';
+import complianceCertsRoutes from './routes/compliance-certs.js';
+import vehicleStockRoutes from './routes/vehicle-stock.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -249,6 +252,9 @@ app.use('/api/work-orders', authenticateToken, emailToWoRoutes);
 app.use('/api/work-orders', workOrdersMultidayRoutes);
 app.use('/api/territories', authenticateToken, territoriesRoutes);
 app.use('/api/auth/mfa', authLimiter, mfaRoutes);
+app.use('/api/assets', assetGraphRoutes);
+app.use('/api/assets', complianceCertsRoutes);
+app.use('/api/technicians', authenticateToken, vehicleStockRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
