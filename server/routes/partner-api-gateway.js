@@ -10,7 +10,7 @@ const router = express.Router();
 // POST /register — admin only
 router.post('/register', authenticateToken, async (req, res) => {
   try {
-    if (!req.user?.user_roles?.includes('admin')) {
+    if (!req.user?.roles?.includes('admin')) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
@@ -63,7 +63,7 @@ router.post('/authenticate', async (req, res) => {
     }
 
     const today = new Date().toISOString().slice(0, 10);
-    const adapter = getAdapter();
+    const adapter = await getAdapter();
     const usageCount = await adapter.countDocuments('partner_api_usage', {
       partner_id: partner.id,
       date: today,
@@ -90,7 +90,7 @@ router.post('/authenticate', async (req, res) => {
 // GET /partners — admin only
 router.get('/partners', authenticateToken, async (req, res) => {
   try {
-    if (!req.user?.user_roles?.includes('admin')) {
+    if (!req.user?.roles?.includes('admin')) {
       return res.status(403).json({ error: 'Admin access required' });
     }
 

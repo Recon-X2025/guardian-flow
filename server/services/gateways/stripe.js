@@ -3,6 +3,7 @@
  */
 
 import BaseGateway from './baseGateway.js';
+import crypto from 'crypto';
 
 export default class StripeGateway extends BaseGateway {
   constructor(config = {}) {
@@ -100,21 +101,70 @@ export default class StripeGateway extends BaseGateway {
   }
 
   /**
-   * Verify webhook signature
+   * Verify webhook signature using Stripe's HMAC-SHA256 scheme.
+   *
+   * Stripe sends a `Stripe-Signature` header with the format:
+   *   t=<unix-timestamp>,v1=<hmac-sha256-hex>
+   *
+   * Verification:
+   *   signed_payload = "<timestamp>.<raw_body>"
+   *   expected = HMAC-SHA256(webhookSecret, signed_payload)
+   *   compare expected against each v1= token in the header
+   *
+   * The timestamp is also checked to reject replays older than 5 minutes.
+   *
+   * @param {string|Buffer} payload   - Raw request body (must be the unparsed buffer)
+   * @param {string}        signature - Value of the Stripe-Signature header
    */
   async verifyWebhook(payload, signature) {
     try {
-      // Stripe webhook verification requires crypto
-      // For now, return basic validation
-      // In production, use Stripe's webhook signature verification
-      if (!this.webhookSecret || !signature) {
-        return { valid: false, error: 'Missing webhook secret or signature' };
+      if (!this.webhookSecret) {
+        return { valid: false, error: 'Webhook secret not configured' };
+      }
+      if (!signature) {
+        return { valid: false, error: 'Missing Stripe-Signature header' };
       }
 
-      // TODO: Implement proper Stripe webhook signature verification
-      // const stripe = require('stripe')(this.apiKey);
-      // const event = stripe.webhooks.constructEvent(payload, signature, this.webhookSecret);
-      
+      // Parse header: t=<ts>,v1=<sig1>,v1=<sig2>,...
+      const parts = Object.fromEntries(
+        signature.split(',').map(part => {
+          const idx = part.indexOf('=');
+          return [part.slice(0, idx), part.slice(idx + 1)];
+        })
+      );
+
+      const timestamp = parts.t;
+      if (!timestamp) {
+        return { valid: false, error: 'No timestamp in signature header' };
+      }
+
+      // Reject replays older than 5 minutes
+      const ageSeconds = Math.floor(Date.now() / 1000) - parseInt(timestamp, 10);
+      if (ageSeconds > 300) {
+        return { valid: false, error: 'Webhook timestamp too old (replay protection)' };
+      }
+
+      const rawBody = Buffer.isBuffer(payload) ? payload.toString('utf8') : payload;
+      const signedPayload = `${timestamp}.${rawBody}`;
+
+      const expected = crypto
+        .createHmac('sha256', this.webhookSecret)
+        .update(signedPayload, 'utf8')
+        .digest('hex');
+
+      // Collect all v1 signatures from the header and compare each
+      const v1Sigs = signature.split(',')
+        .filter(p => p.startsWith('v1='))
+        .map(p => p.slice(3));
+
+      const isValid = v1Sigs.some(
+        sig => crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))
+      );
+
+      if (!isValid) {
+        return { valid: false, error: 'Signature mismatch' };
+      }
+
       return { valid: true };
     } catch (error) {
       return { valid: false, error: error.message };

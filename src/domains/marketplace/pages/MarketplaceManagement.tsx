@@ -194,7 +194,7 @@ export default function MarketplaceManagement() {
                     All extensions available on the marketplace
                   </CardDescription>
                 </div>
-                <Button onClick={() => toast({ title: "Submit Extension", description: "Extension submission form coming soon" })}>
+                <Button disabled title="Extension submission is not yet available">
                   <Store className="h-4 w-4 mr-2" />
                   Submit Extension
                 </Button>

@@ -41,6 +41,63 @@ import knowledgeQueryRoutes from './routes/knowledge-query.js';
 import anomaliesRoutes from './routes/anomalies.js';
 import aiGovernanceRoutes from './routes/ai-governance.js';
 import aiPromptsRoutes from './routes/ai-prompts.js';
+import iotTelemetryRoutes from './routes/iot-telemetry.js';
+import maintenanceTriggersRoutes from './routes/maintenance-triggers.js';
+import revenueRecognitionRoutes from './routes/revenue-recognition.js';
+import budgetingRoutes from './routes/budgeting.js';
+import dexFlowsRoutes from './routes/dex-flows.js';
+import slaEngineRoutes from './routes/sla-engine.js';
+import customerSuccessRoutes from './routes/customer-success.js';
+import esgRoutes from './routes/esg.js';
+import digitalTwinRoutes from './routes/digital-twin.js';
+import rulRoutes from './routes/rul.js';
+import sandboxRoutes from './routes/sandbox.js';
+import inventoryOptRoutes from './routes/inventory-optimisation.js';
+import auditFrameworkRoutes from './routes/audit-framework.js';
+import platformConfigRoutes from './routes/platform-config.js';
+import federatedLearningRoutes from './routes/federated-learning.js';
+import dexMarketplaceRoutes from './routes/dex-marketplace.js';
+import neuroConsoleRoutes from './routes/neuro-console.js';
+import whiteLabelRoutes from './routes/white-label.js';
+import partnerGatewayV2Routes from './routes/partner-gateway-v2.js';
+import reportingEngineRoutes from './routes/reporting-engine.js';
+import fieldAppRoutes from './routes/field-app.js';
+import observabilityRoutes from './routes/observability.js';
+import dataResidencyRoutes from './routes/data-residency.js';
+import aiEthicsRoutes from './routes/ai-ethics.js';
+import e2eTestsRoutes from './routes/e2e-tests.js';
+import launchReadinessRoutes from './routes/launch-readiness.js';
+import cbmRoutes from './routes/cbm.js';
+import webhookDeliveryRoutes from './routes/webhook-delivery.js';
+import compliancePolicyRoutes from './routes/compliance-policy.js';
+import modelPerformanceMonitorRoutes from './routes/model-performance-monitor.js';
+import crewRoutes from './routes/crew.js';
+import crowdRoutes from './routes/crowd.js';
+import emailToWoRoutes from './routes/email-to-wo.js';
+import workOrdersMultidayRoutes from './routes/work-orders-multiday.js';
+import workOrdersRoutes from './routes/work-orders.js';
+import territoriesRoutes from './routes/territories.js';
+import mfaRoutes from './routes/mfa.js';
+import assetGraphRoutes from './routes/asset-graph.js';
+import complianceCertsRoutes from './routes/compliance-certs.js';
+import vehicleStockRoutes from './routes/vehicle-stock.js';
+import accountsPayableRoutes from './routes/accounts-payable.js';
+import supplierPortalRoutes from './routes/supplier-portal.js';
+import fixedAssetsRoutes from './routes/fixed-assets.js';
+import intercompanyRoutes from './routes/intercompany.js';
+import eInvoiceRoutes from './routes/e-invoice.js';
+import expensesRoutes from './routes/expenses.js';
+import crmRoutes from './routes/crm.js';
+import surveysRoutes from './routes/surveys.js';
+import nlpQueryRoutes from './routes/nlp-query.js';
+import anomalyRoutes from './routes/anomaly.js';
+import webhooksRoutes from './routes/webhooks.js';
+import siemRoutes from './routes/siem.js';
+import sdkRoutes from './routes/sdk.js';
+import dispatchRoutes from './routes/dispatch.js';
+import vendorsRoutes from './routes/vendors.js';
+import inventoryRoutes from './routes/inventory.js';
+import financialStatementsRoutes from './routes/financial-statements.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -68,6 +125,10 @@ const startTime = Date.now();
 // Initialize WebSocket server
 const wsManager = new WebSocketManager(server);
 export { wsManager };
+
+// Wire wsManager into anomaly stream singleton
+import anomalyStream from './services/streaming/anomaly-stream.js';
+anomalyStream.wsManager = wsManager;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -178,8 +239,68 @@ app.use('/api/ai', visionRoutes);
 app.use('/api/assets', assetsHealthRoutes);
 app.use('/api/knowledge', knowledgeQueryRoutes);
 app.use('/api/analytics', anomaliesRoutes);
+app.use('/api/analytics', nlpQueryRoutes);
+app.use('/api/anomaly', anomalyRoutes);
+app.use('/api/webhooks', authenticateToken, webhooksRoutes);
 app.use('/api/ai', aiGovernanceRoutes);
 app.use('/api/ai', aiPromptsRoutes);
+app.use('/api/iot', authenticateToken, iotTelemetryRoutes);
+app.use('/api/maintenance-triggers', authenticateToken, maintenanceTriggersRoutes);
+app.use('/api/rev-rec', authenticateToken, revenueRecognitionRoutes);
+app.use('/api/budgets', authenticateToken, budgetingRoutes);
+app.use('/api/dex-flows', authenticateToken, dexFlowsRoutes);
+app.use('/api/sla-engine', authenticateToken, slaEngineRoutes);
+app.use('/api/customer-success', authenticateToken, customerSuccessRoutes);
+app.use('/api/esg', authenticateToken, esgRoutes);
+app.use('/api/digital-twin', authenticateToken, digitalTwinRoutes);
+app.use('/api/assets/:id/rul', rulRoutes);
+app.use('/api/admin/sandbox', sandboxRoutes);
+app.use('/api/inventory-opt', authenticateToken, inventoryOptRoutes);
+app.use('/api/audit', authenticateToken, auditFrameworkRoutes);
+app.use('/api/platform', authenticateToken, platformConfigRoutes);
+app.use('/api/federated', authenticateToken, federatedLearningRoutes);
+app.use('/api/dex-marketplace', authenticateToken, dexMarketplaceRoutes);
+app.use('/api/neuro', authenticateToken, neuroConsoleRoutes);
+app.use('/api/white-label', authenticateToken, whiteLabelRoutes);
+app.use('/api/partner-v2', authenticateToken, partnerGatewayV2Routes);
+app.use('/api/reporting', authenticateToken, reportingEngineRoutes);
+app.use('/api/field-app', authenticateToken, fieldAppRoutes);
+app.use('/api/observability', authenticateToken, observabilityRoutes);
+app.use('/api/data-residency', authenticateToken, dataResidencyRoutes);
+app.use('/api/ai-ethics', authenticateToken, aiEthicsRoutes);
+app.use('/api/e2e', authenticateToken, e2eTestsRoutes);
+app.use('/api/launch', authenticateToken, launchReadinessRoutes);
+app.use('/api/cbm', authenticateToken, cbmRoutes);
+app.use('/api/webhook-delivery', authenticateToken, webhookDeliveryRoutes);
+app.use('/api/compliance', compliancePolicyRoutes);
+app.use('/api/model-performance', modelPerformanceMonitorRoutes);
+app.use('/api/work-orders', crewRoutes);
+app.use('/api/work-orders', authenticateToken, workOrdersRoutes);
+app.use('/api/wo-templates', authenticateToken, workOrdersRoutes);
+app.use('/api/crowd', crowdRoutes);
+app.use('/api/work-orders', crowdRoutes); // provides /:id/assign-crowd
+app.use('/api/work-orders', authenticateToken, emailToWoRoutes);
+app.use('/api/work-orders', workOrdersMultidayRoutes);
+app.use('/api/territories', authenticateToken, territoriesRoutes);
+app.use('/api/auth/mfa', authLimiter, mfaRoutes);
+app.use('/api/assets', assetGraphRoutes);
+app.use('/api/assets', complianceCertsRoutes);
+app.use('/api/technicians', authenticateToken, vehicleStockRoutes);
+app.use('/api/ap', authenticateToken, accountsPayableRoutes);
+app.use('/api/suppliers', supplierPortalRoutes);
+app.use('/api/finance/fixed-assets', authenticateToken, fixedAssetsRoutes);
+app.use('/api/finance/intercompany', authenticateToken, intercompanyRoutes);
+app.use('/api/finance/consolidation', authenticateToken, intercompanyRoutes);
+app.use('/api/finance/invoices', authenticateToken, eInvoiceRoutes);
+app.use('/api/expenses', authenticateToken, expensesRoutes);
+app.use('/api/crm', authenticateToken, crmRoutes);
+app.use('/api/surveys', surveysRoutes); // /respond/:token is public
+app.use('/api/admin/siem', authenticateToken, siemRoutes);
+app.use('/api/sdk', sdkRoutes);
+app.use('/api/dispatch', authenticateToken, dispatchRoutes);
+app.use('/api/vendors', authenticateToken, vendorsRoutes);
+app.use('/api/inventory', authenticateToken, inventoryRoutes);
+app.use('/api/finance/statements', authenticateToken, financialStatementsRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
@@ -231,7 +352,7 @@ server.listen(PORT, () => {
 function shutdown(signal) {
   logger.info('Shutdown initiated', { signal });
 
-  server.close(() => {
+  server.close(async () => {
     logger.info('HTTP server closed');
 
     // Close WebSocket

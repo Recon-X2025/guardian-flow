@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "cd server && node --watch server.js",
+    "dev:all": "node server/server.js & npx vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
@@ -19,7 +21,11 @@
     "test:api": "jest tests/api/ --passWithNoTests",
     "test:load": "k6 run tests/load/stress-test.js",
     "test:full": "./scripts/test-full.sh --all",
-    "test:all": "npm run test:e2e && npm run test:api && npm run test:load"
+    "test:all": "npm run test:e2e && npm run test:api && npm run test:load",
+    "test:comprehensive-api": "vitest run tests/api/comprehensive-all-routes.api.test.js",
+    "test:e2e:all-pages": "playwright test tests/e2e/comprehensive-all-pages.spec.ts",
+    "test:load:breaking-point": "k6 run tests/load/breaking-point.js",
+    "test:all-comprehensive": "npm run test:comprehensive-api && npm run test:e2e && npm run test:load:breaking-point"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -56,9 +62,9 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
-    "dompurify": "^3.3.0",
+    "dompurify": "^3.3.3",
     "input-otp": "^1.4.2",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
@@ -66,7 +72,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.61.1",
     "react-resizable-panels": "^2.1.9",
-    "react-router-dom": "^6.30.1",
+    "react-router-dom": "^6.30.3",
     "recharts": "^3.3.0",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
@@ -84,9 +90,9 @@
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^5.2.0",
     "@vitejs/plugin-react-swc": "^3.11.0",
-    "@vitest/ui": "^1.0.4",
+    "@vitest/ui": "^4.1.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -100,8 +106,38 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19",
+    "vite": "^6.4.2",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^1.6.1"
+    "vitest": "^4.1.4"
+  },
+  "overrides": {
+    "rollup": "^4.60.1",
+    "serialize-javascript": "^7.0.5",
+    "flatted": "3.4.2",
+    "qs": "^6.15.1",
+    "workbox-build": {
+      "rollup": "^2.80.0",
+      "picomatch": "2.3.2"
+    },
+    "@eslint/config-array": {
+      "minimatch": "3.1.4",
+      "brace-expansion": "1.1.13"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "9.0.7",
+      "picomatch": "4.0.4"
+    },
+    "jest": {
+      "minimatch": "9.0.7",
+      "picomatch": "4.0.4"
+    },
+    "@eslint/eslintrc": {
+      "ajv": "6.14.0",
+      "minimatch": "3.1.4",
+      "brace-expansion": "1.1.13"
+    },
+    "chokidar": {
+      "picomatch": "2.3.2"
+    }
   }
 }

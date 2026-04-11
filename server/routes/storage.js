@@ -14,6 +14,13 @@ const router = express.Router();
 const STORAGE_DIR = process.env.STORAGE_DIR || path.join(__dirname, '../../storage');
 const PUBLIC_URL = process.env.PUBLIC_URL || 'http://localhost:3001';
 
+// Bucket names: alphanumeric, hyphens, and underscores only (max 63 chars)
+const BUCKET_NAME_RE = /^[a-zA-Z0-9_-]{1,63}$/;
+
+function isValidBucket(name) {
+  return typeof name === 'string' && BUCKET_NAME_RE.test(name);
+}
+
 // Ensure storage directory exists
 async function ensureStorageDir() {
   try {
@@ -29,6 +36,9 @@ ensureStorageDir();
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     const bucket = req.params.bucket || 'default';
+    if (!isValidBucket(bucket)) {
+      return cb(new Error('Invalid bucket name'));
+    }
     const bucketPath = path.join(STORAGE_DIR, bucket);
     await fs.mkdir(bucketPath, { recursive: true });
     cb(null, bucketPath);
@@ -82,6 +92,9 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     }
 
     const bucket = req.body.bucket || 'default';
+    if (!isValidBucket(bucket)) {
+      return res.status(400).json({ error: 'Invalid bucket name' });
+    }
     const filePath = req.file.path;
     const fileName = req.file.filename;
     const publicUrl = `${PUBLIC_URL}/api/storage/${bucket}/${fileName}`;
@@ -106,6 +119,9 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
  */
 router.post('/:bucket/upload', authenticateToken, upload.single('file'), async (req, res) => {
   try {
+    if (!isValidBucket(req.params.bucket)) {
+      return res.status(400).json({ error: 'Invalid bucket name' });
+    }
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });
     }
@@ -133,6 +149,9 @@ router.post('/:bucket/upload', authenticateToken, upload.single('file'), async (
  */
 router.get('/:bucket/:path', optionalAuth, async (req, res) => {
   try {
+    if (!isValidBucket(req.params.bucket)) {
+      return res.status(400).json({ error: 'Invalid bucket name' });
+    }
     const filePath = path.join(STORAGE_DIR, req.params.bucket, req.params.path);
     
     // Security: prevent directory traversal
@@ -159,6 +178,9 @@ router.get('/:bucket/:path', optionalAuth, async (req, res) => {
  */
 router.delete('/:bucket/:path', authenticateToken, async (req, res) => {
   try {
+    if (!isValidBucket(req.params.bucket)) {
+      return res.status(400).json({ error: 'Invalid bucket name' });
+    }
     const filePath = path.join(STORAGE_DIR, req.params.bucket, req.params.path);
     
     // Security: prevent directory traversal
@@ -184,6 +206,9 @@ router.delete('/:bucket/:path', authenticateToken, async (req, res) => {
  */
 router.get('/:bucket', optionalAuth, async (req, res) => {
   try {
+    if (!isValidBucket(req.params.bucket)) {
+      return res.status(400).json({ error: 'Invalid bucket name' });
+    }
     const bucketPath = path.join(STORAGE_DIR, req.params.bucket);
     
     try {

@@ -135,7 +135,7 @@ export function AnalyticsDataQuality({ workspaceId }: { workspaceId: string }) {
               <CardTitle>Data Quality Rules</CardTitle>
               <CardDescription>Configure and run data quality validation rules</CardDescription>
             </div>
-            <Button onClick={() => toast({ title: "New Quality Rule", description: "Rule creation dialog coming soon" })}>
+            <Button disabled title="Quality rule creation is not yet available">
               <Plus className="mr-2 h-4 w-4" />
               New Rule
             </Button>
