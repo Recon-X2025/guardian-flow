@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Shield, UserPlus, Search, Trash2, Globe, User } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Shield, UserPlus, Search, Trash2, Globe, User, ShieldCheck, ShieldOff, Lock } from 'lucide-react';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { useAuth } from '@/domains/auth/contexts/AuthContext';
@@ -45,6 +47,7 @@ interface UserProfile {
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const rbac = useRBAC();
   const { currencyInfo, updateCurrency, exchangeRates, ratesLoading, refreshRates } = useCurrency();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -53,9 +56,47 @@ export default function Settings() {
   const [selectedRole, setSelectedRole] = useState<AppRole>('customer');
   const [selectedCountry, setSelectedCountry] = useState<string>(currencyInfo.country);
 
+  // MFA state
+  const [mfaEnabled, setMfaEnabled] = useState<boolean | null>(null);
+  const [mfaLoading, setMfaLoading] = useState(false);
+  const [disablingMfa, setDisablingMfa] = useState(false);
+
+  const fetchMfaStatus = useCallback(async () => {
+    setMfaLoading(true);
+    try {
+      const res = await apiClient.request<{ mfa_enabled: boolean }>('/api/auth/mfa/status', { method: 'GET' });
+      if (!res.error && res.data) {
+        setMfaEnabled(res.data.mfa_enabled);
+      }
+    } catch {
+      // silently ignore — MFA status is optional
+    } finally {
+      setMfaLoading(false);
+    }
+  }, []);
+
+  const disableMfa = async () => {
+    setDisablingMfa(true);
+    try {
+      const res = await apiClient.request('/api/auth/mfa/disable', { method: 'POST' });
+      if (res.error) throw new Error(res.error.message);
+      setMfaEnabled(false);
+      toast({ title: 'MFA disabled', description: 'Two-factor authentication has been turned off.' });
+    } catch (err: unknown) {
+      toast({
+        title: 'Failed to disable MFA',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setDisablingMfa(false);
+    }
+  };
+
   useEffect(() => {
     fetchProfiles();
-  }, []);
+    fetchMfaStatus();
+  }, [fetchMfaStatus]);
 
   const fetchProfiles = async () => {
     try {
@@ -254,6 +295,68 @@ export default function Settings() {
     </Card>
   );
 
+  const securitySection = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Lock className="h-5 w-5" />
+          Security
+        </CardTitle>
+        <CardDescription>Manage two-factor authentication and account security</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <div className="text-sm font-medium">Two-Factor Authentication (MFA)</div>
+            <div className="text-xs text-muted-foreground">
+              Add an extra layer of security to your account using an authenticator app.
+            </div>
+          </div>
+          {mfaLoading ? (
+            <Badge variant="outline">Checking…</Badge>
+          ) : mfaEnabled === true ? (
+            <Badge className="bg-green-100 text-green-800 border-green-200">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              Enabled
+            </Badge>
+          ) : mfaEnabled === false ? (
+            <Badge variant="outline" className="text-muted-foreground">
+              <ShieldOff className="h-3 w-3 mr-1" />
+              Disabled
+            </Badge>
+          ) : (
+            <Badge variant="outline">Unknown</Badge>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {mfaEnabled !== true && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/auth/mfa/enroll')}
+            >
+              <ShieldCheck className="h-4 w-4 mr-2" />
+              Enable MFA
+            </Button>
+          )}
+          {mfaEnabled === true && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive border-destructive/40 hover:bg-destructive/10"
+              onClick={disableMfa}
+              disabled={disablingMfa}
+            >
+              <ShieldOff className="h-4 w-4 mr-2" />
+              {disablingMfa ? 'Disabling…' : 'Disable MFA'}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (!rbac.isAdmin) {
     return (
       <div className="space-y-6">
@@ -261,7 +364,24 @@ export default function Settings() {
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">User settings and preferences</p>
         </div>
-        {personalSettingsSection}
+        <Tabs defaultValue="preferences">
+          <TabsList>
+            <TabsTrigger value="preferences">
+              <Globe className="h-4 w-4 mr-1.5" />
+              Preferences
+            </TabsTrigger>
+            <TabsTrigger value="security">
+              <Lock className="h-4 w-4 mr-1.5" />
+              Security
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="preferences" className="mt-4">
+            {personalSettingsSection}
+          </TabsContent>
+          <TabsContent value="security" className="mt-4">
+            {securitySection}
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }
@@ -273,7 +393,32 @@ export default function Settings() {
         <p className="text-muted-foreground">Manage user roles and permissions</p>
       </div>
 
-      {personalSettingsSection}
+      <Tabs defaultValue="preferences">
+        <TabsList>
+          <TabsTrigger value="preferences">
+            <Globe className="h-4 w-4 mr-1.5" />
+            Preferences
+          </TabsTrigger>
+          <TabsTrigger value="security">
+            <Lock className="h-4 w-4 mr-1.5" />
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="admin">
+            <Shield className="h-4 w-4 mr-1.5" />
+            Admin
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="preferences" className="mt-4">
+          {personalSettingsSection}
+        </TabsContent>
+
+        <TabsContent value="security" className="mt-4">
+          {securitySection}
+        </TabsContent>
+
+        <TabsContent value="admin" className="mt-4 space-y-6">
+      {/* original admin content below */}
 
       <Card className="bg-primary/5 border-primary/20">
         <CardHeader>
@@ -418,6 +563,8 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

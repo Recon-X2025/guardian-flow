@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle, Navigation, EyeOff } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Truck, MapPin, Clock, Package, CheckCircle2, AlertTriangle, Navigation, EyeOff, LayoutList, GanttChart } from 'lucide-react';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { GeoCheckInDialog } from '@/domains/workOrders/components/GeoCheckInDialog';
@@ -18,6 +19,9 @@ interface DispatchWorkOrder {
   parts_reserved?: boolean;
   check_in_at?: string;
   check_out_at?: string;
+  scheduled_start?: string;
+  scheduled_end?: string;
+  sla_deadline?: string;
   created_at: string;
   ticket?: {
     symptom?: string;
@@ -28,6 +32,90 @@ interface DispatchWorkOrder {
   };
 }
 
+// Represents a single WO block on the timeline
+interface TimelineBlock {
+  woId: string;
+  label: string;
+  leftPct: number;
+  widthPct: number;
+  color: 'green' | 'amber' | 'red' | 'blue';
+  tooltip: string;
+}
+
+interface TechRow {
+  techId: string;
+  techName: string;
+  blocks: TimelineBlock[];
+}
+
+// Working day constants: 08:00 – 16:00 (8 hours)
+const DAY_START_HOUR = 8;
+const DAY_DURATION_HOURS = 8;
+
+function timeToPercent(isoString: string): number {
+  const d = new Date(isoString);
+  const hours = d.getHours() + d.getMinutes() / 60;
+  const clamped = Math.max(DAY_START_HOUR, Math.min(DAY_START_HOUR + DAY_DURATION_HOURS, hours));
+  return ((clamped - DAY_START_HOUR) / DAY_DURATION_HOURS) * 100;
+}
+
+function woBlockColor(wo: DispatchWorkOrder): 'green' | 'amber' | 'red' | 'blue' {
+  if (!wo.sla_deadline) return 'blue';
+  const now = Date.now();
+  const deadline = new Date(wo.sla_deadline).getTime();
+  const remaining = deadline - now;
+  if (remaining < 0) return 'red';
+  if (remaining < 2 * 60 * 60 * 1000) return 'amber';
+  return 'green';
+}
+
+function buildTimelineRows(workOrders: DispatchWorkOrder[]): TechRow[] {
+  const byTech = new Map<string, DispatchWorkOrder[]>();
+  for (const wo of workOrders) {
+    const key = wo.technician_id ?? '__unassigned__';
+    if (!byTech.has(key)) byTech.set(key, []);
+    byTech.get(key)!.push(wo);
+  }
+
+  const rows: TechRow[] = [];
+  byTech.forEach((wos, techId) => {
+    const techName = wos[0]?.technician?.full_name ?? (techId === '__unassigned__' ? 'Unassigned' : techId.slice(0, 8));
+    const blocks: TimelineBlock[] = [];
+
+    for (const wo of wos) {
+      if (!wo.scheduled_start) continue;
+      const start = timeToPercent(wo.scheduled_start);
+      const end = wo.scheduled_end ? timeToPercent(wo.scheduled_end) : Math.min(start + 12.5, 100);
+      const width = Math.max(end - start, 5);
+      blocks.push({
+        woId: wo.id,
+        label: wo.wo_number ?? 'WO',
+        leftPct: start,
+        widthPct: width,
+        color: woBlockColor(wo),
+        tooltip: `${wo.wo_number ?? 'WO'} — ${wo.ticket?.symptom ?? 'No description'}\n${wo.ticket?.site_address ?? ''}`,
+      });
+    }
+
+    rows.push({ techId, techName, blocks });
+  });
+
+  return rows;
+}
+
+const HOUR_LABELS = Array.from({ length: DAY_DURATION_HOURS + 1 }, (_, i) => {
+  const h = DAY_START_HOUR + i;
+  return h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+});
+
+const BLOCK_COLORS: Record<string, string> = {
+  green: 'bg-green-500 text-white',
+  amber: 'bg-amber-400 text-white',
+  red: 'bg-red-500 text-white',
+  blue: 'bg-blue-500 text-white',
+};
+
+
 export default function Dispatch() {
   const { toast } = useToast();
   const { roles } = useRBAC();
@@ -37,6 +125,7 @@ export default function Dispatch() {
   const [geoDialogOpen, setGeoDialogOpen] = useState(false);
   const [selectedWOId, setSelectedWOId] = useState<string | null>(null);
   const [checkMode, setCheckMode] = useState<'check-in' | 'check-out'>('check-in');
+  const [detailWOId, setDetailWOId] = useState<string | null>(null);
 
   // Check if user is view-only
   const isViewOnly = !dispatchPerms.create && !dispatchPerms.edit && !dispatchPerms.execute;
@@ -93,6 +182,8 @@ export default function Dispatch() {
   const inProgress = workOrders.filter(wo => wo.status === 'in_progress').length;
   const pendingValidation = workOrders.filter(wo => wo.status === 'pending_validation').length;
   const partsReady = workOrders.filter(wo => wo.parts_reserved).length;
+  const timelineRows = buildTimelineRows(workOrders);
+  const detailWO = detailWOId ? workOrders.find(wo => wo.id === detailWOId) : null;
 
   return (
     <div className="space-y-6">
@@ -156,6 +247,20 @@ export default function Dispatch() {
         </Card>
       </div>
 
+      <Tabs defaultValue="board">
+        <TabsList>
+          <TabsTrigger value="board">
+            <LayoutList className="h-4 w-4 mr-1.5" />
+            Board View
+          </TabsTrigger>
+          <TabsTrigger value="timeline">
+            <GanttChart className="h-4 w-4 mr-1.5" />
+            Timeline View
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Board View (existing content) ─────────────────── */}
+        <TabsContent value="board" className="mt-4">
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -314,6 +419,114 @@ export default function Dispatch() {
           </CardContent>
         </Card>
       </div>
+
+        </TabsContent>
+
+        {/* ── Timeline View ─────────────────────────────────── */}
+        <TabsContent value="timeline" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Technician Timeline</CardTitle>
+              <CardDescription>
+                8-hour working day (8 am – 4 pm).{' '}
+                <span className="inline-flex items-center gap-3 ml-1 text-xs">
+                  <span className="inline-block w-3 h-3 rounded bg-green-500" /> On-time
+                  <span className="inline-block w-3 h-3 rounded bg-amber-400" /> At risk
+                  <span className="inline-block w-3 h-3 rounded bg-red-500" /> SLA breach
+                  <span className="inline-block w-3 h-3 rounded bg-blue-500" /> No SLA
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {loading ? (
+                <p className="text-center py-8 text-muted-foreground">Loading…</p>
+              ) : timelineRows.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">No scheduled work orders to display.</p>
+              ) : (
+                <div className="min-w-[600px]">
+                  {/* Hour labels */}
+                  <div className="flex mb-1 pl-36">
+                    {HOUR_LABELS.map((label) => (
+                      <div
+                        key={label}
+                        className="flex-1 text-xs text-muted-foreground text-left border-l border-border pl-1"
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Technician rows */}
+                  <div className="space-y-1">
+                    {timelineRows.map((row) => (
+                      <div key={row.techId} className="flex items-center gap-2 group">
+                        <div className="w-32 shrink-0 text-sm truncate text-right pr-2 text-muted-foreground font-medium">
+                          {row.techName}
+                        </div>
+                        <div className="flex-1 relative h-8 bg-muted/40 rounded border border-border">
+                          {/* Grid lines */}
+                          {HOUR_LABELS.slice(1, -1).map((_, i) => (
+                            <div
+                              key={i}
+                              className="absolute top-0 bottom-0 border-l border-border/50"
+                              style={{ left: `${((i + 1) / DAY_DURATION_HOURS) * 100}%` }}
+                            />
+                          ))}
+                          {/* WO blocks */}
+                          {row.blocks.length === 0 ? (
+                            <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground/50 italic">
+                              no scheduled WOs
+                            </div>
+                          ) : (
+                            row.blocks.map((block) => (
+                              <button
+                                key={block.woId}
+                                title={block.tooltip}
+                                onClick={() => setDetailWOId(block.woId)}
+                                className={`absolute top-0.5 bottom-0.5 rounded text-xs font-semibold truncate px-1 cursor-pointer transition-opacity hover:opacity-80 ${BLOCK_COLORS[block.color]}`}
+                                style={{
+                                  left: `${block.leftPct}%`,
+                                  width: `${block.widthPct}%`,
+                                }}
+                              >
+                                {block.label}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* WO detail panel */}
+              {detailWO && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">{detailWO.wo_number ?? 'Draft'}</h4>
+                    <Button variant="ghost" size="sm" onClick={() => setDetailWOId(null)}>
+                      Close
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{detailWO.ticket?.symptom ?? 'No description'}</p>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {detailWO.ticket?.site_address ?? 'No address'}
+                    </span>
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <Truck className="h-3.5 w-3.5" />
+                      {detailWO.technician?.full_name ?? 'Unassigned'}
+                    </span>
+                    <Badge>{detailWO.status}</Badge>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {selectedWOId && (
         <GeoCheckInDialog

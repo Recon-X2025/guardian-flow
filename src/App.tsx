@@ -52,6 +52,8 @@ const RAGEngine = lazy(() => import("@/domains/knowledge/pages/RAGEngine"));
 const Prompts = lazy(() => import("@/domains/shared/pages/Prompts"));
 const ForecastCenter = lazy(() => import("@/domains/analytics/pages/ForecastCenter"));
 const RouteOptimization = lazy(() => import("@/domains/workOrders/pages/RouteOptimization"));
+const TerritoryManagement = lazy(() => import("@/domains/shared/pages/TerritoryManagement"));
+const MFAEnroll = lazy(() => import("@/domains/auth/pages/auth/MFAEnroll"));
 const Customers = lazy(() => import("@/domains/customers/pages/Customers"));
 const Technicians = lazy(() => import("@/domains/shared/pages/Technicians"));
 const Equipment = lazy(() => import("@/domains/inventory/pages/Equipment"));
@@ -273,6 +275,20 @@ const App = () => (
                       <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
                         <AppLayout><SuspenseWrap><RouteOptimization /></SuspenseWrap></AppLayout>
                       </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/territories" element={
+                    <ProtectedRoute>
+                      <RoleGuard roles={['sys_admin','tenant_admin','ops_manager','dispatcher']} permissions={["wo.assign"]} showError={true}>
+                        <AppLayout><SuspenseWrap><TerritoryManagement /></SuspenseWrap></AppLayout>
+                      </RoleGuard>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/auth/mfa/enroll" element={
+                    <ProtectedRoute>
+                      <AppLayout><SuspenseWrap><MFAEnroll /></SuspenseWrap></AppLayout>
                     </ProtectedRoute>
                   } />
 

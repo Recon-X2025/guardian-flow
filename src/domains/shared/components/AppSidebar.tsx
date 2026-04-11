@@ -104,6 +104,7 @@ const menuGroups: MenuGroup[] = [
       { title: "Maintenance Calendar", url: "/maintenance-calendar", icon: Calendar, permissions: ["wo.assign"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher"] },
       { title: "Dispatch", url: "/dispatch", icon: MapPin, permissions: ["wo.assign"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher"] },
       { title: "Route Optimization", url: "/route-optimization", icon: Route, permissions: ["wo.assign"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher"] },
+      { title: "Territories", url: "/territories", icon: Globe, permissions: ["wo.assign"], roles: ["sys_admin","tenant_admin","ops_manager","dispatcher"] },
       { title: "Predictive Maintenance", url: "/predictive-maintenance", icon: Gauge, permissions: ["maintenance.view"], roles: ["sys_admin","tenant_admin","ops_manager"] },
       { title: "Inventory", url: "/inventory", icon: Package, permissions: ["inventory.view"], roles: ["sys_admin","tenant_admin","ops_manager","partner_admin"] },
       { title: "Procurement", url: "/procurement", icon: ShoppingCart, permissions: ["inventory.procure"], roles: ["sys_admin","tenant_admin","ops_manager"] },
