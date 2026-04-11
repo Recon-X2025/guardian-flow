@@ -86,6 +86,9 @@ import eInvoiceRoutes from './routes/e-invoice.js';
 import expensesRoutes from './routes/expenses.js';
 import crmRoutes from './routes/crm.js';
 import surveysRoutes from './routes/surveys.js';
+import nlpQueryRoutes from './routes/nlp-query.js';
+import anomalyRoutes from './routes/anomaly.js';
+import webhooksRoutes from './routes/webhooks.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -113,6 +116,10 @@ const startTime = Date.now();
 // Initialize WebSocket server
 const wsManager = new WebSocketManager(server);
 export { wsManager };
+
+// Wire wsManager into anomaly stream singleton
+import anomalyStream from './services/streaming/anomaly-stream.js';
+anomalyStream.wsManager = wsManager;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -223,6 +230,9 @@ app.use('/api/ai', visionRoutes);
 app.use('/api/assets', assetsHealthRoutes);
 app.use('/api/knowledge', knowledgeQueryRoutes);
 app.use('/api/analytics', anomaliesRoutes);
+app.use('/api/analytics', nlpQueryRoutes);
+app.use('/api/anomaly', anomalyRoutes);
+app.use('/api/webhooks', authenticateToken, webhooksRoutes);
 app.use('/api/ai', aiGovernanceRoutes);
 app.use('/api/ai', aiPromptsRoutes);
 app.use('/api/iot', authenticateToken, iotTelemetryRoutes);
