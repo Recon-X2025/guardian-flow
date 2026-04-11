@@ -91,6 +91,8 @@ import surveysRoutes from './routes/surveys.js';
 import nlpQueryRoutes from './routes/nlp-query.js';
 import anomalyRoutes from './routes/anomaly.js';
 import webhooksRoutes from './routes/webhooks.js';
+import siemRoutes from './routes/siem.js';
+import sdkRoutes from './routes/sdk.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
@@ -286,6 +288,8 @@ app.use('/api/finance/invoices', authenticateToken, eInvoiceRoutes);
 app.use('/api/expenses', authenticateToken, expensesRoutes);
 app.use('/api/crm', authenticateToken, crmRoutes);
 app.use('/api/surveys', surveysRoutes); // /respond/:token is public
+app.use('/api/admin/siem', authenticateToken, siemRoutes);
+app.use('/api/sdk', sdkRoutes);
 app.use('/metrics', metricsRoutes);
 
 // API v1 alias — forward /api/v1/* to /api/*
