@@ -1,15 +1,20 @@
 {
   "name": "Guardian Flow",
-  "short_name": "GuardianFlow",
-  "description": "Field service management platform",
+  "short_name": "Guardian Flow",
+  "description": "Enterprise Field Service Management Platform — work orders, scheduling, asset management, and AI-powered operations",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
   "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
+  "id": "/",
   "icons": [
-    { "src": "/icons/icon-72x72.png", "sizes": "72x72", "type": "image/png" },
-    { "src": "/icons/icon-96x96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png" },
+    { "src": "/icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png" },
     { "src": "/icons/icon-128x128.png", "sizes": "128x128", "type": "image/png" },
     { "src": "/icons/icon-144x144.png", "sizes": "144x144", "type": "image/png" },
     { "src": "/icons/icon-152x152.png", "sizes": "152x152", "type": "image/png" },
@@ -17,21 +22,54 @@
     { "src": "/icons/icon-384x384.png", "sizes": "384x384", "type": "image/png" },
     { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "utilities"],
+  "iarc_rating_id": "",
+  "prefer_related_applications": false,
   "shortcuts": [
     {
       "name": "New Work Order",
       "short_name": "New WO",
-      "description": "Create a new work order",
-      "url": "/work-orders/new",
-      "icons": [{ "src": "/icons/shortcut-wo.png", "sizes": "96x96" }]
+      "description": "Create a new work order quickly",
+      "url": "/work-orders?action=new",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "My Tickets",
+      "name": "My Schedule",
+      "short_name": "Schedule",
+      "description": "View today's schedule",
+      "url": "/schedule",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Open Tickets",
       "short_name": "Tickets",
-      "description": "View assigned tickets",
+      "description": "View open support tickets",
       "url": "/tickets",
-      "icons": [{ "src": "/icons/shortcut-tickets.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "AI Assistant",
+      "short_name": "AI",
+      "description": "Open AI Copilot",
+      "url": "/assistant",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "label": "Guardian Flow Dashboard"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "390x844",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Guardian Flow Mobile"
+    }
+  ],
+  "related_applications": []
 }

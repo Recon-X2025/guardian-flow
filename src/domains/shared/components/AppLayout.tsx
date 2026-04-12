@@ -4,6 +4,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/domains/shared/components/AppSidebar";
 import { UserMenu } from "@/domains/shared/components/UserMenu";
 import { AICopilotWidget } from "@/domains/shared/components/AICopilotWidget";
+import { InstallPrompt } from "@/domains/shared/components/InstallPrompt";
+import OfflineSyncIndicator from "@/domains/shared/components/OfflineSyncIndicator";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -22,7 +24,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </span>
                 </div>
               </div>
-              <UserMenu />
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex">
+                  <OfflineSyncIndicator />
+                </div>
+                <UserMenu />
+              </div>
             </header>
             <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
               {children}
@@ -30,6 +37,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <AICopilotWidget />
+        <InstallPrompt />
       </SidebarProvider>
     </TooltipProvider>
   );
