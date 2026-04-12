@@ -3,15 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mockPrediction } from '../__mocks__/apiClient';
 
-// vi.hoisted ensures the variable exists when vi.mock factory runs (hoisted)
-const { mockFrom } = vi.hoisted(() => ({
-  mockFrom: vi.fn(),
-}));
-
-vi.mock('@/integrations/api/client', () => ({
-  apiClient: { from: mockFrom },
-}));
-
 import PredictiveMaintenance from '@/domains/workOrders/pages/PredictiveMaintenance';
 
 function renderWithProviders(ui: React.ReactElement) {
@@ -21,44 +12,38 @@ function renderWithProviders(ui: React.ReactElement) {
   return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
 }
 
-function setupQueryMock(data: unknown[] | null, error: unknown = null) {
-  const builder: Record<string, unknown> = {};
-  const chain = ['select', 'eq', 'order', 'limit', 'single'];
-  for (const m of chain) {
-    builder[m] = vi.fn().mockReturnValue(builder);
-  }
-  builder.then = vi.fn((cb?: (v: unknown) => unknown) => {
-    const result = { data, error };
-    return cb ? Promise.resolve(cb(result)) : Promise.resolve(result);
-  });
-  mockFrom.mockReturnValue(builder);
+function setupFetchMock(predictions: unknown[]) {
+  vi.stubGlobal('fetch', vi.fn((url: string) => {
+    if (url.includes('/api/functions/maintenance-predictions') || url.includes('/api/assets/at-risk')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ predictions, total: predictions.length }),
+      });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+  }));
+}
+
+function setupFetchNeverResolve() {
+  vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
 }
 
 describe('PredictiveMaintenance', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders loading state', () => {
-    // Never resolve the query
-    const builder: Record<string, unknown> = {};
-    const chain = ['select', 'eq', 'order', 'limit', 'single'];
-    for (const m of chain) {
-      builder[m] = vi.fn().mockReturnValue(builder);
-    }
-    builder.then = vi.fn(() => new Promise(() => {}));
-    mockFrom.mockReturnValue(builder);
-
+    setupFetchNeverResolve();
     renderWithProviders(<PredictiveMaintenance />);
     expect(screen.getByText('Loading predictions...')).toBeInTheDocument();
   });
 
   it('renders empty state when no predictions available', async () => {
-    setupQueryMock([]);
+    setupFetchMock([]);
     renderWithProviders(<PredictiveMaintenance />);
-    expect(
-      await screen.findByText(/No predictions available/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/No predictions available/i)).toBeInTheDocument();
   });
 
   it('renders prediction table with mock data', async () => {
@@ -66,7 +51,7 @@ describe('PredictiveMaintenance', () => {
       mockPrediction({ id: 'p1', risk_level: 'high', failure_probability: 0.87 }),
       mockPrediction({ id: 'p2', risk_level: 'medium', failure_probability: 0.45 }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
     expect(await screen.findByText('87.0%')).toBeInTheDocument();
@@ -79,7 +64,7 @@ describe('PredictiveMaintenance', () => {
       mockPrediction({ id: 'p2', risk_level: 'medium', failure_probability: 0.50 }),
       mockPrediction({ id: 'p3', risk_level: 'low', failure_probability: 0.10 }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
     await screen.findByText('90.0%');
@@ -102,7 +87,7 @@ describe('PredictiveMaintenance', () => {
       mockPrediction({ id: 'p1' }),
       mockPrediction({ id: 'p2' }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
     const buttons = await screen.findAllByRole('button', {
@@ -122,7 +107,7 @@ describe('PredictiveMaintenance', () => {
         },
       }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
     expect(await screen.findByText(/Acme/)).toBeInTheDocument();
@@ -137,12 +122,11 @@ describe('PredictiveMaintenance', () => {
       mockPrediction({ id: 'p3', risk_level: 'medium', failure_probability: 0.55 }),
       mockPrediction({ id: 'p4', risk_level: 'low', failure_probability: 0.12 }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
     await screen.findByText('91.0%');
 
-    // High Risk = 2, Medium Risk = 1, Low Risk = 1
     expect(screen.getByText('High Risk')).toBeInTheDocument();
     expect(screen.getByText('Medium Risk')).toBeInTheDocument();
     expect(screen.getByText('Low Risk')).toBeInTheDocument();
@@ -152,7 +136,7 @@ describe('PredictiveMaintenance', () => {
     const predictions = [
       mockPrediction({ id: 'p1', confidence_score: 0.92 }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
     expect(await screen.findByText(/92% confidence/)).toBeInTheDocument();
@@ -162,10 +146,9 @@ describe('PredictiveMaintenance', () => {
     const predictions = [
       mockPrediction({ id: 'p1', confidence_score: undefined }),
     ];
-    setupQueryMock(predictions);
+    setupFetchMock(predictions);
     renderWithProviders(<PredictiveMaintenance />);
 
-    // Should show 0% confidence instead of NaN
     expect(await screen.findByText(/0% confidence/)).toBeInTheDocument();
   });
 });

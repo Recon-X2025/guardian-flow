@@ -249,4 +249,121 @@ router.post('/attest', authenticateToken, async (req, res) => {
   }
 });
 
+// ── POST /api/flowspace/records/:id/explain ──────────────────────────────────
+// AI Act Article 13 / GDPR Article 22 — meaningful explanation of automated decisions
+
+router.post('/records/:id/explain', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const adapter  = await getAdapter();
+
+    const record = await adapter.findOne('decision_records', { id: req.params.id, tenant_id: tenantId });
+    if (!record) return res.status(404).json({ error: 'Decision record not found' });
+
+    // Resolve lineage chain for context
+    let lineage = [];
+    try {
+      lineage = await getDecisionLineage(record.id, tenantId);
+    } catch (_) { /* not critical */ }
+
+    // Build AI Act Article 13 compliant explanation
+    const explanation = buildArticle13Explanation(record, lineage);
+
+    // Store the explanation for audit purposes
+    const explanationRecord = {
+      id: (await import('crypto')).then ? undefined : undefined,
+      record_id: record.id,
+      tenant_id: tenantId,
+      requested_by: req.user.id,
+      requested_at: new Date(),
+      explanation,
+    };
+
+    const { randomUUID } = await import('crypto');
+    explanationRecord.id = randomUUID();
+
+    try {
+      await adapter.insertOne('decision_explanations', explanationRecord);
+    } catch (_) { /* table may not exist yet */ }
+
+    logger.info('FlowSpace: explanation generated', { recordId: record.id, tenantId });
+    res.json({ explanation, record: { id: record.id, action: record.action, domain: record.domain, actor_type: record.actor_type } });
+  } catch (error) {
+    logger.error('FlowSpace: explain error', { error: error.message });
+    res.status(500).json({ error: 'Failed to generate explanation' });
+  }
+});
+
+/**
+ * Build a structured AI Act Article 13 / Article 22 explanation for a decision record.
+ * Covers: purpose, logic, significance, rights, human oversight flag.
+ */
+function buildArticle13Explanation(record, lineage) {
+  const isAi = record.actor_type === 'ai';
+  const isHighRisk = record.metadata?.risk_level === 'high' ||
+    ['approve', 'reject', 'deny', 'block', 'flag', 'escalate'].some(k => (record.action ?? '').toLowerCase().includes(k));
+
+  const purposeMap = {
+    fraud: 'Detect anomalous patterns that may indicate fraudulent activity and protect financial integrity.',
+    sla: 'Monitor service level agreements and trigger remediation when response time thresholds are breached.',
+    maintenance: 'Optimise equipment maintenance schedules to reduce downtime and prevent unexpected failures.',
+    crm: 'Prioritise customer engagement and pipeline progression based on activity signals.',
+    iot: 'Process sensor telemetry to detect out-of-range conditions and trigger safety alerts.',
+    compliance: 'Ensure regulatory obligations are met and evidence is collected for audit purposes.',
+    dex: 'Coordinate execution of complex, multi-step operational workflows between systems and human actors.',
+  };
+
+  const domainPurpose = purposeMap[record.domain?.toLowerCase()] ?? `Support operational decisions within the ${record.domain} domain.`;
+
+  const logicSummary = isAi
+    ? `An automated AI system (${record.actor_id ?? 'AI agent'}) evaluated available data and applied decision logic to arrive at the outcome: "${record.action}". ` +
+      `${record.metadata?.model ? `Model used: ${record.metadata.model}.` : ''} ` +
+      `${record.metadata?.confidence !== undefined ? `Confidence score: ${Math.round(record.metadata.confidence * 100)}%.` : ''}`
+    : `A human operator (${record.actor_id ?? 'user'}) manually performed the action "${record.action}" ` +
+      `within the ${record.domain} domain${record.metadata?.reason ? `: "${record.metadata.reason}"` : '.'} `;
+
+  const lineageSummary = lineage.length > 1
+    ? `This decision is part of a causal chain of ${lineage.length} linked decisions, beginning with "${lineage[lineage.length - 1]?.action ?? 'an initial event'}" and progressing through sequential steps to reach this outcome.`
+    : 'This is a standalone decision with no prior causal dependencies recorded.';
+
+  const significance = isHighRisk
+    ? 'This decision may have significant effects on individuals, processes, or outcomes. It is subject to enhanced audit logging and human oversight requirements.'
+    : 'This decision has limited direct impact on individuals but is logged for traceability and audit purposes.';
+
+  return {
+    framework: 'AI Act Article 13 / GDPR Article 22',
+    generated_at: new Date().toISOString(),
+    record_id: record.id,
+    decision_summary: {
+      domain: record.domain,
+      action: record.action,
+      actor_type: record.actor_type,
+      actor_id: record.actor_id,
+      timestamp: record.created_at,
+    },
+    purpose: domainPurpose,
+    logic_used: logicSummary,
+    lineage_context: lineageSummary,
+    significance_and_impact: significance,
+    data_sources_used: record.metadata?.data_sources ?? ['Operational system records within the ' + record.domain + ' domain'],
+    human_oversight: {
+      applicable: isAi && isHighRisk,
+      statement: isAi && isHighRisk
+        ? 'As an automated decision with potentially significant impact, a human operator has the right to request review, override this decision, or escalate to a supervisor. Contact your system administrator to initiate a review.'
+        : isAi
+        ? 'This automated decision is monitored by the system operations team. You may request clarification or correction via the standard support channel.'
+        : 'This decision was made by a human operator and is subject to standard management review processes.',
+    },
+    data_subject_rights: [
+      'Right to access: You may request a copy of the data used in this decision.',
+      'Right to rectification: If factual inaccuracies affected this decision, you may request correction.',
+      'Right to object: For AI-assisted decisions with significant impact, you may request human review.',
+      'Right to explanation: This document fulfils the transparency obligation under applicable regulation.',
+    ],
+    appeal_mechanism: 'Submit a review request through the Governance & Audit module, referencing decision ID: ' + record.id,
+    confidence_score: record.metadata?.confidence ?? null,
+    audit_trail_url: `/flowspace?record=${record.id}`,
+  };
+}
+
 export default router;
