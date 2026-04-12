@@ -18,7 +18,7 @@
 
 ---
 
-## Gate 1 — Demo-Critical (Sprints S1–S4) 🔴
+## ✅ Gate 1 — Demo-Critical (Sprints S1–S4) ✅
 
 Target parity after Gate 1: **~55%** (passes enterprise demo)
 
