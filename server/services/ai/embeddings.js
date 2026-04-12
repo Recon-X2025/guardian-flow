@@ -38,13 +38,40 @@ function cosineSimilarity(a, b) {
 }
 
 export async function vectorSearch(collectionName, queryVector, limit = 5, filter = {}) {
-  // First try text search if available, then fall back to brute-force cosine similarity
+  // Use MongoDB Atlas $vectorSearch when ATLAS_VECTOR_SEARCH=true and a vector is available
+  if (process.env.ATLAS_VECTOR_SEARCH === 'true' && queryVector && queryVector.length > 0) {
+    try {
+      const pipeline = [
+        {
+          $vectorSearch: {
+            index: `${collectionName}_vector_index`,
+            path: 'embedding',
+            queryVector,
+            numCandidates: limit * 10,
+            limit,
+            ...(Object.keys(filter).length > 0 ? { filter } : {}),
+          },
+        },
+        {
+          $addFields: {
+            similarity: { $meta: 'vectorSearchScore' },
+          },
+        },
+      ];
+      const results = await aggregate(collectionName, pipeline);
+      if (results && results.length > 0) return results;
+      // Fall through to brute-force if no results (empty collection / index not ready)
+    } catch (atlasError) {
+      console.warn('Atlas $vectorSearch failed, falling back to cosine similarity:', atlasError.message);
+    }
+  }
+
+  // Brute-force cosine similarity fallback (local dev / non-Atlas environments)
   try {
     const allDocs = await findMany(collectionName, filter, { limit: 500 });
 
     if (!queryVector || allDocs.length === 0) return allDocs.slice(0, limit);
 
-    // Score by cosine similarity
     const scored = allDocs
       .filter(doc => doc.embedding && doc.embedding.length > 0)
       .map(doc => ({

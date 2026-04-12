@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/domains/shared/components/AppSidebar";
 import { UserMenu } from "@/domains/shared/components/UserMenu";
+import { AICopilotWidget } from "@/domains/shared/components/AICopilotWidget";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -28,6 +29,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </main>
           </div>
         </div>
+        <AICopilotWidget />
       </SidebarProvider>
     </TooltipProvider>
   );
