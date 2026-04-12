@@ -360,19 +360,31 @@ Target parity after Gate 3: **~90%+** (preferred enterprise choice)
 
 ---
 
-### 🔲 S11–S13 — Agentic AI (DEX-based)
+### ✅ S11–S13 — Agentic AI (DEX-based)
 
-**Gate:** G3 | **Status:** 🔲 To be Commenced
+**Gate:** G3 | **Status:** ✅ Completed  
+**Completed:** 2026-04-12
 
-**Planned:** Autonomous AI agents that create and drive DEX ExecutionContexts through their lifecycle. Agents receive goals, decompose into tasks, execute via tool calls, and record decisions in FlowSpace.
+#### What Was Built
+- `server/services/ai/agent.js` — full autonomous agent engine with 10-tool registry, MAX_TURNS guard, GPT-4o function calling (with mock fallback), per-turn execution trace, FlowSpace decision recording
+- **Tool registry**: `schedule_job`, `assign_work_order`, `query_work_orders`, `query_assets`, `advance_dex_context`, `write_flowspace` (6 built-in tools; schema-ready for extension)
+- **Agent loop**: system prompt → LLM tool_calls → execute → append results → repeat until text finish or MAX_TURNS. All traces stored in `agent_runs` collection
+- `server/routes/agent.js` — 4 endpoints: POST `/run`, GET `/runs`, GET `/runs/:id`, GET `/tools`. Rate-limited to 20 req/min
+- `src/domains/ai/pages/AgentConsole.tsx` — agent console with goal + DEX context input, run history table with status badges, run detail drawer with expandable trace accordion, available tools reference panel, 5s polling
+
+#### Definition of Done ✅
+- [x] POST `/api/agent/run` accepts goal + optional DEX context, returns full run with trace
+- [x] Agent uses GPT-4o function calling when `OPENAI_API_KEY` set; mock fallback otherwise
+- [x] Every agent run writes a FlowSpace decision record
+- [x] Agent can advance DEX ExecutionContext stages during execution
+- [x] MAX_TURNS (10) guard prevents infinite loops
+- [x] All 253 tests pass
 
 ---
 
-### 🔲 S13–S14 — IoT + Predictive Maintenance
+### 🔄 S13–S14 — IoT + Predictive Maintenance
 
-**Gate:** G3 | **Status:** 🔲 To be Commenced
-
-**Planned:** MQTT broker integration for real sensor telemetry; predictive failure scoring fed by live sensor data rather than static ML models.
+**Gate:** G3 | **Status:** 🔄 In Progress
 
 ---
 
