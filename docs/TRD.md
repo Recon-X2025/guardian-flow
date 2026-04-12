@@ -11,7 +11,7 @@
 
 ### 1.1 Purpose
 
-This document defines the technical architecture, implementation details, design decisions, and infrastructure requirements for Guardian Flow v6.0. It serves as the authoritative reference for engineering teams building, maintaining, and extending the platform.
+This document defines the technical architecture, implementation details, design decisions, and infrastructure requirements for Guardian Flow v6.1. It serves as the authoritative reference for engineering teams building, maintaining, and extending the platform.
 
 ### 1.2 Scope
 

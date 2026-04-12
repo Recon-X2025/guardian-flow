@@ -1,7 +1,7 @@
 # Guardian Flow - Complete Technical Specifications
 
 **Version:** 6.0 - Platform as a Service (PaaS)  
-**Date:** October 2025  
+**Date:** April 2026  
 **Status:** Production Ready  
 **Document Type:** Unified Product Specifications & Technical Architecture
 
@@ -47,7 +47,7 @@ The platform orchestrates end-to-end work order lifecycle from ticket creation t
 
 | Version | Date | Key Features | Impact |
 |---------|------|--------------|--------|
-| **v6.0 PaaS** | Oct 2025 | API Gateway, Developer Console, Usage Billing, Sandbox Environment | External developer ecosystem |
+| **v6.1 PaaS+** | Apr 2026 | API Gateway, Developer Console, Usage Billing, Sandbox Environment | External developer ecosystem |
 | **v5.0 Intelligence** | Oct 2025 | Hierarchical forecasting (7 geo levels), product intelligence, MinT reconciliation | 25% SLA breach reduction |
 | **v3.0 Agentic** | Oct 2025 | 5 specialized agents, policy-as-code, cognitive loops, auto-detection | 95% automation rate |
 | **v2.0 Enterprise** | Sep 2025 | Multi-tenant RBAC, fraud detection, automated prechecks | Enterprise scalability |
@@ -535,7 +535,7 @@ can_release = true/false
 
 ## Conclusion
 
-Guardian Flow v6.0 represents the culmination of three major releases, delivering a comprehensive, AI-driven, forecast-informed, developer-ready platform for field service management at enterprise scale.
+Guardian Flow v6.1 represents the culmination of three major releases, delivering a comprehensive, AI-driven, forecast-informed, developer-ready platform for field service management at enterprise scale.
 
 **Key Achievements**:
 - ✅ Autonomous agentic operations with policy-as-code
@@ -549,5 +549,5 @@ Guardian Flow v6.0 represents the culmination of three major releases, deliverin
 ---
 
 *Document Version: 1.0*  
-*Last Updated: October 2025*  
+*Last Updated: April 2026*  
 *For technical support: support@guardianflow.ai*

@@ -2,7 +2,7 @@
 
 **Modular Enterprise Operations Platform**
 
-> Full build report: [BUILD_REPORT.md](BUILD_REPORT.md) · Full documentation index: [docs/INDEX.md](docs/INDEX.md)
+> Full build report: [BUILD_REPORT.md](BUILD_REPORT.md) · Platform audit: [docs/PLATFORM_COMPREHENSIVE_AUDIT.md](docs/PLATFORM_COMPREHENSIVE_AUDIT.md)
 
 ---
 
@@ -15,7 +15,7 @@
 | **TypeScript** | ✅ Passing | strict mode · 5.8.3 |
 | **npm audit** | ⚠️ 17 pre-existing | 1 critical · 7 high · 8 moderate · 1 low (all upstream deps) |
 
-_Last recorded build: 2026-04-09 · Branch: `copilot/deep-dive-into-build` · Node v24.14.1_
+_Last recorded build: 2026-04-12 · Branch: `copilot/sprint-29-through-52` · Node v24.14.1_
 
 ---
 
@@ -280,7 +280,7 @@ curl -X POST http://localhost:3001/api/functions/api-gateway \
 | Backend | Express.js · Node.js 18+ |
 | Database | MongoDB Atlas (default) · PostgreSQL (alternate) |
 | Auth | JWT (access + refresh tokens) |
-| AI | Lovable AI Gateway (Gemini / GPT-4) |
+| AI | OpenAI GPT-4 / Google Gemini (via server-side routes) |
 | Build | Vite 5.4 · @vitejs/plugin-react-swc |
 | Testing | Vitest 1.6 |
 | Design Tokens | `src/styles/tokens.css` (`--gf-*` tokens · dark mode) |
@@ -344,13 +344,15 @@ guardian-flow/
 | Document | Location |
 |----------|---------|
 | Build Report (build + test + audit) | [`BUILD_REPORT.md`](BUILD_REPORT.md) |
-| Documentation Index | [`docs/INDEX.md`](docs/INDEX.md) |
-| Product Specifications | `public/PRODUCT_SPECIFICATIONS_V5.md` |
-| API Documentation | `public/API_DOCUMENTATION.md` |
-| Testing Guide | `docs/COMPLETE_TEST_GUIDE.md` |
+| Platform Comprehensive Audit | [`docs/PLATFORM_COMPREHENSIVE_AUDIT.md`](docs/PLATFORM_COMPREHENSIVE_AUDIT.md) |
+| API Documentation | [`public/API_DOCUMENTATION.md`](public/API_DOCUMENTATION.md) |
+| Testing Guide | [`docs/TESTING_GUIDE.md`](docs/TESTING_GUIDE.md) |
+| Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| TRD | [`docs/TRD.md`](docs/TRD.md) |
+| PRD | [`docs/PRD.md`](docs/PRD.md) |
 
 ---
 
 ## License
 
-Proprietary — © 2025 Guardian Flow
+Proprietary — © 2026 Guardian Flow

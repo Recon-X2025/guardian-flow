@@ -1,7 +1,7 @@
 # Guardian Flow API Documentation
 
 **Version:** 6.0  
-**Last Updated:** October 2025
+**Last Updated:** April 2026
 
 ---
 
@@ -571,4 +571,4 @@ No authentication required.
 
 ---
 
-**© 2025 Guardian Flow. All rights reserved.**
+**© 2026 Guardian Flow. All rights reserved.**

@@ -8,15 +8,10 @@ Backend API server powered by MongoDB Atlas.
 
 The application uses MongoDB Atlas cloud database. No local installation required.
 
-**Connection String:**
-```
-mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/
-```
+**Connection String:** Set in `server/.env` as `MONGODB_URI`.  
+See `readiness/handover/env_template.md` for the full variable list.
 
-**Database Name:**
-```
-guardianflow
-```
+**Database Name:** `guardianflow`
 
 ### 2. Install Dependencies
 
@@ -29,22 +24,16 @@ npm install
 
 ```bash
 cp .env.example .env
-# Edit .env with your MongoDB connection details
+# Edit .env with your MongoDB connection details, JWT_SECRET, and optional keys
 ```
 
-Add to your `.env` file:
-```env
-MONGODB_URI=mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/
-MONGODB_DB_NAME=guardianflow
-```
-
-### 4. Initialize Database Collections
+### 4. Run Migrations (idempotent)
 
 ```bash
-# The server will automatically connect to MongoDB Atlas
-# Collections are created on first use
-npm run migrate
+node scripts/phase0-migration.js
 ```
+
+Migrations 003–010 cover all Phase 0–5 collections and are tracked via the `schema_migrations` collection.
 
 ### 5. Start Server
 
@@ -54,42 +43,76 @@ npm run dev
 
 The server will run on http://localhost:3001
 
-## API Endpoints
+## API Route Summary (57 routes)
 
-### Authentication
-- `POST /api/auth/signup` - Sign up new user
-- `POST /api/auth/signin` - Sign in
-- `GET /api/auth/user` - Get current user
-- `POST /api/auth/signout` - Sign out
+| Prefix | Route file | Auth required |
+|--------|------------|---------------|
+| `/api/auth` | auth.js | No (issues JWT) |
+| `/api/db` | database.js | No |
+| `/api/storage` | storage.js | No |
+| `/api/functions` | functions.js | No |
+| `/api/payments` | payments.js | No |
+| `/api/knowledge-base` | knowledge-base.js | No |
+| `/api/faqs` | faqs.js | No |
+| `/api/ml` | ml.js, ml-experiments.js, xai.js | Partial |
+| `/api/ai` | ai.js, finetune.js, vision.js, ai-governance.js, ai-prompts.js | No |
+| `/api/security` | security-monitor.js | No |
+| `/api/log-error` | log-frontend-error.js | No |
+| `/api/sla` | sla-monitor.js | No |
+| `/api/partner` | partner-api-gateway.js | No |
+| `/api/org` | org.js | No |
+| `/api/flowspace` | flowspace.js | No |
+| `/api/dex` | dex.js | No |
+| `/api/sso` | sso.js | No |
+| `/api/currency` | currency.js | No |
+| `/api/ledger` | ledger.js | ✅ JWT |
+| `/api/skills` | skills.js | ✅ JWT |
+| `/api/schedule` | schedule.js | ✅ JWT |
+| `/api/customer-booking` | customer-booking.js | No |
+| `/api/customer360` | customer360.js | No |
+| `/api/comms` | comms.js | No |
+| `/api/assets` | assets.js, assets-health.js | No |
+| `/api/connectors` | connectors.js | No |
+| `/api/knowledge` | knowledge-query.js | No |
+| `/api/analytics` | anomalies.js | No |
+| `/api/crm` | crm.js | ✅ JWT |
+| `/api/iot-telemetry` | iot-telemetry.js | ✅ JWT |
+| `/api/sla-rules` | sla-rules.js | ✅ JWT |
+| `/api/shifts` | shifts.js | ✅ JWT |
+| `/api/budgeting` | budgeting.js | ✅ JWT |
+| `/api/inventory-adv` | inventory-advanced.js | ✅ JWT |
+| `/api/goods-receipt` | goods-receipt.js | ✅ JWT |
+| `/api/bank-recon` | bank-recon.js | ✅ JWT |
+| `/api/mfa` | mfa.js | ✅ JWT |
+| `/api/audit-log` | audit-log.js | ✅ JWT |
+| `/api/esg` | esg.js | ✅ JWT |
+| `/api/dashboards` | dashboard-builder.js | ✅ JWT |
+| `/api/scheduled-reports` | scheduled-reports.js | ✅ JWT |
+| `/api/ml-studio` | ml-studio.js | ✅ JWT |
+| `/api/subcontractors` | subcontractors.js | ✅ JWT |
 
-### Database
-- `POST /api/db/query` - Generic database query
-- `GET /api/db/:table/:id` - Get single row
-- `POST /api/db/:table` - Insert row
-- `PATCH /api/db/:table/:id` - Update row
-- `DELETE /api/db/:table/:id` - Delete row
+Full API reference: [`public/API_DOCUMENTATION.md`](../public/API_DOCUMENTATION.md)
 
-### Functions
-- `POST /api/functions/:functionName` - Edge function replacements
-
-## Development
+## Development Stack
 
 The server uses:
-- **Express.js** - Web framework
-- **mongodb** - MongoDB client
-- **bcryptjs** - Password hashing
-- **jsonwebtoken** - JWT authentication
+- **Express.js** — Web framework (port 3001)
+- **mongodb** — MongoDB Atlas client
+- **bcryptjs** — Password hashing
+- **jsonwebtoken** — JWT authentication (24 h expiry)
+- **helmet / cors / express-rate-limit** — Security middleware
+- **ws** — WebSocket manager
+- **DB adapter** — `server/db/factory.js` (selects MongoDB or PostgreSQL via `DB_ADAPTER` env)
 
 ## Production Deployment
 
-For Vultr deployment:
-1. Use MongoDB Atlas cloud database (already configured)
-2. Update `.env` with production MongoDB credentials
-3. Set strong `JWT_SECRET`
-4. Configure `FRONTEND_URL` to your domain
-5. Use PM2 or similar process manager:
+1. Copy and fill `server/.env` (see `readiness/handover/env_template.md`)
+2. Run `node scripts/phase0-migration.js`
+3. Start with PM2:
    ```bash
    npm install -g pm2
    pm2 start server.js --name guardian-flow
+   pm2 save
    ```
+4. Serve the `dist/` frontend via nginx or a static host pointed at port 3001 for API proxying.
 

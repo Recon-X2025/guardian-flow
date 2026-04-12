@@ -1,7 +1,7 @@
 # Infrastructure Requirements & Deployment Guide
 
 ## Overview
-This document outlines the external infrastructure required to fully deploy Guardian Flow in a production environment. These components are beyond Lovable's scope and require cloud provider accounts.
+This document outlines the external infrastructure required to fully deploy Guardian Flow in a production environment. These components are outside the core application and require cloud provider accounts.
 
 ---
 
@@ -58,7 +58,7 @@ MongoDB Atlas provides managed database infrastructure with automatic scaling an
 - Worker pods scale based on queue depth
 
 **Why Needed:**
-Real-time CV inference requires GPU compute unavailable in Lovable Cloud.
+Real-time CV inference requires dedicated GPU compute (not included in standard deployment).
 
 ---
 
@@ -252,7 +252,7 @@ resource "aws_eks_node_group" "gpu_nodes" {
 2. Deploy CV inference service
 3. Set up job queues (SQS/RabbitMQ)
 4. Deploy vector DB (Pinecone or Weaviate)
-5. Migrate database from Lovable Cloud
+5. Configure production MongoDB Atlas connection string
 6. Configure DNS and load balancers
 
 ### Phase 4: Observability & Monitoring (Week 4)
@@ -401,5 +401,5 @@ export async function deleteTenantData(tenantId: string) {
 
 - **Infrastructure Questions**: DevOps team
 - **Terraform Issues**: See Terraform documentation
-- **Lovable Cloud Migration**: support@lovable.dev
+- **Deployment Support**: support@guardianflow.ai
 - **Product Owner**: Karthik Iyer

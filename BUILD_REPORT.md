@@ -1,7 +1,7 @@
 # Guardian Flow — Build Report
 
-**Date:** 2026-04-09  
-**Branch:** `copilot/deep-dive-into-build`  
+**Date:** 2026-04-12  
+**Branch:** `copilot/sprint-29-through-52`  
 **Head Commit:** `94433dc` — _fix: resolve ReDoS email regex and deduplicate VALID\_ROLES in org.js_  
 
 ---

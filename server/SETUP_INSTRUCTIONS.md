@@ -8,7 +8,7 @@ Create `server/.env` with the following content:
 
 ```env
 # Database Configuration
-MONGODB_URI=mongodb+srv://vivekkumar787067_db_user:Vivek09876@cluster0.xdkbkkd.mongodb.net/
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/
 MONGODB_DB_NAME=guardianflow
 
 # JWT Secret (change in production!)

@@ -244,7 +244,7 @@ Implementation: Set up cron job to call `/run-forecast-now` monthly.
 ## Support
 
 For issues or questions:
-1. Check Express.js route handler logs via Lovable Cloud backend
+1. Check Express.js route handler logs via server console or PM2 logs
 2. Review `agent_trace_logs` table for execution traces
 3. Query `forecast_queue` for job status
 4. Examine `events_log` for system events
@@ -274,5 +274,5 @@ const { data } = await db
 ---
 
 **Version**: 1.0  
-**Last Updated**: 2025-10-07  
+**Last Updated**: 2026-04-12  
 **Status**: Production Ready

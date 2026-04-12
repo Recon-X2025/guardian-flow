@@ -29,12 +29,9 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>
 
 ### Optional AI Integrations (Phase 2)
 
-If using external AI models (beyond Lovable AI):
+If using external AI models:
 
 ```bash
-# Lovable AI (Included with Lovable Cloud)
-LOVABLE_API_KEY=<auto-configured>
-
 # Google Gemini (Optional)
 GOOGLE_GEMINI_API_KEY=<your-gemini-key>
 
@@ -94,7 +91,7 @@ Ensure your MongoDB Atlas connection string is configured:
 
 ### Step 3: Optional AI Configuration
 
-If you want to use external AI models (beyond Lovable AI):
+If you want to use external AI models:
 
 #### GOOGLE_GEMINI_API_KEY (Optional)
 
@@ -249,12 +246,11 @@ After configuration, verify:
 ## Contact & Support
 
 For environment configuration issues:
-- **Documentation**: [Lovable Docs](https://docs.lovable.dev/)
-- **Community**: [Lovable Discord](https://discord.gg/lovable)
+- **Documentation**: [Guardian Flow Docs](docs/ARCHITECTURE.md)
 - **Email**: support@guardianflow.ai
 
 ---
 
 *Template Version: 1.0*  
-*Last Updated: October 2025*  
-*Compatible with: Guardian Flow v6.0*
+*Last Updated: April 2026*  
+*Compatible with: Guardian Flow v6.1*
