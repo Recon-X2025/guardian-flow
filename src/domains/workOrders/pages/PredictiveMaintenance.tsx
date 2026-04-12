@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, TrendingUp, Zap, Calendar, Loader2, Play, Info } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Zap, Calendar, Loader2, Play, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -38,6 +38,69 @@ interface AtRiskAsset {
   failureProbability: number;
   riskLevel: string;
   recommendedAction?: string;
+}
+
+interface DegradationPoint {
+  day: number;
+  predictedValue: number;
+}
+
+interface RulEstimate {
+  estimatedRULDays: number | null;
+  confidence: number;
+  degradationCurve: DegradationPoint[];
+}
+
+function RulBadge({ assetId }: { assetId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ['rul', assetId],
+    queryFn: async () => {
+      const res = await fetch(`/api/assets/${assetId}/rul`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const rul: RulEstimate | null = data?.rul ?? null;
+  const days = rul?.estimatedRULDays;
+
+  if (isLoading) return <span className="text-xs text-muted-foreground">…</span>;
+  if (!rul || days === null) return <Badge variant="secondary" className="text-xs">No RUL data</Badge>;
+
+  const badgeClass = days < 14 ? "bg-destructive text-destructive-foreground" : days < 30 ? "bg-yellow-500 text-white" : "bg-green-600 text-white";
+
+  function buildSparkline(curve: DegradationPoint[]): string {
+    if (curve.length === 0) return "";
+    const vals = curve.map(p => p.predictedValue);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const range = max - min || 1;
+    const w = 120; const h = 30;
+    const pts = vals.map((v, i) => `${(i / (vals.length - 1)) * w},${h - ((v - min) / range) * h}`).join(" ");
+    return pts;
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <button
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${badgeClass}`}
+        onClick={() => setExpanded(e => !e)}
+      >
+        {Math.round(days)}d RUL
+        {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+      </button>
+      {expanded && rul.degradationCurve.length > 0 && (
+        <div className="mt-1 p-2 border rounded bg-muted/20">
+          <p className="text-xs text-muted-foreground mb-1">Confidence: {(rul.confidence * 100).toFixed(0)}%</p>
+          <svg viewBox="0 0 120 30" className="w-32 h-8">
+            <polyline points={buildSparkline(rul.degradationCurve)} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AtRiskSection() {
@@ -226,6 +289,7 @@ export default function PredictiveMaintenance() {
                 <TableHead>Risk Level</TableHead>
                 <TableHead>Failure Probability</TableHead>
                 <TableHead>Predicted Date</TableHead>
+                <TableHead>RUL</TableHead>
                 <TableHead>Recommended Action</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -269,6 +333,9 @@ export default function PredictiveMaintenance() {
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <RulBadge assetId={prediction.id} />
                   </TableCell>
                   <TableCell>
                     <div className="text-sm max-w-xs">

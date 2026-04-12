@@ -5,6 +5,8 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
+const ALLOWED_SEVERITIES = new Set(['debug', 'info', 'warning', 'error', 'critical']);
+
 router.post('/', async (req, res) => {
   const {
     error_message,
@@ -19,6 +21,21 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'error_message is required' });
   }
 
+  // Validate severity against allowlist
+  const safeSeverity = ALLOWED_SEVERITIES.has(severity) ? severity : 'error';
+
+  // Sanitize browser_info: accept only known string/number scalar fields
+  const safeBrowserInfo = {};
+  const ALLOWED_BROWSER_FIELDS = ['userAgent', 'platform', 'language', 'vendor', 'cookieEnabled', 'onLine', 'hardwareConcurrency'];
+  for (const field of ALLOWED_BROWSER_FIELDS) {
+    if (browser_info[field] !== undefined) {
+      const val = browser_info[field];
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+        safeBrowserInfo[field] = typeof val === 'string' ? val.slice(0, 512) : val;
+      }
+    }
+  }
+
   const id = randomUUID();
 
   (async () => {
@@ -28,12 +45,12 @@ router.post('/', async (req, res) => {
         id,
         error_message: String(error_message).slice(0, 2000),
         error_stack: error_stack ? String(error_stack).slice(0, 5000) : null,
-        component_name: component_name || null,
+        component_name: component_name ? String(component_name).slice(0, 255) : null,
         user_id: req.user?.id || null,
         tenant_id: req.user?.tenantId || null,
-        browser_info,
-        url: url || null,
-        severity,
+        browser_info: safeBrowserInfo,
+        url: url ? String(url).slice(0, 2048) : null,
+        severity: safeSeverity,
         created_at: new Date(),
       });
     } catch (err) {

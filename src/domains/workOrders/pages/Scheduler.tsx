@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, User, MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 
@@ -29,18 +29,29 @@ interface Technician {
   user_roles?: { role: string }[];
 }
 
+interface ForecastWeek {
+  week: string;
+  startDate: string;
+  endDate: string;
+  forecastedWOs: number;
+  availableCapacity: number;
+  gap: number;
+}
+
 export default function Scheduler() {
   const { toast } = useToast();
   const [workOrders, setWorkOrders] = useState<SchedulerWorkOrder[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
+  const [forecastOpen, setForecastOpen] = useState(false);
+  const [forecast, setForecast] = useState<ForecastWeek[]>([]);
+  const [forecastLoading, setForecastLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    try {
+  const fetchData = async () => {    try {
       const [woData, techData] = await Promise.all([
         apiClient
           .from('work_orders')
@@ -92,6 +103,26 @@ export default function Scheduler() {
         variant: "destructive",
       });
     }
+  };
+
+  const fetchForecast = async () => {
+    setForecastLoading(true);
+    try {
+      const res = await fetch('/api/schedule/capacity-forecast?weeks=6');
+      if (res.ok) {
+        const data = await res.json();
+        setForecast(data.forecast || []);
+      }
+    } catch {
+      // non-critical
+    } finally {
+      setForecastLoading(false);
+    }
+  };
+
+  const toggleForecast = () => {
+    if (!forecastOpen && forecast.length === 0) fetchForecast();
+    setForecastOpen(v => !v);
   };
 
   const unassignedWO = workOrders.filter(wo => !wo.technician_id).length;
@@ -247,6 +278,79 @@ export default function Scheduler() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Capacity Forecast Panel */}
+      <Card>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={toggleForecast}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Capacity Forecast</CardTitle>
+            </div>
+            {forecastOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </div>
+          <CardDescription>Forecasted demand vs available technician capacity (next 6 weeks)</CardDescription>
+        </CardHeader>
+
+        {forecastOpen && (
+          <CardContent>
+            {forecastLoading && (
+              <p className="text-center text-muted-foreground py-4">Loading forecast…</p>
+            )}
+            {!forecastLoading && forecast.length === 0 && (
+              <p className="text-center text-muted-foreground py-4">No forecast data available.</p>
+            )}
+            {!forecastLoading && forecast.length > 0 && (() => {
+              const maxVal = Math.max(...forecast.map(f => Math.max(f.forecastedWOs, f.availableCapacity)), 1);
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-end gap-2 h-40 pt-2">
+                    {forecast.map(f => {
+                      const woBh   = Math.round((f.forecastedWOs   / maxVal) * 128);
+                      const capBh  = Math.round((f.availableCapacity / maxVal) * 128);
+                      const isGap  = f.gap > 0;
+                      return (
+                        <div key={f.week} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                          <div className="w-full flex items-end gap-0.5 h-32">
+                            <div
+                              className={`flex-1 rounded-t-sm transition-all ${isGap ? 'bg-red-400' : 'bg-blue-400'}`}
+                              style={{ height: `${woBh}px` }}
+                              title={`Forecasted: ${f.forecastedWOs} WOs`}
+                            />
+                            <div
+                              className="flex-1 rounded-t-sm bg-green-400 opacity-70 transition-all"
+                              style={{ height: `${capBh}px` }}
+                              title={`Capacity: ${f.availableCapacity}h`}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground truncate w-full text-center">
+                            {f.week.split('-W')[1] ? `W${f.week.split('-W')[1]}` : f.week}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-400 inline-block" />Forecasted WOs</div>
+                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-400 opacity-70 inline-block" />Available Capacity (h)</div>
+                    <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block" />Gap week</div>
+                  </div>
+                  {forecast.filter(f => f.gap > 0).length > 0 && (
+                    <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                      <strong>⚠ Under-resourced weeks:</strong>{' '}
+                      {forecast.filter(f => f.gap > 0).map(f => f.week).join(', ')}
+                      {' — consider activating crowd partners.'}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </CardContent>
+        )}
+      </Card>
     </div>
   );
 }

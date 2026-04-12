@@ -155,8 +155,20 @@ export default function MarketplaceManagement() {
 
         <TabsContent value="extensions" className="mt-4">
           <Card>
-            <CardContent className="pt-4">
-              <Table>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Marketplace Extensions</CardTitle>
+                  <CardDescription>
+                    All extensions available on the marketplace
+                  </CardDescription>
+                </div>
+                <Button disabled title="Extension submission is not yet available">
+                  <Store className="h-4 w-4 mr-2" />
+                  Submit Extension
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Extension</TableHead>

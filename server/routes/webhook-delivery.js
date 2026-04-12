@@ -1,237 +1,333 @@
 /**
- * Webhook Delivery Manager
- * Manages outbound webhook registrations, delivery attempts, and retry logic.
+ * @file server/routes/webhook-delivery.js
+ * @description Webhook Delivery Manager
  *
- * Routes:
- *   GET    /api/webhooks                          — list registered webhooks
- *   POST   /api/webhooks                          — register a new webhook
- *   GET    /api/webhooks/:id                      — get webhook details
- *   PUT    /api/webhooks/:id                      — update webhook
- *   DELETE /api/webhooks/:id                      — delete webhook
- *   GET    /api/webhooks/:id/deliveries           — list delivery attempts
- *   POST   /api/webhooks/:id/test                 — send a test event
- *   POST   /api/webhooks/:id/deliveries/:did/retry — retry a failed delivery
+ * Provides reliable webhook delivery with retry logic, delivery tracking, and
+ * per-tenant webhook endpoint management.
+ *
+ * Routes
+ * ------
+ * POST   /api/webhook-delivery/endpoints          — register a webhook endpoint
+ * GET    /api/webhook-delivery/endpoints          — list endpoints for tenant
+ * DELETE /api/webhook-delivery/endpoints/:id      — remove an endpoint
+ * POST   /api/webhook-delivery/trigger            — enqueue a webhook delivery
+ * GET    /api/webhook-delivery/deliveries         — list recent deliveries
+ * POST   /api/webhook-delivery/deliveries/:id/retry — manually retry a failed delivery
+ *
+ * Retry schedule (exponential backoff):
+ *   Attempt 1 → immediate
+ *   Attempt 2 → 30 s
+ *   Attempt 3 → 5 min
+ * After 3 failures the delivery is marked "failed" and no further retries occur.
  */
+
 import express from 'express';
 import { randomUUID } from 'crypto';
-import { createHmac } from 'crypto';
+import crypto from 'crypto';
 import { getAdapter } from '../db/factory.js';
 import { authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
-router.use(authenticateToken);
 
-const COLLECTION = 'webhooks';
-const DELIVERY_COLLECTION = 'webhook_deliveries';
-const MAX_RETRIES = 5;
-const RETRY_DELAYS_MS = [1000, 5000, 30000, 300000, 1800000]; // 1s, 5s, 30s, 5m, 30m
+const ENDPOINTS_COLLECTION  = 'webhook_endpoints';
+const DELIVERIES_COLLECTION = 'webhook_deliveries';
 
-// ── GET /api/webhooks ─────────────────────────────────────────────────────────
-router.get('/', async (req, res) => {
+const RETRY_DELAYS_MS = [0, 30_000, 300_000]; // attempt 1, 2, 3
+const MAX_ATTEMPTS    = 3;
+const TIMEOUT_MS      = 10_000;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Sign the payload body with HMAC-SHA256 using the endpoint's signing secret.
+ * Returns the hex digest as the X-GuardianFlow-Signature header value.
+ */
+function signPayload(secret, body) {
+  return crypto.createHmac('sha256', secret).update(body, 'utf8').digest('hex');
+}
+
+/**
+ * Attempt to deliver a webhook payload to a single endpoint URL.
+ * Returns { success, statusCode, responseBody, durationMs }.
+ */
+async function attemptDelivery(url, secret, eventType, payload) {
+  const body = JSON.stringify(payload);
+  const signature = signPayload(secret, body);
+  const start = Date.now();
+
   try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const items = await db.find(COLLECTION, { tenant_id: tenantId }, { sort: { created_at: -1 } });
-    res.json({ webhooks: items });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-GuardianFlow-Event':     eventType,
+        'X-GuardianFlow-Signature': signature,
+        'X-GuardianFlow-Timestamp': String(Math.floor(Date.now() / 1000)),
+      },
+      body,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    const responseBody = await response.text().catch(() => '');
+    return {
+      success: response.ok,
+      statusCode: response.status,
+      responseBody: responseBody.slice(0, 500),
+      durationMs: Date.now() - start,
+    };
   } catch (err) {
-    logger.error('webhook-delivery: list', { error: err.message });
-    res.status(500).json({ error: 'Failed to list webhooks' });
+    return {
+      success: false,
+      statusCode: null,
+      responseBody: err.message,
+      durationMs: Date.now() - start,
+    };
   }
-});
+}
 
-// ── POST /api/webhooks ────────────────────────────────────────────────────────
-router.post('/', async (req, res) => {
+/**
+ * Execute the delivery attempt, update the delivery record, and schedule a
+ * retry if needed.  Runs asynchronously — caller does not await this.
+ */
+async function executeDelivery(deliveryId) {
+  const adapter = await getAdapter();
+  const delivery = await adapter.findOne(DELIVERIES_COLLECTION, { id: deliveryId });
+
+  if (!delivery) {
+    logger.warn('[webhook-delivery] delivery record not found', { deliveryId });
+    return;
+  }
+
+  const endpoint = await adapter.findOne(ENDPOINTS_COLLECTION, { id: delivery.endpoint_id });
+  if (!endpoint || !endpoint.active) {
+    await adapter.updateOne(DELIVERIES_COLLECTION, { id: deliveryId }, {
+      status: 'cancelled',
+      updated_at: new Date(),
+    });
+    return;
+  }
+
+  const attemptNumber = (delivery.attempt_count || 0) + 1;
+  logger.info('[webhook-delivery] attempting delivery', { deliveryId, attemptNumber, url: endpoint.url });
+
+  const result = await attemptDelivery(
+    endpoint.url,
+    endpoint.signing_secret,
+    delivery.event_type,
+    delivery.payload,
+  );
+
+  const updates = {
+    attempt_count: attemptNumber,
+    last_attempt_at: new Date(),
+    last_status_code: result.statusCode,
+    last_response_body: result.responseBody,
+    last_duration_ms: result.durationMs,
+    updated_at: new Date(),
+  };
+
+  if (result.success) {
+    updates.status = 'delivered';
+    updates.delivered_at = new Date();
+    logger.info('[webhook-delivery] delivered', { deliveryId, statusCode: result.statusCode });
+  } else if (attemptNumber >= MAX_ATTEMPTS) {
+    updates.status = 'failed';
+    logger.warn('[webhook-delivery] permanently failed', { deliveryId, attemptNumber });
+  } else {
+    updates.status = 'pending';
+    const delayMs = RETRY_DELAYS_MS[attemptNumber] || RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+    updates.next_attempt_at = new Date(Date.now() + delayMs);
+    logger.info('[webhook-delivery] scheduled retry', { deliveryId, delayMs, attemptNumber });
+    setTimeout(() => executeDelivery(deliveryId), delayMs);
+  }
+
+  await adapter.updateOne(DELIVERIES_COLLECTION, { id: deliveryId }, updates);
+}
+
+// ── POST /api/webhook-delivery/endpoints ─────────────────────────────────────
+
+router.post('/endpoints', authenticateToken, async (req, res) => {
   try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const { url, events, secret, description } = req.body;
-    if (!url || !events?.length) {
-      return res.status(400).json({ error: 'url and events are required' });
-    }
-    try { new URL(url); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
+    const { url, event_types, description } = req.body;
+    const tenantId = req.user.tenantId;
 
-    const webhook = {
+    if (!url || !event_types || !Array.isArray(event_types) || event_types.length === 0) {
+      return res.status(400).json({ error: 'url and event_types[] are required' });
+    }
+
+    try { new URL(url); } catch {
+      return res.status(400).json({ error: 'url must be a valid URL' });
+    }
+
+    const adapter = await getAdapter();
+    const endpoint = {
       id: randomUUID(),
       tenant_id: tenantId,
       url,
-      events: Array.isArray(events) ? events : [events],
-      secret: secret || randomUUID().replace(/-/g, ''),
+      event_types,
       description: description || '',
+      signing_secret: crypto.randomBytes(32).toString('hex'),
       active: true,
-      created_by: req.user?.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: new Date(),
+      updated_at: new Date(),
     };
-    await db.insert(COLLECTION, webhook);
-    res.status(201).json({ webhook });
+
+    await adapter.insertOne(ENDPOINTS_COLLECTION, endpoint);
+
+    // Return endpoint without exposing the raw signing secret in full
+    res.status(201).json({
+      data: { ...endpoint, signing_secret: `${endpoint.signing_secret.slice(0, 8)}…` },
+    });
   } catch (err) {
-    logger.error('webhook-delivery: create', { error: err.message });
-    res.status(500).json({ error: 'Failed to create webhook' });
+    logger.error('[webhook-delivery] create endpoint error', { err: err.message });
+    res.status(500).json({ error: 'Failed to create webhook endpoint' });
   }
 });
 
-// ── GET /api/webhooks/:id ─────────────────────────────────────────────────────
-router.get('/:id', async (req, res) => {
+// ── GET /api/webhook-delivery/endpoints ──────────────────────────────────────
+
+router.get('/endpoints', authenticateToken, async (req, res) => {
   try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const items = await db.find(COLLECTION, { id: req.params.id, tenant_id: tenantId });
-    if (!items.length) return res.status(404).json({ error: 'Webhook not found' });
-    res.json({ webhook: items[0] });
+    const adapter = await getAdapter();
+    const endpoints = await adapter.findMany(ENDPOINTS_COLLECTION, {
+      tenant_id: req.user.tenantId,
+    });
+    // Strip secrets from list view
+    const sanitised = (endpoints || []).map(ep => ({ ...ep, signing_secret: undefined }));
+    res.json({ data: sanitised });
   } catch (err) {
-    logger.error('webhook-delivery: get', { error: err.message });
-    res.status(500).json({ error: 'Failed to get webhook' });
+    logger.error('[webhook-delivery] list endpoints error', { err: err.message });
+    res.status(500).json({ error: 'Failed to list endpoints' });
   }
 });
 
-// ── PUT /api/webhooks/:id ─────────────────────────────────────────────────────
-router.put('/:id', async (req, res) => {
+// ── DELETE /api/webhook-delivery/endpoints/:id ───────────────────────────────
+
+router.delete('/endpoints/:id', authenticateToken, async (req, res) => {
   try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const { url, events, description, active } = req.body;
-    const updates = { updated_at: new Date().toISOString() };
-    if (url !== undefined) {
-      try { new URL(url); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
-      updates.url = url;
+    const adapter = await getAdapter();
+    const endpoint = await adapter.findOne(ENDPOINTS_COLLECTION, {
+      id: req.params.id, tenant_id: req.user.tenantId,
+    });
+    if (!endpoint) return res.status(404).json({ error: 'Endpoint not found' });
+
+    await adapter.updateOne(ENDPOINTS_COLLECTION, { id: req.params.id }, {
+      active: false, updated_at: new Date(),
+    });
+    res.json({ message: 'Endpoint deactivated' });
+  } catch (err) {
+    logger.error('[webhook-delivery] delete endpoint error', { err: err.message });
+    res.status(500).json({ error: 'Failed to delete endpoint' });
+  }
+});
+
+// ── POST /api/webhook-delivery/trigger ───────────────────────────────────────
+
+router.post('/trigger', authenticateToken, async (req, res) => {
+  try {
+    const { event_type, payload } = req.body;
+    const tenantId = req.user.tenantId;
+
+    if (!event_type || !payload) {
+      return res.status(400).json({ error: 'event_type and payload are required' });
     }
-    if (events !== undefined) updates.events = Array.isArray(events) ? events : [events];
-    if (description !== undefined) updates.description = description;
-    if (active !== undefined) updates.active = Boolean(active);
-    await db.update(COLLECTION, { id: req.params.id, tenant_id: tenantId }, { $set: updates });
-    const items = await db.find(COLLECTION, { id: req.params.id, tenant_id: tenantId });
-    res.json({ webhook: items[0] });
+
+    const adapter = await getAdapter();
+
+    // Find all active endpoints subscribed to this event type
+    const endpoints = await adapter.findMany(ENDPOINTS_COLLECTION, {
+      tenant_id: tenantId,
+      active: true,
+    });
+
+    const subscribed = (endpoints || []).filter(ep =>
+      Array.isArray(ep.event_types) &&
+      (ep.event_types.includes(event_type) || ep.event_types.includes('*'))
+    );
+
+    if (subscribed.length === 0) {
+      return res.json({ message: 'No subscribed endpoints', deliveries: [] });
+    }
+
+    const deliveries = await Promise.all(subscribed.map(async ep => {
+      const delivery = {
+        id: randomUUID(),
+        tenant_id: tenantId,
+        endpoint_id: ep.id,
+        event_type,
+        payload,
+        status: 'pending',
+        attempt_count: 0,
+        created_at: new Date(),
+        updated_at: new Date(),
+        next_attempt_at: new Date(),
+      };
+      await adapter.insertOne(DELIVERIES_COLLECTION, delivery);
+      // Fire and forget — first attempt is immediate
+      setImmediate(() => executeDelivery(delivery.id));
+      return { deliveryId: delivery.id, endpointId: ep.id, url: ep.url };
+    }));
+
+    res.json({ message: 'Webhook deliveries enqueued', deliveries });
   } catch (err) {
-    logger.error('webhook-delivery: update', { error: err.message });
-    res.status(500).json({ error: 'Failed to update webhook' });
+    logger.error('[webhook-delivery] trigger error', { err: err.message });
+    res.status(500).json({ error: 'Failed to trigger webhooks' });
   }
 });
 
-// ── DELETE /api/webhooks/:id ──────────────────────────────────────────────────
-router.delete('/:id', async (req, res) => {
-  try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    await db.delete(COLLECTION, { id: req.params.id, tenant_id: tenantId });
-    res.json({ deleted: true });
-  } catch (err) {
-    logger.error('webhook-delivery: delete', { error: err.message });
-    res.status(500).json({ error: 'Failed to delete webhook' });
-  }
-});
+// ── GET /api/webhook-delivery/deliveries ─────────────────────────────────────
 
-// ── GET /api/webhooks/:id/deliveries ──────────────────────────────────────────
-router.get('/:id/deliveries', async (req, res) => {
+router.get('/deliveries', authenticateToken, async (req, res) => {
   try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const webhooks = await db.find(COLLECTION, { id: req.params.id, tenant_id: tenantId });
-    if (!webhooks.length) return res.status(404).json({ error: 'Webhook not found' });
-    const deliveries = await db.find(DELIVERY_COLLECTION, { webhook_id: req.params.id }, { sort: { created_at: -1 }, limit: 100 });
-    res.json({ deliveries });
+    const { status, limit = '50' } = req.query;
+    const adapter = await getAdapter();
+    const filter = { tenant_id: req.user.tenantId };
+    if (status) filter.status = status;
+
+    const deliveries = await adapter.findMany(DELIVERIES_COLLECTION, filter, {
+      sort: { created_at: -1 },
+      limit: Math.min(parseInt(limit, 10) || 50, 200),
+    });
+    res.json({ data: deliveries || [] });
   } catch (err) {
-    logger.error('webhook-delivery: list deliveries', { error: err.message });
+    logger.error('[webhook-delivery] list deliveries error', { err: err.message });
     res.status(500).json({ error: 'Failed to list deliveries' });
   }
 });
 
-// ── POST /api/webhooks/:id/test ───────────────────────────────────────────────
-router.post('/:id/test', async (req, res) => {
+// ── POST /api/webhook-delivery/deliveries/:id/retry ──────────────────────────
+
+router.post('/deliveries/:id/retry', authenticateToken, async (req, res) => {
   try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const webhooks = await db.find(COLLECTION, { id: req.params.id, tenant_id: tenantId });
-    if (!webhooks.length) return res.status(404).json({ error: 'Webhook not found' });
-    const webhook = webhooks[0];
+    const adapter = await getAdapter();
+    const delivery = await adapter.findOne(DELIVERIES_COLLECTION, {
+      id: req.params.id, tenant_id: req.user.tenantId,
+    });
+    if (!delivery) return res.status(404).json({ error: 'Delivery not found' });
+    if (delivery.status === 'delivered') {
+      return res.status(400).json({ error: 'Delivery already succeeded' });
+    }
 
-    const payload = { event: 'ping', timestamp: new Date().toISOString(), webhook_id: webhook.id };
-    const result = await deliverWebhook(webhook, payload);
-    res.json({ delivery: result });
+    // Reset attempt count so the full 3-retry cycle runs again
+    await adapter.updateOne(DELIVERIES_COLLECTION, { id: delivery.id }, {
+      status: 'pending',
+      attempt_count: 0,
+      updated_at: new Date(),
+      next_attempt_at: new Date(),
+    });
+
+    setImmediate(() => executeDelivery(delivery.id));
+    res.json({ message: 'Retry enqueued', deliveryId: delivery.id });
   } catch (err) {
-    logger.error('webhook-delivery: test', { error: err.message });
-    res.status(500).json({ error: 'Failed to send test event' });
-  }
-});
-
-// ── POST /api/webhooks/:id/deliveries/:did/retry ──────────────────────────────
-router.post('/:id/deliveries/:did/retry', async (req, res) => {
-  try {
-    const db = await getAdapter();
-    const tenantId = req.user?.tenant_id;
-    const webhooks = await db.find(COLLECTION, { id: req.params.id, tenant_id: tenantId });
-    if (!webhooks.length) return res.status(404).json({ error: 'Webhook not found' });
-    const deliveries = await db.find(DELIVERY_COLLECTION, { id: req.params.did, webhook_id: req.params.id });
-    if (!deliveries.length) return res.status(404).json({ error: 'Delivery not found' });
-
-    const delivery = deliveries[0];
-    const result = await deliverWebhook(webhooks[0], delivery.payload, delivery.id);
-    res.json({ delivery: result });
-  } catch (err) {
-    logger.error('webhook-delivery: retry', { error: err.message });
+    logger.error('[webhook-delivery] retry error', { err: err.message });
     res.status(500).json({ error: 'Failed to retry delivery' });
   }
 });
 
-// ── Internal: deliver a webhook with retry tracking ───────────────────────────
-async function deliverWebhook(webhook, payload, existingDeliveryId = null) {
-  const db = await getAdapter();
-  const deliveryId = existingDeliveryId || randomUUID();
-  const body = JSON.stringify(payload);
-  const signature = createHmac('sha256', webhook.secret).update(body).digest('hex');
-
-  let statusCode = null;
-  let responseBody = null;
-  let success = false;
-  let attempt = 0;
-
-  for (let i = 0; i < MAX_RETRIES; i++) {
-    attempt = i + 1;
-    if (i > 0) {
-      await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[i - 1] || 1000));
-    }
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 10000);
-      const resp = await fetch(webhook.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Guardian-Signature': `sha256=${signature}`,
-          'X-Guardian-Event': payload.event || 'unknown',
-          'X-Guardian-Delivery': deliveryId,
-        },
-        body,
-        signal: ctrl.signal,
-      });
-      clearTimeout(timer);
-      statusCode = resp.status;
-      responseBody = await resp.text().catch(() => '');
-      if (resp.ok) { success = true; break; }
-    } catch (err) {
-      responseBody = err.message;
-    }
-  }
-
-  const record = {
-    id: deliveryId,
-    webhook_id: webhook.id,
-    event: payload.event || 'unknown',
-    payload,
-    status: success ? 'success' : 'failed',
-    status_code: statusCode,
-    response_body: responseBody?.slice(0, 500),
-    attempts: attempt,
-    created_at: new Date().toISOString(),
-  };
-
-  if (existingDeliveryId) {
-    await db.update(DELIVERY_COLLECTION, { id: deliveryId }, { $set: { ...record, updated_at: new Date().toISOString() } });
-  } else {
-    await db.insert(DELIVERY_COLLECTION, record);
-  }
-  return record;
-}
-
-export { deliverWebhook };
 export default router;

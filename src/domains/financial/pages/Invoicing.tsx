@@ -4,7 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Search, Download, DollarSign, Clock, CheckCircle2, AlertCircle, Plus, FileCode, Copy } from 'lucide-react';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { useCurrency } from '@/domains/shared/hooks/useCurrency';
@@ -13,6 +20,120 @@ import { ComprehensiveInvoiceDetailDialog } from '@/domains/financial/components
 import { InvoiceFormDialog } from '@/domains/financial/components/InvoiceFormDialog';
 import { useActionPermissions } from '@/domains/auth/hooks/useActionPermissions';
 import jsPDF from 'jspdf';
+
+const COUNTRY_CODES = ['GB', 'DE', 'FR', 'US', 'MX', 'IT', 'Other'] as const;
+type CountryCode = typeof COUNTRY_CODES[number];
+
+interface EInvoiceResult {
+  xml: string;
+  countryCode: string;
+  invoiceId: string;
+  status?: string;
+}
+
+function EInvoiceDialog({
+  invoiceId,
+  open,
+  onOpenChange,
+}: {
+  invoiceId: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const [country, setCountry]   = useState<CountryCode>('GB');
+  const [loading, setLoading]   = useState(false);
+  const [result, setResult]     = useState<EInvoiceResult | null>(null);
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/finance/invoices/${invoiceId}/e-invoice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('auth_token') ?? ''}`,
+        },
+        body: JSON.stringify({ countryCode: country }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed to generate e-Invoice');
+      setResult(data);
+      toast({ title: 'e-Invoice generated', description: `Format: ${country}` });
+    } catch (err: unknown) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!result?.xml) return;
+    const blob = new Blob([result.xml], { type: 'application/xml' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `einvoice-${invoiceId}-${country}.xml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopy = () => {
+    if (!result?.xml) return;
+    navigator.clipboard.writeText(result.xml);
+    toast({ title: 'Copied to clipboard' });
+  };
+
+  const handleClose = () => {
+    setResult(null);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader><DialogTitle>Generate e-Invoice</DialogTitle></DialogHeader>
+
+        {!result ? (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Country / Format</Label>
+              <Select value={country} onValueChange={v => setCountry(v as CountryCode)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {COUNTRY_CODES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge variant="default">Generated — {result.countryCode}</Badge>
+            </div>
+            <pre className="bg-muted text-xs rounded p-3 max-h-64 overflow-auto whitespace-pre-wrap break-all">
+              {result.xml}
+            </pre>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>Close</Button>
+          {!result ? (
+            <Button onClick={handleGenerate} disabled={loading}>
+              {loading ? 'Generating…' : 'Generate'}
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={handleCopy}><Copy className="h-4 w-4 mr-1" />Copy</Button>
+              <Button onClick={handleDownload}><Download className="h-4 w-4 mr-1" />Download XML</Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Invoicing() {
   const { toast } = useToast();
@@ -45,6 +166,7 @@ export default function Invoicing() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [invoiceFormOpen, setInvoiceFormOpen] = useState(false);
+  const [eInvoiceId, setEInvoiceId] = useState<string | null>(null);
   const invoicePerms = useActionPermissions('invoices');
   const isViewOnly = !invoicePerms.create && !invoicePerms.edit && !invoicePerms.execute;
 
@@ -367,6 +489,17 @@ export default function Invoicing() {
                         Download
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEInvoiceId(invoice.id);
+                      }}
+                    >
+                      <FileCode className="h-4 w-4 mr-1" />
+                      e-Invoice
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -423,6 +556,14 @@ export default function Invoicing() {
           fetchInvoices();
         }}
       />
+
+      {eInvoiceId && (
+        <EInvoiceDialog
+          invoiceId={eInvoiceId}
+          open={!!eInvoiceId}
+          onOpenChange={open => { if (!open) setEInvoiceId(null); }}
+        />
+      )}
     </div>
   );
 }

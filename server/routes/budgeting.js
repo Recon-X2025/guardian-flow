@@ -1,105 +1,120 @@
-/**
- * Budgeting Routes
- * GET/POST   /api/budgeting/budgets
- * PUT/DELETE /api/budgeting/budgets/:id
- * GET/POST   /api/budgeting/budgets/:id/lines
- */
-
 import express from 'express';
 import { randomUUID } from 'crypto';
 import { getAdapter } from '../db/factory.js';
+import { authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-router.get('/budgets', async (req, res) => {
+async function resolveTenantId(userId) {
+  const adapter = await getAdapter();
+  const profile = await adapter.findOne('profiles', { id: userId });
+  return profile?.tenant_id ?? userId;
+}
+
+router.get('/', authenticateToken, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req.user.id);
     const adapter = await getAdapter();
-    const budgets = await adapter.findMany('budgets', { tenant_id: req.user.tenantId });
-    res.json({ budgets, total: budgets.length });
+    const budgets = await adapter.findMany('budget_plans', { tenant_id: tenantId }, { limit: 50 });
+    res.json({ budgets });
   } catch (err) {
-    logger.error('Budgeting: list budgets error', { error: err.message });
-    res.status(500).json({ error: 'Failed to list budgets' });
+    logger.error('Budgets list error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.post('/budgets', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { name, period_start, period_end, status, version } = req.body;
-    if (!name) return res.status(400).json({ error: 'name is required' });
+    const tenantId = await resolveTenantId(req.user.id);
+    const { name, fiscal_year, dimensions, line_items } = req.body;
+    if (!name || !fiscal_year) {
+      return res.status(400).json({ error: 'name and fiscal_year are required' });
+    }
     const adapter = await getAdapter();
     const budget = {
-      id: randomUUID(), tenant_id: req.user.tenantId, name,
-      period_start: period_start || null, period_end: period_end || null,
-      status: status || 'draft', version: version || 1,
-      created_by: req.user.userId, created_at: new Date(),
+      id: randomUUID(),
+      tenant_id: tenantId,
+      name,
+      fiscal_year,
+      dimensions: dimensions || [],
+      line_items: line_items || [],
+      total_budget: (line_items || []).reduce((s, i) => s + (i.amount || 0), 0),
+      status: 'draft',
+      created_at: new Date().toISOString(),
     };
-    await adapter.insertOne('budgets', budget);
+    await adapter.insertOne('budget_plans', budget);
     res.status(201).json({ budget });
   } catch (err) {
-    logger.error('Budgeting: create budget error', { error: err.message });
-    res.status(500).json({ error: 'Failed to create budget' });
+    logger.error('Budget create error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.put('/budgets/:id', async (req, res) => {
+router.get('/summary', authenticateToken, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req.user.id);
     const adapter = await getAdapter();
-    const budget = await adapter.findOne('budgets', { id: req.params.id, tenant_id: req.user.tenantId });
+    const budgets = await adapter.findMany('budget_plans', { tenant_id: tenantId }, { limit: 100 });
+    const totalBudget = budgets.reduce((s, b) => s + (b.total_budget || 0), 0);
+    res.json({ total_budgets: budgets.length, total_budget: totalBudget, budgets });
+  } catch (err) {
+    logger.error('Budget summary error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const adapter = await getAdapter();
+    const budget = await adapter.findOne('budget_plans', { id: req.params.id, tenant_id: tenantId });
     if (!budget) return res.status(404).json({ error: 'Budget not found' });
-    const allowed = ['name', 'period_start', 'period_end', 'status', 'version'];
-    const updates = {};
-    for (const key of allowed) { if (key in req.body) updates[key] = req.body[key]; }
-    await adapter.updateOne('budgets', { id: req.params.id, tenant_id: req.user.tenantId }, updates);
+    res.json({ budget });
+  } catch (err) {
+    logger.error('Budget get error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = await resolveTenantId(req.user.id);
+    const adapter = await getAdapter();
+    const budget = await adapter.findOne('budget_plans', { id: req.params.id, tenant_id: tenantId });
+    if (!budget) return res.status(404).json({ error: 'Budget not found' });
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    delete updates.id; delete updates.tenant_id;
+    await adapter.updateOne('budget_plans', { id: req.params.id }, updates);
     res.json({ budget: { ...budget, ...updates } });
   } catch (err) {
-    logger.error('Budgeting: update budget error', { error: err.message });
-    res.status(500).json({ error: 'Failed to update budget' });
+    logger.error('Budget update error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.delete('/budgets/:id', async (req, res) => {
+router.get('/:id/variance', authenticateToken, async (req, res) => {
   try {
+    const tenantId = await resolveTenantId(req.user.id);
     const adapter = await getAdapter();
-    const budget = await adapter.findOne('budgets', { id: req.params.id, tenant_id: req.user.tenantId });
+    const budget = await adapter.findOne('budget_plans', { id: req.params.id, tenant_id: tenantId });
     if (!budget) return res.status(404).json({ error: 'Budget not found' });
-    await adapter.deleteOne('budgets', { id: req.params.id, tenant_id: req.user.tenantId });
-    res.json({ deleted: true });
+    const actuals = await adapter.findMany('budget_actuals', { tenant_id: tenantId, budget_id: req.params.id }, { limit: 200 });
+    const variance = (budget.line_items || []).map(item => {
+      const actual = actuals.find(a => a.account === item.account);
+      const actualAmt = actual?.amount || 0;
+      return {
+        account: item.account,
+        budget: item.amount,
+        actual: actualAmt,
+        variance: actualAmt - item.amount,
+        variance_pct: item.amount ? Math.round(((actualAmt - item.amount) / item.amount) * 10000) / 100 : null,
+      };
+    });
+    res.json({ variance });
   } catch (err) {
-    logger.error('Budgeting: delete budget error', { error: err.message });
-    res.status(500).json({ error: 'Failed to delete budget' });
-  }
-});
-
-router.get('/budgets/:id/lines', async (req, res) => {
-  try {
-    const adapter = await getAdapter();
-    const lines = await adapter.findMany('budget_lines', { budget_id: req.params.id, tenant_id: req.user.tenantId });
-    res.json({ lines, total: lines.length });
-  } catch (err) {
-    logger.error('Budgeting: list budget lines error', { error: err.message });
-    res.status(500).json({ error: 'Failed to list budget lines' });
-  }
-});
-
-router.post('/budgets/:id/lines', async (req, res) => {
-  try {
-    const { account_code, description, amount, actual_amount } = req.body;
-    if (!account_code || amount === undefined) return res.status(400).json({ error: 'account_code and amount are required' });
-    const adapter = await getAdapter();
-    const budget = await adapter.findOne('budgets', { id: req.params.id, tenant_id: req.user.tenantId });
-    if (!budget) return res.status(404).json({ error: 'Budget not found' });
-    const actual = actual_amount || 0;
-    const line = {
-      id: randomUUID(), budget_id: req.params.id, tenant_id: req.user.tenantId,
-      account_code, description: description || null, amount,
-      actual_amount: actual, variance: amount - actual, created_at: new Date(),
-    };
-    await adapter.insertOne('budget_lines', line);
-    res.status(201).json({ line });
-  } catch (err) {
-    logger.error('Budgeting: create budget line error', { error: err.message });
-    res.status(500).json({ error: 'Failed to create budget line' });
+    logger.error('Budget variance error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

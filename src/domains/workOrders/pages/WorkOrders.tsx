@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen, Edit } from 'lucide-react';
+import { Search, Plus, CheckCircle2, Clock, AlertCircle, Shield, Package, FileText, Sparkles, BookOpen, Edit, Mail, CalendarRange } from 'lucide-react';
 import { apiClient } from '@/integrations/api/client';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { useRBAC } from '@/domains/auth/contexts/RBACContext';
@@ -22,6 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 export default function WorkOrders() {
   const { toast } = useToast();
@@ -62,6 +64,7 @@ interface WorkOrder {
   ticket_id?: string;
   technician_id?: string;
   tenant_id?: string;
+  multi_day?: boolean;
   ticket?: Ticket | null;
   technician?: { full_name: string } | null;
   sapos_offers?: SaposOffer[];
@@ -76,6 +79,18 @@ interface WorkOrder {
   const [saposDialogOpen, setSaposDialogOpen] = useState(false);
   const [kbDialogOpen, setKbDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Email Import state
+  const [emailImportOpen, setEmailImportOpen] = useState(false);
+  const [emailForm, setEmailForm] = useState({ subject: '', body: '', senderEmail: '' });
+  const [emailParsing, setEmailParsing] = useState(false);
+  const [emailExtracted, setEmailExtracted] = useState<{
+    title: string; description: string; priority: string;
+    customerRef: string | null; siteAddress: string | null;
+    requiredSkills: string[];
+  } | null>(null);
+  const [emailConfidence, setEmailConfidence] = useState<number | null>(null);
+  const [emailWoId, setEmailWoId] = useState<string | null>(null);
   
   // Pagination & Filters
   const [currentPage, setCurrentPage] = useState(1);
@@ -258,7 +273,39 @@ interface WorkOrder {
   
   const handleStatusFilter = (status: string | null) => {
     setStatusFilter(status);
-    setCurrentPage(1); // Reset to first page when filter changes
+    setCurrentPage(1);
+  };
+
+  const handleEmailParseAndImport = async () => {
+    setEmailParsing(true);
+    setEmailExtracted(null);
+    setEmailWoId(null);
+    try {
+      const res = await fetch('/api/work-orders/from-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailForm),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setEmailExtracted(data.extracted);
+      setEmailConfidence(data.confidence);
+      setEmailWoId(data.workOrderId);
+    } catch (err) {
+      toast({ title: 'Parse error', description: String(err), variant: 'destructive' });
+    } finally {
+      setEmailParsing(false);
+    }
+  };
+
+  const handleEmailConfirm = () => {
+    toast({ title: 'Work order created', description: `WO imported from email${emailWoId ? ` (${emailWoId.slice(0, 8)})` : ''}.` });
+    setEmailImportOpen(false);
+    setEmailForm({ subject: '', body: '', senderEmail: '' });
+    setEmailExtracted(null);
+    setEmailConfidence(null);
+    setEmailWoId(null);
+    fetchWorkOrders();
   };
 
   return (
@@ -272,6 +319,10 @@ interface WorkOrder {
         </div>
         <div className="flex gap-2">
           <CreateDemoDataButton onSuccess={fetchWorkOrders} />
+          <Button variant="outline" onClick={() => setEmailImportOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" />
+            Import from Email
+          </Button>
           <Button onClick={() => navigate('/tickets')}>
             <Plus className="mr-2 h-4 w-4" />
             Create Work Order
@@ -413,6 +464,11 @@ interface WorkOrder {
                       {wo.repair_type && (
                         <Badge variant={wo.repair_type === 'in_warranty' ? 'default' : 'secondary'} className="text-xs">
                           {wo.repair_type === 'in_warranty' ? 'Cost-Free' : 'At-Cost'}
+                        </Badge>
+                      )}
+                      {wo.multi_day && (
+                        <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          <CalendarRange className="h-3 w-3 mr-1" />Multi-day
                         </Badge>
                       )}
                     </div>
@@ -683,6 +739,107 @@ interface WorkOrder {
           onSuccess={fetchWorkOrders}
         />
       )}
+
+      {/* Email Import Modal */}
+      <Dialog open={emailImportOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEmailExtracted(null);
+          setEmailConfidence(null);
+          setEmailWoId(null);
+        }
+        setEmailImportOpen(open);
+      }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />Import Work Order from Email
+            </DialogTitle>
+            <DialogDescription>
+              Paste the email content and AI will extract work order details.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!emailExtracted ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Subject</Label>
+                <Input
+                  value={emailForm.subject}
+                  onChange={e => setEmailForm(f => ({ ...f, subject: e.target.value }))}
+                  placeholder="Urgent HVAC failure at site B"
+                />
+              </div>
+              <div>
+                <Label>Sender Email</Label>
+                <Input
+                  type="email"
+                  value={emailForm.senderEmail}
+                  onChange={e => setEmailForm(f => ({ ...f, senderEmail: e.target.value }))}
+                  placeholder="customer@example.com"
+                />
+              </div>
+              <div>
+                <Label>Email Body</Label>
+                <Textarea
+                  rows={6}
+                  value={emailForm.body}
+                  onChange={e => setEmailForm(f => ({ ...f, body: e.target.value }))}
+                  placeholder="Paste the email body here..."
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEmailImportOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={handleEmailParseAndImport}
+                  disabled={emailParsing || (!emailForm.subject && !emailForm.body)}
+                >
+                  {emailParsing ? 'Parsing…' : 'Parse & Import'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Badge variant={emailConfidence !== null && emailConfidence >= 0.6 ? 'default' : 'destructive'}>
+                  Confidence: {emailConfidence !== null ? `${Math.round(emailConfidence * 100)}%` : 'N/A'}
+                </Badge>
+                {emailConfidence !== null && emailConfidence < 0.6 && (
+                  <span className="text-xs text-orange-600">Will be created as Pending Review</span>
+                )}
+              </div>
+              <div className="rounded-md border p-4 space-y-2 text-sm">
+                <div><span className="font-medium">Title: </span>{emailExtracted.title}</div>
+                <div><span className="font-medium">Priority: </span>
+                  <Badge variant="outline" className="ml-1">{emailExtracted.priority}</Badge>
+                </div>
+                {emailExtracted.siteAddress && (
+                  <div><span className="font-medium">Site: </span>{emailExtracted.siteAddress}</div>
+                )}
+                {emailExtracted.customerRef && (
+                  <div><span className="font-medium">Customer Ref: </span>{emailExtracted.customerRef}</div>
+                )}
+                {emailExtracted.requiredSkills.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="font-medium">Skills: </span>
+                    {emailExtracted.requiredSkills.map(s => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                  </div>
+                )}
+                <div className="pt-1 border-t text-muted-foreground text-xs">
+                  {emailExtracted.description.slice(0, 200)}{emailExtracted.description.length > 200 ? '…' : ''}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setEmailExtracted(null); setEmailWoId(null); }}>
+                  Back
+                </Button>
+                <Button onClick={handleEmailConfirm}>
+                  Confirm & Save
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

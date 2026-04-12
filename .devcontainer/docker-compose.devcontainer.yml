@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-dev-data:/data/db
+
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/javascript-node:18
+    volumes:
+      - ../..:/workspaces/guardian-flow:cached
+    command: sleep infinity
+    depends_on:
+      - mongo
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/
+      DB_NAME: guardianflow
+      JWT_SECRET: dev-only-secret-change-in-production
+      NODE_ENV: development
+      PORT: '3001'
+      VITE_API_URL: http://localhost:3001
+      AI_PROVIDER: mock
+
+volumes:
+  mongo-dev-data:

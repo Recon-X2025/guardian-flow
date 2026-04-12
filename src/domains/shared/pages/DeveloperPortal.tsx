@@ -51,6 +51,8 @@ export default function DeveloperPortal() {
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [webhookForm, setWebhookForm] = useState({ url: '', events: '' });
   const [installingExt, setInstallingExt] = useState<string | null>(null);
+  const [sandboxTenantId, setSandboxTenantId] = useState<string | null>(null);
+  const [sandboxApiKey, setSandboxApiKey] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -200,6 +202,10 @@ export default function DeveloperPortal() {
           <TabsTrigger value="webhooks">
             <Webhook className="h-4 w-4 mr-2" />
             Webhooks
+          </TabsTrigger>
+          <TabsTrigger value="sandbox">
+            <Code className="h-4 w-4 mr-2" />
+            Sandbox
           </TabsTrigger>
         </TabsList>
 
@@ -405,6 +411,66 @@ export default function DeveloperPortal() {
                     Add Your First Webhook
                   </Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sandbox" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Developer Sandbox</CardTitle>
+              <CardDescription>Provision an isolated sandbox tenant for testing. Requires sys_admin role.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {sandboxTenantId ? (
+                <div className="space-y-3">
+                  <div className="bg-muted p-4 rounded font-mono text-sm space-y-2">
+                    <div><span className="text-muted-foreground">Tenant ID: </span>{sandboxTenantId}</div>
+                    {sandboxApiKey && <div><span className="text-muted-foreground">API Key: </span>{sandboxApiKey}</div>}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/admin/sandbox/${sandboxTenantId}/reset`, { method: 'POST' });
+                        if (!res.ok) throw new Error('Reset failed');
+                        toast({ title: 'Sandbox reset', description: 'Data re-seeded.' });
+                      } catch (e: unknown) {
+                        toast({ title: 'Error', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                      }
+                    }}>
+                      Reset Sandbox
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/admin/sandbox/${sandboxTenantId}`, { method: 'DELETE' });
+                        if (!res.ok) throw new Error('Deprovision failed');
+                        setSandboxTenantId(null);
+                        setSandboxApiKey(null);
+                        toast({ title: 'Sandbox deprovisioned' });
+                      } catch (e: unknown) {
+                        toast({ title: 'Error', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                      }
+                    }}>
+                      Deprovision
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/sandbox/provision', { method: 'POST' });
+                    if (!res.ok) throw new Error('Provision failed');
+                    const data = await res.json();
+                    setSandboxTenantId(data.tenantId);
+                    setSandboxApiKey(data.apiKey);
+                    toast({ title: 'Sandbox provisioned', description: `Tenant: ${data.tenantId}` });
+                  } catch (e: unknown) {
+                    toast({ title: 'Error', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                  }
+                }}>
+                  Provision Sandbox
+                </Button>
               )}
             </CardContent>
           </Card>

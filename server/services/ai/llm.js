@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { insertOne } from '../../db/query.js';
+import { wrapLLMCall } from '../../middleware/llm-monitor.js';
 
 let openaiClient = null;
 
@@ -115,63 +116,75 @@ function generateMockStreamTokens(messages) {
 }
 
 export async function chatCompletion(messages, opts = {}) {
-  const start = Date.now();
-  const provider = getProvider();
-  let result;
+  const tenantId = opts.tenant_id || 'system';
+  const endpoint = opts.feature || 'chat_completion';
 
-  try {
-    if (provider === 'openai' && process.env.OPENAI_API_KEY) {
-      const client = await getOpenAIClient();
-      const model = opts.model || process.env.OPENAI_MODEL || 'gpt-4o';
-      const response = await client.chat.completions.create({
-        model,
-        messages,
-        temperature: opts.temperature ?? 0.7,
-        max_tokens: opts.max_tokens || 2000,
-        ...(opts.response_format ? { response_format: opts.response_format } : {}),
-      });
-      result = {
-        content: response.choices[0].message.content,
-        model: response.model,
-        usage: response.usage,
-        provider: 'openai',
-      };
-    } else {
-      // Mock provider
+  async function doCall() {
+    const start = Date.now();
+    const provider = getProvider();
+    let result;
+
+    try {
+      if (provider === 'openai' && process.env.OPENAI_API_KEY) {
+        const client = await getOpenAIClient();
+        const model = opts.model || process.env.OPENAI_MODEL || 'gpt-4o';
+        const response = await client.chat.completions.create({
+          model,
+          messages,
+          temperature: opts.temperature ?? 0.7,
+          max_tokens: opts.max_tokens || 2000,
+          ...(opts.response_format ? { response_format: opts.response_format } : {}),
+        });
+        result = {
+          content: response.choices[0].message.content,
+          model: response.model,
+          usage: response.usage,
+          provider: 'openai',
+        };
+      } else {
+        const content = generateMockResponse(messages, opts);
+        result = {
+          content,
+          model: 'mock-gpt-4o-mini',
+          usage: { prompt_tokens: messages.reduce((s, m) => s + (m.content?.length || 0) / 4, 0), completion_tokens: content.length / 4, total_tokens: 0 },
+          provider: 'mock',
+        };
+        result.usage.total_tokens = result.usage.prompt_tokens + result.usage.completion_tokens;
+      }
+    } catch (error) {
+      console.error('LLM error, falling back to mock:', error.message);
       const content = generateMockResponse(messages, opts);
-      result = {
-        content,
-        model: 'mock-gpt-4o-mini',
-        usage: { prompt_tokens: messages.reduce((s, m) => s + (m.content?.length || 0) / 4, 0), completion_tokens: content.length / 4, total_tokens: 0 },
-        provider: 'mock',
-      };
-      result.usage.total_tokens = result.usage.prompt_tokens + result.usage.completion_tokens;
+      result = { content, model: 'mock-fallback', usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, provider: 'mock-fallback' };
     }
-  } catch (error) {
-    console.error('LLM error, falling back to mock:', error.message);
-    const content = generateMockResponse(messages, opts);
-    result = { content, model: 'mock-fallback', usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, provider: 'mock-fallback' };
+
+    // Log usage
+    const duration = Date.now() - start;
+    try {
+      await insertOne('ai_usage_logs', {
+        id: randomUUID(),
+        provider: result.provider,
+        model: result.model,
+        operation: 'chat_completion',
+        prompt_tokens: Math.round(result.usage.prompt_tokens),
+        completion_tokens: Math.round(result.usage.completion_tokens),
+        total_tokens: Math.round(result.usage.total_tokens),
+        duration_ms: duration,
+        tenant_id: opts.tenant_id || null,
+        feature: opts.feature || 'general',
+        created_at: new Date(),
+      });
+    } catch (e) { /* non-critical */ }
+
+    return result;
   }
 
-  // Log usage
-  const duration = Date.now() - start;
   try {
-    await insertOne('ai_usage_logs', {
-      id: randomUUID(),
-      provider: result.provider,
-      model: result.model,
-      operation: 'chat_completion',
-      prompt_tokens: Math.round(result.usage.prompt_tokens),
-      completion_tokens: Math.round(result.usage.completion_tokens),
-      total_tokens: Math.round(result.usage.total_tokens),
-      duration_ms: duration,
-      tenant_id: opts.tenant_id || null,
-      feature: opts.feature || 'general',
-      created_at: new Date(),
-    });
-  } catch (e) { /* non-critical */ }
-
-  return result;
+    return await wrapLLMCall(tenantId, endpoint, doCall);
+  } catch (e) {
+    if (e.code === 'token_budget_exceeded') throw e;
+    // If monitor fails for other reason, fall back to direct call
+    return doCall();
+  }
 }
 
 export async function* chatCompletionStream(messages, opts = {}) {

@@ -37,6 +37,7 @@ const ALLOWED_TABLES = new Set([
   'marketplace_extensions', 'marketplace_installations',
   'analytics_quality_rules', 'analytics_workspaces',
   'workflow_templates',
+  'supplier_invoices',
 ]);
 
 /** Collections that enforce tenant_id isolation */

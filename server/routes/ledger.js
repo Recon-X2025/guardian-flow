@@ -167,7 +167,7 @@ router.delete('/accounts/:id', async (req, res) => {
 
 router.post('/entries', async (req, res) => {
   try {
-    const { description, period_id, lines, reference } = req.body;
+    const { description, period_id, lines, reference, date } = req.body;
 
     if (!description || !Array.isArray(lines) || lines.length < 2) {
       return res.status(400).json({
@@ -189,7 +189,7 @@ router.post('/entries', async (req, res) => {
     const totalCredits = lines.reduce((sum, l) => sum + (Number(l.credit) || 0), 0);
     if (Math.abs(totalDebits - totalCredits) > 0.001) {
       return res.status(400).json({
-        error: `Journal entry is not balanced: debits (${totalDebits}) ≠ credits (${totalCredits})`,
+        error: `Journal entry is not balanced: debits (${totalDebits}) != credits (${totalCredits})`,
       });
     }
     if (totalDebits === 0) {
@@ -198,25 +198,54 @@ router.post('/entries', async (req, res) => {
 
     const adapter = await getAdapter();
 
+    // Sprint 3: Period-close lock
+    const entryDate = date || new Date().toISOString().slice(0, 10);
+    const [eYear, eMonth] = entryDate.split('-').map(Number);
+    if (eYear && eMonth) {
+      const periodForDate = await adapter.findOne('accounting_periods', {
+        tenant_id: req.user.tenantId, year: eYear, month: eMonth,
+      });
+      if (periodForDate && periodForDate.status === 'closed') {
+        return res.status(422).json({
+          error: `Period ${eYear}-${String(eMonth).padStart(2, '0')} is closed.`,
+          period: periodForDate,
+        });
+      }
+    }
+
     const entry = {
       id: randomUUID(),
       tenant_id: req.user.tenantId,
       description,
       reference: reference ?? null,
       period_id: period_id ?? null,
+      date: entryDate,
       lines: lines.map(l => ({
         id: randomUUID(),
         account_id: l.account_id,
         debit:  Number(l.debit)  || 0,
         credit: Number(l.credit) || 0,
+        description: l.description || '',
       })),
       total_amount: totalDebits,
       status: 'posted',
-      posted_by: req.user.id,
+      posted_by: req.user.id || req.user.userId,
       created_at: new Date().toISOString(),
     };
 
     await adapter.insertOne('journal_entries', entry);
+
+    // Sprint 3: GL audit log
+    await adapter.insertOne('gl_audit_log', {
+      id: randomUUID(),
+      tenant_id: req.user.tenantId,
+      action: 'post',
+      entity: 'journal_entry',
+      entity_id: entry.id,
+      actor_id: req.user.id || req.user.userId,
+      created_at: new Date().toISOString(),
+    });
+
     res.status(201).json({ entry });
   } catch (error) {
     logger.error('Ledger: create entry error', { error: error.message });
@@ -462,6 +491,157 @@ router.get('/cash-flow', async (req, res) => {
   } catch (error) {
     logger.error('Ledger: cash-flow error', { error: error.message });
     res.status(500).json({ error: 'Failed to compute cash flow' });
+// ── Sprint 3: Journal Entry Reversal ─────────────────────────────────────────
+
+/**
+ * POST /api/ledger/entries/:id/reverse
+ * Creates a counter-entry that exactly reverses the original JE.
+ */
+router.post('/entries/:id/reverse', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const tenantId = req.user.tenantId;
+
+    const original = await adapter.findOne('journal_entries', { id: req.params.id, tenant_id: tenantId })
+      || await adapter.findOne('journal_entries', { _id: req.params.id, tenant_id: tenantId });
+    if (!original) return res.status(404).json({ error: 'Journal entry not found' });
+    if (original.reversed_by) return res.status(409).json({ error: 'Entry already reversed', reversedBy: original.reversed_by });
+
+    // Check period is not closed for reversal date
+    const reversalDate = req.body.reversalDate || new Date().toISOString().slice(0, 10);
+    const [rYear, rMonth] = reversalDate.split('-').map(Number);
+    const period = await adapter.findOne('accounting_periods', { tenant_id: tenantId, year: rYear, month: rMonth });
+    if (period?.status === 'closed') {
+      return res.status(422).json({ error: 'Cannot reverse into a closed period', period: `${rYear}-${rMonth}` });
+    }
+
+    const reversalId = randomUUID();
+    const reversal = {
+      id: reversalId,
+      tenant_id: tenantId,
+      reference: `REV-${original.reference || original.id}`,
+      description: req.body.description || `Reversal of ${original.reference || original.id}`,
+      date: reversalDate,
+      currency: original.currency || 'USD',
+      lines: (original.lines || []).map(l => ({
+        account_id: l.account_id,
+        debit: l.credit || 0,
+        credit: l.debit || 0,
+        description: `Reversal: ${l.description || ''}`,
+      })),
+      is_reversal: true,
+      reverses: original.id || original._id,
+      created_by: req.user.id || req.user.userId,
+      created_at: new Date().toISOString(),
+    };
+
+    await adapter.insertOne('journal_entries', reversal);
+
+    // Mark original as reversed
+    await adapter.updateOne('journal_entries', { id: original.id || original._id }, {
+      ...original,
+      reversed_by: reversalId,
+      reversed_at: new Date().toISOString(),
+    });
+
+    // Audit log
+    await adapter.insertOne('gl_audit_log', {
+      id: randomUUID(),
+      tenant_id: tenantId,
+      action: 'reversal',
+      entity: 'journal_entry',
+      entity_id: original.id || original._id,
+      reversal_id: reversalId,
+      actor_id: req.user.id || req.user.userId,
+      created_at: new Date().toISOString(),
+    });
+
+    res.status(201).json({ reversal, reversedEntry: { ...original, reversed_by: reversalId } });
+  } catch (err) {
+    logger.error('Ledger: reversal error', { error: err.message });
+    res.status(500).json({ error: 'Failed to create reversal' });
+  }
+});
+
+// ── Sprint 3: Period Close / Reopen ───────────────────────────────────────────
+
+router.put('/periods/:id/close', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const period = await adapter.findOne('accounting_periods', { id: req.params.id, tenant_id: tenantId })
+      || await adapter.findOne('accounting_periods', { _id: req.params.id, tenant_id: tenantId });
+    if (!period) return res.status(404).json({ error: 'Period not found' });
+    if (period.status === 'closed') return res.status(409).json({ error: 'Period already closed' });
+
+    const updated = { ...period, status: 'closed', closed_by: req.user.id || req.user.userId, closed_at: new Date().toISOString() };
+    await adapter.updateOne('accounting_periods', { id: req.params.id }, updated);
+
+    await adapter.insertOne('gl_audit_log', {
+      id: randomUUID(),
+      tenant_id: tenantId,
+      action: 'period_close',
+      entity: 'accounting_period',
+      entity_id: req.params.id,
+      actor_id: req.user.id || req.user.userId,
+      created_at: new Date().toISOString(),
+    });
+
+    res.json(updated);
+  } catch (err) {
+    logger.error('Ledger: period close error', { error: err.message });
+    res.status(500).json({ error: 'Failed to close period' });
+  }
+});
+
+router.put('/periods/:id/reopen', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const period = await adapter.findOne('accounting_periods', { id: req.params.id, tenant_id: tenantId })
+      || await adapter.findOne('accounting_periods', { _id: req.params.id, tenant_id: tenantId });
+    if (!period) return res.status(404).json({ error: 'Period not found' });
+    if (period.status !== 'closed') return res.status(409).json({ error: 'Period is not closed' });
+
+    const updated = { ...period, status: 'open', reopened_by: req.user.id || req.user.userId, reopened_at: new Date().toISOString() };
+    await adapter.updateOne('accounting_periods', { id: req.params.id }, updated);
+
+    await adapter.insertOne('gl_audit_log', {
+      id: randomUUID(),
+      tenant_id: tenantId,
+      action: 'period_reopen',
+      entity: 'accounting_period',
+      entity_id: req.params.id,
+      actor_id: req.user.id || req.user.userId,
+      created_at: new Date().toISOString(),
+    });
+
+    res.json(updated);
+  } catch (err) {
+    logger.error('Ledger: period reopen error', { error: err.message });
+    res.status(500).json({ error: 'Failed to reopen period' });
+  }
+});
+
+// ── Sprint 3: GL Audit Log ────────────────────────────────────────────────────
+
+router.get('/audit', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const { action, entityId, from, to, limit = 100 } = req.query;
+    const filter = { tenant_id: req.user.tenantId };
+    if (action) filter.action = action;
+    if (entityId) filter.entity_id = entityId;
+    if (from || to) {
+      filter.created_at = {};
+      if (from) filter.created_at.$gte = from;
+      if (to) filter.created_at.$lte = to;
+    }
+    const entries = await adapter.findMany('gl_audit_log', filter, { sort: { created_at: -1 }, limit: Math.min(Number(limit), 1000) }) || [];
+    res.json({ entries, total: entries.length });
+  } catch (err) {
+    logger.error('Ledger: audit log error', { error: err.message });
+    res.status(500).json({ error: 'Failed to fetch GL audit log' });
   }
 });
 

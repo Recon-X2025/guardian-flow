@@ -508,6 +508,212 @@ async function runMigrations() {
           ).catch(() => {});
         },
       },
+      // ── Phase 4 — Enterprise Operations (Sprints 29–40) ──────────────────
+      {
+        version: '020_sprint29_iot',
+        description: 'IoT telemetry ingestion collections',
+        async run() {
+          await db.collection('iot_devices').createIndex({ tenant_id: 1, device_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('iot_devices').createIndex({ tenant_id: 1, status: 1 }).catch(() => {});
+          await db.collection('iot_readings').createIndex({ tenant_id: 1, device_id: 1, timestamp: -1 }).catch(() => {});
+          await db.collection('iot_readings').createIndex({ tenant_id: 1, metric: 1, timestamp: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '021_sprint30_cbm',
+        description: 'Condition-based maintenance rules and history',
+        async run() {
+          await db.collection('cbm_rules').createIndex({ tenant_id: 1, asset_id: 1 }).catch(() => {});
+          await db.collection('cbm_rules').createIndex({ tenant_id: 1, active: 1 }).catch(() => {});
+          await db.collection('cbm_trigger_history').createIndex({ tenant_id: 1, rule_id: 1, triggered_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '022_sprint31_rev_rec',
+        description: 'Revenue recognition contracts and schedules',
+        async run() {
+          await db.collection('rev_rec_contracts').createIndex({ tenant_id: 1, customer_id: 1 }).catch(() => {});
+          await db.collection('rev_rec_schedules').createIndex({ tenant_id: 1, contract_id: 1, period: 1 }).catch(() => {});
+          await db.collection('recognition_events').createIndex({ tenant_id: 1, contract_id: 1, recognized_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '023_sprint32_budgeting',
+        description: 'Multi-dimensional budget plans',
+        async run() {
+          await db.collection('budget_plans').createIndex({ tenant_id: 1, fiscal_year: 1, name: 1 }).catch(() => {});
+          await db.collection('budget_actuals').createIndex({ tenant_id: 1, budget_id: 1 }).catch(() => {});
+        },
+      },
+      {
+        version: '024_sprint33_dex_flows',
+        description: 'DEX flow templates',
+        async run() {
+          await db.collection('dex_flow_templates').createIndex({ tenant_id: 1, status: 1 }).catch(() => {});
+          await db.collection('dex_flow_templates').createIndex({ tenant_id: 1, name: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '025_sprint34_sla_engine',
+        description: 'Advanced SLA policies, breaches and evaluations',
+        async run() {
+          await db.collection('sla_policies').createIndex({ tenant_id: 1, service_type: 1 }).catch(() => {});
+          await db.collection('sla_breaches').createIndex({ tenant_id: 1, policy_id: 1, breached_at: -1 }).catch(() => {});
+          await db.collection('sla_evaluations').createIndex({ tenant_id: 1, wo_id: 1 }).catch(() => {});
+        },
+      },
+      {
+        version: '026_sprint35_customer_success',
+        description: 'Customer health scores and cohorts',
+        async run() {
+          await db.collection('customer_success_scores').createIndex({ tenant_id: 1, customer_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('customer_cohorts').createIndex({ tenant_id: 1, segment: 1 }).catch(() => {});
+        },
+      },
+      {
+        version: '027_sprint36_esg',
+        description: 'ESG reports and benchmarks',
+        async run() {
+          await db.collection('esg_reports').createIndex({ tenant_id: 1, period: 1, framework: 1 }).catch(() => {});
+          await db.collection('esg_benchmarks').createIndex({ framework: 1, category: 1 }).catch(() => {});
+        },
+      },
+      {
+        version: '028_sprint37_digital_twin',
+        description: 'Digital twin models and state history',
+        async run() {
+          await db.collection('digital_twin_models').createIndex({ tenant_id: 1, asset_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('digital_twin_history').createIndex({ tenant_id: 1, twin_id: 1, changed_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '029_sprint38_inventory_opt',
+        description: 'Inventory optimisation suggestions and ABC analysis',
+        async run() {
+          await db.collection('inventory_reorder_suggestions').createIndex({ tenant_id: 1, item_id: 1 }).catch(() => {});
+          await db.collection('inventory_abc_analysis').createIndex({ tenant_id: 1, item_id: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '030_sprint39_audit_framework',
+        description: 'Audit controls, assessments and risk register',
+        async run() {
+          await db.collection('audit_controls').createIndex({ tenant_id: 1, framework: 1, category: 1 }).catch(() => {});
+          await db.collection('audit_assessments').createIndex({ tenant_id: 1, control_id: 1, assessed_at: -1 }).catch(() => {});
+          await db.collection('audit_risk_register').createIndex({ tenant_id: 1, severity: 1 }).catch(() => {});
+        },
+      },
+      {
+        version: '031_sprint40_platform_config',
+        description: 'Platform configuration and tenant quotas',
+        async run() {
+          await db.collection('platform_config').createIndex({ tenant_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('tenant_quotas').createIndex({ tenant_id: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      // ── Phase 5 — Platform & Marketplace (Sprints 41–52) ─────────────────
+      {
+        version: '032_sprint41_federated_learning',
+        description: 'Federated learning rounds and participant updates',
+        async run() {
+          await db.collection('fl_rounds').createIndex({ tenant_id: 1, status: 1 }).catch(() => {});
+          await db.collection('fl_rounds').createIndex({ model_id: 1, round_number: 1 }).catch(() => {});
+          await db.collection('fl_participant_updates').createIndex({ round_id: 1, tenant_id: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '033_sprint42_dex_marketplace',
+        description: 'DEX marketplace listings, reviews and installs',
+        async run() {
+          await db.collection('dex_marketplace_listings').createIndex({ status: 1, category: 1 }).catch(() => {});
+          await db.collection('dex_marketplace_reviews').createIndex({ listing_id: 1, tenant_id: 1 }).catch(() => {});
+          await db.collection('dex_marketplace_installs').createIndex({ listing_id: 1, tenant_id: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '034_sprint43_neuro_console',
+        description: 'Neural model registry and inferences',
+        async run() {
+          await db.collection('neuro_models').createIndex({ tenant_id: 1, name: 1, version: 1 }).catch(() => {});
+          await db.collection('neuro_inferences').createIndex({ tenant_id: 1, model_id: 1, created_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '035_sprint44_white_label',
+        description: 'White-label configs and themes',
+        async run() {
+          await db.collection('white_label_configs').createIndex({ tenant_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('white_label_themes').createIndex({ name: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '036_sprint45_partner_gateway_v2',
+        description: 'Partner API keys, usage and webhooks',
+        async run() {
+          await db.collection('partner_api_keys').createIndex({ tenant_id: 1, partner_id: 1 }).catch(() => {});
+          await db.collection('partner_api_keys').createIndex({ key_hash: 1 }, { unique: true }).catch(() => {});
+          await db.collection('partner_api_usage').createIndex({ key_id: 1, recorded_at: -1 }).catch(() => {});
+          await db.collection('partner_webhooks').createIndex({ tenant_id: 1, partner_id: 1 }).catch(() => {});
+        },
+      },
+      {
+        version: '037_sprint46_reporting_engine',
+        description: 'Report definitions and run history',
+        async run() {
+          await db.collection('report_definitions').createIndex({ tenant_id: 1, name: 1 }, { unique: true }).catch(() => {});
+          await db.collection('report_runs').createIndex({ tenant_id: 1, report_id: 1, started_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '038_sprint47_field_app',
+        description: 'Field app sync log, config and crash reports',
+        async run() {
+          await db.collection('field_app_sync_log').createIndex({ tenant_id: 1, device_id: 1, synced_at: -1 }).catch(() => {});
+          await db.collection('field_app_config').createIndex({ tenant_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('field_app_crash_reports').createIndex({ tenant_id: 1, device_id: 1, occurred_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '039_sprint48_observability',
+        description: 'Distributed traces, spans and SLO status',
+        async run() {
+          await db.collection('obs_traces').createIndex({ tenant_id: 1, service: 1, timestamp: -1 }).catch(() => {});
+          await db.collection('obs_spans').createIndex({ trace_id: 1, started_at: 1 }).catch(() => {});
+          await db.collection('obs_slo_status').createIndex({ tenant_id: 1, name: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '040_sprint49_data_residency',
+        description: 'Data residency policies and violations',
+        async run() {
+          await db.collection('residency_policies').createIndex({ tenant_id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('residency_violations').createIndex({ tenant_id: 1, detected_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '041_sprint50_ai_ethics',
+        description: 'AI ethics audits and policies',
+        async run() {
+          await db.collection('ethics_audits').createIndex({ tenant_id: 1, model_id: 1, created_at: -1 }).catch(() => {});
+          await db.collection('ethics_policies').createIndex({ tenant_id: 1, name: 1 }, { unique: true }).catch(() => {});
+        },
+      },
+      {
+        version: '042_sprint51_e2e_tests',
+        description: 'E2E test suites and run history',
+        async run() {
+          await db.collection('e2e_test_suites').createIndex({ tenant_id: 1, name: 1 }, { unique: true }).catch(() => {});
+          await db.collection('e2e_test_runs').createIndex({ tenant_id: 1, suite_id: 1, started_at: -1 }).catch(() => {});
+        },
+      },
+      {
+        version: '043_sprint52_launch_readiness',
+        description: 'Production launch checklist and runbooks',
+        async run() {
+          await db.collection('launch_checklist').createIndex({ tenant_id: 1, id: 1 }, { unique: true }).catch(() => {});
+          await db.collection('launch_runbooks').createIndex({ tenant_id: 1, order: 1 }).catch(() => {});
+        },
+      },
     ];
 
     for (const migration of migrations) {

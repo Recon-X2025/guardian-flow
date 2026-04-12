@@ -6,6 +6,59 @@
 
 ---
 
+## 🚀 Quick Start — Launch a Dev Instance
+
+### Option 1 — GitHub Codespaces (zero install, browser-based)
+
+> **Recommended for the fastest "try it now" experience.**
+
+1. Click **Code → Codespaces → Create codespace on `main`** on the GitHub repo page.
+2. Wait ~2 minutes for the container to build and `postCreateCommand` to run (installs deps + seeds the DB).
+3. In the Codespace terminal, start both servers:
+   ```bash
+   # Terminal 1 — backend (Express on :3001)
+   npm run dev:server
+
+   # Terminal 2 — frontend (Vite HMR on :5175)
+   npm run dev
+   ```
+   Or use the built-in VS Code task: **Terminal → Run Task → Start Dev Servers**.
+4. GitHub auto-forwards ports 5175 and 3001. Click the **Open in Browser** notification for the frontend URL.
+
+> **Login credentials (seeded by migrations):**
+> - `admin@guardian.dev` / `admin123` (sys_admin)
+
+---
+
+### Option 2 — Docker Compose (local, no MongoDB install needed)
+
+```bash
+git clone https://github.com/Recon-X2025/guardian-flow.git
+cd guardian-flow
+docker compose -f docker-compose.dev.yml up --build
+```
+
+| Service | URL |
+|---------|-----|
+| Frontend (Vite HMR) | http://localhost:5175 |
+| Backend (Express) | http://localhost:3001 |
+| MongoDB | localhost:27017 |
+
+---
+
+### Option 3 — Local (Node + existing MongoDB)
+
+```bash
+git clone https://github.com/Recon-X2025/guardian-flow.git
+cd guardian-flow
+npm install && cd server && npm install && cd ..
+cp .env.example .env          # edit MONGODB_URI / JWT_SECRET if needed
+node server/scripts/phase0-migration.js
+npm run dev:all               # starts backend (:3001) + Vite (:5175) concurrently
+```
+
+---
+
 ## 🟢 Build Status
 
 | Check | Status | Details |

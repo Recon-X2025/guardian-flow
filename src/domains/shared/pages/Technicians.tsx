@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/integrations/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Wrench, MapPin } from 'lucide-react';
+import { Plus, Search, Wrench, MapPin, Truck, ChevronDown, ChevronRight, AlertTriangle, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { TechnicianDialog } from '@/domains/shared/components/TechnicianDialog';
 import { TechnicianMap } from '@/domains/shared/components/TechnicianMap';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,6 +27,207 @@ interface Technician {
   certifications?: string[];
   specializations?: string[];
   availability?: string;
+}
+
+// ── Vehicle Stock ─────────────────────────────────────────────────────────────
+
+interface StockItem {
+  partId: string;
+  partName: string;
+  qty: number;
+  minQty: number;
+}
+
+interface VehicleStock {
+  technicianId: string;
+  vehicleRef: string;
+  stockItems: StockItem[];
+  updatedAt: string;
+}
+
+async function fetchVehicleStock(technicianId: string): Promise<VehicleStock | null> {
+  const res = await fetch(`/api/technicians/${technicianId}/vehicle-stock`, { credentials: 'include' });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.vehicle ?? null;
+}
+
+function ConsumeDialog({ partId, partName, technicianId, onSuccess }: {
+  partId: string; partName: string; technicianId: string; onSuccess: () => void;
+}) {
+  const [qty, setQty] = useState(1);
+  const [woId, setWoId] = useState('');
+  const [open, setOpen] = useState(false);
+
+  const consumeMut = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/technicians/${technicianId}/vehicle-stock/consume`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ partId, qty, workOrderId: woId || undefined }),
+      });
+      if (!res.ok) throw new Error('Failed to consume');
+      return res.json();
+    },
+    onSuccess: () => { setOpen(false); onSuccess(); },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 text-xs">Consume</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Consume: {partName}</DialogTitle></DialogHeader>
+        <div className="space-y-3 pt-2">
+          <div className="space-y-1">
+            <Label>Quantity</Label>
+            <Input type="number" min={1} value={qty} onChange={e => setQty(Number(e.target.value))} />
+          </div>
+          <div className="space-y-1">
+            <Label>Work Order ID (optional)</Label>
+            <Input placeholder="WO-…" value={woId} onChange={e => setWoId(e.target.value)} />
+          </div>
+          <Button className="w-full" disabled={consumeMut.isPending || qty < 1} onClick={() => consumeMut.mutate()}>
+            {consumeMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Confirm
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function VehicleStockPanel({ technicianId }: { technicianId: string }) {
+  const qc = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+  const [restockPartId, setRestockPartId] = useState<string | null>(null);
+  const [restockQty, setRestockQty] = useState(1);
+
+  const { data: stock, isLoading } = useQuery({
+    queryKey: ['vehicle-stock', technicianId],
+    queryFn: () => fetchVehicleStock(technicianId),
+    enabled: expanded,
+  });
+
+  const restockMut = useMutation({
+    mutationFn: async ({ partId, qty }: { partId: string; qty: number }) => {
+      const res = await fetch(`/api/technicians/${technicianId}/vehicle-stock/restock`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ partId, qty }),
+      });
+      if (!res.ok) throw new Error('Failed to restock');
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['vehicle-stock', technicianId] });
+      setRestockPartId(null);
+      setRestockQty(1);
+    },
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['vehicle-stock', technicianId] });
+
+  return (
+    <div className="border-t mt-2">
+      <button
+        className="flex items-center gap-2 w-full text-left px-2 py-2 hover:bg-muted/40 rounded text-sm font-medium"
+        onClick={() => setExpanded(v => !v)}
+      >
+        {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        <Truck className="h-4 w-4 text-muted-foreground" />
+        Vehicle Stock
+      </button>
+
+      {expanded && (
+        <div className="px-2 pb-2">
+          {isLoading && (
+            <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading stock…
+            </div>
+          )}
+          {!isLoading && !stock && (
+            <p className="text-sm text-muted-foreground py-2">No vehicle stock initialized.</p>
+          )}
+          {!isLoading && stock && (
+            <>
+              <p className="text-xs text-muted-foreground mb-2">Vehicle: {stock.vehicleRef}</p>
+              {stock.stockItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No parts in stock.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Part</TableHead>
+                      <TableHead className="text-xs">Qty</TableHead>
+                      <TableHead className="text-xs">Min</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stock.stockItems.map(item => (
+                      <TableRow key={item.partId}>
+                        <TableCell className="text-xs">{item.partName}</TableCell>
+                        <TableCell className="text-xs font-mono">{item.qty}</TableCell>
+                        <TableCell className="text-xs font-mono text-muted-foreground">{item.minQty}</TableCell>
+                        <TableCell>
+                          {item.qty < item.minQty ? (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangle className="h-3 w-3 mr-1" />Low Stock
+                            </Badge>
+                          ) : (
+                            <Badge variant="default" className="text-xs">OK</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <ConsumeDialog
+                              partId={item.partId}
+                              partName={item.partName}
+                              technicianId={technicianId}
+                              onSuccess={invalidate}
+                            />
+                            {restockPartId === item.partId ? (
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={restockQty}
+                                  onChange={e => setRestockQty(Number(e.target.value))}
+                                  className="h-7 w-16 text-xs"
+                                />
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  disabled={restockMut.isPending}
+                                  onClick={() => restockMut.mutate({ partId: item.partId, qty: restockQty })}
+                                >
+                                  {restockMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'OK'}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setRestockPartId(null)}>✕</Button>
+                              </div>
+                            ) : (
+                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setRestockPartId(item.partId); setRestockQty(1); }}>
+                                Restock
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Technicians() {
@@ -254,6 +457,7 @@ export default function Technicians() {
                         ))}
                       </div>
                     )}
+                    <VehicleStockPanel technicianId={tech.id} />
                   </div>
                 ))}
               </div>

@@ -97,7 +97,8 @@ export function generateToken(userId) {
   return jwt.sign({ userId, jti }, JWT_SECRET, { expiresIn: '1h' });
 }
 
-export { JWT_SECRET };
+
+
 
 /**
  * Optional auth - doesn't fail if no token

@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/integrations/api/client';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Webhook, Pencil, Trash2, TestTube } from 'lucide-react';
+import { Plus, Webhook, Pencil, Trash2, TestTube, List, RotateCcw } from 'lucide-react';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 
 interface WebhookConfig {
@@ -22,10 +22,22 @@ interface WebhookConfig {
   retry_count?: number;
 }
 
+interface DeliveryLog {
+  id: string;
+  webhookId: string;
+  event: string;
+  status: string;
+  responseCode?: number;
+  responseBody?: string;
+  attemptedAt: string;
+  duration?: number;
+}
+
 export default function Webhooks() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null);
   const [formData, setFormData] = useState({ name: '', url: '', events: '', active: true });
+  const [selectedWebhookLog, setSelectedWebhookLog] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -40,6 +52,35 @@ export default function Webhooks() {
       if (result.error) throw result.error;
       return result.data || [];
     }
+  });
+
+  const { data: deliveryLogData } = useQuery({
+    queryKey: ['webhook-delivery-log', selectedWebhookLog],
+    queryFn: async () => {
+      const res = await fetch(`/api/webhooks/${selectedWebhookLog}/delivery-log`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    enabled: !!selectedWebhookLog,
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: async ({ webhookId, deliveryId }: { webhookId: string; deliveryId: string }) => {
+      const res = await fetch(`/api/webhooks/${webhookId}/retry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Retry queued successfully' });
+      queryClient.invalidateQueries({ queryKey: ['webhook-delivery-log', selectedWebhookLog] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Retry failed', description: error.message, variant: 'destructive' });
+    },
   });
 
   const createMutation = useMutation({
@@ -219,6 +260,14 @@ export default function Webhooks() {
                       <Button variant="outline" size="sm" onClick={() => testMutation.mutate(webhook)}>
                         <TestTube className="h-3 w-3" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedWebhookLog(selectedWebhookLog === webhook.id ? null : webhook.id)}
+                      >
+                        <List className="h-3 w-3 mr-1" />
+                        Deliveries
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleDelete(webhook.id)}>
                         <Trash2 className="h-3 w-3 text-red-500" />
                       </Button>
@@ -239,6 +288,61 @@ export default function Webhooks() {
           </div>
         )}
       </Card>
+
+      {selectedWebhookLog && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Delivery Log — {(webhooks as WebhookConfig[] | undefined)?.find(w => w.id === selectedWebhookLog)?.name ?? selectedWebhookLog}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Response Code</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Attempted At</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(deliveryLogData?.deliveries as DeliveryLog[] | undefined)?.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="text-xs font-mono">{d.event}</TableCell>
+                    <TableCell>
+                      <Badge variant={d.status === 'success' ? 'default' : 'destructive'}>{d.status}</Badge>
+                    </TableCell>
+                    <TableCell>{d.responseCode ?? '—'}</TableCell>
+                    <TableCell>{d.duration != null ? `${d.duration}ms` : '—'}</TableCell>
+                    <TableCell className="text-xs">{new Date(d.attemptedAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {(d.status === 'failed' || d.status === 'dead_letter') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={retryMutation.isPending}
+                          onClick={() => retryMutation.mutate({ webhookId: selectedWebhookLog, deliveryId: d.id })}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Retry
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(!deliveryLogData?.deliveries || (deliveryLogData.deliveries as DeliveryLog[]).length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">No deliveries recorded.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

@@ -180,6 +180,21 @@ router.post('/signin', validate(signinSchema), async (req, res) => {
 
     logger.info('User signed in', { userId: user.id, email: user.email });
 
+    // Sprint 6: auth audit log
+    try {
+      const auditAdapter = await getAdapter();
+      await auditAdapter.insertOne('auth_audit_log', {
+        id: randomUUID(),
+        tenant_id: user.tenant_id || 'default',
+        user_id: user.id,
+        email: user.email,
+        event: 'signin',
+        ip_address: req.ip || null,
+        user_agent: req.headers['user-agent'] || null,
+        created_at: new Date().toISOString(),
+      });
+    } catch (_) {}
+
     res.json({
       user: {
         id: user.id,
@@ -607,3 +622,36 @@ router.post('/assign-admin', authenticateToken, async (req, res) => {
 });
 
 export default router;
+
+// ── Sprint 6: Authentication Audit Log ──────────────────────────────────────
+
+/**
+ * GET /api/auth/audit-log
+ * Returns the auth audit log for the current user (admins see all).
+ */
+router.get('/audit-log', authenticateToken, async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const { limit = 100, userId, event } = req.query;
+    const filter = {};
+
+    // Non-admins can only see their own events
+    const isAdmin = req.user.roles?.includes('sys_admin') || req.user.roles?.includes('tenant_admin');
+    if (!isAdmin) {
+      filter.user_id = req.user.id || req.user.userId;
+    } else if (userId) {
+      filter.user_id = userId;
+    }
+    if (event) filter.event = event;
+
+    const entries = await adapter.findMany('auth_audit_log', filter, {
+      sort: { created_at: -1 },
+      limit: Math.min(Number(limit), 1000),
+    }) || [];
+
+    res.json({ entries, total: entries.length });
+  } catch (err) {
+    logger.error('Auth audit log error', { error: err.message });
+    res.status(500).json({ error: 'Failed to fetch auth audit log' });
+  }
+});

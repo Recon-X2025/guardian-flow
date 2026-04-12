@@ -1,0 +1,65 @@
+# Dev compose — batteries included (MongoDB, backend, frontend).
+# No SSL/nginx — intended for local development only.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Then open:
+#   Frontend → http://localhost:5175
+#   Backend  → http://localhost:3001
+
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-dev-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./server:/app/server
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: '3001'
+      MONGODB_URI: mongodb://mongo:27017/
+      DB_NAME: guardianflow
+      JWT_SECRET: dev-only-secret-change-in-production
+      VITE_API_URL: http://localhost:3001
+      AI_PROVIDER: mock
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.dev
+    ports:
+      - '5175:5175'
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    environment:
+      VITE_API_URL: http://localhost:3001
+    restart: unless-stopped
+
+volumes:
+  mongo-dev-data:

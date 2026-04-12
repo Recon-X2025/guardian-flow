@@ -56,7 +56,7 @@ describe('POST /api/functions/process-forgery-batch', () => {
     }
   });
 
-  it('detections stored in forgery_detections with confidence_score', async () => {
+  it('detections stored in forgery_detections with confidence_score >= 0 and schema intact', async () => {
     if (!serverAvailable) return;
     const { data } = await apiPost('/api/db/query', {
       table: 'forgery_detections',
@@ -72,6 +72,23 @@ describe('POST /api/functions/process-forgery-batch', () => {
       expect(isNaN(score)).toBe(false);
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('high-confidence detections (confidence_score > 0.85) have a non-empty findings list', async () => {
+    if (!serverAvailable) return;
+    const { data } = await apiPost('/api/db/query', {
+      table: 'forgery_detections',
+      select: '*',
+      limit: 50,
+    }, authToken);
+    const detections = data.data || [];
+
+    const highConfidence = detections.filter(d => parseFloat(d.confidence_score) > 0.85);
+    // If any high-confidence detections are stored they must carry evidence
+    for (const d of highConfidence) {
+      expect(Array.isArray(d.findings)).toBe(true);
+      expect((d.findings ?? []).length).toBeGreaterThan(0);
     }
   });
 
