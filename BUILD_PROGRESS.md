@@ -137,10 +137,10 @@ Target parity after Gate 2: **~75%** (passes formal technical evaluation)
 
 ---
 
-### 🔲 S5–S7 — Mobile PWA + Offline Sync
+### 🔄 S5–S7 — Mobile PWA + Offline Sync
 
 **Gate:** G2 | **Effort:** 3 sprints  
-**Status:** 🔲 To be Commenced
+**Status:** 🔄 In Progress
 
 #### Planned Deliverables
 - Service worker (`public/sw.js`) with background sync and push notifications
