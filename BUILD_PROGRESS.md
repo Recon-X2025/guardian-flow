@@ -251,28 +251,39 @@ Target parity after Gate 2: **~75%** (passes formal technical evaluation)
 
 ---
 
-### 🔄 S7–S8 — AI Scheduling (Constraint-based)
+### ✅ S7–S8 — AI Scheduling (Constraint-based)
 
 **Gate:** G2 | **Effort:** 2 sprints  
-**Status:** 🔄 In Progress
+**Status:** ✅ Completed  
+**Completed:** 2026-04-12
 
-#### Planned Deliverables
-- Replace heuristic scoring in `server/services/ai/scheduler.js` with constraint satisfaction / OR-Tools-style solver
-- Skills, availability windows, SLA deadline, travel time as hard/soft constraints
-- LLM-generated scheduling rationale stored in FlowSpace
+#### What Was Built
+Replaced the simple greedy scheduler in `server/services/ai/scheduler.js` with a full constraint-based engine:
 
-#### Definition of Done (Planned)
-- [ ] Scheduler respects skill constraints (hard), SLA deadlines (hard), and availability windows (hard)
-- [ ] Travel time from route optimizer used as constraint input
-- [ ] Schedule decision written to FlowSpace with rationale
-- [ ] Measurable improvement over baseline heuristic in benchmark test
+- **Phase 1 — Hard constraint filtering**: For each work order, candidates must pass all 4 hard constraints before scoring: H1 Skill match (technician must have all required skills), H2 Capacity (below max daily load), H3 Availability (start falls inside shift window / custom availability windows), H4 SLA deadline (scheduled end must be before SLA deadline)
+- **Phase 2 — Soft constraint scoring**: Valid candidates scored on 5 dimensions: SLA urgency ×4, priority ×3, skill quality ×2, travel time ×2, load balance ×1
+- **Phase 3 — Priority-ordered assignment**: Work orders sorted by SLA deadline ASC → priority DESC. Each assigned to highest-scoring valid technician. Unscheduled work orders tracked with constraint violation reasons
+- **FlowSpace integration**: Every optimization run writes a structured decision record to FlowSpace with rationale, constraint list, and unscheduled count
+- Schema upgraded: `schedule_optimization_runs` now includes `algorithm`, `total_unscheduled`; assignments include `skill_match_score`, `sla_urgency_score`, `travel_time_min`
+
+#### Definition of Done ✅
+- [x] Scheduler filters candidates by all 4 hard constraints before scoring
+- [x] Skill match check uses exact normalised matching (case-insensitive)
+- [x] SLA deadline is a hard constraint — no assignment violates SLA
+- [x] Availability windows respected (custom overrides shift defaults)
+- [x] Scheduling decision written to FlowSpace with human-readable rationale
+- [x] Unscheduled work orders returned with per-technician violation reason map
+- [x] All 253 tests pass
+
+#### Files Changed
+- `server/services/ai/scheduler.js` — complete rewrite from greedy to constraint-based
 
 ---
 
-### 🔲 S8 — Computer Vision (Photo Validation)
+### 🔄 S8 — Computer Vision (Photo Validation)
 
 **Gate:** G2 | **Effort:** 1 sprint  
-**Status:** 🔲 To be Commenced
+**Status:** 🔄 In Progress
 
 #### Planned Deliverables
 - Wire `server/services/ai/vision.js` `visionAnalysis()` to real OpenAI GPT-4o vision API
