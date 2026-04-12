@@ -114,6 +114,7 @@ const CRMContacts = lazy(() => import("@/domains/crm/pages/Contacts"));
 const CRMPipeline = lazy(() => import("@/domains/crm/pages/Pipeline"));
 const CRMPipelineSettings = lazy(() => import("@/domains/crm/pages/PipelineSettings"));
 const CRMLeads = lazy(() => import("@/domains/crm/pages/Leads"));
+const CRMCalendarSync = lazy(() => import("@/domains/crm/pages/CalendarSync"));
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
@@ -818,6 +819,7 @@ const App = () => (
                   <Route path="/crm/pipeline" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/crm/pipeline-settings" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineSettings /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/crm/leads" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMLeads /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/calendar-sync" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMCalendarSync /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/crm/sequences" element={<ProtectedRoute><AppLayout><SuspenseWrap><SalesSequences /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Inventory */}
