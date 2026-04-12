@@ -15,8 +15,11 @@
 4. [What Is Still Pending](#4-what-is-still-pending)
 5. [Module-by-Module Market Leader Comparison](#5-module-by-module-market-leader-comparison)
 6. [Gap Analysis & Bridge Roadmap](#6-gap-analysis--bridge-roadmap)
-7. [Effort & Priority Matrix](#7-effort--priority-matrix)
-8. [Strategic Recommendations](#8-strategic-recommendations)
+7. [Enterprise Readiness Scorecard](#7-enterprise-readiness-scorecard)
+8. [Enterprise Readiness Build Plan](#8-enterprise-readiness-build-plan)
+9. [Consolidated Sprint Matrix](#9-consolidated-sprint-matrix)
+10. [What Guardian Flow Already Owns That Enterprise Competitors Don't](#10-what-guardian-flow-already-owns-that-enterprise-competitors-dont)
+11. [Strategic Recommendations](#11-strategic-recommendations)
 
 ---
 
@@ -719,72 +722,175 @@ Templates          industry-template
 
 ---
 
-## 7. Effort & Priority Matrix
+## 7. Enterprise Readiness Scorecard
 
-| Priority | Gap | Business Impact | Effort | Sprint |
-|----------|-----|-----------------|--------|--------|
-| 🔴 C1 | LLM Integration + AI Assistant | Highest — removes "mock AI" risk | 2 sprints | S1–S2 |
-| 🔴 C2 | Vector DB + RAG Engine | High — real knowledge search | 1 sprint | S2 |
-| 🔴 C3 | Real Scheduling Intelligence + Route Optimization | High — closes biggest FSM gap | 2 sprints | S3–S4 |
-| 🟠 H1 | Computer Vision (Photo Validation) | High — core FSM feature | 1 sprint | S3 |
-| 🟠 H2 | Real Anomaly / Fraud Detection | High — product integrity | 1 sprint | S4 |
-| 🟠 H3 | Mobile PWA + Offline Sync | High — field technician UX | 3 sprints | S5–S7 |
-| 🟠 H4 | Predictive Maintenance (IoT + ML) | High — differentiator | 2 sprints | S5–S6 |
-| 🟠 H5 | Subscription Billing + Revenue Recognition | High — enterprise finance | 2 sprints | S6–S7 |
-| 🟡 M1 | Agentic AI Framework | Very High (2027 table stakes) | 3 sprints | S8–S10 |
-| 🟡 M2 | GraphQL API | Medium | 1 sprint | S8 |
-| 🟡 M3 | ERP Connectors (SAP, NetSuite, QB) | High — enterprise sales | 2 sprints | S9–S10 |
-| 🟡 M4 | Tax Engine (Avalara) | Medium | 1 sprint | S9 |
-| 🟡 M5 | i18n / Localization | Medium | 1 sprint | S10 |
-| 🟡 M6 | Marketplace Extension Backend | Medium | 2 sprints | S11–S12 |
-| 🟡 M7 | Federated Learning | Medium — differentiator | 2 sprints | S11–S12 |
+Before the sprint matrix, the honest parity picture against enterprise market leaders:
+
+| Module | Guardian Flow Score | Enterprise Market Leaders | Status |
+|--------|--------------------|-----------------------------|--------|
+| FSM Core | 4 / 11 (36%) | ServiceNow FSM, Salesforce Field Service, IFS Cloud, MS Dynamics 365 FS | 🔴 Fails evaluation |
+| Financial Management | 6 / 11 (55%) | SAP S/4HANA, NetSuite, Sage Intacct, Zuora | 🟠 Partial pass |
+| CRM | 4 / 10 (40%) | Salesforce Sales Cloud, HubSpot, MS Dynamics 365 CRM | 🔴 Fails evaluation |
+| Analytics / BI | 4 / 11 (36%) | Tableau, Power BI, Salesforce Einstein Analytics | 🔴 Fails evaluation |
+| AI / ML Platform | 2 / 12 (17%) | Salesforce Agentforce, ServiceNow Now Assist, MS Copilot | 🔴 Fails evaluation |
+| Compliance / Fraud | 5 / 9 (56%) | SAP GRC, ServiceNow GRC, NICE Actimize | 🟠 Partial pass |
+| Customer Portals | 4 / 9 (44%) | Salesforce Experience Cloud, ServiceNow CSM, Zendesk | 🔴 Fails evaluation |
+| Developer Platform | 5 / 10 (50%) | Salesforce AppExchange, ServiceNow Store, MuleSoft | 🟠 Partial pass |
+| Knowledge Management | 2 / 7 (29%) | Salesforce Einstein Knowledge, ServiceNow Knowledge | 🔴 Fails evaluation |
+| ESG / Sustainability | 1 / 5 (20%) | SAP Sustainability, Salesforce Net Zero Cloud, Workiva | 🔴 Fails evaluation |
+| **Overall** | **~37% parity** | | **🔴 Not enterprise-ready today** |
+
+The platform would fail a Fortune 500 technical evaluation at current state. The path to enterprise readiness runs through three sequential gates.
 
 ---
 
-## 8. Strategic Recommendations
+## 8. Enterprise Readiness Build Plan
 
-### 8.1 Immediate Actions (Next 30 days)
+The previous roadmap ordered items by technical difficulty. This revised plan is ordered by **enterprise procurement gate** — what blocks a deal at each stage of a Fortune 500 evaluation cycle.
 
-1. **Resolve the "mock AI" problem first.** A single LLM API key and the `server/services/llm.js` wrapper unlocks a dozen features simultaneously. Start with the AI Assistant (highest user visibility) and work order summarization (highest technician ROI).
+### Gate 1 🔴 — Demo-Critical (Sprints 1–4)
+*These gaps will surface within the first 30 minutes of any enterprise demo. A deal cannot progress past a proof-of-concept without all of these resolved.*
 
-2. **Add vector search to MongoDB Atlas** — it requires no new infrastructure and no migration approval, only an Atlas index configuration and a few changed queries in `knowledge-query.js`.
+| # | Gap | Why It Blocks the Demo | Bridge Summary | Effort |
+|---|-----|------------------------|----------------|--------|
+| G1.1 | **LLM Integration** | Competitor reps will demonstrate live AI copilots; mock responses end the demo | Add `server/services/llm.js` (OpenAI/Anthropic wrapper); wire to AI assistant endpoint, work order summarization, SaPOS offer generation | 2 sprints |
+| G1.2 | **Route Optimization (real)** | ServiceNow RSO and Salesforce Optimizer will be benchmarked side-by-side; the hardcoded 15 km stub is immediately visible | Replace `RouteOptimization.tsx` stub with Google Maps Directions API or OSRM; implement TSP solver in `server/routes/schedule.js` | 1 sprint |
+| G1.3 | **ERP Connectors (SAP / NetSuite)** | Fortune 500 procurement requires native ERP integration as a checklist item — absence is an automatic disqualifier | Build pre-built adapters on existing `server/routes/connectors.js` framework; SAP RFC/BAPI wrapper + NetSuite REST connector | 2 sprints |
+| G1.4 | **Vector DB + Semantic Search** | Every competitor now ships RAG-based knowledge search; keyword-only search signals immaturity to evaluators | Enable MongoDB Atlas Vector Search (or `pgvector`); add embeddings on article creation; wire `knowledge-query.js` and `RAGEngine.tsx` to live retrieval | 1 sprint |
 
-3. **Fix the route optimization stub.** Replacing the `15 km hardcoded assumption` with a Google Maps API call is a one-day task and eliminates a critical credibility issue for enterprise demos.
+**Gate 1 total: 6 sprints (S1–S4, with G1.2 and G1.4 running in parallel with G1.1)**
 
-4. **Replace the `Math.random()` SLA first-time fix rate** with a real `work_orders` query — this is a 1-hour fix that prevents misleading data in live environments.
+---
 
-### 8.2 Short-Term (30–90 days)
+### Gate 2 🟠 — Evaluation Pass (Sprints 5–10)
+*These gaps will surface during structured technical evaluation (RFP response, security questionnaire, POC). A deal can enter evaluation without these but cannot close.*
 
-5. **Ship the mobile PWA.** Competitors have native apps; a well-crafted PWA with offline sync (IndexedDB) can close most of the gap at a fraction of the cost and be delivered in parallel with other work.
+| # | Gap | Why It Blocks the Contract | Bridge Summary | Effort |
+|---|-----|---------------------------|----------------|--------|
+| G2.1 | **Mobile + Offline** | All enterprise FSM competitors ship native mobile apps or mature PWAs with offline sync; web-only is a field operations blocker | Vite PWA plugin + service worker; IndexedDB sync layer for work orders, parts, photos; conflict resolution queue | 3 sprints |
+| G2.2 | **Revenue Recognition (ASC 606 / IFRS 15)** | Enterprise CFO sign-off requires compliant revenue recognition; SAP S/4HANA and NetSuite both handle this natively | Add ASC 606 module — recognize revenue over service contract term; deferred revenue schedule; integrate with existing GL | 2 sprints |
+| G2.3 | **Tax Engine (Multi-Jurisdiction)** | Any enterprise with operations in multiple countries/states requires automated VAT/GST calculation — manual tax is a deal-stopper | Integrate Avalara AvaTax or TaxJar API on invoice creation; configure tax codes per tenant | 1 sprint |
+| G2.4 | **GraphQL API + Auto-Generated OpenAPI Spec** | Enterprise integration teams will run a technical due diligence check; absence of GraphQL or auto-generated API docs fails the integration scorecard | Add `graphql-yoga` alongside REST; generate OpenAPI 3.1 spec with `swagger-autogen` from existing routes | 1 sprint |
+| G2.5 | **AI Scheduling with Skills / Parts / SLA Constraints** | Manual dispatch is the single largest productivity gap vs ServiceNow RSO; enterprise buyers will model labor savings against this in their business case | Build constraint-based scoring in `server/routes/schedule.js`; surface top-3 technician recommendations with explainable scores | 2 sprints |
+| G2.6 | **Computer Vision (Asset Inspection)** | PTC Vuforia and Azure Computer Vision are standard in enterprise FSM; photo validation stub blocks quality control workflows | Replace `validate-photos` stub with Google Cloud Vision API or Azure CV; return structured defect metadata | 1 sprint |
+| G2.7 | **Subscription / Recurring Billing** | SLA contract billing is table stakes for enterprise MSP and service organization accounts | Extend existing Stripe integration with Stripe Billing API; recurring invoice engine; dunning management | 2 sprints |
 
-6. **Wire real statistical anomaly detection.** Isolation forest on the `analytics_events` collection is available in pure JavaScript (`ml-matrix` / `simple-statistics` libraries) with no infrastructure changes.
+**Gate 2 total: 12 sprints (S5–S10, with several running in parallel)**
 
-7. **Implement computer vision.** Google Cloud Vision API costs $1.50 / 1,000 images — replace the `validate-photos` stub in a single afternoon.
+---
 
-### 8.3 Medium-Term (90–180 days)
+### Gate 3 🟡 — Enterprise Win (Sprints 11–18)
+*These capabilities convert a "passed evaluation" into a "preferred choice" — they create competitive differentiation that ServiceNow and Salesforce either don't have or don't have at this price point.*
 
-8. **Build the agentic AI framework on top of DEX ExecutionContext** — the stage machine and FlowSpace audit trail already provide the scaffolding. The dispatch agent alone can justify an entire enterprise upsell tier.
+| # | Gap | Competitive Opportunity | Bridge Summary | Effort |
+|---|-----|------------------------|----------------|--------|
+| G3.1 | **Agentic AI Framework** | Salesforce Agentforce and ServiceNow AI Agents are the current enterprise battleground; building on the existing DEX ExecutionContext + FlowSpace audit ledger gives Guardian Flow a structurally auditable agentic layer no competitor has | Multi-agent framework (Triage, Dispatch, Parts agents) with confidence thresholds and human-in-the-loop escalation; DEX as orchestrator; FlowSpace as immutable decision audit | 3 sprints |
+| G3.2 | **IoT + Predictive Maintenance (Real)** | IoT-triggered work orders are now standard in IFS Cloud and ServiceNow; predictive maintenance is a top-3 ROI driver in enterprise FSM RFPs | MQTT broker + `asset_telemetry` time-series collection; failure prediction ML model on work history + sensor data; surface in `PredictiveMaintenance.tsx` | 2 sprints |
+| G3.3 | **CRM Email / Calendar Sync** | Salesforce Sales Cloud integration with Gmail/Outlook is a baseline expectation for any enterprise CRM buyer | OAuth integration with Google Workspace and MS Graph APIs; activity auto-logging on send/receive; calendar sync for service appointments | 2 sprints |
+| G3.4 | **Real Anomaly / ML Fraud Detection** | NICE Actimize and Verafin use isolation forest / ML scoring; rule-based detection signals immaturity to financial services buyers | Isolation forest on transaction amounts, technician patterns, timing anomalies; replace hardcoded mock cases in `FraudInvestigation.tsx` | 1 sprint |
+| G3.5 | **ESG Scope 1/2/3 + Regulatory Reporting** | SAP Sustainability and Salesforce Net Zero Cloud are the leaders; Guardian Flow's existing ESG dashboards give a head start — completing GRI/SASB/TCFD reporting creates a genuine differentiator in FSM (no FSM competitor has this depth) | Add Scope 1/2/3 emissions methodology; GRI/SASB/TCFD report templates; automated evidence collection | 2 sprints |
+| G3.6 | **Marketplace Extension Backend** | AppExchange and ServiceNow Store generate significant partner revenue and ecosystem lock-in; Guardian Flow has the frontend but no backend | Extension submission, sandbox testing, certification workflow, installation management, billing split in `server/routes/marketplace-extension-manager.js` | 2 sprints |
+| G3.7 | **FlowSpace + DEX as Autonomous Workflow Audit Platform** | No competitor has an immutable, tenant-scoped decision ledger with lineage tracing built into the core platform; position this as the enterprise governance upsell tier | Surface FlowSpace decision lineage as a compliance product; add cross-domain audit dashboards; build exportable audit packages for regulatory submissions | 2 sprints |
 
-9. **Add ERP connectors** — SAP and NetSuite connectors unlock Fortune 500 deal opportunities that are currently blocked.
+**Gate 3 total: 14 sprints (S11–S18)**
 
-10. **Pursue SOC 2 Type II certification** — the compliance documentation and audit trail infrastructure are already in place. A formal audit would convert the existing `ComplianceCenter` into a selling point.
+---
 
-### 8.4 Competitive Positioning Summary
+## 9. Consolidated Sprint Matrix
+
+| Sprint | Gate | Item | Effort | Cumulative Parity Gain |
+|--------|------|------|--------|------------------------|
+| S1–S2 | G1 | LLM Integration + AI Copilot | 2 | AI module: 2→9/12 (+58%) |
+| S2 | G1 | Vector DB + RAG (runs with S2) | 1 | Knowledge: 2→5/7 (+43%) |
+| S3 | G1 | Route Optimization (real TSP + Maps) | 1 | FSM: 4→6/11 (+18%) |
+| S3–S4 | G1 | ERP Connectors (SAP + NetSuite) | 2 | Finance: 6→8/11 (+18%) |
+| S5–S7 | G2 | Mobile PWA + Offline Sync | 3 | FSM: 6→9/11 (+27%) |
+| S5–S6 | G2 | Revenue Recognition (ASC 606) | 2 | Finance: 8→9/11 (+9%) |
+| S6 | G2 | Tax Engine (Avalara/TaxJar) | 1 | Finance: 9→10/11 (+9%) |
+| S7 | G2 | GraphQL + OpenAPI Spec | 1 | Dev platform: 5→7/10 (+20%) |
+| S7–S8 | G2 | AI Scheduling (constraints) | 2 | FSM: 9→11/11 (+18%) |
+| S8 | G2 | Computer Vision (photo validation) | 1 | FSM complete |
+| S8–S9 | G2 | Subscription / Recurring Billing | 2 | Finance: 10→11/11 (+9%) |
+| S11–S13 | G3 | Agentic AI (DEX-based) | 3 | AI: 9→12/12 (+25%) |
+| S13–S14 | G3 | IoT + Predictive Maintenance | 2 | FSM differentiation |
+| S14–S15 | G3 | CRM Email/Calendar Sync | 2 | CRM: 4→7/10 (+30%) |
+| S15 | G3 | ML Fraud Detection | 1 | Compliance: 5→7/9 (+22%) |
+| S15–S16 | G3 | ESG Scope 1/2/3 + Reporting | 2 | ESG: 1→5/5 (+80%) |
+| S16–S17 | G3 | Marketplace Extension Backend | 2 | Dev platform: 7→9/10 (+20%) |
+| S17–S18 | G3 | FlowSpace Governance Platform | 2 | Unique differentiator |
+
+**Post-Gate-1 (S4 complete):** ~55% parity → passes initial enterprise demo  
+**Post-Gate-2 (S10 complete):** ~75% parity → passes formal technical evaluation  
+**Post-Gate-3 (S18 complete):** ~90%+ parity → preferred enterprise choice with unique differentiators
+
+---
+
+## 10. What Guardian Flow Already Owns That Enterprise Competitors Don't
+
+These capabilities are built, differentiated, and should be actively highlighted in enterprise sales:
+
+| Capability | Status | Competitive Advantage |
+|-----------|--------|----------------------|
+| **FlowSpace Decision Ledger** | ✅ Production | Append-only, tenant-scoped, lineage-traced — no equivalent in ServiceNow or Salesforce |
+| **DEX Execution Context State Machine** | ✅ Production | Formal workflow orchestration with auditable stage transitions |
+| **Multi-Tenant PaaS Architecture** | ✅ Production | White-label capability; ServiceNow does not support this for customers |
+| **ESG Dashboards** | ✅ Production | No FSM competitor has ESG built into core; only available as separate Salesforce/SAP SKUs |
+| **Industry Workflow Templates with Semantic Versioning** | ✅ Production | Unique; no equivalent in any FSM platform |
+| **7-Year Immutable Audit Trail** | ✅ Production | Exceeds HIPAA and SOC 2 requirements; stronger than most competitors |
+| **Compliance Policy Framework (HIPAA/SOC2/ISO/GDPR)** | ✅ Production | Cross-framework compliance mapping built into core product |
+| **Module Breadth** | ✅ Production | Only single product covering FSM + Finance + CRM + Analytics + Compliance + ESG + Developer PaaS + Marketplace + Knowledge + Training |
+
+---
+
+## 11. Strategic Recommendations
+
+### 11.1 Immediate Actions (Next 30 days / Gate 1 kickoff)
+
+1. **Resolve the "mock AI" problem first.** Every competitor in a 2026 enterprise evaluation will demonstrate live LLM copilots. A single `server/services/llm.js` wrapper with an OpenAI or Anthropic key unlocks a dozen features simultaneously. Start with the AI assistant (highest user visibility) and work order summarization (highest technician ROI).
+
+2. **Start the ERP connector work in parallel with LLM.** SAP and NetSuite connectors are Fortune 500 checklist items. The `server/routes/connectors.js` framework exists — assign one engineer to the ERP adapters while another works on the LLM layer.
+
+3. **Fix the route optimization stub.** Replacing the `15 km hardcoded assumption` with a Google Maps API call is a one-day task and eliminates the single most visible credibility gap in any FSM demo.
+
+4. **Add MongoDB Atlas Vector Search.** It requires no new infrastructure — only an Atlas index configuration and a few changed queries in `knowledge-query.js`. This closes the RAG knowledge gap in parallel with LLM work.
+
+### 11.2 Short-Term (30–90 days / Gate 2 kickoff)
+
+5. **Ship the mobile PWA.** All enterprise FSM competitors have native or mature PWA apps. A well-crafted PWA with IndexedDB offline sync closes most of the mobile gap without requiring a native app investment, and can be delivered in parallel with other work.
+
+6. **Add Revenue Recognition and Tax Engine.** These are CFO-level sign-off items. Without ASC 606 compliance and multi-jurisdiction tax, enterprise finance teams will block the deal regardless of how strong the FSM functionality is. These are not optional.
+
+7. **Generate an OpenAPI 3.1 spec automatically.** Enterprise integration teams will ask for the API specification during technical due diligence. This is a one-sprint task with `swagger-autogen` and should not remain a gap.
+
+### 11.3 Medium-Term (90–180 days / Gate 3)
+
+8. **Build the Agentic AI layer on DEX ExecutionContext + FlowSpace.** ServiceNow AI Agents and Salesforce Agentforce are the current enterprise battleground. Guardian Flow's DEX state machine and FlowSpace decision ledger give it a structurally auditable agentic architecture that neither Salesforce nor ServiceNow can match out of the box. This is the most defensible long-term differentiator.
+
+9. **Complete the ESG Scope 1/2/3 + GRI/SASB/TCFD reporting.** No FSM competitor has this depth natively — Salesforce Net Zero Cloud and SAP Sustainability are separate, expensive SKUs. Completing this positions Guardian Flow as the only FSM platform with enterprise ESG compliance built in.
+
+10. **Pursue SOC 2 Type II certification.** The compliance documentation and 7-year immutable audit trail are already production-ready. A formal SOC 2 Type II audit converts the existing infrastructure into a procurement-unblocking credential.
+
+### 11.4 Honest Competitive Positioning
 
 ```
-                    Platform Completeness (FSM Core)
+                    Enterprise Readiness (vs Market Leaders)
 
-ServiceNow / Salesforce:  ████████████████████  AI-native, agentic, IoT-ready
+ServiceNow / Salesforce:  ████████████████████  AI-native, agentic, IoT-ready, mobile
 MS Dynamics 365 FS:       ██████████████████░░  AI copilot, mobile-first, Azure IoT
 IFS Cloud:                ████████████████░░░░  Strong asset/EAM, real scheduling
-Guardian Flow Today:      ████████████░░░░░░░░  Excellent UI/UX, strong core FSM,
-                                                real compliance, but AI is mock
-Guardian Flow (Post-C1-C3) ████████████████░░░░  Competitive across all core dims
-Guardian Flow (Post-All):  ████████████████████  Market-leading breadth
+Guardian Flow Today:      ███████░░░░░░░░░░░░░  37% parity — strong core, mock AI,
+                                                no mobile, no ERP connectors
+Guardian Flow (Post-Gate-1) ███████████░░░░░░░░  ~55% — passes enterprise demo
+Guardian Flow (Post-Gate-2) ████████████████░░░░  ~75% — passes technical evaluation
+Guardian Flow (Post-Gate-3) ████████████████████  ~90%+ — preferred enterprise choice
+                                                  with unique differentiators (FlowSpace,
+                                                  DEX, multi-tenant PaaS, ESG, breadth)
 ```
 
-**Guardian Flow already has the widest functional footprint among mid-market FSM platforms.** The platform covers work orders, financial management, CRM, analytics, compliance, developer API, marketplace, ESG, knowledge, training, and FlowSpace in a single product — no competitor covers all of these. The only meaningful gap is the depth of AI/ML intelligence, which is fixable in 2–3 sprints without architectural change.
+Guardian Flow has the **widest functional breadth** of any FSM platform — covering FSM, Finance, CRM, Analytics, Compliance, ESG, Developer PaaS, Marketplace, Knowledge, and Training in a single product. No enterprise competitor covers all of these. However, current parity against enterprise leaders is ~37%, primarily because the AI layer is mock, there is no mobile/offline capability, and key integration points (ERP, revenue recognition, tax engine) are absent.
+
+The path to becoming the **preferred enterprise choice** is clear, architecturally straightforward, and achievable in 18 sprints. The platform's unique assets — FlowSpace decision ledger, DEX execution context, multi-tenant PaaS architecture, and module breadth — become decisive competitive advantages once the parity gaps in Gate 1 and Gate 2 are closed.
 
 ---
 
-*Audit produced from full codebase review: 57 backend routes, 116 frontend pages, 15 domain modules, all planning documents (PRD v6.1, Master Unified Execution Plan v3.0, v7 Roadmap, Gap Analysis, Sprint History, Incomplete Features Table).*
+*Audit produced from full codebase review: 57 backend routes, 116 frontend pages, 15 domain modules. Enterprise comparison performed against: ServiceNow FSM, Salesforce Field Service + Sales Cloud + Agentforce, MS Dynamics 365 Field Service, IFS Cloud FSM, SAP S/4HANA, NetSuite, Sage Intacct, Zuora, Tableau, Power BI, Looker, DataRobot, SAP GRC, ServiceNow GRC, NICE Actimize, Salesforce AppExchange, MuleSoft, Salesforce Einstein Knowledge, SAP Sustainability, Salesforce Net Zero Cloud, Workiva.*
