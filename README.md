@@ -350,6 +350,7 @@ guardian-flow/
 
 | Document | Location |
 |----------|---------|
+| **Contributor Onboarding & Build Context** | [`docs/CONTRIBUTOR_ONBOARDING.md`](docs/CONTRIBUTOR_ONBOARDING.md) |
 | Build Report (build + test + audit) | [`BUILD_REPORT.md`](BUILD_REPORT.md) |
 | Platform Comprehensive Audit | [`docs/PLATFORM_COMPREHENSIVE_AUDIT.md`](docs/PLATFORM_COMPREHENSIVE_AUDIT.md) |
 | Product Requirements (PRD) | [`docs/PRD.md`](docs/PRD.md) |
