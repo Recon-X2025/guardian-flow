@@ -207,29 +207,110 @@ router.get('/devices/:id/twin', async (req, res) => {
     const device = await adapter.findOne('iot_devices', { id: req.params.id, tenant_id: tenantId });
     if (!device) return res.status(404).json({ error: 'Device not found' });
 
-    const readings = await adapter.findMany('telemetry_readings', { device_id: req.params.id, tenant_id: tenantId });
+    // Fetch recent readings (last 24h window for trend analysis)
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const allReadings = await adapter.findMany('telemetry_readings', {
+      device_id: req.params.id, tenant_id: tenantId,
+    }, { sort: { timestamp: -1 }, limit: 500 });
+
+    // Build current_readings (most recent value per property)
     const current_readings = {};
-    for (const r of readings) {
+    for (const r of allReadings) {
       if (!current_readings[r.property] || new Date(r.timestamp) > new Date(current_readings[r.property].timestamp)) {
         current_readings[r.property] = { value: r.value, unit: r.unit, timestamp: r.timestamp };
       }
     }
 
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    // Compute signal-based health score using recent readings
+    const recent = allReadings.filter(r => r.timestamp >= windowStart);
+    const { healthScore, failureDays, factors } = computeHealthScore(recent, current_readings);
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const recentAlerts = await adapter.findMany('iot_alerts', { device_id: req.params.id, tenant_id: tenantId });
-    const anomaly_count_7d = recentAlerts.filter(a => new Date(a.created_at) >= sevenDaysAgo).length;
+    const anomaly_count_7d = recentAlerts.filter(a => (a.created_at?.toString() ?? '') >= sevenDaysAgo).length;
+
+    // Persist scoring result for trend tracking
+    await adapter.insertOne('iot_health_scores', {
+      id: randomUUID(), tenant_id: tenantId, device_id: req.params.id,
+      health_score: healthScore, predicted_failure_days: failureDays,
+      factors, anomaly_count_7d, computed_at: new Date().toISOString(),
+    });
 
     res.json({
       device_id: req.params.id,
       current_readings,
-      health_score: Math.floor(Math.random() * 40 + 60),
-      predicted_failure_days: Math.floor(Math.random() * 150 + 30),
+      health_score: healthScore,
+      predicted_failure_days: failureDays,
       anomaly_count_7d,
+      factors,
+      computed_from_readings: recent.length,
     });
   } catch (err) {
     logger.error('IoT: digital twin error', { error: err.message });
     res.status(500).json({ error: 'Failed to get digital twin' });
   }
 });
+
+// ── Health scoring helpers ────────────────────────────────────────────────────
+
+// Typical sensor thresholds used to score health
+const THRESHOLDS = {
+  temperature:  { warn: 70, critical: 85 },   // °C
+  vibration:    { warn: 6,  critical: 12 },    // mm/s
+  pressure:     { warn: 150, critical: 200 },  // bar
+  humidity:     { warn: 80, critical: 95 },    // %
+  rpm:          { warn: 3500, critical: 4200 },
+  current:      { warn: 16, critical: 20 },    // A
+  voltage:      { warn: 250, critical: 280 },  // V
+};
+
+function computeHealthScore(recentReadings, currentReadings) {
+  const factors = [];
+  let totalPenalty = 0;
+
+  // Check each known property
+  for (const [prop, thresholds] of Object.entries(THRESHOLDS)) {
+    const current = currentReadings[prop];
+    if (!current) continue;
+    const val = Number(current.value);
+    if (isNaN(val)) continue;
+
+    let penalty = 0;
+    let severity = 'ok';
+    if (val >= thresholds.critical) { penalty = 30; severity = 'critical'; }
+    else if (val >= thresholds.warn) { penalty = 15; severity = 'warn'; }
+
+    // Trend penalty: if last 10 readings are trending up towards threshold
+    const propReadings = recentReadings
+      .filter(r => r.property === prop)
+      .slice(0, 10)
+      .map(r => Number(r.value))
+      .filter(v => !isNaN(v));
+    if (propReadings.length >= 3) {
+      const trend = (propReadings[0] - propReadings[propReadings.length - 1]) / propReadings.length;
+      if (trend > 0 && val > thresholds.warn * 0.8) penalty += 5; // trending up toward threshold
+    }
+
+    totalPenalty = Math.min(100, totalPenalty + penalty);
+    if (severity !== 'ok') {
+      factors.push({ property: prop, value: val, severity, penalty });
+    }
+  }
+
+  // Alert frequency penalty
+  const alertRate = recentReadings.filter(r => r._alert).length;
+  if (alertRate > 5) totalPenalty = Math.min(100, totalPenalty + 10);
+
+  const healthScore = Math.max(0, Math.round(100 - totalPenalty));
+
+  // Estimated days to failure based on health score
+  // Exponential: 100% → ~365 days, 50% → ~90 days, 0% → 0 days
+  const failureDays = healthScore === 0 ? 0
+    : healthScore < 30 ? Math.round(healthScore * 0.5)
+    : healthScore < 60 ? Math.round(30 + healthScore * 1.0)
+    : Math.round(90 + (healthScore - 60) * 6.9);
+
+  return { healthScore, failureDays, factors };
+}
 
 export default router;
