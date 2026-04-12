@@ -1,282 +1,199 @@
-# 🧪 Testing Guide - Guardian Flow
+# Testing Guide
 
-## ✅ Comprehensive Implementation Complete
+**Version:** 7.0 | **Date:** April 2026
 
-All core features are now fully implemented and ready for testing.
+## Test Stack
+
+| Type | Framework | Command |
+|------|-----------|---------|
+| Unit / Component | Vitest 1.6.1 | `node_modules/.bin/vitest run` or `npm test` |
+| E2E | Playwright 1.58.0 | `npx playwright test` |
+| API integration | Jest 30 + Supertest | `npm run test:api` |
+| Load | k6 | `npm run test:load` (requires k6 installed) |
+
+**Important:** Vitest config uses `@vitejs/plugin-react-swc` (not `@vitejs/plugin-react`). Do not swap these in `vitest.config.ts`.
 
 ---
 
-## 🚀 Quick Start - Test in 10 Minutes
+## Running Tests
 
-### Step 1: Log in as System Admin
+### Unit Tests (primary CI gate)
+
+```bash
+# Run all unit tests once
+node_modules/.bin/vitest run
+
+# Watch mode (development)
+node_modules/.bin/vitest
+
+# With coverage
+node_modules/.bin/vitest run --coverage
+
+# Single file
+node_modules/.bin/vitest run tests/unit/db-adapter.test.ts
 ```
-Email: admin@techcorp.com
-Password: Admin123!
+
+Current state: **155 tests, 21 files, 0 failures** (as of April 2026)
+
+### E2E Tests
+
+```bash
+# Run all E2E tests (requires running dev server)
+npx playwright test
+
+# With UI
+npx playwright test --ui
+
+# Specific file
+npx playwright test tests/e2e/ai-features.spec.ts
 ```
 
-**What you'll see:**
-- ✅ All modules visible in sidebar (full access)
-- ✅ Dashboard with system overview
-- ✅ All pages accessible
+E2E tests require both the frontend (`npm run dev`) and backend (`cd server && npm run dev`) to be running.
+
+### API Tests
+
+```bash
+npm run test:api
+# Runs Jest against tests/api/ — uses Supertest against the live server
+```
+
+### Full Suite
+
+```bash
+npm run test:full   # runs test-full.sh script
+npm run test:all    # e2e + api + load (load requires k6)
+```
 
 ---
 
-### Step 2: Test Ticket → Work Order Flow
+## Test Directory Structure
 
-1. **Navigate to Tickets page**
-2. **Click "Create Ticket"**
-3. Fill in:
-   - Unit Serial: `HVAC-2024-TEST001`
-   - Customer: `Test Customer Corp`
-   - Site Address: `123 Test Street`
-   - Symptom: `AC not cooling properly`
-4. **Click "Create Ticket"** ✅
-5. **Click "Create WO" button** on the new ticket
-6. **Select a technician** from dropdown
-7. **Click "Create Work Order"** ✅
-
-**Expected Result**: Work order created, ticket status changes to "assigned"
-
----
-
-### Step 3: Test Precheck Orchestration
-
-1. **Navigate to Work Orders page**
-2. **Find the draft work order** you just created
-3. **Click "Run Precheck"**
-4. Watch the orchestration run:
-   - Inventory check (cascades through stock locations)
-   - Warranty check (validates coverage)
-   - Photo validation check (checks if required photos submitted)
-5. **View results** ✅
-
-**Expected Result**: Precheck completes, shows pass/fail for each check
+```
+tests/
+├── unit/                       # Vitest unit tests
+│   ├── db-adapter.test.ts      # MongoDB + PostgreSQL adapter tests
+│   ├── auth.test.ts
+│   └── ...
+├── components/                 # Component-level tests (Vitest)
+├── e2e/                        # Playwright E2E tests
+│   ├── ai-features.spec.ts
+│   ├── tenant-isolation.spec.ts
+│   └── ...
+├── api/                        # API integration tests (Jest + Supertest)
+│   └── ai-*.api.test.js
+└── load/
+    └── stress-test.js          # k6 load test
+```
 
 ---
 
-### Step 4: Test Service Order Generation
+## Vitest Configuration
 
-1. **Change work order status to "in_progress"** (or use existing in_progress WO)
-2. **Click "Generate SO" button**
-3. **Review generated service order** with:
-   - Work order details
-   - Warranty status
-   - Parts breakdown
-   - QR code for photos
-   - Signature areas
-4. **Download PDF** ✅
+`vitest.config.ts` uses the React SWC plugin:
 
-**Expected Result**: Service order generated, invoice auto-created, WO marked complete
+```typescript
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react-swc';   // NOTE: SWC, not @vitejs/plugin-react
 
----
-
-### Step 5: Test SaPOS AI Offers
-
-1. **On Work Orders page**, find an in_progress work order
-2. **Click "SaPOS" button**
-3. **Click "Generate Offers"**
-4. Watch AI generate 2-3 contextual offers:
-   - Extended warranty
-   - Upgrades
-   - Accessories
-5. **Review offers** ✅
-
-**Expected Result**: AI-generated offers appear with pricing and descriptions
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    // ...
+  },
+});
+```
 
 ---
 
-## 🔐 Test RBAC & Tenant Isolation
+## Testing AI Features
 
-### Test 6: Partner Admin Isolation
+Because the AI layer defaults to mock mode, most tests run without an API key.
 
-1. **Log out**
-2. **Log in as**: `admin@servicepro.com` / `Partner123!`
-3. **Navigate to Finance page**
-4. **Verify**: Only see ServicePro's engineer data
-5. **Log out**
-6. **Log in as**: `admin@techfield.com` / `Partner123!`
-7. **Navigate to Finance page**
-8. **Verify**: See DIFFERENT data (TechField's engineers only) ✅
+| Test Target | Mock mode | Live mode |
+|-------------|-----------|-----------|
+| `chatCompletion()` | Uses keyword-match mock | Requires `OPENAI_API_KEY` |
+| `embedding()` | Returns `[]` (empty vector) | Requires `OPENAI_API_KEY` |
+| `analyseImage()` | Always `Math.random()` defects | No live mode exists |
+| `detectWorkOrderAnomalies()` | Real z-score (no key needed) | Same |
+| `detectFinancialAnomalies()` | Real z-score (no key needed) | Same |
 
-**Expected**: Each partner admin sees isolated data
-
----
-
-### Test 7: Role-Based Module Visibility
-
-| Role | Login | Visible Modules |
-|------|-------|-----------------|
-| Sys Admin | admin@techcorp.com | ALL |
-| Partner Admin | admin@servicepro.com | Dashboard, WO, Finance, SO, SaPOS |
-| Technician | engineer1@servicepro.com | Dashboard, Tickets, Photo Capture |
-| Finance Manager | finance@techcorp.com | Dashboard, Finance, Penalties, Invoices |
-| Fraud Investigator | fraud@techcorp.com | Dashboard, Fraud Investigation |
-| Dispatcher | dispatch@techcorp.com | Dashboard, Dispatch, Tickets, WO |
-
-**Test each role** and verify sidebar matches expected modules ✅
+To run AI API tests against the real OpenAI API:
+```bash
+OPENAI_API_KEY=sk-... AI_PROVIDER=openai npm run test:ai-api
+```
 
 ---
 
-### Test 8: API Authorization
+## Testing RBAC
 
-1. **Log in as technician**: `engineer1@servicepro.com` / `Tech123!`
-2. **Open DevTools** → Network tab
-3. **Try to navigate to** `/settings`
-4. **Expected**: Access Denied page shown, API returns 403 ✅
+### Manual Role Testing
 
----
+1. **Operations Manager** — login → Dispatch page should show "View-Only Mode" alert, no action buttons
+2. **Dispatcher** — Dispatch page: can check-in/out and release to field; Work Orders: "View SO" (disabled) not "Generate SO"
+3. **Technician** — Dashboard shows only assigned WOs; Finance pages inaccessible
+4. **Finance Manager** — Full invoice/payment access; Work Orders read-only
 
-## 📊 Test Fraud Investigation
+### Automated Tenant Isolation Tests
 
-### Test 9: Fraud Alert Workflow
+```bash
+npx playwright test tests/e2e/tenant-isolation.spec.ts
+```
 
-1. **Log in as**: `fraud@techcorp.com` / `Fraud123!`
-2. **Navigate to Fraud Investigation**
-3. **View sample alerts** (3 pre-seeded)
-4. **Click "Investigate"** on an open alert
-5. **Change status to** "in_progress"
-6. **Add resolution notes**: "Investigating photo source"
-7. **Click "Update Investigation"** ✅
-
-**Expected**: Alert status updated, notes saved
+Tests verify:
+- Tenant A cannot view Tenant B tickets via API
+- Tenant B cannot view Tenant A work orders
+- 403 responses include `correlationId`
 
 ---
 
-## 🚚 Test Dispatch
+## Database Tests
 
-### Test 10: Technician Assignment
+The DB adapter tests cover both MongoDB and PostgreSQL paths:
 
-1. **Log in as**: `dispatch@techcorp.com` / `Dispatch123!`
-2. **Navigate to Dispatch page**
-3. **View unassigned work orders**
-4. **Click "Assign Technician"**
-5. **Select a technician**
-6. **Click "Assign & Dispatch"** ✅
+```bash
+# MongoDB adapter (default)
+node_modules/.bin/vitest run tests/unit/db-adapter.test.ts
 
-**Expected**: Work order assigned, ticket status updated
-
----
-
-## 💰 Test Finance Workflow
-
-### Test 11: Invoice Generation
-
-1. Service orders auto-generate invoices when created
-2. **Navigate to Finance page**
-3. **View invoices** linked to completed work orders
-4. **Check penalty applications** (if any)
-5. **Review revenue chart** (last 30 days) ✅
+# PostgreSQL adapter
+DB_ADAPTER=postgresql POSTGRES_URI=postgres://... node_modules/.bin/vitest run tests/unit/db-adapter.test.ts
+```
 
 ---
 
-## 🔒 Test Override & MFA
+## DB Migrations
 
-### Test 12: Override Request Flow
+Before running integration tests against a fresh database:
 
-1. **Log in as**: `ops@techcorp.com` / `Ops123!`
-2. Create override request for failed precheck
-3. **Log out**
-4. **Log in as**: `admin@techcorp.com` / `Admin123!`
-5. **Request MFA token**
-6. **Approve override with MFA** ✅
-
-**Expected**: Override approved, audit log created
+```bash
+node server/scripts/phase0-migration.js
+# Idempotent — safe to run multiple times
+# Tracks applied migrations via schema_migrations collection
+```
 
 ---
 
-## 📸 Test Photo Capture (Technician PWA)
+## Coverage Notes
 
-### Test 13: Photo Validation
+### Well-covered
+- DB adapter abstraction (MongoDB + PostgreSQL)
+- Auth middleware (JWT validation, tenant scoping)
+- Core route handlers (work orders, invoices, CRM)
+- Anomaly detection (z-score calculations)
+- FlowSpace write/read operations
 
-1. **Log in as**: `engineer1@servicepro.com` / `Tech123!`
-2. **Navigate to Photo Capture page**
-3. **Capture 4 required photos**:
-   - Context-wide view
-   - Pre-closeup inspection
-   - Serial number plate
-   - Replacement part
-4. **Submit photos** ✅
-
-**Expected**: Photos uploaded, validation record created
-
----
-
-## 📋 Feature Checklist - What Works Now
-
-### ✅ Fully Functional
-- [x] Authentication & session management
-- [x] RBAC enforcement (UI + API)
-- [x] Tenant isolation (4 partner orgs)
-- [x] Ticket creation & management
-- [x] Work order creation from tickets
-- [x] Technician assignment
-- [x] Precheck orchestration (inventory, warranty, photos)
-- [x] Service order generation with AI
-- [x] SaPOS offer generation with AI
-- [x] Invoice auto-generation
-- [x] Fraud alert investigation
-- [x] Dispatch management
-- [x] Quote creation & tracking
-- [x] Audit logging
-- [x] Override request & MFA approval
-- [x] Role assignment/removal
-
-### ⚠️ Partially Complete
-- [ ] Photo capture UI (component exists, needs validation integration)
-- [ ] PDF generation for service orders (uses browser print)
-- [ ] Penalty auto-application (matrix exists, application logic needed)
-- [ ] Payment processing (invoices created, payment flow needed)
-
-### ❌ Not Implemented
-- [ ] Real-time dashboard updates
-- [ ] Mobile-optimized technician PWA
-- [ ] Push notifications for dispatch
-- [ ] Email notifications for invoices
-- [ ] Advanced analytics & reporting
+### Not covered / gaps
+- Vision service (mock only — no integration test possible without real CV model)
+- ERP connector stubs (no real API credentials available)
+- MQTT/IoT ingestion (stub — requires live broker)
+- PWA/offline sync (not built)
 
 ---
 
-## 🐛 Troubleshooting
+## npm audit
 
-### No data showing?
-**Run seed accounts** button on auth page to create:
-- 174 test accounts
-- 4 partner organizations
-- Sample tickets, work orders, fraud alerts, quotes
+```bash
+npm audit
+```
 
-### Can't create work orders?
-**Make sure**:
-- Ticket exists and is in "open" status
-- User has `wo.create` permission
-- At least one technician account exists
-
-### Precheck fails?
-**Check**:
-- Warranty record exists for unit serial
-- Inventory items exist with stock levels
-- Photos have been uploaded (4 required)
-
-### API returns 403?
-**Verify**:
-- User is logged in
-- User has required permission
-- Tenant isolation policies allow the operation
-- Check audit logs for authorization failures
-
----
-
-## 📞 Support & Next Steps
-
-**All features ready for production testing!**
-
-Test accounts ready:
-- 4 partner admins (40 engineers each)
-- Platform roles (admin, ops, finance, fraud, dispatch)
-- Sample data (tickets, work orders, fraud alerts, quotes)
-
-**Start testing now** by following the steps above.
-
-For issues, check:
-- Console logs
-- Network requests
-- Audit logs: `SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 50;`
+Current state: **17 pre-existing vulnerabilities** (1 critical, 7 high, 8 moderate, 1 low) — all in the devDependency chain, none in runtime production dependencies. Do not block CI on these; track upstream fixes.

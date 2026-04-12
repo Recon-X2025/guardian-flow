@@ -1,91 +1,156 @@
-# SOC 2 & ISO 27001 Compliance Automation System
+# SOC 2 Compliance System Guide
 
-## System Overview
+**Version:** 7.0 | **Date:** April 2026
 
-Comprehensive compliance automation suite with 40+ database tables, 6 Express.js route handlers, and full RBAC coverage.
+## Overview
 
-## Key Components
+This guide describes the compliance infrastructure that is currently built into the Guardian Flow platform. It documents what is implemented, what is pending, and how compliance evidence is collected.
 
-### 1. Access Control Automation
-- **JIT Privileged Access**: Temporary elevated permissions with auto-expiration
-- **Quarterly Access Reviews**: Automated campaigns with auto-revoke
-- **Risk-based MFA**: Adaptive authentication based on risk scoring
-- **Express.js Route Handler**: `compliance-access-reviewer`
+> **Honest status:** The compliance *infrastructure* (audit logging, access controls, incident response routes) is implemented. The formal SOC 2 Type II *audit* has not been initiated. Certification is targeted for Q4 2026.
 
-### 2. Vulnerability Management
-- **Automated Scanning**: Integration-ready for Snyk, Trivy, OWASP ZAP
-- **SLA Tracking**: Critical (24h), High (7d), Medium (30d), Low (90d)
-- **Auto-Ticketing**: Creates remediation tickets in external systems
-- **Express.js Route Handler**: `compliance-vulnerability-manager`
+---
 
-### 3. Audit & Logging
-- **7-Year Retention**: Partitioned immutable archive tables
-- **SIEM Integration**: Datadog, Splunk, Azure Sentinel support
-- **Real-time Alerts**: Configurable severity-based notifications
-- **Express.js Route Handler**: `compliance-siem-forwarder`
+## 1. Compliance Infrastructure — Implemented
 
-### 4. Compliance Evidence
-- **Auto-Collection**: Gathers evidence for all controls
-- **Framework Support**: SOC 2 Type II, ISO 27001:2022
-- **Report Generation**: Audit-ready evidence packages
-- **Express.js Route Handler**: `compliance-evidence-collector`
+### 1.1 Audit Logging
 
-### 5. Incident Response
-- **Incident Management**: P0-P3 severity classification
-- **Playbook Library**: Pre-defined response procedures
-- **Timeline Tracking**: Complete incident lifecycle
-- **Express.js Route Handler**: `compliance-incident-manager`
+All sensitive operations are logged to the `audit_logs` collection:
 
-### 6. Training & Awareness
-- **Course Management**: Assignment, tracking, certification
-- **Phishing Simulations**: Automated campaign execution
-- **Compliance Tracking**: Completion rates and remediation
-- **Express.js Route Handler**: `compliance-training-manager`
+```javascript
+import { logAuditEvent } from '../services/audit.js';
 
-## Database Schema
+await logAuditEvent(db, {
+  userId: req.user.id,
+  action: 'workorder.override',
+  resourceType: 'work_order',
+  resourceId: woId,
+  actorRole: req.user.roles[0],
+  tenantId: req.user.tenantId,
+  correlationId: req.correlationId,
+});
+```
 
-**40+ Tables** covering:
-- Access control (3 tables)
-- Logging (3 tables + 7 archive partitions)
-- Vulnerabilities (3 tables)
-- Encryption (2 tables)
-- Incidents (3 tables)
-- Risk management (3 tables)
-- Vendors (2 tables)
-- Training (4 tables)
-- Policies (2 tables)
-- Evidence (2 tables)
+Audit log properties:
+- **Retention:** 7-year immutable archive (partitioned `audit_logs_2025` through `audit_logs_2031`)
+- **Tenant isolation:** Every log entry includes `tenant_id`
+- **Correlation:** Every entry linked to the request `correlationId`
+- **Cannot be deleted** via normal API — requires DBA-level access
 
-## Security Features
+### 1.2 Access Control
 
-✅ 100% tenant isolation coverage across all tables
-✅ Immutable audit logs with tamper-proof hashing
-✅ Role-based access (sys_admin, auditor, tenant_admin)
-✅ Automated compliance scoring
-✅ Real-time alerting on violations
-✅ Zero-deletion policies on critical tables
+| Control | Implementation |
+|---------|---------------|
+| RBAC (8 roles) | `user_roles` + `role_permissions` collections; enforced in every route |
+| MFA for high-risk ops | `mfa_tokens` collection; TOTP validation |
+| JIT privileged access | Temporary elevated permissions with automatic expiry |
+| Automated quarterly access reviews | Review campaigns in `access_review_campaigns` collection |
+| Session tokens | JWT (24h expiry) + refresh tokens |
 
-## Getting Started
+### 1.3 Data Protection
 
-1. **Access Reviews**: Create campaigns via `compliance-access-reviewer`
-2. **Vulnerability Scans**: Ingest results via `compliance-vulnerability-manager`
-3. **SIEM Setup**: Configure forwarding in `compliance-siem-forwarder`
-4. **Evidence Collection**: Run `compliance-evidence-collector` monthly
-5. **Incident Tracking**: Use `compliance-incident-manager` for P0-P3 events
+| Control | Implementation |
+|---------|---------------|
+| Encryption at rest | MongoDB Atlas managed encryption |
+| Encryption in transit | TLS (configure at load balancer / reverse proxy) |
+| Input sanitisation | Zod schemas on all API request bodies |
+| Output sanitisation | DOMPurify on frontend; no raw HTML from API |
+| Password hashing | bcryptjs, salt rounds 10 |
 
-## Compliance KPIs
+### 1.4 Incident Response
 
-- MFA Enrollment Rate: Target 100%
-- Access Review Completion: Quarterly
-- Vulnerability SLA Compliance: >95%
-- Training Completion: >95%
-- Audit Log Retention: 7 years
-- Incident MTTR: <4 hours (P1)
+`server/routes/security-monitor.js` at `/api/security` provides:
+- P0–P3 incident classification and tracking
+- Incident timeline recording
+- SIEM webhook forwarding (configure `SIEM_WEBHOOK_URL`)
+- Post-incident review templates
 
-## Audit-Ready Reports
+### 1.5 Vulnerability Management
 
-System auto-generates evidence for:
-- CC1.1 - CC5.3 (SOC 2 Common Criteria)
-- A.5 - A.18 (ISO 27001 Annex A)
+- npm audit runs on every CI build
+- Current state: 17 upstream vulnerabilities (all devDependencies, not runtime)
+- SLA for patching: Critical — 24h; High — 7 days; Medium — 30 days
 
-Ready for production SOC 2 Type II and ISO 27001 audits.
+### 1.6 Policy Governance
+
+```
+policy_registry collection: all active security and compliance policies
+agent_policy_bindings: which automated agents are bound to which policies
+compliance_policy route (/api/compliance-policy): enforcement + evidence
+```
+
+---
+
+## 2. Compliance Routes
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/compliance-policy/policies` | List all active policies |
+| `POST /api/compliance-policy/policies` | Create a new policy |
+| `GET /api/compliance-policy/evidence` | Export compliance evidence for auditors |
+| `POST /api/compliance-policy/incidents` | Record a security incident |
+| `GET /api/compliance-policy/access-reviews` | List access review campaigns |
+| `GET /api/audit-log` | Export audit logs (filterable by tenant, date range, actor) |
+
+---
+
+## 3. Collecting Compliance Evidence
+
+For audit preparation, export evidence packages:
+
+```bash
+# All audit logs for a 30-day period
+GET /api/audit-log?from=2026-01-01&to=2026-01-31&format=csv
+Authorization: Bearer <sys_admin_token>
+
+# Access review records
+GET /api/compliance-policy/access-reviews?completed=true
+Authorization: Bearer <sys_admin_token>
+
+# Policy enforcement log
+GET /api/compliance-policy/evidence?period=Q1-2026
+Authorization: Bearer <sys_admin_token>
+```
+
+---
+
+## 4. SOC 2 Trust Service Criteria — Status
+
+| Criterion | Evidence Available | Gap |
+|-----------|-------------------|-----|
+| CC6.1 Logical access controls | RBAC audit logs, `user_roles` | Need formal access review cadence documentation |
+| CC6.2 Authentication | JWT + MFA logs | Need password policy documentation |
+| CC6.3 Role assignment | `user_roles` collection | Need provisioning/deprovisioning runbook |
+| CC7.1 Threat detection | Anomaly detection logs | No WAF; no SIEM subscription yet |
+| CC7.2 Incident response | Incident log in `security-monitor` | Need tested runbook + tabletop exercise |
+| CC9.1 Change management | FlowSpace release records | Need formal SDLC change control policy |
+| A1.1 Availability | Health endpoints, metrics | No SLA commitment document |
+| C1.1 Confidentiality | Tenant isolation, encryption | Pending penetration test |
+
+---
+
+## 5. Gaps Before SOC 2 Audit Can Begin
+
+| Gap | Priority |
+|-----|---------|
+| Formal incident response runbook (tested) | High |
+| Penetration test (external) | High |
+| WAF deployment | Medium |
+| Formal change management policy document | Medium |
+| Password policy documentation | Low |
+| SLA commitment document | Low |
+
+See `docs/SOC2_ISO27001_COMPLIANCE_ROADMAP.md` for the full 18-month plan.
+
+---
+
+## 6. GDPR / Data Residency
+
+The application architecture supports GDPR compliance in principle:
+- Data is tenant-isolated
+- Audit logs record all data access
+- Delete endpoints exist for user data
+
+**Not implemented:**
+- Formal GDPR data processing agreements (DPA) templates
+- Automated data subject access request (DSAR) workflow
+- Data residency enforcement (requires cloud-region configuration at Atlas level)

@@ -1,397 +1,275 @@
 # Guardian Flow — Product Requirements Document (PRD)
 
-**Version:** 6.1
-**Date:** January 29, 2026
-**Author:** Engineering Team
-**Status:** Active
+**Version:** 7.0  
+**Date:** April 2026  
+**Status:** Living document — updated to reflect actual build state as of v6.1  
+
+> **Honesty note:** This document distinguishes between features that are *production-ready*, features that are *code-complete but require configuration* (e.g., an API key), and features that are *stubs or not yet built*. Previous versions did not make this distinction clearly enough.
 
 ---
 
 ## 1. Executive Summary
 
-Guardian Flow is a unified enterprise platform for field service management that replaces fragmented tooling with an integrated solution spanning operations, finance, AI/ML intelligence, compliance, and developer extensibility. The platform serves mid-to-large enterprises managing field technicians, equipment assets, and service contracts across geographies.
+Guardian Flow is a multi-tenant enterprise field service management (FSM) platform with PaaS capabilities. It covers work order orchestration, financial management, CRM, analytics, compliance, AI/ML services, developer extensibility, and ESG reporting in a single product.
+
+**Current parity vs enterprise market leaders:** ~37% (see `PLATFORM_COMPREHENSIVE_AUDIT.md` for full breakdown).
 
 ### 1.1 Vision
 
-Eliminate operational inefficiency in field service organizations by combining real-time dispatch, predictive analytics, automated compliance, and self-service portals into a single multi-tenant platform.
+Become the preferred enterprise FSM platform for organisations that require deep compliance auditability, multi-domain coverage in a single product, and a developer-extensible PaaS layer — at a price point below ServiceNow and Salesforce Field Service.
 
 ### 1.2 Target Users
 
 | Persona | Role | Primary Needs |
 |---------|------|---------------|
 | Operations Manager | `ops_manager` | Work order oversight, SLA monitoring, resource allocation |
-| Dispatcher | `dispatcher` | Technician assignment, route optimization, real-time tracking |
-| Field Technician | `technician` | Mobile work orders, photo capture, parts validation |
+| Dispatcher | `dispatcher` | Technician assignment, route optimisation, real-time tracking |
+| Field Technician | `technician` | Work orders, photo capture, parts validation |
 | Finance Manager | `finance_manager` | Invoicing, payment tracking, penalty enforcement |
 | System Administrator | `sys_admin` | Platform configuration, RBAC, tenant management |
+| Tenant Administrator | `tenant_admin` | User management within a tenant |
 | Fraud Investigator | `fraud_investigator` | Image forensics, anomaly detection, compliance |
 | Customer | `customer` | Self-service portal, service booking, ticket tracking |
-| Developer/Partner | `partner_admin` | API access, marketplace extensions, webhooks |
+| Developer / Partner | `partner_admin` | API access, marketplace extensions, webhooks |
 | ML Engineer | `ml_ops` | Model training, performance monitoring, experimentation |
 
 ---
 
-## 2. Product Requirements
+## 2. Feature Inventory & Status
 
-### 2.1 Core Operations
+Status legend:
+- ✅ **Production-ready** — fully implemented, tested, tenant-isolated
+- 🔑 **Needs API key** — code-complete but requires an environment variable to activate live mode
+- 🔧 **Partial / Simplified** — implemented with known limitations noted below
+- 🔲 **Stub** — route/service scaffolding exists but no real logic
+- ❌ **Not built** — no implementation exists
 
-#### REQ-OPS-001: Work Order Management
-- **Priority:** P0 (Critical)
-- **Description:** Full work order lifecycle from creation through completion with precheck gating, technician assignment, and photo validation.
-- **Acceptance Criteria:**
-  - Users can create work orders with required fields (unit serial, customer, repair type)
-  - Work orders follow status progression: Draft → Assigned → In Progress → Pending Validation → Completed
-  - Precheck validation blocks progression until all required steps pass
-  - Photo validation requires multi-angle captures
-  - Work orders are tenant-isolated
-- **Roles:** sys_admin, tenant_admin, ops_manager, dispatcher, technician, partner_admin
+### 2.1 Field Service Management (FSM Core)
 
-#### REQ-OPS-002: Ticket Management
-- **Priority:** P0
-- **Description:** Support ticket creation, assignment, and resolution tracking.
-- **Acceptance Criteria:**
-  - Create tickets with unit serial, customer, symptom description
-  - Tickets link to work orders
-  - Status tracking with assignment history
-- **Roles:** sys_admin, tenant_admin, ops_manager, dispatcher, technician, support_agent
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Work Order lifecycle (create → complete) | ✅ | Full status progression, tenant-isolated |
+| Ticket management | ✅ | Linked to work orders |
+| Dispatch board | ✅ | Map-based, real-time assignment |
+| Schedule optimiser | 🔧 | Greedy constraint solver — skill match, SLA urgency, proximity; uses Euclidean distance (not real driving time) |
+| Route optimisation | 🔧 | Nearest-neighbour TSP using haversine distance at 50 km/h assumption — no Google Maps API |
+| Predictive maintenance | 🔑 | Scaffold complete; predictions require ML model data; IoT sensor ingestion is stub |
+| Asset / Equipment management | ✅ | Registration, serial numbers, warranty tracking |
+| Inventory & procurement | ✅ | Stock levels, low-stock alerts, purchase orders |
+| Technician management | ✅ | Skills, certifications, availability |
+| Service orders (SaPOS) | ✅ | Generation, PDF export |
+| Photo capture & validation | 🔲 | Upload works; defect analysis is mock (`Math.random()`) — not real CV |
+| IoT telemetry ingestion | 🔲 | MQTT stub — activates only when `MQTT_BROKER_URL` env var is set; no real broker |
+| Mobile / Offline PWA | ❌ | `vite-plugin-pwa` in devDependencies but not configured; no offline sync |
 
-#### REQ-OPS-003: Dispatch & Scheduling
-- **Priority:** P0
-- **Description:** Real-time technician dispatch with geolocation, route optimization, and schedule management.
-- **Acceptance Criteria:**
-  - Map-based technician location display
-  - Route optimization for multi-stop assignments
-  - Schedule optimizer with conflict detection
-  - Maintenance calendar for preventive scheduling
-- **Roles:** sys_admin, ops_manager, dispatcher
+### 2.2 Financial Management
 
-#### REQ-OPS-004: Equipment & Inventory Management
-- **Priority:** P1
-- **Description:** Equipment registry, lifecycle tracking, inventory stock management, and procurement.
-- **Acceptance Criteria:**
-  - Equipment registration with serial numbers and warranty info
-  - Stock level tracking by location
-  - Low-stock alerts
-  - Purchase order creation
-  - Warranty validation before service
-- **Roles:** sys_admin, ops_manager, technician
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Invoicing | ✅ | Create, edit, PDF generation |
+| Payments (Stripe / PayPal / Razorpay) | 🔑 | Code-complete; activates with payment provider API keys |
+| Quotes | ✅ | |
+| Penalties | ✅ | |
+| Dispute management | ✅ | |
+| General ledger | ✅ | Double-entry bookkeeping |
+| Accounts payable | ✅ | |
+| Bank reconciliation | ✅ | |
+| Budgeting | ✅ | |
+| Pricing calculator | ✅ | |
+| Warranty management | ✅ | |
+| Revenue recognition (ASC 606 / IFRS 15) | ❌ | Not built |
+| Recurring / subscription billing | ❌ | Not built |
+| Multi-jurisdiction tax engine | ❌ | Not built |
 
-#### REQ-OPS-005: Service Orders
-- **Priority:** P1
-- **Description:** Formalized service order generation from work orders with template support.
-- **Acceptance Criteria:**
-  - Generate service orders from work order data
-  - Template-based document generation
-  - PDF export capability
-- **Roles:** sys_admin, tenant_admin, ops_manager
+### 2.3 CRM
 
----
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Accounts | ✅ | |
+| Contacts | ✅ | |
+| Leads (with server-side scoring) | ✅ | Lead convert endpoint: `POST /api/crm/leads/:id/convert` |
+| Deals | ✅ | |
+| Pipeline (Kanban drag-and-drop) | ✅ | dnd-kit based |
+| Email / Calendar sync (Gmail, Outlook) | ❌ | Not built |
+| Marketing automation | ❌ | Not built |
 
-### 2.2 Financial Operations
+### 2.4 AI / ML Platform
 
-#### REQ-FIN-001: Invoicing & Payments
-- **Priority:** P0
-- **Description:** Invoice generation, multi-gateway payment processing, and reconciliation.
-- **Acceptance Criteria:**
-  - Create invoices linked to work orders/service orders
-  - Process payments via Stripe, PayPal, or Razorpay
-  - Payment status tracking and receipt generation
-  - Refund processing
-- **Roles:** finance_manager, billing_agent
+| Feature | Status | Notes |
+|---------|--------|-------|
+| LLM assistant (chat) | 🔑 | Real GPT-4o when `OPENAI_API_KEY` is set; keyword-match mock otherwise |
+| Work order summarisation | 🔑 | Activates with LLM |
+| SaPOS offer generation (AI) | 🔑 | Activates with LLM |
+| RAG knowledge search | 🔑 | Cosine similarity on stored embeddings; requires `OPENAI_API_KEY` for real embedding generation |
+| Anomaly detection (statistical) | ✅ | Real z-score analysis on work order completion times and financial transactions |
+| Computer vision / photo defect detection | 🔲 | **Stub — `Math.random()` defect generator; no real vision model** |
+| NLP query interface | 🔑 | Activates with LLM |
+| ML model training / experimentation | 🔧 | AutoML scaffolding; no production-grade training pipeline |
+| Model performance monitoring | 🔧 | Metrics endpoint exists; mock data |
+| Explainable AI (XAI) | 🔧 | Route exists; simplified outputs |
+| Federated learning coordinator | 🔲 | Route stub only |
+| AI governance / audit logs | ✅ | `ai_governance_logs` collection; all LLM calls logged to FlowSpace |
+| Fine-tuning interface | 🔧 | Route exists; simplified |
 
-#### REQ-FIN-002: SLA Penalty Management
-- **Priority:** P1
-- **Description:** Automated SLA breach detection and penalty calculation.
-- **Acceptance Criteria:**
-  - Configurable SLA thresholds per contract/tenant
-  - Automated penalty calculation based on breach severity
-  - Penalty application with audit trail
-  - Dispute mechanism for contested penalties
-- **Roles:** finance_manager, ops_manager
+### 2.5 Compliance & Security
 
-#### REQ-FIN-003: Quotes & Contracts
-- **Priority:** P1
-- **Description:** Service quote generation and contract lifecycle management.
-- **Acceptance Criteria:**
-  - Generate quotes with line items and pricing
-  - Contract management with renewal tracking
-  - Warranty record management
-- **Roles:** finance_manager, ops_manager
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 7-year immutable audit trail | ✅ | Partitioned `audit_logs` collection |
+| RBAC (8 roles, action-level) | ✅ | Backend + frontend enforcement |
+| Multi-tenant isolation (application-level) | ✅ | All queries tenant-scoped |
+| MFA for high-risk operations | ✅ | `mfa_tokens` collection |
+| Compliance policy framework | ✅ | `policy_registry`, `agent_policy_bindings` |
+| Fraud / anomaly investigation | ✅ | Real z-score detection; investigation UI |
+| Image forensics (forgery detection) | 🔑 | Activates with LLM vision; basic tamper scoring |
+| Incident response system (P0–P3) | ✅ | |
+| JIT privileged access control | ✅ | |
+| Automated quarterly access reviews | ✅ | |
+| SIEM integration | 🔑 | Webhook-based; requires SIEM endpoint configuration |
+| SOC 2 Type II certification | ❌ | Infrastructure ready; formal audit not yet initiated |
+| ISO 27001 certification | ❌ | Infrastructure ready; formal audit not yet initiated |
 
----
+### 2.6 Customer & Partner Portals
 
-### 2.3 AI & Machine Learning
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Customer self-service portal | ✅ | Booking, ticket tracking |
+| Customer 360 view | ✅ | |
+| Partner portal | ✅ | |
+| Customer communications (in-app, email) | 🔑 | Requires SMTP/email provider configuration |
+| Customer satisfaction surveys | 🔲 | Route stub |
+| Customer health scoring (real-time) | 🔲 | Stub |
 
-#### REQ-ML-001: Equipment Failure Prediction
-- **Priority:** P1
-- **Description:** Predict equipment failure probability using logistic regression on maintenance history.
-- **Acceptance Criteria:**
-  - Train on asset lifecycle events (maintenance, failures, inspections)
-  - Output risk level (CRITICAL/HIGH/MEDIUM/LOW) with probability score
-  - Accuracy >= 80%
-  - Fallback to heuristic rules when no trained model exists
-  - Model weights stored in `ml_models` table as JSONB
-- **Current Performance:** 85% accuracy
+### 2.7 Developer Platform / PaaS
 
-#### REQ-ML-002: SLA Breach Prediction
-- **Priority:** P1
-- **Description:** Predict probability of SLA breach for open work orders.
-- **Acceptance Criteria:**
-  - Features: work order age, priority, technician assignment, day/time patterns
-  - Output breach probability per work order
-  - Accuracy >= 80%
-  - Configurable SLA threshold (default 7 days)
-- **Current Performance:** 83% accuracy
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Developer portal & API docs | ✅ | |
+| Partner API gateway (rate-limited) | ✅ | |
+| Webhooks (delivery + retry) | ✅ | |
+| Serverless functions (`/api/functions`) | ✅ | |
+| Custom dashboard builder | ✅ | |
+| Marketplace (listing/installation) | ✅ | Frontend complete |
+| Marketplace extension backend | 🔲 | Route stub — no submission/certification workflow |
+| GraphQL API | ❌ | Not built; REST only |
+| Auto-generated OpenAPI spec | ❌ | Not built |
+| ERP connectors (SAP, Salesforce, QB) | 🔲 | **Stubs — service classes exist but make no real API calls** |
 
-#### REQ-ML-003: Demand Forecasting
-- **Priority:** P1
-- **Description:** Time series forecasting for repair volume, spend, and resource planning.
-- **Acceptance Criteria:**
-  - Holt-Winters triple exponential smoothing with seasonal decomposition
-  - Configurable forecast horizon (default 30 days)
-  - Confidence intervals that widen with forecast distance
-  - Forecast types: repair_volume, spend_revenue, engineer_shrinkage
-  - R-squared >= 0.70
-- **Current Performance:** R-squared = 0.79
+### 2.8 Analytics & Reporting
 
-#### REQ-ML-004: Anomaly Detection
-- **Priority:** P1
-- **Description:** Statistical anomaly detection on operational metrics.
-- **Acceptance Criteria:**
-  - Four detection methods: Z-Score, Modified Z-Score (MAD), IQR, Sliding Window
-  - Consensus voting: anomaly if >= 2 methods agree
-  - Deterministic (no random components)
-  - Severity classification (low/medium/high)
-  - Anomaly type classification (spike, outlier, etc.)
-- **Status:** Fully implemented
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Analytics dashboards | ✅ | |
+| Forecasting (hierarchical, India-market) | ✅ | Statistical + LLM-powered (activates with API key) |
+| Anomaly detection dashboards | ✅ | Real z-score backed |
+| Custom report builder | ✅ | |
+| Observability (platform metrics) | ✅ | |
+| A/B test manager | ✅ | |
+| Advanced BI / embedded analytics | 🔧 | Charts powered by Recharts; no Tableau/Looker integration |
 
-#### REQ-ML-005: AI Assistant & NLP
-- **Priority:** P2
-- **Description:** Natural language interface for database queries and operational assistance.
-- **Acceptance Criteria:**
-  - Natural language to SQL query translation
-  - AI-powered service offer generation (SAPOS)
-  - RAG engine for knowledge base queries
-  - Prompt template management
-- **Integration:** Google Gemini 2.5 Flash
+### 2.9 Knowledge Management
 
-#### REQ-ML-006: Model Management
-- **Priority:** P1
-- **Description:** ML model lifecycle management including training, versioning, and deployment.
-- **Acceptance Criteria:**
-  - Train models via API (`POST /api/ml/train/{type}`)
-  - Model versioning with upsert (no duplicates)
-  - Performance metrics stored (accuracy, precision, recall, F1)
-  - Synthetic data fallback when insufficient real data
-  - Model listing and status via API
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Knowledge base (CRUD) | ✅ | |
+| FAQ management | ✅ | |
+| RAG query engine | 🔑 | Real cosine similarity search when embeddings are generated |
+| AI-powered answers | 🔑 | Requires OPENAI_API_KEY |
+| Article indexing (embeddings) | 🔑 | Requires OPENAI_API_KEY |
 
----
+### 2.10 ESG / Sustainability
 
-### 2.4 Fraud & Compliance
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ESG dashboards | ✅ | Carbon, waste, energy metrics |
+| ESG route backend | ✅ | |
+| Scope 1 / 2 / 3 emissions methodology | ❌ | Not built |
+| GRI / SASB / TCFD report generation | ❌ | Not built |
+| Regulatory submission automation | ❌ | Not built |
 
-#### REQ-SEC-001: Image Forensics
-- **Priority:** P2
-- **Description:** Detect forged or manipulated images in work order photo submissions.
-- **Acceptance Criteria:**
-  - Forgery detection with confidence scores
-  - Batch processing capability
-  - Feedback loop for model improvement
-- **Roles:** fraud_investigator
+### 2.11 Unique Platform Capabilities
 
-#### REQ-SEC-002: Compliance Management
-- **Priority:** P1
-- **Description:** Policy enforcement, evidence collection, vulnerability management, and audit trails.
-- **Acceptance Criteria:**
-  - Policy registry with enforcement rules
-  - Automated compliance evidence collection
-  - Vulnerability tracking and management
-  - SIEM integration for security event forwarding
-  - Complete audit trail for all operations
-  - Incident management and tracking
-- **Roles:** sys_admin, auditor, fraud_investigator
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **FlowSpace decision ledger** | ✅ | Append-only, tenant-scoped, lineage-traced; no competitor equivalent |
+| **DEX ExecutionContext state machine** | ✅ | Formal workflow orchestration with auditable stage transitions |
+| **Multi-tenant PaaS architecture** | ✅ | White-label capable; tenant isolation across all collections |
+| Industry workflow templates | ✅ | Semantic versioning, template library |
+| Org Management Console (MAC) | ✅ | sys_admin + tenant_admin at `/org-console` |
+| SSO / SAML | ✅ | `server/routes/sso.js`; requires SAML provider configuration |
 
-#### REQ-SEC-003: Multi-Factor Authentication
-- **Priority:** P1
-- **Description:** MFA for sensitive operations.
-- **Acceptance Criteria:**
-  - MFA code generation and verification
-  - Configurable per-role MFA requirements
-- **Roles:** All roles
+### 2.12 Internationalisation
 
----
-
-### 2.5 Analytics & Reporting
-
-#### REQ-ANA-001: Operational Analytics
-- **Priority:** P1
-- **Description:** Real-time dashboards with SLA tracking, KPIs, and trend analysis.
-- **Acceptance Criteria:**
-  - SLA compliance metrics
-  - Work order throughput and aging
-  - Technician utilization
-  - Revenue and cost tracking
-- **Roles:** sys_admin, ops_manager, finance_manager
-
-#### REQ-ANA-002: Custom Report Builder
-- **Priority:** P2
-- **Description:** User-defined reports with flexible data selection and visualization.
-- **Acceptance Criteria:**
-  - Drag-and-drop report builder
-  - Multiple chart types (bar, line, pie via Recharts)
-  - PDF export
-  - Scheduled report generation
-- **Roles:** sys_admin, ops_manager, finance_manager
-
-#### REQ-ANA-003: A/B Testing
-- **Priority:** P3
-- **Description:** Experiment management for feature rollouts and workflow optimization.
-- **Acceptance Criteria:**
-  - Experiment creation with variants
-  - Traffic splitting
-  - Statistical significance calculation
-- **Roles:** product_owner, sys_admin
-
----
-
-### 2.6 Platform & Developer Experience
-
-#### REQ-PLT-001: Multi-Tenant Architecture
-- **Priority:** P0
-- **Description:** Complete data isolation between tenants with tenant-scoped RBAC.
-- **Acceptance Criteria:**
-  - All database tables include `tenant_id`
-  - API responses filtered by tenant context
-  - Tenant provisioning (sandbox with 7-day trial)
-  - White-label branding support
-- **Status:** Implemented
-
-#### REQ-PLT-002: Developer Console & API
-- **Priority:** P2
-- **Description:** Self-service developer platform with API key management and documentation.
-- **Acceptance Criteria:**
-  - API key generation and management
-  - Usage metrics and rate limiting (1000 calls/day default)
-  - API documentation portal
-  - Webhook configuration and delivery management
-  - Marketplace for extensions
-- **Roles:** partner_admin, partner_user, sys_admin
-
-#### REQ-PLT-003: Workflow Automation
-- **Priority:** P2
-- **Description:** Configurable workflow definitions with runtime execution.
-- **Acceptance Criteria:**
-  - Workflow template definition
-  - Runtime execution engine
-  - Policy enforcement integration
-  - Override request mechanism with approval flow
-- **Roles:** sys_admin, ops_manager
-
----
-
-### 2.7 Self-Service Portals
-
-#### REQ-PRT-001: Customer Portal
-- **Priority:** P1
-- **Description:** Self-service interface for customers to book services, track tickets, and view history.
-- **Acceptance Criteria:**
-  - Service booking form
-  - Ticket status tracking
-  - Service history view
-- **Roles:** customer
-
-#### REQ-PRT-002: Partner Portal
-- **Priority:** P2
-- **Description:** Partner management interface for authorized service partners.
-- **Acceptance Criteria:**
-  - Partner onboarding flow
-  - Work order visibility for assigned jobs
-  - Performance metrics
-- **Roles:** partner_admin, partner_user
+| Feature | Status | Notes |
+|---------|--------|-------|
+| i18n scaffolding (`src/i18n/`) | ✅ | Directory and framework in place |
+| Translation strings | 🔲 | Only English strings wired |
+| RTL / multi-locale support | ❌ | Not configured |
 
 ---
 
 ## 3. Non-Functional Requirements
 
-### 3.1 Performance
+### 3.1 Security (Implemented)
+- JWT authentication on all protected routes
+- Helmet.js HTTP security headers
+- CORS policy enforcement
+- express-rate-limit on all API routes
+- Zod input validation on all endpoints
+- Bcrypt password hashing
+- Correlation IDs on all requests
 
-| Metric | Target | Current |
-|--------|--------|---------|
-| Page load time | < 3s | ~1.2s (E2E tests) |
-| API response (p95) | < 500ms | 6-17ms (ML endpoints) |
-| Load capacity | 500 concurrent users | Verified (k6: 50 VUs basic, 500 VU production, 2000 VU spike scripts) |
-| Throughput | > 100 req/s | 108 req/s |
-| ML training time | < 5s per model | 4-46ms |
-| ML inference time | < 50ms | 5-17ms |
+### 3.2 Performance (Targets)
+- API response time p95 < 300 ms for list operations
+- Build time < 30 s (currently 16.6 s)
+- Frontend bundle < 4 MB (currently ~3.3 MB)
 
-### 3.2 Security
+### 3.3 Scalability
+- MongoDB Atlas (default) or PostgreSQL (set `DB_ADAPTER=postgresql`)
+- Stateless Express.js backend — horizontal scaling via load balancer
+- WebSocket server for real-time updates
 
-- JWT authentication with 1h access tokens + 30-day refresh token rotation
-- JTI-based token revocation with blacklist (signout-all capability)
-- bcrypt password hashing (10 rounds)
-- RBAC with 16 roles and 40+ permissions
-- MFA support
-- Password reset via email (nodemailer SMTP)
-- nginx TLS 1.2/1.3 termination with security headers (HSTS, CSP, X-Frame-Options)
-- Per-endpoint rate limiting: auth (20/15min), ML training (10/15min), general (1000/15min)
-- CORS lockdown (FRONTEND_URL required in production, function-based origin validation)
-- Zod schema validation on all auth API endpoints
-- DB credential hardening (rejects default usernames/passwords in production, SSL enforced)
-- SQL injection prevention (table/column whitelist for dynamic queries)
-- HTML sanitization (DOMPurify)
-- Audit logging for all operations
-
-### 3.3 Reliability
-
-- Graceful ML fallback (heuristic rules when no model)
-- Synthetic data generation when insufficient training data
-- Error boundaries in React UI
-- WebSocket reconnection handling
-- Offline sync queue for mobile operations
-- Graceful shutdown (SIGTERM/SIGINT handlers, 10s drain timeout)
-- Automated daily database backups with 7-day retention
-- Database restore script for disaster recovery
-- Structured JSON logging for production monitoring
-- Prometheus-compatible /metrics endpoint
-
-### 3.4 Scalability
-
-- Multi-tenant data isolation
-- Stateless API (JWT, no server sessions)
-- Database connection pooling (pg, max 20)
-- Edge function distribution (Express.js backend)
-- API rate limiting per tenant
-- Optional Redis for shared session state across instances
-- nginx reverse proxy with static asset CDN caching (1-year immutable)
-- AWS Terraform: ECS Fargate (auto-scaling), ALB, CloudFront CDN
-- Production load tested at 500 VUs sustained, 2000 VU spike
+### 3.4 Compliance Targets
+- SOC 2 Type II — Q4 2026 target (infrastructure ready, audit not yet started)
+- ISO 27001:2022 — Q1 2027 target
+- GDPR data residency — architecture supports; formal review pending
 
 ---
 
-## 4. Success Metrics
+## 4. Roles & Access
 
-| Metric | Target |
-|--------|--------|
-| E2E test pass rate | 100% (currently 91/91) |
-| API test pass rate | 100% (currently 25/25) |
-| ML model accuracy | >= 80% for all classification models |
-| Forecast R-squared | >= 0.70 |
-| Load test error rate | 0% at 50 VUs |
-| Mean API response time | < 200ms |
+| Role | Key Capabilities |
+|------|-----------------|
+| `sys_admin` | All modules, all tenants |
+| `tenant_admin` | All modules, own tenant |
+| `ops_manager` | View-only across operations, no write actions |
+| `dispatcher` | Create/assign work orders; view-only on finance |
+| `technician` | Own assigned work orders; no finance/admin |
+| `finance_manager` | Full finance; read-only operations |
+| `fraud_investigator` | Fraud/compliance modules; read-only operations |
+| `support_agent` | Tickets, customer portal |
+| `partner_admin` | Tenant-scoped tickets, work orders, invoices |
+| `ml_ops` | ML studio, model monitoring |
+| `customer` | Self-service portal only |
 
----
-
-## 5. Release History
-
-| Version | Date | Highlights |
-|---------|------|-----------|
-| 6.1 | Jan 2026 | Production hardening: TLS, token revocation, email, backups, Terraform, monitoring |
-| 6.0 | Jan 2026 | Real ML models, PaaS capabilities, 131 Express.js route handlers |
-| 5.x | 2025 | Domain modularization, comprehensive testing |
-| 4.x | 2025 | Multi-tenant architecture, payment gateways |
-| 3.x | 2025 | AI assistant, anomaly detection |
-| 2.x | 2024 | Core FSM features, work order lifecycle |
-| 1.0 | 2024 | Initial release |
+Full action-level permission matrix: see `RBAC_ACTION_PERMISSIONS.md`.
 
 ---
 
-*End of Product Requirements Document*
+## 5. Environment Configuration
+
+| Variable | Purpose | Required for |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` | Real LLM, embeddings, RAG, vision | AI features (mock otherwise) |
+| `AI_PROVIDER` | `mock` (default) or `openai` | AI mode selection |
+| `DB_ADAPTER` | `mongodb` (default) or `postgresql` | DB selection |
+| `MONGODB_URI` | MongoDB connection | MongoDB mode |
+| `POSTGRES_URI` | PostgreSQL connection | PostgreSQL mode |
+| `STRIPE_SECRET_KEY` | Payment processing | Stripe payments |
+| `MQTT_BROKER_URL` | IoT telemetry ingestion | IoT features |
+| `JWT_SECRET` | Token signing | Auth (required) |
+| `VITE_API_URL` | Frontend → backend URL | Frontend (required) |
+
+---
+
+*Document updated April 2026. Source of truth: `docs/PLATFORM_COMPREHENSIVE_AUDIT.md` for gap analysis; codebase for implementation status.*
