@@ -196,9 +196,34 @@ function checkPermissionFallback(roles, permission) {
   // Permission map (fallback)
   const rolePermissionMap = {
     sys_admin: ['*'], // All permissions
-    tenant_admin: ['ticket.read', 'ticket.create', 'wo.read', 'wo.create', 'portal.access'],
-    customer: ['portal.access', 'ticket.create', 'ticket.read', 'wo.read', 'invoice.view', 'invoice.pay'],
+    tenant_admin: [
+      'ticket.read', 'ticket.create', 'ticket.update', 'ticket.delete',
+      'wo.read', 'wo.create', 'wo.update', 'wo.assign',
+      'invoice.view', 'invoice.create', 'invoice.pay',
+      'report.view', 'schedule.view', 'schedule.manage',
+      'portal.access', 'user.manage', 'settings.manage',
+    ],
+    finance_manager: [
+      'invoice.view', 'invoice.create', 'invoice.pay', 'invoice.approve',
+      'report.view', 'portal.access', 'wo.read', 'ticket.read',
+    ],
+    ops_manager: [
+      'wo.read', 'wo.create', 'wo.update', 'wo.assign',
+      'ticket.read', 'ticket.create', 'ticket.update',
+      'schedule.view', 'schedule.manage',
+      'report.view', 'portal.access',
+    ],
+    dispatcher: [
+      'wo.read', 'wo.assign',
+      'schedule.view', 'schedule.manage',
+      'ticket.read', 'portal.access',
+    ],
+    partner_admin: [
+      'portal.access', 'wo.read', 'ticket.read',
+      'invoice.view', 'partner.manage',
+    ],
     technician: ['wo.read', 'wo.update', 'so.view'],
+    customer: ['portal.access', 'ticket.create', 'ticket.read', 'wo.read', 'invoice.view', 'invoice.pay'],
   };
 
   return roles.some(role => {

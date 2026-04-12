@@ -71,6 +71,18 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Map report_type values to the collection that holds that data
+const REPORT_TYPE_COLLECTION = {
+  work_orders: 'work_orders',
+  invoices: 'invoices',
+  tickets: 'tickets',
+  assets: 'assets',
+  crm_leads: 'crm_leads',
+  crm_deals: 'crm_deals',
+  esg: 'esg_reports',
+  sla: 'sla_configs',
+};
+
 router.post('/:id/run-now', async (req, res) => {
   try {
     const adapter = await getAdapter();
@@ -78,7 +90,19 @@ router.post('/:id/run-now', async (req, res) => {
     if (!report) return res.status(404).json({ error: 'Scheduled report not found' });
     const ran_at = new Date();
     await adapter.updateOne('scheduled_reports', { id: req.params.id, tenant_id: req.user.tenantId }, { last_run: ran_at });
-    res.json({ executed: true, report_id: req.params.id, ran_at, mock_data: { rows: 42, format: report.format } });
+
+    // Query the relevant collection to get a real row count
+    const collection = REPORT_TYPE_COLLECTION[report.report_type] || report.report_type;
+    let row_count = null;
+    if (collection) {
+      try {
+        row_count = await adapter.countDocuments(collection, { tenant_id: req.user.tenantId });
+      } catch {
+        // Collection may not exist yet — leave row_count null
+      }
+    }
+
+    res.json({ executed: true, report_id: req.params.id, ran_at, row_count, format: report.format });
   } catch (err) {
     logger.error('ScheduledReports: run-now error', { error: err.message });
     res.status(500).json({ error: 'Failed to run scheduled report' });

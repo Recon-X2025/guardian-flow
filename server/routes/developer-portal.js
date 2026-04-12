@@ -8,7 +8,7 @@
  */
 
 import express from 'express';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import { getAdapter } from '../db/factory.js';
 import logger from '../utils/logger.js';
 
@@ -32,7 +32,7 @@ router.post('/apps', async (req, res) => {
     const adapter = await getAdapter();
     const app = {
       id: randomUUID(), tenant_id: req.user.tenantId, app_name,
-      description: description || null, client_id: randomUUID(), client_secret: randomUUID(),
+      description: description || null, client_id: randomUUID(), client_secret: randomBytes(32).toString('hex'),
       scopes: scopes || [], redirect_uris: redirect_uris || [],
       status: 'active', created_by: req.user.userId, created_at: new Date(),
     };
@@ -78,7 +78,7 @@ router.post('/apps/:id/regenerate-secret', async (req, res) => {
     const adapter = await getAdapter();
     const app = await adapter.findOne('developer_apps', { id: req.params.id, tenant_id: req.user.tenantId });
     if (!app) return res.status(404).json({ error: 'Developer app not found' });
-    const client_secret = randomUUID();
+    const client_secret = randomBytes(32).toString('hex');
     await adapter.updateOne('developer_apps', { id: req.params.id, tenant_id: req.user.tenantId }, { client_secret });
     res.json({ client_secret });
   } catch (err) {
@@ -90,12 +90,21 @@ router.post('/apps/:id/regenerate-secret', async (req, res) => {
 router.get('/usage', async (req, res) => {
   try {
     const adapter = await getAdapter();
-    const apps = await adapter.findMany('developer_apps', { tenant_id: req.user.tenantId });
-    res.json({
-      total_requests: Math.floor(Math.random() * 10000),
-      apps_count: apps.length,
-      top_endpoints: ['/api/work-orders', '/api/crm'],
-    });
+    const [apps, total_requests] = await Promise.all([
+      adapter.findMany('developer_apps', { tenant_id: req.user.tenantId }),
+      adapter.countDocuments('partner_api_usage', { tenant_id: req.user.tenantId }),
+    ]);
+    // Derive top endpoints from recent usage records (in-memory, capped at 200 docs)
+    const recent = await adapter.findMany('partner_api_usage', { tenant_id: req.user.tenantId }, { limit: 200, sort: { created_at: -1 } });
+    const endpointCounts = {};
+    for (const r of recent) {
+      if (r.endpoint) endpointCounts[r.endpoint] = (endpointCounts[r.endpoint] || 0) + 1;
+    }
+    const top_endpoints = Object.entries(endpointCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([endpoint]) => endpoint);
+    res.json({ total_requests, apps_count: apps.length, top_endpoints });
   } catch (err) {
     logger.error('DevPortal: usage error', { error: err.message });
     res.status(500).json({ error: 'Failed to get usage stats' });
