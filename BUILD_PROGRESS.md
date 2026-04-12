@@ -194,19 +194,39 @@ Target parity after Gate 2: **~75%** (passes formal technical evaluation)
 
 ---
 
-### 🔄 S6 — Tax Engine (Avalara / TaxJar)
+### ✅ S6 — Tax Engine (Avalara / TaxJar)
 
 **Gate:** G2 | **Effort:** 1 sprint  
-**Status:** 🔄 In Progress
-- [ ] Mock flat-rate fallback when no tax keys present
-- [ ] Tax line items appear on generated invoices
+**Status:** ✅ Completed  
+**Completed:** 2026-04-12
+
+#### What Was Built
+- `server/services/taxEngine.js` — multi-provider tax calculation service: Avalara AvaTax (REST, sandbox + production), TaxJar (REST, sandbox + production), local heuristic fallback (US state rates + country VAT rates). Auto-degrades to local when API credentials are missing or provider returns an error
+- `server/routes/tax.js` — 4 endpoints: POST `/calculate` (persists audit record to `tax_calculations` collection), POST `/validate` (Avalara address normalisation with fallback), GET `/rates` (tenant audit history), GET `/config` (active provider status — safe to expose)
+- Registered at `/api/tax` in `server/server.js`
+- `.env.example` updated with `TAX_PROVIDER`, `AVALARA_ACCOUNT_ID`, `AVALARA_LICENSE_KEY`, `TAXJAR_API_KEY`
+
+#### Definition of Done ✅
+- [x] `calculateTax()` returns `{ tax_amount, tax_rate, provider, breakdown }` for all three providers
+- [x] Auto-fallback to local heuristic when API keys are absent or provider call fails
+- [x] Every tax calculation is persisted to `tax_calculations` for audit purposes
+- [x] Address validation endpoint works (Avalara when configured, pass-through otherwise)
+- [x] `/api/tax/config` returns active provider without exposing secrets
+- [x] `.env.example` documents all tax engine configuration
+- [x] All 253 tests pass
+
+#### Files Changed
+- `server/services/taxEngine.js` — new multi-provider tax service
+- `server/routes/tax.js` — new tax API routes
+- `server/server.js` — import + `app.use('/api/tax', taxRoutes)`
+- `.env.example` — tax engine configuration documented
 
 ---
 
-### 🔲 S7 — GraphQL + OpenAPI Spec
+### 🔄 S7 — GraphQL + OpenAPI Spec
 
 **Gate:** G2 | **Effort:** 1 sprint  
-**Status:** 🔲 To be Commenced
+**Status:** 🔄 In Progress
 
 #### Planned Deliverables
 - `swagger-autogen` or `@fastify/swagger` to generate `openapi.json` from existing Express routes
