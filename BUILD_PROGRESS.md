@@ -131,7 +131,7 @@ Target parity after Gate 1: **~55%** (passes enterprise demo)
 
 ---
 
-## Gate 2 — Evaluation Pass (Sprints S5–S10) 🟠
+## ✅ Gate 2 — Evaluation Pass (Sprints S5–S10) ✅
 
 Target parity after Gate 2: **~75%** (passes formal technical evaluation)
 
@@ -309,20 +309,48 @@ Replaced the simple greedy scheduler in `server/services/ai/scheduler.js` with a
 
 ---
 
-### 🔄 S8–S9 — Subscription / Recurring Billing
+### ✅ S8–S9 — Subscription / Recurring Billing
 
 **Gate:** G2 | **Effort:** 2 sprints  
-**Status:** 🔄 In Progress
+**Status:** ✅ Completed  
+**Completed:** 2026-04-12
 
-#### Planned Deliverables
-- `server/routes/subscriptions.js` — subscription plan CRUD, billing cycle management
-- Stripe `subscription` + `invoice` objects integrated
-- Frontend subscription management UI
+#### What Was Built
+- `server/routes/subscriptions.js` — full recurring billing engine with 14 endpoints covering plans (CRUD), subscriptions (create/get/list/update/cancel/pause/resume), invoices (history + manual generate), Stripe webhook handler, and billing cycle runner
+- **Stripe mode**: when `STRIPE_SECRET_KEY` is set, creates Stripe Products + Prices for plans, creates Stripe Customers + Subscriptions; webhook handles `invoice.paid`, `customer.subscription.deleted`, `customer.subscription.updated`
+- **Local mode**: internal billing engine auto-generates invoices on subscription creation; `POST /run-billing-cycle` processes all due subscriptions, advances billing periods
+- `src/domains/financial/pages/SubscriptionManagement.tsx` — full management UI: plan cards, subscription table with status + period, detail drawer with invoice history, new plan dialog, new subscription wizard, cancel/pause/resume action dropdown menu, run billing cycle button
+- Route at `/api/subscriptions`, page at `/subscriptions` in App.tsx
+- `STRIPE_WEBHOOK_SECRET` documented in `.env.example`
 
-#### Definition of Done (Planned)
-- [ ] Subscriptions can be created, updated, and cancelled via API
-- [ ] Recurring invoices auto-generated on billing cycle
-- [ ] Stripe webhook handles `invoice.paid` and `customer.subscription.deleted`
+#### Definition of Done ✅
+- [x] Plans CRUD: create plan with price, currency, billing interval; mirrors to Stripe when configured
+- [x] Subscription create: selects plan, creates customer, generates first invoice automatically (local mode)
+- [x] Cancel (at period end or immediately), pause, resume
+- [x] Billing cycle runner: finds all active subscriptions with elapsed period_end, generates invoices, advances periods
+- [x] Stripe webhook: `invoice.paid` stores invoice; `subscription.deleted` cancels subscription
+- [x] Frontend: plan overview cards, subscription table, invoice history, action menus
+- [x] All 253 tests pass — TypeScript clean
+
+#### Files Changed
+- `server/routes/subscriptions.js` — new subscriptions route
+- `server/server.js` — import + `app.use('/api/subscriptions', subscriptionsRoutes)`
+- `src/domains/financial/pages/SubscriptionManagement.tsx` — new frontend page
+- `src/App.tsx` — `/subscriptions` route added
+- `.env.example` — `STRIPE_WEBHOOK_SECRET` documented
+
+---
+
+## ✅ Gate 2 COMPLETE — Evaluation Pass (~75% platform parity)
+
+All Gate 2 sprints delivered:
+- S5–S7: Mobile PWA + IndexedDB offline sync ✅
+- S5–S6: ASC 606 Revenue Recognition ✅
+- S6: Tax Engine (Avalara / TaxJar / local) ✅
+- S7: GraphQL analytics API + OpenAPI 3.1 spec + Swagger UI ✅
+- S7–S8: Constraint-based AI Scheduler (skill/SLA/availability hard constraints) ✅
+- S8: GPT-4o Computer Vision (DefectDetection) ✅
+- S8–S9: Subscription / Recurring Billing (Stripe + local) ✅
 
 ---
 

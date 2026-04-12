@@ -65,6 +65,7 @@ const Marketplace = lazy(() => import("@/domains/marketplace/pages/Marketplace")
 const DisputeManagement = lazy(() => import("@/domains/financial/pages/DisputeManagement"));
 const GeneralLedger = lazy(() => import("@/domains/financial/pages/GeneralLedger"));
 const RevenueRecognition = lazy(() => import("@/domains/financial/pages/RevenueRecognition"));
+const SubscriptionManagement = lazy(() => import("@/domains/financial/pages/SubscriptionManagement"));
 const AccountsPayable = lazy(() => import("@/domains/financial/pages/AccountsPayable"));
 const ABTestManager = lazy(() => import("@/domains/shared/pages/ABTestManager"));
 const SystemHealth = lazy(() => import("@/domains/shared/pages/SystemHealth"));
@@ -856,6 +857,7 @@ const App = () => (
                   {/* Finance */}
                   <Route path="/financial-statements" element={<ProtectedRoute><AppLayout><SuspenseWrap><FinancialStatements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/revenue-recognition" element={<ProtectedRoute><AppLayout><SuspenseWrap><RevenueRecognition /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/subscriptions" element={<ProtectedRoute><AppLayout><SuspenseWrap><SubscriptionManagement /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Knowledge */}
                   <Route path="/knowledge-search" element={<ProtectedRoute><AppLayout><SuspenseWrap><KnowledgeSearch /></SuspenseWrap></AppLayout></ProtectedRoute>} />

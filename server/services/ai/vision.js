@@ -113,6 +113,13 @@ function analyseWithMock() {
     severity: severities[Math.floor(Math.random() * severities.length)],
     confidence: Math.round((0.6 + Math.random() * 0.35) * 100) / 100,
     location: 'centre of image',
+    // Bounding box retained for backward-compatibility with vision test + legacy UIs
+    boundingBox: {
+      x: Math.round(Math.random() * 0.7 * 100) / 100,
+      y: Math.round(Math.random() * 0.7 * 100) / 100,
+      w: Math.round((0.1 + Math.random() * 0.2) * 100) / 100,
+      h: Math.round((0.1 + Math.random() * 0.2) * 100) / 100,
+    },
   }));
 
   const score = defects.length === 0 ? 1.0 : Math.max(0.3, Math.round((1 - defects.length * 0.2) * 100) / 100);
