@@ -1,405 +1,191 @@
-# Infrastructure Requirements & Deployment Guide
+# Infrastructure Requirements
 
-## Overview
-This document outlines the external infrastructure required to fully deploy Guardian Flow in a production environment. These components are beyond Lovable's scope and require cloud provider accounts.
+**Version:** 7.0 | **Date:** April 2026
 
----
-
-## Required Cloud Services
-
-### 1. Managed MongoDB Atlas Database
-**Configuration:**
-- MongoDB Atlas (managed cloud)
-- Cluster tier: M30 or higher (4 vCPU, 32GB RAM) or equivalent
-- Storage: 100GB minimum with auto-scaling enabled
-- Backups: Continuous backups with 30-day retention
-- HA: Multi-region deployment for production
-
-**Why Needed:**
-MongoDB Atlas provides managed database infrastructure with automatic scaling and backups.
+> **Correction from previous versions:** Earlier infrastructure documentation incorrectly listed GPU node pools, Kubernetes clusters, TorchServe, and SQS/RabbitMQ as required. None of these are needed for the current build. The computer vision feature is a mock stub (`Math.random()`); no real CV model is deployed.
 
 ---
 
-### 2. Object Storage
-**Options:**
-- AWS S3 (recommended)
-- Google Cloud Storage
-- Azure Blob Storage
+## Minimum Production Requirements
 
-**Buckets Required:**
-- `attachments`: Photo uploads from technicians
-- `service-orders`: Generated PDF service orders
-- `templates`: SO template versions
-- `backups`: Database and configuration backups
-
-**Configuration:**
-- Lifecycle policies: Move old attachments to Glacier/Archive after 90 days
-- CORS: Enable for client-side uploads
-- Encryption: Enable at-rest encryption (S3: SSE-S3 or KMS)
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| Node.js runtime | 20.x LTS | 22.x LTS |
+| RAM (app server) | 512 MB | 2 GB |
+| Disk (app + uploads) | 10 GB | 50 GB+ |
+| MongoDB Atlas | M10 (2 vCPU, 2 GB RAM) | M30 (4 vCPU, 32 GB RAM) |
+| Atlas storage | 10 GB | 100 GB + auto-scale |
+| Atlas backups | Daily snapshots | Continuous + 30-day retention |
 
 ---
 
-### 3. GPU Inference Pool (Photo Validation CV)
-**Specifications:**
-- **Kubernetes Cluster** with GPU node pool
-- Node type: AWS `g4dn.xlarge` (NVIDIA T4 GPU) or equivalent
-- Min nodes: 2, Max nodes: 10 (autoscaling)
-- GPU drivers: NVIDIA CUDA 11.8+
-- Container runtime: Docker with NVIDIA runtime
+## 1. Database — MongoDB Atlas (Default)
 
-**CV Model Deployment:**
-- Deploy tamper detection model (e.g., ManTraNet, TruFor)
-- Deploy duplicate detection model (perceptual hashing)
-- Use Kubeflow or TorchServe for model serving
-- API endpoint: `POST /validate-image` (returns tamper_score, duplicate_score)
+**Required for standard deployment.**
 
-**Job Queue:**
-- AWS SQS or RabbitMQ for async photo validation jobs
-- Worker pods scale based on queue depth
-
-**Why Needed:**
-Real-time CV inference requires GPU compute unavailable in Lovable Cloud.
-
----
-
-### 4. Vector Database (Fraud Detection)
-**Options:**
-- Pinecone (managed, recommended for simplicity)
-- Weaviate (open-source, self-hosted)
-- MongoDB Atlas Vector Search (integrated with Atlas)
-
-**Configuration:**
-- Index: `fraud-embeddings` (384 dimensions, cosine similarity)
-- Data: Fraud alert embeddings for similarity search
-- Reindexing: Daily cron job to update embeddings
-
-**Why Needed:**
-Duplicate fraud detection and anomaly clustering require vector similarity search.
-
----
-
-### 5. Redis (Caching & Session Management)
-**Specifications:**
-- AWS ElastiCache Redis 7.x or equivalent
-- Instance: cache.r6g.large (2 vCPU, 13GB RAM)
-- Cluster mode: Disabled (single shard sufficient)
-
-**Use Cases:**
-- Session caching for auth/me endpoint
-- Rate limiting counters
-- MFA token temporary storage (instead of DB)
-
----
-
-### 6. Kubernetes Cluster (Express.js Services)
-**Specifications:**
-- Control plane: Managed (EKS, GKE, AKS)
-- Worker nodes: 3x `t3.xlarge` (4 vCPU, 16GB RAM)
-- Namespaces: `production`, `staging`, `dev`
-
-**Workloads:**
-- Express.js API services
-- CV inference service
-- Job workers (penalty calculation, SO generation)
-
-**Why Needed:**
-Production scale requires dedicated infrastructure for compute-intensive workloads.
-
----
-
-### 7. Secrets Manager
-**Options:**
-- AWS Secrets Manager (recommended)
-- HashiCorp Vault
-- Azure Key Vault
-
-**Secrets to Store:**
-- MongoDB Atlas credentials
-- Object storage access keys
-- JWT secret keys
-- Payment gateway API keys (Stripe, Razorpay, etc.)
-- Third-party API keys (OpenAI, Gemini)
-
----
-
-### 8. Monitoring & Observability Stack
-**Components:**
-- **Prometheus**: Metrics collection
-- **Grafana**: Dashboards for precheck latencies, photo compliance, SaPOS acceptance
-- **Jaeger**: Distributed tracing with correlation IDs
-- **Sentry**: Exception tracking
-
-**Deployment:**
-- Helm charts: `prometheus-operator`, `grafana`, `jaeger-operator`
-- Retention: 30 days metrics, 7 days traces
-
----
-
-## Terraform Modules
-
-### Directory Structure
 ```
-terraform/
-├── modules/
-│   ├── postgres/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── storage/
-│   ├── kubernetes/
-│   ├── gpu-nodes/
-│   ├── redis/
-│   ├── secrets-manager/
-│   └── monitoring/
-├── environments/
-│   ├── staging/
-│   │   └── main.tf
-│   └── production/
-│       └── main.tf
-└── README.md
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/
+DB_NAME=guardianflow
+DB_POOL_MAX=20
 ```
 
-### Example: MongoDB Atlas Module
-```hcl
-# terraform/modules/mongodb/main.tf
-resource "mongodbatlas_cluster" "guardianflow_cluster" {
-  project_id   = var.project_id
-  name         = "guardianflow-${var.environment}"
+Atlas configuration:
+- Enable Atlas Vector Search if using real LLM embeddings (for RAG quality improvement)
+- Enable Atlas backups (continuous recommended for production)
+- Set up Atlas IP Access List for app server IPs
+- Multi-region deployment for HA (M30+)
 
-  provider_name               = "AWS"
-  provider_region_name        = var.region
-  provider_instance_size_name = var.instance_size
+### PostgreSQL Alternative
 
-  cluster_type = "REPLICASET"
+If deploying against PostgreSQL instead:
 
-  replication_specs {
-    num_shards = 1
-    regions_config {
-      region_name     = var.region
-      electable_nodes = 3
-      priority        = 7
-      read_only_nodes = 0
-    }
-  }
-
-  backup_enabled               = true
-  pit_enabled                  = true
-  auto_scaling_disk_gb_enabled = true
-
-  tags = {
-    Environment = var.environment
-    Project     = "Guardian Flow"
-  }
-}
-
-output "connection_string" {
-  value = mongodbatlas_cluster.guardianflow_cluster.connection_strings[0].standard_srv
-  sensitive = true
-}
+```
+DB_ADAPTER=postgresql
+POSTGRES_URI=postgres://user:password@host:5432/guardianflow
 ```
 
-### Example: GPU Node Pool
-```hcl
-# terraform/modules/gpu-nodes/main.tf
-resource "aws_eks_node_group" "gpu_nodes" {
-  cluster_name    = var.cluster_name
-  node_group_name = "gpu-inference"
-  node_role_arn   = var.node_role_arn
-  subnet_ids      = var.subnet_ids
-  
-  instance_types = ["g4dn.xlarge"]
-  
-  scaling_config {
-    desired_size = 2
-    max_size     = 10
-    min_size     = 2
-  }
-  
-  labels = {
-    workload = "gpu-inference"
-  }
-  
-  taints {
-    key    = "nvidia.com/gpu"
-    value  = "present"
-    effect = "NoSchedule"
-  }
-}
+Same application code runs against both adapters via the `server/db/factory.js` abstraction. Run migrations with `node server/scripts/phase0-migration.js` for both.
+
+---
+
+## 2. File Storage — Disk-Based (Default)
+
+Files uploaded via Multer are stored to local disk by default. For production, mount a persistent volume or configure an S3-compatible store.
+
+Directories used:
+- `uploads/attachments/` — technician photo uploads
+- `uploads/service-orders/` — generated PDF service orders
+
+For cloud storage, configure the storage service (`server/routes/storage.js`) with an S3 compatible endpoint.
+
+---
+
+## 3. Optional External Services
+
+These services are optional and gracefully degraded when not configured.
+
+### 3.1 OpenAI API — AI features
+
+```
+OPENAI_API_KEY=sk-...
+AI_PROVIDER=openai
 ```
 
----
+Without this, the platform operates in **mock mode**:
+- LLM responses are keyword-match approximations
+- RAG search returns low-quality results (zero vectors)
+- Anomaly detection is **always real** (z-score, no API key required)
+- Vision/CV is **always mock** regardless of this setting
 
-## Deployment Steps
+### 3.2 Payment Providers
 
-### Phase 1: Core Infrastructure (Week 1-2)
-1. Set up AWS/Azure/GCP account
-2. Configure Terraform backend (S3 + DynamoDB for state)
-3. Deploy VPC and networking
-4. Provision managed MongoDB Atlas
-5. Set up object storage buckets
-6. Deploy Redis cluster
-7. Create secrets in Secrets Manager
-
-### Phase 2: Kubernetes & Compute (Week 2-3)
-1. Create EKS/GKE/AKS cluster
-2. Deploy GPU node pool
-3. Install NGINX Ingress Controller
-4. Deploy cert-manager for TLS
-5. Set up cluster autoscaler
-
-### Phase 3: Application Services (Week 3-4)
-1. Deploy Express.js backend to Kubernetes
-2. Deploy CV inference service
-3. Set up job queues (SQS/RabbitMQ)
-4. Deploy vector DB (Pinecone or Weaviate)
-5. Migrate database from Lovable Cloud
-6. Configure DNS and load balancers
-
-### Phase 4: Observability & Monitoring (Week 4)
-1. Deploy Prometheus Operator
-2. Install Grafana with dashboards
-3. Set up Jaeger for tracing
-4. Integrate Sentry for error tracking
-5. Configure alerting rules
-
-### Phase 5: Testing & Validation (Week 5)
-1. Run smoke tests on staging
-2. Execute full Playwright test suite
-3. Load test critical endpoints
-4. Validate RBAC and tenant isolation
-5. Test MFA and override flows
-
-### Phase 6: Production Cutover (Week 6)
-1. Deploy to production environment
-2. Migrate production data
-3. Update DNS records
-4. Monitor metrics and logs
-5. Run final validation tests
-
----
-
-## Cost Estimates (AWS, Monthly)
-
-| Service | Specification | Estimated Cost |
-|---------|--------------|----------------|
-| MongoDB Atlas M30 | 4 vCPU, 32GB RAM, 100GB | $400 |
-| S3 Storage | 500GB with Glacier | $25 |
-| GPU Nodes (EKS) | 2x g4dn.xlarge (avg) | $600 |
-| ElastiCache Redis | cache.r6g.large | $180 |
-| EKS Cluster | Control plane + 3 workers | $250 |
-| Vector DB (Pinecone) | Standard plan | $70 |
-| Monitoring Stack | Grafana Cloud + Sentry | $100 |
-| **Total** | | **~$1,625/month** |
-
-*Note: Costs scale with usage (autoscaling GPU nodes, storage growth)*
-
----
-
-## Security Considerations
-
-### Network Security
-- Deploy in private VPC subnets
-- Use security groups to restrict traffic
-- Enable VPC Flow Logs
-- Use AWS WAF for Express.js backend
-
-### Data Security
-- Enable encryption at rest (S3, RDS, Redis)
-- Use TLS 1.3 for all traffic
-- Rotate secrets every 90 days
-- Enable audit logging on all resources
-
-### Compliance
-- GDPR: Implement DSAR endpoints (data export/delete)
-- SOC 2: Enable CloudTrail, GuardDuty
-- Data residency: Deploy in appropriate AWS regions
-
----
-
-## Disaster Recovery
-
-### Backup Strategy
-- **Database**: Daily automated backups, 30-day retention
-- **Object Storage**: Cross-region replication to DR region
-- **Secrets**: Replicate to secondary Secrets Manager in DR region
-
-### RTO/RPO Targets
-- RTO (Recovery Time Objective): 4 hours
-- RPO (Recovery Point Objective): 24 hours
-
-### DR Runbook
-1. Activate DR VPC and networking
-2. Restore RDS from latest backup
-3. Sync S3 from DR bucket
-4. Deploy application services to DR region
-5. Update DNS to DR load balancer
-
----
-
-## DSAR & Data Residency
-
-### DSAR Compliance
-Implement these endpoints for GDPR compliance:
-
-```typescript
-// GET /api/v1/dsar/export/:tenantId
-// Returns all tenant data in JSON format
-export async function exportTenantData(tenantId: string) {
-  const tables = [
-    'profiles', 'tickets', 'work_orders', 'attachments',
-    'sapos_offers', 'quotes', 'invoices', 'audit_logs'
-  ];
-  
-  const exports = {};
-  for (const table of tables) {
-    const data = await db.collection(table)
-      .find({ tenant_id: tenantId })
-      .toArray();
-    exports[table] = data;
-  }
-  
-  // Log DSAR export request
-  await logAuditEvent({
-    action: 'dsar_export',
-    resourceType: 'tenant',
-    resourceId: tenantId
-  });
-  
-  return exports;
-}
-
-// DELETE /api/v1/dsar/delete/:tenantId
-// Permanently deletes all tenant data
-export async function deleteTenantData(tenantId: string) {
-  // Verify MFA before deletion
-  // Delete from all tables in reverse FK order
-  // Log deletion in separate compliance log
-}
+```
+STRIPE_SECRET_KEY=sk_live_...
+# and/or PayPal / Razorpay credentials
 ```
 
-### Data Residency
-- Deploy in EU regions for EU customers
-- Deploy in US regions for US customers
-- Use region-specific S3 buckets
-- Configure MongoDB Atlas read replicas in customer regions
+Without payment credentials, the payments UI renders but all payment calls return errors.
+
+### 3.3 Email (SMTP)
+
+```
+# Nodemailer SMTP configuration
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+```
+
+Used for: customer notifications, work order updates, report delivery. Without this, email features are silently disabled.
+
+### 3.4 MQTT Broker — IoT Telemetry
+
+```
+MQTT_BROKER_URL=mqtt://broker.example.com:1883
+```
+
+Without this, IoT telemetry ingestion (`/api/iot-telemetry`) stubs out with log messages. No real sensor data is ingested. Predictive maintenance operates on historical work order data only.
+
+### 3.5 SSO / SAML Provider
+
+```
+# Configure via /api/sso routes after deployment
+# Requires: IdP metadata URL, Entity ID, certificate
+```
+
+SSO is scaffolded in `server/routes/sso.js`. Requires a SAML 2.0 provider (Okta, Azure AD, Google Workspace).
+
+### 3.6 SIEM Integration
+
+```
+SIEM_WEBHOOK_URL=https://your-siem.example.com/ingest
+```
+
+Security events from `server/routes/security-monitor.js` can be forwarded to Datadog, Splunk, or Azure Sentinel via webhook. Not required for platform operation.
 
 ---
 
-## Next Steps
+## 4. Not Required (Previous Docs Were Wrong)
 
-1. **Review this document** with DevOps/infrastructure team
-2. **Estimate costs** for your expected scale
-3. **Choose cloud provider** (AWS recommended for GPU availability)
-4. **Set up Terraform** following provided modules
-5. **Deploy staging environment** first
-6. **Run validation tests** before production
-7. **Plan production cutover** with minimal downtime
+| Item | Previous claim | Actual state |
+|------|---------------|-------------|
+| GPU node pool / Kubernetes | "Required for CV model serving" | **Not required** — CV is mock (`Math.random()`) |
+| TorchServe / Kubeflow | "For ML model serving" | **Not required** — no production ML model deployed |
+| AWS SQS / RabbitMQ | "For async photo validation queue" | **Not required** — no async CV pipeline |
+| NVIDIA CUDA drivers | "For GPU inference" | **Not required** |
+| ManTraNet / TruFor CV model | "For tamper detection" | **Not built** — stub only |
+
+These become relevant once the computer vision gap (Gate 2 item) is implemented.
 
 ---
 
-## Support Contacts
+## 5. Network & Security
 
-- **Infrastructure Questions**: DevOps team
-- **Terraform Issues**: See Terraform documentation
-- **Lovable Cloud Migration**: support@lovable.dev
-- **Product Owner**: Karthik Iyer
+### Ports
+
+| Service | Port | Notes |
+|---------|------|-------|
+| Express.js backend | 3001 | Configurable via `PORT` env var |
+| Vite dev server | 5173 | Frontend dev only |
+| WebSocket | 3001 | Same port as Express (upgraded HTTP connection) |
+
+### Firewall Rules
+
+- App server → MongoDB Atlas: Whitelist app server IP in Atlas IP Access List
+- Load balancer → app server: Port 3001 (or 443 via TLS termination)
+- App server → OpenAI API: Outbound HTTPS (443) to `api.openai.com`
+- App server → SMTP: Outbound port 587 (TLS) or 465 (SSL)
+
+### TLS
+
+Configure TLS termination at the load balancer or reverse proxy (nginx/Caddy). The Express.js server itself does not terminate TLS.
+
+---
+
+## 6. Environment Variable Reference
+
+See `.env.example` in the repository root for the full list with comments.
+
+| Variable | Required | Default | Purpose |
+|----------|:--------:|---------|---------|
+| `VITE_API_URL` | ✅ | — | Frontend → backend URL |
+| `JWT_SECRET` | ✅ | — | JWT signing key (use strong random string) |
+| `DB_ADAPTER` | — | `mongodb` | `mongodb` or `postgresql` |
+| `MONGODB_URI` | If MongoDB | — | MongoDB connection string |
+| `POSTGRES_URI` | If PG | — | PostgreSQL connection string |
+| `OPENAI_API_KEY` | — | — | Enables real LLM + embeddings |
+| `AI_PROVIDER` | — | `mock` | `mock` or `openai` |
+| `STRIPE_SECRET_KEY` | — | — | Enables Stripe payments |
+| `MQTT_BROKER_URL` | — | — | Enables IoT telemetry |
+| `PORT` | — | `3001` | Express.js listen port |
+
+---
+
+## 7. Running DB Migrations
+
+```bash
+# Run all migrations (idempotent)
+node server/scripts/phase0-migration.js
+```
+
+Migrations are tracked in the `schema_migrations` collection. Running this on a database that already has the migrations applied is safe — it will skip already-applied migrations.

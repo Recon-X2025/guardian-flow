@@ -1688,6 +1688,59 @@ router.post('/seed-test-data', authenticateToken, async (req, res) => {
 });
 
 /**
+ * List latest maintenance predictions
+ * GET /api/functions/maintenance-predictions
+ */
+router.get('/maintenance-predictions', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const predictions = await db.collection('maintenance_predictions')
+      .find({ tenant_id: tenantId })
+      .sort({ failure_probability: -1 })
+      .limit(limit)
+      .toArray()
+      .catch(() => []);
+
+    // Enrich with equipment info
+    const enriched = [];
+    for (const p of predictions) {
+      let equipment = null;
+      try {
+        equipment = await db.collection('equipment').findOne({ id: p.equipment_id }).catch(() => null);
+      } catch (_) { /* ignore */ }
+      enriched.push({ ...p, equipment: equipment || { id: p.equipment_id } });
+    }
+    res.json({ predictions: enriched, count: enriched.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list predictions', message: err.message });
+  }
+});
+
+/**
+ * List fraud alerts
+ * GET /api/functions/fraud-alerts
+ */
+router.get('/fraud-alerts', authenticateToken, async (req, res) => {
+  try {
+    const tenantId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const status = req.query.status;
+    const filter = { tenant_id: tenantId };
+    if (status) filter.investigation_status = status;
+    const alerts = await db.collection('fraud_alerts')
+      .find(filter)
+      .sort({ created_at: -1 })
+      .limit(limit)
+      .toArray()
+      .catch(() => []);
+    res.json({ alerts, count: alerts.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to list fraud alerts', message: err.message });
+  }
+});
+
+/**
  * Predictive Maintenance - Generate failure predictions for all equipment
  * POST /api/functions/predict-maintenance-failures
  */

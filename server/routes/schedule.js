@@ -100,7 +100,11 @@ router.get('/assignments', async (req, res) => {
     if (status) filter.status = status;
 
     const assignments = await adapter.findMany(COLLECTION, filter);
-    res.json({ assignments, total: assignments.length });
+    const withNav = assignments.map(a => ({
+      ...a,
+      navigation_url: 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(a.address || ''),
+    }));
+    res.json({ assignments: withNav, total: withNav.length });
   } catch (error) {
     logger.error('Schedule: list assignments error', { error: error.message });
     res.status(500).json({ error: 'Failed to list assignments' });
@@ -197,7 +201,7 @@ router.put('/assignments/:id', async (req, res) => {
       }
     }
 
-    res.json({ assignment: updated });
+    res.json({ assignment: { ...updated, navigation_url: 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(updated.address || '') } });
   } catch (error) {
     logger.error('Schedule: update assignment error', { error: error.message });
     res.status(500).json({ error: 'Failed to update assignment' });

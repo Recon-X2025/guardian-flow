@@ -17,10 +17,10 @@ async function resolveTenantId(userId) {
 router.post('/vision/analyse', authenticateToken, async (req, res) => {
   try {
     const tenantId = await resolveTenantId(req.user.id);
-    const { imageBase64, mimeType } = req.body;
+    const { imageBase64, mimeType, context } = req.body;
     if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
     const buffer = Buffer.from(imageBase64, 'base64');
-    const result = await analyseImage(tenantId, buffer, mimeType || 'image/jpeg');
+    const result = await analyseImage(tenantId, buffer, mimeType || 'image/jpeg', context ?? '');
     res.json(result);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

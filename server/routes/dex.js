@@ -385,4 +385,35 @@ router.post('/contexts/:id/checkpoint', authenticateToken, async (req, res) => {
   }
 });
 
+// ── GET /api/dex/observability ────────────────────────────────────────────────
+
+router.get('/observability', authenticateToken, async (req, res) => {
+  try {
+    const tenantId  = await resolveTenantId(req.user.id);
+    const adapter   = await getAdapter();
+    const contexts  = await adapter.findMany(COLLECTION, { tenant_id: tenantId });
+    const now       = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const active_contexts   = contexts.filter(c => !['completed', 'closed', 'failed', 'cancelled'].includes(c.current_stage)).length;
+    const completed_today   = contexts.filter(c => c.current_stage === 'completed' && new Date(c.updated_at) >= todayStart).length;
+    const failed_today      = contexts.filter(c => c.current_stage === 'failed' && new Date(c.updated_at) >= todayStart).length;
+
+    const withDuration = contexts.filter(c => c.created_at && c.updated_at);
+    const avg_duration_ms = withDuration.length > 0
+      ? withDuration.reduce((sum, c) => sum + (new Date(c.updated_at) - new Date(c.created_at)), 0) / withDuration.length
+      : 0;
+
+    const contexts_by_stage = {};
+    for (const c of contexts) {
+      contexts_by_stage[c.current_stage] = (contexts_by_stage[c.current_stage] || 0) + 1;
+    }
+
+    res.json({ active_contexts, completed_today, failed_today, avg_duration_ms: Math.floor(avg_duration_ms), contexts_by_stage });
+  } catch (error) {
+    logger.error('DEX: observability error', { error: error.message });
+    res.status(500).json({ error: 'Failed to get observability data' });
+  }
+});
+
 export default router;

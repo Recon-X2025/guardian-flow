@@ -1,245 +1,316 @@
+/**
+ * IoT Telemetry Routes
+ * GET    /api/iot-telemetry/devices        - list devices
+ * POST   /api/iot-telemetry/devices        - create device
+ * PUT    /api/iot-telemetry/devices/:id    - update device
+ * DELETE /api/iot-telemetry/devices/:id    - delete device
+ * GET    /api/iot-telemetry/readings       - list readings (?device_id=&limit=)
+ * POST   /api/iot-telemetry/readings       - ingest reading (triggers alert check)
+ * POST   /api/iot-telemetry/readings/batch - bulk ingest
+ * GET    /api/iot-telemetry/alerts         - list unacknowledged alerts
+ * PUT    /api/iot-telemetry/alerts/:id/acknowledge
+ * GET    /api/iot-telemetry/devices/:id/twin - digital twin
+ */
+
 import express from 'express';
-import { randomUUID, createHash } from 'crypto';
+import { randomUUID } from 'crypto';
 import { getAdapter } from '../db/factory.js';
-import { authenticateToken } from '../middleware/auth.js';
 import logger from '../utils/logger.js';
-import mqttBroker from '../services/iot/mqtt-broker.js';
 
 const router = express.Router();
 
-async function resolveTenantId(userId) {
-  const adapter = await getAdapter();
-  const profile = await adapter.findOne('profiles', { id: userId });
-  return profile?.tenant_id ?? userId;
+async function checkAlertRules(adapter, tenantId, deviceId, property, value) {
+  try {
+    const rules = await adapter.findMany('alert_rules', { tenant_id: tenantId, enabled: true });
+    const matching = rules.filter(r => (r.device_id === deviceId || r.device_id == null) && r.property === property);
+    for (const rule of matching) {
+      let triggered = false;
+      const threshold = Number(rule.threshold);
+      const val = Number(value);
+      if (rule.operator === '>' && val > threshold) triggered = true;
+      else if (rule.operator === '<' && val < threshold) triggered = true;
+      else if (rule.operator === '=' && val === threshold) triggered = true;
+      if (triggered) {
+        const alert = {
+          id: randomUUID(), tenant_id: tenantId, device_id: deviceId,
+          property, value, threshold: rule.threshold, severity: rule.severity,
+          rule_id: rule.id, acknowledged: false, created_at: new Date(),
+        };
+        await adapter.insertOne('iot_alerts', alert);
+      }
+    }
+  } catch (err) {
+    logger.error('IoT: alert rule check error', { error: err.message });
+  }
 }
 
-router.post('/ingest', authenticateToken, async (req, res) => {
+// ── Devices ───────────────────────────────────────────────────────────────────
+
+router.get('/devices', async (req, res) => {
   try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const { device_id, metric, value, unit, timestamp } = req.body;
-    if (!device_id || metric === undefined || value === undefined) {
-      return res.status(400).json({ error: 'device_id, metric, and value are required' });
-    }
     const adapter = await getAdapter();
-    const reading = {
-      id: randomUUID(),
-      tenant_id: tenantId,
-      device_id,
-      metric,
-      value,
-      unit: unit || '',
-      timestamp: timestamp || new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    };
-    await adapter.insertOne('iot_readings', reading);
-    const existing = await adapter.findOne('iot_devices', { tenant_id: tenantId, device_id });
-    if (existing) {
-      await adapter.updateOne('iot_devices', { id: existing.id }, {
-        last_seen: reading.timestamp,
-        last_metric: metric,
-        last_value: value,
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      await adapter.insertOne('iot_devices', {
-        id: randomUUID(),
-        tenant_id: tenantId,
-        device_id,
-        last_seen: reading.timestamp,
-        last_metric: metric,
-        last_value: value,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    }
-    res.status(201).json({ reading });
+    const devices = await adapter.findMany('iot_devices', { tenant_id: req.user.tenantId });
+    res.json({ devices, total: devices.length });
   } catch (err) {
-    logger.error('IoT ingest error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error('IoT: list devices error', { error: err.message });
+    res.status(500).json({ error: 'Failed to list devices' });
   }
 });
 
-router.get('/devices', authenticateToken, async (req, res) => {
+router.post('/devices', async (req, res) => {
   try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const adapter = await getAdapter();
-    const devices = await adapter.findMany('iot_devices', { tenant_id: tenantId }, { limit: 50 });
-    res.json({ devices });
-  } catch (err) {
-    logger.error('IoT devices error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.get('/readings', authenticateToken, async (req, res) => {
-  try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const { device_id, metric, limit = 100 } = req.query;
-    const adapter = await getAdapter();
-    const filter = { tenant_id: tenantId };
-    if (device_id) filter.device_id = device_id;
-    if (metric) filter.metric = metric;
-    const readings = await adapter.findMany('iot_readings', filter, { limit: parseInt(limit, 10) });
-    res.json({ readings });
-  } catch (err) {
-    logger.error('IoT readings error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.get('/devices/:deviceId/readings', authenticateToken, async (req, res) => {
-  try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const adapter = await getAdapter();
-    const readings = await adapter.findMany('iot_readings', { tenant_id: tenantId, device_id: req.params.deviceId }, { limit: 200 });
-    res.json({ readings });
-  } catch (err) {
-    logger.error('IoT device readings error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// POST /api/iot/devices/register
-router.post('/devices/register', authenticateToken, async (req, res) => {
-  try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const { name, expected_metrics } = req.body;
+    const { name, device_type, metadata } = req.body;
     if (!name) return res.status(400).json({ error: 'name is required' });
     const adapter = await getAdapter();
-    const deviceId = randomUUID();
-    const clientId = `gf_${randomUUID().slice(0, 8)}`;
-    const password = randomUUID();
-    const passwordHash = createHash('sha256').update(password).digest('hex');
-    const now = new Date().toISOString();
     const device = {
-      id: deviceId,
-      tenant_id: tenantId,
-      device_id: deviceId,
-      name,
-      expected_metrics: expected_metrics || [],
-      status: 'unknown',
-      last_seen_at: null,
-      credentials: { clientId, password_hash: passwordHash },
-      created_at: now,
-      updated_at: now,
+      id: randomUUID(), tenant_id: req.user.tenantId, name, device_type: device_type || 'generic',
+      status: 'unknown', last_seen: null, metadata: metadata || {}, created_at: new Date(),
     };
     await adapter.insertOne('iot_devices', device);
-    logger.info('IoT device registered', { tenantId, deviceId });
-    res.status(201).json({ device, clientId, password });
+    res.status(201).json({ device });
   } catch (err) {
-    logger.error('IoT device register error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error('IoT: create device error', { error: err.message });
+    res.status(500).json({ error: 'Failed to create device' });
   }
 });
 
-// GET /api/iot/devices/:id
-router.get('/devices/:id', authenticateToken, async (req, res) => {
+router.put('/devices/:id', async (req, res) => {
   try {
-    const tenantId = await resolveTenantId(req.user.id);
     const adapter = await getAdapter();
-    const device = await adapter.findOne('iot_devices', { id: req.params.id, tenant_id: tenantId });
+    const device = await adapter.findOne('iot_devices', { id: req.params.id, tenant_id: req.user.tenantId });
     if (!device) return res.status(404).json({ error: 'Device not found' });
-    const readings = await adapter.findMany('iot_readings', { tenant_id: tenantId, device_id: device.device_id }, { limit: 50 });
-    res.json({ device, readings });
-  } catch (err) {
-    logger.error('IoT device detail error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// POST /api/iot/rules
-router.post('/rules', authenticateToken, async (req, res) => {
-  try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const { device_id, metric, condition, threshold, action } = req.body;
-    if (!device_id || !metric || !condition || threshold === undefined || !action) {
-      return res.status(400).json({ error: 'device_id, metric, condition, threshold, and action are required' });
+    const allowed = ['name', 'device_type', 'status', 'metadata'];
+    const updates = {};
+    for (const key of allowed) {
+      if (key in req.body) updates[key] = req.body[key];
     }
-    const validConditions = ['gt', 'lt', 'eq', 'gte', 'lte'];
-    if (!validConditions.includes(condition)) return res.status(400).json({ error: `condition must be one of: ${validConditions.join(', ')}` });
-    const validActions = ['create_work_order', 'send_alert'];
-    if (!validActions.includes(action)) return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
-    const adapter = await getAdapter();
-    const rule = {
-      id: randomUUID(),
-      tenant_id: tenantId,
-      device_id,
-      metric,
-      condition,
-      threshold,
-      action,
-      active: true,
-      last_triggered_at: null,
-      created_at: new Date().toISOString(),
-    };
-    await adapter.insertOne('iot_rules', rule);
-    res.status(201).json({ rule });
+    await adapter.updateOne('iot_devices', { id: req.params.id, tenant_id: req.user.tenantId }, updates);
+    res.json({ device: { ...device, ...updates } });
   } catch (err) {
-    logger.error('IoT rule create error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error('IoT: update device error', { error: err.message });
+    res.status(500).json({ error: 'Failed to update device' });
   }
 });
 
-// GET /api/iot/rules
-router.get('/rules', authenticateToken, async (req, res) => {
+router.delete('/devices/:id', async (req, res) => {
   try {
-    const tenantId = await resolveTenantId(req.user.id);
     const adapter = await getAdapter();
-    const rules = await adapter.findMany('iot_rules', { tenant_id: tenantId }, { limit: 100 });
-    res.json({ rules });
-  } catch (err) {
-    logger.error('IoT rules list error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// DELETE /api/iot/rules/:id
-router.delete('/rules/:id', authenticateToken, async (req, res) => {
-  try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const adapter = await getAdapter();
-    const rule = await adapter.findOne('iot_rules', { id: req.params.id, tenant_id: tenantId });
-    if (!rule) return res.status(404).json({ error: 'Rule not found' });
-    await adapter.deleteOne('iot_rules', { id: req.params.id });
+    const device = await adapter.findOne('iot_devices', { id: req.params.id, tenant_id: req.user.tenantId });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+    await adapter.deleteOne('iot_devices', { id: req.params.id, tenant_id: req.user.tenantId });
     res.json({ deleted: true });
   } catch (err) {
-    logger.error('IoT rule delete error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error('IoT: delete device error', { error: err.message });
+    res.status(500).json({ error: 'Failed to delete device' });
   }
 });
 
-// POST /api/iot/readings
-router.post('/readings', authenticateToken, async (req, res) => {
+// ── Readings ──────────────────────────────────────────────────────────────────
+
+router.get('/readings', async (req, res) => {
   try {
-    const tenantId = await resolveTenantId(req.user.id);
-    const { device_id, metric, value, unit, timestamp } = req.body;
-    if (!device_id || metric === undefined || value === undefined) {
-      return res.status(400).json({ error: 'device_id, metric, and value are required' });
+    const adapter = await getAdapter();
+    const { device_id, limit: rawLimit = '100' } = req.query;
+    const filter = { tenant_id: req.user.tenantId };
+    if (device_id) filter.device_id = device_id;
+    const limit = Math.min(parseInt(rawLimit, 10) || 100, 1000);
+    const readings = await adapter.findMany('telemetry_readings', filter, { limit });
+    res.json({ readings, total: readings.length });
+  } catch (err) {
+    logger.error('IoT: list readings error', { error: err.message });
+    res.status(500).json({ error: 'Failed to list readings' });
+  }
+});
+
+router.post('/readings', async (req, res) => {
+  try {
+    const { device_id, property, value, unit, timestamp } = req.body;
+    if (!device_id || !property || value === undefined) {
+      return res.status(400).json({ error: 'device_id, property, and value are required' });
     }
     const adapter = await getAdapter();
+    const tenantId = req.user.tenantId;
     const reading = {
-      id: randomUUID(),
-      tenant_id: tenantId,
-      device_id,
-      metric,
-      value,
-      unit: unit || '',
-      timestamp: timestamp || new Date().toISOString(),
-      created_at: new Date().toISOString(),
+      id: randomUUID(), tenant_id: tenantId, device_id, property, value,
+      unit: unit || null, timestamp: timestamp ? new Date(timestamp) : new Date(), created_at: new Date(),
     };
-    await adapter.insertOne('iot_readings', reading);
-    await mqttBroker.processMessage(tenantId, device_id, { [metric]: value });
+    await adapter.insertOne('telemetry_readings', reading);
+    await adapter.updateOne('iot_devices', { id: device_id, tenant_id: tenantId }, { status: 'online', last_seen: new Date() });
+    checkAlertRules(adapter, tenantId, device_id, property, value);
     res.status(201).json({ reading });
   } catch (err) {
-    logger.error('IoT readings ingest error', { error: err.message });
-    res.status(500).json({ error: 'Internal server error' });
+    logger.error('IoT: ingest reading error', { error: err.message });
+    res.status(500).json({ error: 'Failed to ingest reading' });
   }
 });
 
-// GET /api/iot/mqtt/status
-router.get('/mqtt/status', authenticateToken, async (req, res) => {
-  res.json(mqttBroker.getStatus());
+router.post('/readings/batch', async (req, res) => {
+  try {
+    const { readings: items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'readings array is required' });
+    }
+    const adapter = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const saved = [];
+    for (const item of items) {
+      const reading = {
+        id: randomUUID(), tenant_id: tenantId, device_id: item.device_id,
+        property: item.property, value: item.value, unit: item.unit || null,
+        timestamp: item.timestamp ? new Date(item.timestamp) : new Date(), created_at: new Date(),
+      };
+      await adapter.insertOne('telemetry_readings', reading);
+      saved.push(reading);
+      checkAlertRules(adapter, tenantId, item.device_id, item.property, item.value);
+    }
+    res.status(201).json({ inserted: saved.length, readings: saved });
+  } catch (err) {
+    logger.error('IoT: batch ingest error', { error: err.message });
+    res.status(500).json({ error: 'Failed to batch ingest readings' });
+  }
 });
+
+// ── Alerts ────────────────────────────────────────────────────────────────────
+
+router.get('/alerts', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const alerts = await adapter.findMany('iot_alerts', { tenant_id: req.user.tenantId, acknowledged: false });
+    res.json({ alerts, total: alerts.length });
+  } catch (err) {
+    logger.error('IoT: list alerts error', { error: err.message });
+    res.status(500).json({ error: 'Failed to list alerts' });
+  }
+});
+
+router.put('/alerts/:id/acknowledge', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const alert = await adapter.findOne('iot_alerts', { id: req.params.id, tenant_id: req.user.tenantId });
+    if (!alert) return res.status(404).json({ error: 'Alert not found' });
+    await adapter.updateOne('iot_alerts', { id: req.params.id, tenant_id: req.user.tenantId }, {
+      acknowledged: true, acknowledged_by: req.user.userId, acknowledged_at: new Date(),
+    });
+    res.json({ acknowledged: true });
+  } catch (err) {
+    logger.error('IoT: acknowledge alert error', { error: err.message });
+    res.status(500).json({ error: 'Failed to acknowledge alert' });
+  }
+});
+
+// ── Digital Twin ──────────────────────────────────────────────────────────────
+
+router.get('/devices/:id/twin', async (req, res) => {
+  try {
+    const adapter = await getAdapter();
+    const tenantId = req.user.tenantId;
+    const device = await adapter.findOne('iot_devices', { id: req.params.id, tenant_id: tenantId });
+    if (!device) return res.status(404).json({ error: 'Device not found' });
+
+    // Fetch recent readings (last 24h window for trend analysis)
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const allReadings = await adapter.findMany('telemetry_readings', {
+      device_id: req.params.id, tenant_id: tenantId,
+    }, { sort: { timestamp: -1 }, limit: 500 });
+
+    // Build current_readings (most recent value per property)
+    const current_readings = {};
+    for (const r of allReadings) {
+      if (!current_readings[r.property] || new Date(r.timestamp) > new Date(current_readings[r.property].timestamp)) {
+        current_readings[r.property] = { value: r.value, unit: r.unit, timestamp: r.timestamp };
+      }
+    }
+
+    // Compute signal-based health score using recent readings
+    const recent = allReadings.filter(r => r.timestamp >= windowStart);
+    const { healthScore, failureDays, factors } = computeHealthScore(recent, current_readings);
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const recentAlerts = await adapter.findMany('iot_alerts', { device_id: req.params.id, tenant_id: tenantId });
+    const anomaly_count_7d = recentAlerts.filter(a => (a.created_at?.toString() ?? '') >= sevenDaysAgo).length;
+
+    // Persist scoring result for trend tracking
+    await adapter.insertOne('iot_health_scores', {
+      id: randomUUID(), tenant_id: tenantId, device_id: req.params.id,
+      health_score: healthScore, predicted_failure_days: failureDays,
+      factors, anomaly_count_7d, computed_at: new Date().toISOString(),
+    });
+
+    res.json({
+      device_id: req.params.id,
+      current_readings,
+      health_score: healthScore,
+      predicted_failure_days: failureDays,
+      anomaly_count_7d,
+      factors,
+      computed_from_readings: recent.length,
+    });
+  } catch (err) {
+    logger.error('IoT: digital twin error', { error: err.message });
+    res.status(500).json({ error: 'Failed to get digital twin' });
+  }
+});
+
+// ── Health scoring helpers ────────────────────────────────────────────────────
+
+// Typical sensor thresholds used to score health
+const THRESHOLDS = {
+  temperature:  { warn: 70, critical: 85 },   // °C
+  vibration:    { warn: 6,  critical: 12 },    // mm/s
+  pressure:     { warn: 150, critical: 200 },  // bar
+  humidity:     { warn: 80, critical: 95 },    // %
+  rpm:          { warn: 3500, critical: 4200 },
+  current:      { warn: 16, critical: 20 },    // A
+  voltage:      { warn: 250, critical: 280 },  // V
+};
+
+function computeHealthScore(recentReadings, currentReadings) {
+  const factors = [];
+  let totalPenalty = 0;
+
+  // Check each known property
+  for (const [prop, thresholds] of Object.entries(THRESHOLDS)) {
+    const current = currentReadings[prop];
+    if (!current) continue;
+    const val = Number(current.value);
+    if (isNaN(val)) continue;
+
+    let penalty = 0;
+    let severity = 'ok';
+    if (val >= thresholds.critical) { penalty = 30; severity = 'critical'; }
+    else if (val >= thresholds.warn) { penalty = 15; severity = 'warn'; }
+
+    // Trend penalty: if last 10 readings are trending up towards threshold
+    const propReadings = recentReadings
+      .filter(r => r.property === prop)
+      .slice(0, 10)
+      .map(r => Number(r.value))
+      .filter(v => !isNaN(v));
+    if (propReadings.length >= 3) {
+      const trend = (propReadings[0] - propReadings[propReadings.length - 1]) / propReadings.length;
+      if (trend > 0 && val > thresholds.warn * 0.8) penalty += 5; // trending up toward threshold
+    }
+
+    totalPenalty = Math.min(100, totalPenalty + penalty);
+    if (severity !== 'ok') {
+      factors.push({ property: prop, value: val, severity, penalty });
+    }
+  }
+
+  // Alert frequency penalty
+  const alertRate = recentReadings.filter(r => r._alert).length;
+  if (alertRate > 5) totalPenalty = Math.min(100, totalPenalty + 10);
+
+  const healthScore = Math.max(0, Math.round(100 - totalPenalty));
+
+  // Estimated days to failure based on health score
+  // Exponential: 100% → ~365 days, 50% → ~90 days, 0% → 0 days
+  const failureDays = healthScore === 0 ? 0
+    : healthScore < 30 ? Math.round(healthScore * 0.5)
+    : healthScore < 60 ? Math.round(30 + healthScore * 1.0)
+    : Math.round(90 + (healthScore - 60) * 6.9);
+
+  return { healthScore, failureDays, factors };
+}
 
 export default router;

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/integrations/api/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, TrendingUp, Zap, Calendar, Loader2, Play, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/domains/shared/hooks/use-toast';
 import { format } from 'date-fns';
+
+function authHeader() {
+  const token = localStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface Prediction {
   id: string;
@@ -103,7 +107,7 @@ function AtRiskSection() {
   const { data, isLoading } = useQuery({
     queryKey: ['at-risk-assets'],
     queryFn: async () => {
-      const res = await fetch('/api/assets/at-risk');
+      const res = await fetch('/api/assets/at-risk', { headers: authHeader() });
       if (!res.ok) throw new Error('Failed to load at-risk assets');
       return res.json();
     },
@@ -145,28 +149,30 @@ export default function PredictiveMaintenance() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: predictions, isLoading } = useQuery({
+  const { data: predictionsData, isLoading } = useQuery({
     queryKey: ['maintenance-predictions'],
     queryFn: async () => {
-      const { data, error } = await apiClient
-        .from('maintenance_predictions')
-        .select('*, equipment(serial_number, model, manufacturer)')
-        .order('failure_probability', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return data;
-    }
+      const res = await fetch('/api/functions/maintenance-predictions', { headers: authHeader() });
+      if (!res.ok) throw new Error('Failed to load predictions');
+      return res.json();
+    },
   });
+
+  const predictions: Prediction[] = (predictionsData?.predictions ?? []).map((p: Record<string, unknown>) => ({
+    ...p,
+    equipment: p.equipment as Prediction['equipment'],
+  }));
 
   const runPredictions = async () => {
     setRunning(true);
     try {
-      const result = await apiClient.functions.invoke('predict-maintenance-failures', {
-        body: {}
+      const res = await fetch('/api/functions/predict-maintenance-failures', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({}),
       });
-      if (result.error) throw result.error;
-      const data = result.data as { count?: number; ai_provider?: string; llm_provider?: string; model_info?: { trained?: boolean; data_points?: number } };
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { count?: number; ai_provider?: string; llm_provider?: string; model_info?: { trained?: boolean; data_points?: number } };
       setModelInfo(data ? { ai_provider: data.ai_provider, llm_provider: data.llm_provider, model_info: data.model_info } : null);
       toast({
         title: 'Predictions generated',

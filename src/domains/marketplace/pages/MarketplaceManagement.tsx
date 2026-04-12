@@ -1,12 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "@/integrations/api/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Store, Package, DollarSign, TrendingUp, Users, CheckCircle, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/domains/shared/hooks/use-toast";
+
+function authHeader() {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
+}
 
 interface MarketplaceExtension {
   id: string;
@@ -14,179 +19,142 @@ interface MarketplaceExtension {
   status: string;
   install_count?: number;
   created_at: string;
-}
-
-interface ExtensionInstallation {
-  id: string;
-  extension_id: string;
-  installed_at: string;
-  extension?: MarketplaceExtension;
-}
-
-interface MarketplaceTransaction {
-  id: string;
-  extension_id: string;
-  amount: string | number;
-  created_at: string;
-  extension?: MarketplaceExtension;
+  developer_name?: string;
+  category?: string;
+  rating?: number;
+  price_type?: string;
+  price_monthly?: number;
 }
 
 export default function MarketplaceManagement() {
-  const { data: extensions = [] } = useQuery({
-    queryKey: ["marketplace-extensions"],
-    queryFn: async () => {
-      const result = await apiClient
-        .from("marketplace_extensions")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const { toast } = useToast();
+  const qc = useQueryClient();
 
-      if (result.error) throw result.error;
-      return result.data || [];
+  const { data: statsData } = useQuery({
+    queryKey: ["marketplace-stats"],
+    queryFn: async () => {
+      const res = await fetch('/api/marketplace/admin/stats', { headers: authHeader() });
+      if (!res.ok) return null;
+      return res.json();
     },
   });
 
-  const { data: installations = [] } = useQuery({
-    queryKey: ["extension-installations"],
+  const { data: extensionsData } = useQuery({
+    queryKey: ["marketplace-all-extensions"],
     queryFn: async () => {
-      // Fetch installations and extensions separately (apiClient doesn't support joins)
-      const installResult = await apiClient
-        .from("extension_installations")
-        .select("*")
-        .order("installed_at", { ascending: false })
-        .limit(20);
-
-      if (installResult.error) throw installResult.error;
-      const installations = installResult.data || [];
-      
-      // Fetch extensions separately and merge
-      const extResult = await apiClient.from("marketplace_extensions").select("*");
-      const extensions = extResult.data || [];
-      
-      return installations.map((inst: ExtensionInstallation) => ({
-        ...inst,
-        extension: extensions.find((ext: MarketplaceExtension) => ext.id === inst.extension_id)
-      }));
+      const res = await fetch('/api/marketplace/extensions?limit=100', { headers: authHeader() });
+      if (!res.ok) return { extensions: [] };
+      return res.json();
     },
   });
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["marketplace-transactions"],
+  const { data: queueData } = useQuery({
+    queryKey: ["marketplace-queue"],
     queryFn: async () => {
-      // Fetch transactions and extensions separately (apiClient doesn't support joins)
-      const transResult = await apiClient
-        .from("marketplace_transactions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (transResult.error) throw transResult.error;
-      const transactions = transResult.data || [];
-      
-      // Fetch extensions separately and merge
-      const extResult = await apiClient.from("marketplace_extensions").select("*");
-      const extensions = extResult.data || [];
-      
-      return transactions.map((trans: MarketplaceTransaction) => ({
-        ...trans,
-        extension: extensions.find((ext: MarketplaceExtension) => ext.id === trans.extension_id)
-      }));
+      const res = await fetch('/api/marketplace/admin/queue', { headers: authHeader() });
+      if (!res.ok) return { queue: [] };
+      return res.json();
     },
   });
 
-  const totalRevenue = transactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const activeExtensions = extensions.filter(e => e.status === 'approved').length;
-  const pendingApprovals = extensions.filter(e => e.status === 'pending').length;
-  const totalInstallations = extensions.reduce((sum, e) => sum + (e.install_count || 0), 0);
+  const { data: installationsData } = useQuery({
+    queryKey: ["marketplace-installations"],
+    queryFn: async () => {
+      const res = await fetch('/api/marketplace/installed', { headers: authHeader() });
+      if (!res.ok) return { extensions: [] };
+      return res.json();
+    },
+  });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Approved</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending Review</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  const approveMut = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/marketplace/admin/${id}/approve`, { method: 'PUT', headers: authHeader() });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['marketplace-queue'] });
+      qc.invalidateQueries({ queryKey: ['marketplace-stats'] });
+      toast({ title: 'Extension approved' });
+    },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/marketplace/admin/${id}/reject`, {
+        method: 'PUT', headers: authHeader(), body: JSON.stringify({ reason: 'Does not meet quality standards' }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['marketplace-queue'] });
+      toast({ title: 'Extension rejected' });
+    },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const extensions: MarketplaceExtension[] = extensionsData?.extensions ?? [];
+  const queue: MarketplaceExtension[] = queueData?.queue ?? [];
+  const installations = installationsData?.extensions ?? [];
+  const stats = statsData;
+
+  const totalRevenue = stats?.total_platform_revenue ?? 0;
+  const activeExtensions = stats?.total_extensions ?? extensions.length;
+  const pendingApprovals = stats?.pending_review ?? queue.length;
+  const totalInstallations = stats?.total_installations ?? installations.length;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Marketplace Management</h1>
-        <p className="text-muted-foreground">
-          Manage extensions, partners, and marketplace analytics
-        </p>
+    <div className="p-8 space-y-6">
+      <div className="flex items-center gap-3">
+        <Store className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold">Marketplace Management</h1>
+          <p className="text-muted-foreground">Manage extensions, installations, and revenue</p>
+        </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              From marketplace transactions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Active Extensions</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeExtensions}</div>
-            <p className="text-xs text-muted-foreground">
-              {pendingApprovals} pending approval
-            </p>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">{activeExtensions}</div></CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Installations</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalInstallations}</div>
-            <p className="text-xs text-muted-foreground">
-              Across all extensions
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{installations.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Unique installations
-            </p>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">{totalInstallations}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold text-orange-500">{pendingApprovals}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Platform Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div></CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="extensions" className="space-y-4">
+      <Tabs defaultValue="extensions">
         <TabsList>
-          <TabsTrigger value="extensions">Extensions</TabsTrigger>
+          <TabsTrigger value="extensions">All Extensions</TabsTrigger>
+          <TabsTrigger value="queue">Review Queue {queue.length > 0 && <Badge className="ml-1 bg-orange-100 text-orange-800 border-0">{queue.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="installations">Installations</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="certification">Certification</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="extensions" className="space-y-4">
+        <TabsContent value="extensions" className="mt-4">
           <Card>
-            <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Marketplace Extensions</CardTitle>
@@ -201,53 +169,35 @@ export default function MarketplaceManagement() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Extension Name</TableHead>
+                    <TableHead>Extension</TableHead>
+                    <TableHead>Developer</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Pricing</TableHead>
-                    <TableHead>Installs</TableHead>
                     <TableHead>Rating</TableHead>
+                    <TableHead>Installs</TableHead>
+                    <TableHead>Price</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {extensions.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No extensions</TableCell></TableRow>
+                  )}
                   {extensions.map((ext) => (
                     <TableRow key={ext.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{ext.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {ext.description?.substring(0, 50)}...
-                          </div>
-                        </div>
+                      <TableCell className="font-medium">{ext.extension_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{ext.developer_name ?? '—'}</TableCell>
+                      <TableCell><Badge variant="outline" className="capitalize text-xs">{ext.category?.replace(/_/g, ' ')}</Badge></TableCell>
+                      <TableCell className="text-sm">{ext.rating?.toFixed(1) ?? '—'}</TableCell>
+                      <TableCell>{ext.install_count ?? 0}</TableCell>
+                      <TableCell className="text-sm">
+                        {ext.price_type === 'free' ? 'Free' : `$${ext.price_monthly}/mo`}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{ext.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {ext.pricing_model === 'free' ? (
-                          <Badge variant="secondary">Free</Badge>
-                        ) : (
-                          <span className="font-mono text-sm">${ext.price}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{ext.install_count || 0}</TableCell>
-                      <TableCell>
-                        {ext.rating ? (
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium">{ext.rating.toFixed(1)}</span>
-                            <span className="text-yellow-500">★</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">No ratings</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(ext.status)}</TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost" onClick={() => toast({ title: ext.name, description: ext.description })}>View</Button>
+                        <Badge className={ext.status === 'approved' ? 'bg-green-100 text-green-800 border-0' : 'bg-yellow-100 text-yellow-800 border-0'}>
+                          {ext.status}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -257,178 +207,84 @@ export default function MarketplaceManagement() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="installations" className="space-y-4">
+        <TabsContent value="queue" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Installations</CardTitle>
-              <CardDescription>
-                Track extension installations across tenants
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
+              {queue.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No extensions pending review.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Extension</TableHead>
+                      <TableHead>Developer</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {queue.map((ext) => (
+                      <TableRow key={ext.id}>
+                        <TableCell className="font-medium">{ext.extension_name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{ext.developer_name ?? '—'}</TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize text-xs">{ext.category?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {ext.created_at ? formatDistanceToNow(new Date(ext.created_at), { addSuffix: true }) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" className="text-green-700 border-green-300"
+                              onClick={() => approveMut.mutate(ext.id)} disabled={approveMut.isPending}>
+                              <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-red-700 border-red-300"
+                              onClick={() => rejectMut.mutate(ext.id)} disabled={rejectMut.isPending}>
+                              <XCircle className="h-3.5 w-3.5 mr-1" />Reject
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="installations" className="mt-4">
+          <Card>
+            <CardContent className="pt-4">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Extension</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Tenant ID</TableHead>
+                    <TableHead>Version</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Installed</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {installations.map((install) => (
-                    <TableRow key={install.id}>
-                      <TableCell className="font-medium">
-                        {install.extension?.name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {install.user_id.slice(0, 8)}...
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {install.tenant_id?.slice(0, 8) || 'N/A'}...
-                      </TableCell>
+                  {installations.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No installations yet</TableCell></TableRow>
+                  )}
+                  {installations.map((inst: { id: string; extension_name: string; version: string; status: string; installed_at: string }) => (
+                    <TableRow key={inst.id}>
+                      <TableCell className="font-medium">{inst.extension_name}</TableCell>
+                      <TableCell className="text-sm">v{inst.version}</TableCell>
                       <TableCell>
-                        {install.status === 'active' ? (
-                          <Badge className="bg-green-500">Active</Badge>
-                        ) : (
-                          <Badge variant="secondary">{install.status}</Badge>
-                        )}
+                        <Badge className={inst.status === 'active' ? 'bg-green-100 text-green-800 border-0' : 'bg-gray-100 text-gray-800 border-0'}>
+                          {inst.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(install.installed_at), { addSuffix: true })}
+                        {inst.installed_at ? formatDistanceToNow(new Date(inst.installed_at), { addSuffix: true }) : '—'}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="transactions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
-              <CardDescription>
-                Recent marketplace transactions and revenue
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Extension</TableHead>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="font-medium">
-                        {txn.extension?.name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {txn.user_id.slice(0, 8)}...
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono">
-                          {txn.currency} ${Number(txn.amount).toFixed(2)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {txn.payment_status === 'succeeded' ? (
-                          <Badge className="bg-green-500">Succeeded</Badge>
-                        ) : txn.payment_status === 'pending' ? (
-                          <Badge variant="secondary">Pending</Badge>
-                        ) : (
-                          <Badge variant="destructive">Failed</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(txn.created_at), { addSuffix: true })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="certification" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Extension Certification Process</CardTitle>
-              <CardDescription>
-                Steps and requirements for marketplace certification
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    1
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Security Review</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Static code analysis, dependency scanning, and penetration testing
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    2
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Compliance Validation</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Data handling practices, privacy requirements, audit logging verification
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    3
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Performance Testing</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Load testing, resource consumption limits, response time validation
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    4
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Integration Testing</h3>
-                    <p className="text-sm text-muted-foreground">
-                      API compatibility, error handling, rollback procedures
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    5
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Documentation Review</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Complete API documentation, user guides, support processes
-                    </p>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

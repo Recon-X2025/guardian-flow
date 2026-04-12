@@ -12,6 +12,10 @@ import {
   Clock,
   Link2,
   Search,
+  FileText,
+  Play,
+  RotateCcw,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +35,8 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { flowspaceApi } from '../lib/flowspaceApi';
 import type { DecisionRecord, DecisionRecordFilters, ActorType, DecisionDomain } from '../types';
 import {
@@ -38,6 +44,11 @@ import {
   ACTOR_TYPE_LABELS,
   ACTOR_TYPE_COLOURS,
 } from '../types';
+
+function authHeader() {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
+}
 
 // ── Actor icon helper ─────────────────────────────────────────────────────────
 
@@ -59,6 +70,117 @@ function ConfidenceBar({ score }: { score: number | null }) {
         <div className={`h-full rounded-full ${colour}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="text-xs tabular-nums">{pct}%</span>
+    </div>
+  );
+}
+
+// ── AI Act Article 13 Explanation Panel ───────────────────────────────────────
+
+interface Article13Explanation {
+  framework: string;
+  generated_at: string;
+  decision_summary: Record<string, unknown>;
+  purpose: string;
+  logic_used: string;
+  lineage_context: string;
+  significance_and_impact: string;
+  data_sources_used: string[];
+  human_oversight: { applicable: boolean; statement: string };
+  data_subject_rights: string[];
+  appeal_mechanism: string;
+  confidence_score: number | null;
+}
+
+function Article13Panel({ recordId }: { recordId: string }) {
+  const [explanation, setExplanation] = useState<Article13Explanation | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateExplanation = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/flowspace/records/${recordId}/explain`, {
+        method: 'POST', headers: authHeader(), body: JSON.stringify({}),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const data = await res.json();
+      setExplanation(data.explanation);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to generate explanation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!explanation && !loading) {
+    return (
+      <div className="space-y-3 py-2">
+        <Alert>
+          <ShieldCheck className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Generate an AI Act Article 13 / GDPR Article 22 explanation for this decision. This provides a meaningful
+            account of the purpose, logic, and human oversight rights applicable to this decision.
+          </AlertDescription>
+        </Alert>
+        <Button size="sm" onClick={generateExplanation}>
+          <FileText className="h-3.5 w-3.5 mr-2" />Generate Explanation
+        </Button>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+      </div>
+    );
+  }
+
+  if (loading) return <p className="text-sm text-muted-foreground py-4">Generating explanation…</p>;
+  if (!explanation) return null;
+
+  return (
+    <div className="space-y-3 py-2 text-sm">
+      <Badge className="bg-purple-100 text-purple-800 border-0 text-xs">{explanation.framework}</Badge>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Purpose</p>
+        <p>{explanation.purpose}</p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Decision Logic</p>
+        <p>{explanation.logic_used}</p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Causal Context</p>
+        <p>{explanation.lineage_context}</p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Significance & Impact</p>
+        <p>{explanation.significance_and_impact}</p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Human Oversight</p>
+        <div className={`flex items-start gap-2 p-2 rounded ${explanation.human_oversight.applicable ? 'bg-orange-50 border border-orange-200' : 'bg-muted/40'}`}>
+          <ShieldCheck className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${explanation.human_oversight.applicable ? 'text-orange-600' : 'text-muted-foreground'}`} />
+          <p className="text-xs">{explanation.human_oversight.statement}</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Data Subject Rights</p>
+        <ul className="space-y-0.5">
+          {explanation.data_subject_rights.map((right, i) => (
+            <li key={i} className="text-xs flex gap-1.5"><span className="text-muted-foreground mt-px">•</span>{right}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Appeals</p>
+        <p className="text-xs">{explanation.appeal_mechanism}</p>
+      </div>
+
+      <p className="text-xs text-muted-foreground">Generated {format(new Date(explanation.generated_at), 'PPpp')}</p>
     </div>
   );
 }
@@ -87,100 +209,113 @@ function RecordDetail({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-2">
-          <div className="space-y-4 py-2">
-            {/* Meta */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Domain</p>
-                <p>{DOMAIN_LABELS[record.domain] ?? record.domain}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Timestamp</p>
-                <p className="font-mono text-xs">{format(new Date(record.created_at), 'PPpp')}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Actor</p>
-                <p className="font-mono text-xs break-all">{record.actor_id}</p>
-              </div>
-              {record.model_version && (
-                <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Model Version</p>
-                  <p className="font-mono text-xs">{record.model_version}</p>
+        <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="shrink-0">
+            <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="explain"><ShieldCheck className="h-3 w-3 mr-1" />AI Act Explain</TabsTrigger>
+          </TabsList>
+
+          <ScrollArea className="flex-1 pr-2 mt-2">
+            <TabsContent value="details" className="mt-0">
+              <div className="space-y-4 py-2">
+                {/* Meta */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Domain</p>
+                    <p>{DOMAIN_LABELS[record.domain] ?? record.domain}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Timestamp</p>
+                    <p className="font-mono text-xs">{format(new Date(record.created_at), 'PPpp')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Actor</p>
+                    <p className="font-mono text-xs break-all">{record.actor_id}</p>
+                  </div>
+                  {record.model_version && (
+                    <div>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Model Version</p>
+                      <p className="font-mono text-xs">{record.model_version}</p>
+                    </div>
+                  )}
+                  {record.confidence_score !== null && (
+                    <div>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Confidence</p>
+                      <ConfidenceBar score={record.confidence_score} />
+                    </div>
+                  )}
+                  {record.entity_type && (
+                    <div>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Entity</p>
+                      <p className="font-mono text-xs">{record.entity_type} / {record.entity_id}</p>
+                    </div>
+                  )}
                 </div>
-              )}
-              {record.confidence_score !== null && (
-                <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Confidence</p>
-                  <ConfidenceBar score={record.confidence_score} />
-                </div>
-              )}
-              {record.entity_type && (
-                <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wide mb-0.5">Entity</p>
-                  <p className="font-mono text-xs">{record.entity_type} / {record.entity_id}</p>
-                </div>
-              )}
-            </div>
 
-            <Separator />
+                <Separator />
 
-            {/* Rationale */}
-            {record.rationale && (
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Rationale</p>
-                <p className="text-sm whitespace-pre-wrap">{record.rationale}</p>
+                {/* Rationale */}
+                {record.rationale && (
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Rationale</p>
+                    <p className="text-sm whitespace-pre-wrap">{record.rationale}</p>
+                  </div>
+                )}
+
+                {/* Context */}
+                {record.context && (
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Context Snapshot</p>
+                    <pre className="rounded bg-muted p-3 text-xs overflow-auto max-h-40">
+                      {JSON.stringify(record.context, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Constraints */}
+                {record.constraints && (
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Constraints Active</p>
+                    <pre className="rounded bg-muted p-3 text-xs overflow-auto max-h-32">
+                      {JSON.stringify(record.constraints, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Alternatives */}
+                {record.alternatives && (
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Alternatives Considered</p>
+                    <pre className="rounded bg-muted p-3 text-xs overflow-auto max-h-32">
+                      {JSON.stringify(record.alternatives, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                {/* Lineage link */}
+                {record.lineage_parent_id && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <Link2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Caused by decision</span>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 font-mono text-xs"
+                      onClick={() => onViewLineage(record.id)}
+                    >
+                      {record.lineage_parent_id.slice(0, 8)}…
+                      <ChevronRight className="h-3 w-3 ml-0.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </TabsContent>
 
-            {/* Context */}
-            {record.context && (
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Context Snapshot</p>
-                <pre className="rounded bg-muted p-3 text-xs overflow-auto max-h-40">
-                  {JSON.stringify(record.context, null, 2)}
-                </pre>
-              </div>
-            )}
-
-            {/* Constraints */}
-            {record.constraints && (
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Constraints Active</p>
-                <pre className="rounded bg-muted p-3 text-xs overflow-auto max-h-32">
-                  {JSON.stringify(record.constraints, null, 2)}
-                </pre>
-              </div>
-            )}
-
-            {/* Alternatives */}
-            {record.alternatives && (
-              <div>
-                <p className="text-muted-foreground text-xs uppercase tracking-wide mb-1">Alternatives Considered</p>
-                <pre className="rounded bg-muted p-3 text-xs overflow-auto max-h-32">
-                  {JSON.stringify(record.alternatives, null, 2)}
-                </pre>
-              </div>
-            )}
-
-            {/* Lineage link */}
-            {record.lineage_parent_id && (
-              <div className="flex items-center gap-2 pt-1">
-                <Link2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Caused by decision</span>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="h-auto p-0 font-mono text-xs"
-                  onClick={() => onViewLineage(record.id)}
-                >
-                  {record.lineage_parent_id.slice(0, 8)}…
-                  <ChevronRight className="h-3 w-3 ml-0.5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+            <TabsContent value="explain" className="mt-0">
+              <Article13Panel recordId={record.id} />
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
 
         <div className="flex justify-between pt-2 border-t mt-2">
           <Button variant="outline" size="sm" onClick={() => onViewLineage(record.id)}>

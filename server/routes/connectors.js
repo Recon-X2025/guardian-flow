@@ -18,13 +18,14 @@ import { getAdapter } from '../db/factory.js';
 import { SalesforceConnector } from '../services/connectors/salesforce.js';
 import { QuickBooksConnector } from '../services/connectors/quickbooks.js';
 import { SAPConnector } from '../services/connectors/sap.js';
+import { NetSuiteConnector } from '../services/connectors/netsuite.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
 const CONFIGS_COL  = 'connector_configs';
 const SYNC_LOG_COL = 'connector_sync_log';
 
-const CONNECTOR_TYPES = ['salesforce', 'quickbooks', 'sap', 'xero'];
+const CONNECTOR_TYPES = ['salesforce', 'quickbooks', 'sap', 'netsuite', 'xero'];
 
 async function resolveTenantId(userId) {
   const adapter = await getAdapter();
@@ -37,6 +38,7 @@ function buildConnector(config) {
     case 'salesforce': return new SalesforceConnector(config);
     case 'quickbooks': return new QuickBooksConnector(config);
     case 'sap':        return new SAPConnector(config);
+    case 'netsuite':   return new NetSuiteConnector(config);
     default:           return null;
   }
 }

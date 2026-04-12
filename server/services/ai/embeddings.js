@@ -38,32 +38,40 @@ function cosineSimilarity(a, b) {
 }
 
 export async function vectorSearch(collectionName, queryVector, limit = 5, filter = {}) {
-  // Fetch documents in paginated batches to avoid the hard 500-document cap
-  // that silently under-samples the corpus at enterprise scale.
-  //
-  // When the DB adapter is PostgreSQL + pgvector, the caller should bypass
-  // this function and use native "<=> ORDER BY" SQL instead (see docs/QA_HARDENING_REPORT.md D3).
-  // For the MongoDB adapter this brute-force approach is correct for corpora
-  // up to ~50k documents; above that, migrate to pgvector + HNSW indexing.
-  try {
-    const PAGE_SIZE = 2_000;
-    let allDocs = [];
-    let page = 0;
-
-    while (true) {
-      const batch = await findMany(collectionName, filter, {
-        limit: PAGE_SIZE,
-        skip:  page * PAGE_SIZE,
-      });
-      if (!batch || batch.length === 0) break;
-      allDocs = allDocs.concat(batch);
-      if (batch.length < PAGE_SIZE) break;  // last page
-      page++;
+  // Use MongoDB Atlas $vectorSearch when ATLAS_VECTOR_SEARCH=true and a vector is available
+  if (process.env.ATLAS_VECTOR_SEARCH === 'true' && queryVector && queryVector.length > 0) {
+    try {
+      const pipeline = [
+        {
+          $vectorSearch: {
+            index: `${collectionName}_vector_index`,
+            path: 'embedding',
+            queryVector,
+            numCandidates: limit * 10,
+            limit,
+            ...(Object.keys(filter).length > 0 ? { filter } : {}),
+          },
+        },
+        {
+          $addFields: {
+            similarity: { $meta: 'vectorSearchScore' },
+          },
+        },
+      ];
+      const results = await aggregate(collectionName, pipeline);
+      if (results && results.length > 0) return results;
+      // Fall through to brute-force if no results (empty collection / index not ready)
+    } catch (atlasError) {
+      console.warn('Atlas $vectorSearch failed, falling back to cosine similarity:', atlasError.message);
     }
+  }
+
+  // Brute-force cosine similarity fallback (local dev / non-Atlas environments)
+  try {
+    const allDocs = await findMany(collectionName, filter, { limit: 500 });
 
     if (!queryVector || allDocs.length === 0) return allDocs.slice(0, limit);
 
-    // Score by cosine similarity — O(n × d); acceptable up to ~50k docs
     const scored = allDocs
       .filter(doc => doc.embedding && doc.embedding.length > 0)
       .map(doc => ({

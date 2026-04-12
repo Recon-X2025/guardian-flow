@@ -1,98 +1,90 @@
-# Forecast System Cron Setup
+# Forecast Cron Setup
 
-## Daily Forecast Generation
+**Version:** 7.0 | **Date:** April 2026
 
-To run hierarchical forecasts daily at 3 AM, enable `node-cron` extension and create the schedule:
+> Forecast scheduling details are covered in `docs/INDIA_FORECASTING_SYSTEM.md`. This file focuses specifically on the cron configuration.
 
-```sql
--- Enable node-cron extension
-CREATE EXTENSION IF NOT EXISTS node-cron;
+---
 
--- Schedule daily forecast generation at 3 AM
-SELECT cron.schedule(
-  'daily-hierarchical-forecast',
-  '0 3 * * *', -- At 3:00 AM every day
-  $$
-  SELECT HTTP request(
-    url := 'https://YOUR_API_HOST/functions/v1/generate-forecast',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
-    body := '{"geography_levels": ["country","region","state","district","city","partner_hub","pin_code"]}'::jsonb
-  ) as request_id;
-  $$
-);
+## Scheduled Forecast Jobs
 
--- Schedule forecast reconciliation 30 minutes after generation
-SELECT cron.schedule(
-  'daily-forecast-reconciliation',
-  '30 3 * * *', -- At 3:30 AM every day
-  $$
-  SELECT HTTP request(
-    url := 'https://YOUR_API_HOST/functions/v1/reconcile-forecast',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb,
-    body := jsonb_build_object(
-      'target_date', current_date::text,
-      'forecast_type', 'volume'
-    )
-  ) as request_id;
-  $$
-);
+Forecasts run via the scheduled reports runner in `server/routes/scheduled-reports.js`.
 
--- Weekly forecast worker execution (processes queued jobs)
-SELECT cron.schedule(
-  'weekly-forecast-worker',
-  '0 2 * * 0', -- At 2:00 AM every Sunday
-  $$
-  SELECT HTTP request(
-    url := 'https://YOUR_API_HOST/functions/v1/forecast-worker',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
-  ) as request_id;
-  $$
-);
+| Job | Default Schedule (UTC) | Description |
+|-----|------------------------|-------------|
+| `forecast-refresh` | Daily at 02:00 | Recompute forecasts for all active tenants |
+| `forecast-accuracy-check` | Weekly (Monday 03:00) | Compare forecast vs actuals for the prior week |
+| `analytics-flush` | Hourly | Aggregate raw analytics events into hourly summaries |
+
+---
+
+## Changing the Forecast Schedule
+
+Edit `server/routes/scheduled-reports.js`:
+
+```javascript
+// Daily at 02:00 UTC
+const FORECAST_CRON = '0 2 * * *';
+
+// Every 6 hours
+const FORECAST_CRON = '0 */6 * * *';
+
+// Every Monday at 03:00 UTC
+const ACCURACY_CRON = '0 3 * * 1';
 ```
 
-## Monitoring Cron Jobs
+Standard cron format: `minute hour day-of-month month day-of-week`
 
-Check cron job status:
+---
 
-```sql
--- View scheduled jobs
-SELECT * FROM cron.job;
+## Manual Trigger
 
--- View job run history
-SELECT * FROM cron.job_run_details 
-ORDER BY start_time DESC 
-LIMIT 10;
-
--- Unschedule a job
-SELECT cron.unschedule('daily-hierarchical-forecast');
-```
-
-## Manual Triggers
-
-For testing or manual runs:
+To run a forecast refresh immediately without waiting for the cron schedule:
 
 ```bash
-# Generate forecasts manually
-curl -X POST https://YOUR_API_HOST/functions/v1/generate-forecast \
-  -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"geography_levels": ["country","city","pin_code"]}'
+POST /api/scheduled-reports/run
+Authorization: Bearer <sys_admin_token>
+Content-Type: application/json
 
-# Check forecast status
-curl https://YOUR_API_HOST/functions/v1/forecast-status \
-  -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY"
-
-# Reconcile forecasts
-curl -X POST https://YOUR_API_HOST/functions/v1/reconcile-forecast \
-  -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"target_date": "2025-10-08", "forecast_type": "volume"}'
+{
+  "job": "forecast-refresh",
+  "tenantId": "<tenant_id>"
+}
 ```
 
-## Architecture Notes
+To run for all tenants:
 
-- **Hierarchical Pipeline**: Country → Region → State → District → City → Hub → Pin Code
-- **Reconciliation**: Bottom-up aggregation with MinT variance correction (±3% threshold)
-- **Agent Integration**: Agents query forecasts by geography_key + product_id
-- **Retention**: 18 months of forecast_outputs, older records archived
-- **Model Retraining**: Monthly automatic retrain if accuracy drops below 80%
+```bash
+POST /api/scheduled-reports/run
+Authorization: Bearer <sys_admin_token>
+Content-Type: application/json
+
+{
+  "job": "forecast-refresh",
+  "all_tenants": true
+}
+```
+
+---
+
+## Monitoring Forecast Jobs
+
+Job run history is stored in the `scheduled_job_log` collection. Query recent runs:
+
+```bash
+GET /api/scheduled-reports/log?job=forecast-refresh&limit=10
+Authorization: Bearer <sys_admin_token>
+```
+
+Alerts: If a forecast job has not run within 25 hours, check the scheduled reports runner process is alive and the database connection is healthy.
+
+---
+
+## LLM-Enhanced Forecasts
+
+When `AI_PROVIDER=openai` is set, each scheduled forecast refresh also generates a natural-language narrative summary. This increases the cost of each scheduled run by approximately:
+
+- ~1,000–2,000 tokens per tenant per run
+- At OpenAI pricing (~$0.002 / 1K tokens): < $0.01 per tenant per daily run
+
+All LLM calls during scheduled forecasts are logged to `ai_governance_logs` and FlowSpace.

@@ -2,7 +2,7 @@
 
 **Modular Enterprise Operations Platform**
 
-> Full build report: [BUILD_REPORT.md](BUILD_REPORT.md) · Full documentation index: [docs/INDEX.md](docs/INDEX.md)
+> Full build report: [BUILD_REPORT.md](BUILD_REPORT.md) · Platform audit: [docs/PLATFORM_COMPREHENSIVE_AUDIT.md](docs/PLATFORM_COMPREHENSIVE_AUDIT.md)
 
 ---
 
@@ -68,15 +68,17 @@ npm run dev:all               # starts backend (:3001) + Vite (:5175) concurrent
 | **TypeScript** | ✅ Passing | strict mode · 5.8.3 |
 | **npm audit** | ⚠️ 17 pre-existing | 1 critical · 7 high · 8 moderate · 1 low (all upstream deps) |
 
-_Last recorded build: 2026-04-09 · Branch: `copilot/deep-dive-into-build` · Node v24.14.1_
+_Last recorded build: 2026-04-12 · Branch: `copilot/sprint-29-through-52` · Node v24.14.1_
 
 ---
 
 ## Platform Overview
 
-Guardian Flow is an AI-powered, multi-tenant **enterprise field service management platform** with PaaS capabilities. It combines work order orchestration, fraud & forgery detection, financial reconciliation, hierarchical forecasting, and an organisation management console — all exposed through a developer API gateway for third-party integrations.
+Guardian Flow is a multi-tenant **enterprise field service management platform** with PaaS capabilities. It combines work order orchestration, fraud & forgery detection, financial reconciliation, hierarchical forecasting, and an organisation management console — all exposed through a developer API gateway for third-party integrations.
 
 **Current version:** v6.1 (PaaS + Organisation Management Console)
+
+> **AI mode:** The platform ships with a mock AI layer (keyword-matching responses, statistical anomaly detection). Real GPT-4o LLM and OpenAI embeddings activate when `OPENAI_API_KEY` + `AI_PROVIDER=openai` are configured. Computer vision (photo defect detection) is a mock stub regardless of AI mode. See `docs/PRD.md` for the full feature status breakdown.
 
 ---
 
@@ -133,14 +135,19 @@ Guardian Flow is an AI-powered, multi-tenant **enterprise field service manageme
 | A/B Test Manager | `/ab-tests` | ✅ Live |
 
 ### 🤖 AI & Machine Learning
+> 🔑 = requires `OPENAI_API_KEY` · 🔲 = mock/stub · ✅ = always real
+
 | Feature | Route | Status |
 |---------|-------|--------|
-| AI Offer Engine | `/offer-ai` | ✅ Live |
+| AI Offer Engine | `/offer-ai` | 🔑 LLM (mock fallback) |
 | Agent Dashboard | `/agent-dashboard` | ✅ Live |
 | Model Orchestration | `/models` | ✅ Live |
-| RAG Engine | `/rag` | ✅ Live |
-| AI Assistant | `/assistant` | ✅ Live |
+| RAG Engine | `/rag` | 🔑 Real cosine search (mock embeddings fallback) |
+| AI Assistant | `/assistant` | 🔑 GPT-4o (keyword mock fallback) |
 | Prompt Management | `/prompts` | ✅ Live |
+| Anomaly Detection (statistical) | `/anomaly` | ✅ Always real (z-score) |
+| Computer Vision / Photo Defects | (via work orders) | 🔲 Mock — `Math.random()` |
+| ERP Connectors (SAP, Salesforce, QB) | (via connectors) | 🔲 Stub — logs only, no real API calls |
 
 ### 🏪 Inventory & Procurement
 | Feature | Route | Status |
@@ -330,12 +337,12 @@ curl -X POST http://localhost:3001/api/functions/api-gateway \
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18 · TypeScript 5.8 · Vite 5.4 · Tailwind CSS · shadcn/ui |
-| Backend | Express.js · Node.js 18+ |
+| Backend | Express.js · Node.js 20+ |
 | Database | MongoDB Atlas (default) · PostgreSQL (alternate) |
 | Auth | JWT (access + refresh tokens) |
-| AI | Lovable AI Gateway (Gemini / GPT-4) |
+| AI | OpenAI GPT-4o (requires `OPENAI_API_KEY`; mock by default) |
 | Build | Vite 5.4 · @vitejs/plugin-react-swc |
-| Testing | Vitest 1.6 |
+| Testing | Vitest 1.6 (unit) · Playwright 1.58 (E2E) |
 | Design Tokens | `src/styles/tokens.css` (`--gf-*` tokens · dark mode) |
 
 ---
@@ -376,9 +383,9 @@ guardian-flow/
 │   ├── pages/modules/             # 12 PaaS module pages
 │   └── styles/tokens.css          # --gf-* design tokens
 ├── server/
-│   ├── server.js                  # Express app + route registration
-│   ├── routes/                    # 15 route files
-│   ├── services/analytics.js      # Fire-and-forget telemetry (trackEvent)
+│   ├── server.js                  # Express app + route registration (57 routes)
+│   ├── routes/                    # 57 route files
+│   ├── services/                  # AI, analytics, scheduler, connectors, flowspace
 │   ├── db/                        # DB abstraction (MongoDB / PostgreSQL)
 │   └── scripts/phase0-migration.js
 ├── tests/
@@ -396,14 +403,26 @@ guardian-flow/
 
 | Document | Location |
 |----------|---------|
+| **Contributor Onboarding & Build Context** | [`docs/CONTRIBUTOR_ONBOARDING.md`](docs/CONTRIBUTOR_ONBOARDING.md) |
 | Build Report (build + test + audit) | [`BUILD_REPORT.md`](BUILD_REPORT.md) |
-| Documentation Index | [`docs/INDEX.md`](docs/INDEX.md) |
-| Product Specifications | `public/PRODUCT_SPECIFICATIONS_V5.md` |
-| API Documentation | `public/API_DOCUMENTATION.md` |
-| Testing Guide | `docs/COMPLETE_TEST_GUIDE.md` |
+| Platform Comprehensive Audit | [`docs/PLATFORM_COMPREHENSIVE_AUDIT.md`](docs/PLATFORM_COMPREHENSIVE_AUDIT.md) |
+| Product Requirements (PRD) | [`docs/PRD.md`](docs/PRD.md) |
+| Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Technical Requirements (TRD) | [`docs/TRD.md`](docs/TRD.md) |
+| RBAC Permissions | [`docs/RBAC_ACTION_PERMISSIONS.md`](docs/RBAC_ACTION_PERMISSIONS.md) |
+| Tenant Isolation | [`docs/RBAC_TENANT_ISOLATION.md`](docs/RBAC_TENANT_ISOLATION.md) |
+| Testing Guide | [`docs/TESTING_GUIDE.md`](docs/TESTING_GUIDE.md) |
+| Infrastructure Requirements | [`docs/INFRASTRUCTURE_REQUIREMENTS.md`](docs/INFRASTRUCTURE_REQUIREMENTS.md) |
+| Monitoring & Observability | [`docs/MONITORING_SETUP.md`](docs/MONITORING_SETUP.md) |
+| Forecasting System | [`docs/INDIA_FORECASTING_SYSTEM.md`](docs/INDIA_FORECASTING_SYSTEM.md) |
+| Forecast Cron Setup | [`docs/FORECAST_CRON_SETUP.md`](docs/FORECAST_CRON_SETUP.md) |
+| Partner Admin Setup | [`docs/PARTNER_ADMIN_SETUP.md`](docs/PARTNER_ADMIN_SETUP.md) |
+| Agent Auto-Release | [`docs/AGENT_AUTO_RELEASE_SETUP.md`](docs/AGENT_AUTO_RELEASE_SETUP.md) |
+| SOC 2 Compliance Guide | [`docs/SOC2_COMPLIANCE_SYSTEM_GUIDE.md`](docs/SOC2_COMPLIANCE_SYSTEM_GUIDE.md) |
+| SOC 2 / ISO 27001 Roadmap | [`docs/SOC2_ISO27001_COMPLIANCE_ROADMAP.md`](docs/SOC2_ISO27001_COMPLIANCE_ROADMAP.md) |
 
 ---
 
 ## License
 
-Proprietary — © 2025 Guardian Flow
+Proprietary — © 2026 Guardian Flow

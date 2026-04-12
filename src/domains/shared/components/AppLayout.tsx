@@ -3,6 +3,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/domains/shared/components/AppSidebar";
 import { UserMenu } from "@/domains/shared/components/UserMenu";
+import { AICopilotWidget } from "@/domains/shared/components/AICopilotWidget";
+import { InstallPrompt } from "@/domains/shared/components/InstallPrompt";
+import OfflineSyncIndicator from "@/domains/shared/components/OfflineSyncIndicator";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -39,14 +42,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </span>
                   </div>
                 </div>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex">
+                  <OfflineSyncIndicator />
+                </div>
                 <UserMenu />
-              </header>
-              <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
-                {children}
-              </main>
-            </div>
-          </div>
+              </div>
+            </header>
+            <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
+              {children}
+            </main>
         </div>
+        <AICopilotWidget />
+        <InstallPrompt />
       </SidebarProvider>
     </TooltipProvider>
   );

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { apiClient } from "@/integrations/api/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+function authHeader() {
+  const token = localStorage.getItem('auth_token');
+  return token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
+}
 
 interface FraudAlert {
   id: string;
@@ -42,13 +46,10 @@ export default function FraudInvestigation() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await apiClient
-        .from('fraud_alerts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setAlerts((data || []) as FraudAlert[]);
+      const res = await fetch('/api/functions/fraud-alerts', { headers: authHeader() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setAlerts((data.alerts || []) as FraudAlert[]);
     } catch (error: unknown) {
       toast({
         title: "Error loading alerts",
@@ -63,11 +64,11 @@ export default function FraudInvestigation() {
   const runFraudDetection = async () => {
     setDetecting(true);
     try {
-      const result = await apiClient.functions.invoke('run-fraud-detection', {
-        body: {}
+      const res = await fetch('/api/functions/run-fraud-detection', {
+        method: 'POST', headers: authHeader(), body: JSON.stringify({}),
       });
-      if (result.error) throw result.error;
-      const data = result.data as { summary?: { total_alerts?: number }; llm_provider?: string };
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { summary?: { total_alerts?: number }; llm_provider?: string };
       setLlmProvider(data?.llm_provider || null);
       const alertCount = data?.summary?.total_alerts || 0;
       toast({
@@ -88,17 +89,14 @@ export default function FraudInvestigation() {
 
   const loadDetectionDetails = async (detectionId: string) => {
     try {
-      const { data: detection } = await apiClient
-        .from("forgery_detections")
-        .select("*, fraud_alerts(*)")
-        .eq("id", detectionId)
-        .single();
-
-      const detectionData = detection as { fraud_alerts?: { id: string } } | null;
-      if (detectionData && detectionData.fraud_alerts) {
-        // Scroll to the fraud alert card
+      // Attempt to fetch the specific alert by detection ID
+      const res = await fetch(`/api/functions/fraud-alerts?limit=500`, { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const alert = (data.alerts ?? []).find((a: FraudAlert) => a.id === detectionId);
+      if (alert) {
         setTimeout(() => {
-          const alertElement = document.getElementById(`alert-${detectionData.fraud_alerts!.id}`);
+          const alertElement = document.getElementById(`alert-${alert.id}`);
           alertElement?.scrollIntoView({ behavior: 'smooth' });
         }, 500);
       }
@@ -141,16 +139,16 @@ export default function FraudInvestigation() {
 
   const updateInvestigation = async (alertId: string, status: 'open' | 'in_progress' | 'resolved' | 'escalated') => {
     try {
-      const result = await apiClient.functions.invoke('update-fraud-investigation', {
-        body: {
+      const res = await fetch('/api/functions/update-fraud-investigation', {
+        method: 'PATCH',
+        headers: authHeader(),
+        body: JSON.stringify({
           alert_id: alertId,
           investigation_status: status,
           resolution_notes: resolutionNotes[alertId] || null,
-        }
+        }),
       });
-
-      if (result.error) throw result.error;
-
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       toast({ title: "Investigation updated" });
       setResolutionNotes(prev => { const next = { ...prev }; delete next[alertId]; return next; });
       fetchAlerts();

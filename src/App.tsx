@@ -67,6 +67,9 @@ const Webhooks = lazy(() => import("@/domains/shared/pages/Webhooks"));
 const Marketplace = lazy(() => import("@/domains/marketplace/pages/Marketplace"));
 const DisputeManagement = lazy(() => import("@/domains/financial/pages/DisputeManagement"));
 const GeneralLedger = lazy(() => import("@/domains/financial/pages/GeneralLedger"));
+const RevenueRecognition = lazy(() => import("@/domains/financial/pages/RevenueRecognition"));
+const SubscriptionManagement = lazy(() => import("@/domains/financial/pages/SubscriptionManagement"));
+const AgentConsole = lazy(() => import("@/domains/ai/pages/AgentConsole"));
 const AccountsPayable = lazy(() => import("@/domains/financial/pages/AccountsPayable"));
 const ABTestManager = lazy(() => import("@/domains/shared/pages/ABTestManager"));
 const SystemHealth = lazy(() => import("@/domains/shared/pages/SystemHealth"));
@@ -109,6 +112,12 @@ const TrainingPlatform = lazy(() => import("@/domains/training/pages/TrainingPla
 const OrgManagementConsole = lazy(() => import("@/domains/org/pages/OrgManagementConsole"));
 const AssetRegister = lazy(() => import("@/domains/workOrders/pages/AssetRegister"));
 const ConnectorManagement = lazy(() => import("@/domains/org/pages/ConnectorManagement"));
+const CRMAccounts = lazy(() => import("@/domains/crm/pages/Accounts"));
+const CRMContacts = lazy(() => import("@/domains/crm/pages/Contacts"));
+const CRMPipeline = lazy(() => import("@/domains/crm/pages/Pipeline"));
+const CRMPipelineSettings = lazy(() => import("@/domains/crm/pages/PipelineSettings"));
+const CRMLeads = lazy(() => import("@/domains/crm/pages/Leads"));
+const CRMCalendarSync = lazy(() => import("@/domains/crm/pages/CalendarSync"));
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
@@ -122,6 +131,31 @@ const ScheduleOptimiser = lazy(() => import("@/domains/workOrders/pages/Schedule
 const CustomerBooking = lazy(() => import("@/domains/customers/pages/CustomerBooking"));
 const Customer360 = lazy(() => import("@/domains/customers/pages/Customer360"));
 const CommsHub = lazy(() => import("@/domains/shared/pages/CommsHub"));
+const StockMovements = lazy(() => import("@/domains/inventory/pages/StockMovements"));
+const GoodsReceipt = lazy(() => import("@/domains/inventory/pages/GoodsReceipt"));
+const BankReconciliation = lazy(() => import("@/domains/financial/pages/BankReconciliation"));
+const AuditLog = lazy(() => import("@/domains/shared/pages/AuditLog"));
+const ESGDashboard = lazy(() => import("@/domains/esg/pages/ESGDashboard"));
+const DashboardBuilder = lazy(() => import("@/domains/analytics/pages/DashboardBuilder"));
+const ScheduledReports = lazy(() => import("@/domains/analytics/pages/ScheduledReports"));
+const MLStudio = lazy(() => import("@/domains/shared/pages/MLStudio"));
+const Subcontractors = lazy(() => import("@/domains/workOrders/pages/Subcontractors"));
+const SalesSequences = lazy(() => import("@/domains/crm/pages/SalesSequences"));
+const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
+const IoTDashboard = lazy(() => import("@/domains/analytics/pages/IoTDashboard"));
+const AnomalyMonitor = lazy(() => import("@/domains/analytics/pages/AnomalyMonitor"));
+const AutoMLStudio = lazy(() => import("@/domains/analytics/pages/AutoMLStudio"));
+const ExplainabilityDashboard = lazy(() => import("@/domains/analytics/pages/ExplainabilityDashboard"));
+const LLMFineTuner = lazy(() => import("@/domains/analytics/pages/LLMFineTuner"));
+const PromptStudio = lazy(() => import("@/domains/analytics/pages/PromptStudio"));
+const CRMActivityTimeline = lazy(() => import("@/domains/crm/pages/ActivityTimeline"));
+const CRMDealDetail = lazy(() => import("@/domains/crm/pages/DealDetail"));
+const CRMPipelineReport = lazy(() => import("@/domains/crm/pages/PipelineReport"));
+const FinancialStatements = lazy(() => import("@/domains/financial/pages/FinancialStatements"));
+const KnowledgeSearch = lazy(() => import("@/domains/knowledge/pages/KnowledgeSearch"));
+const AIGovernance = lazy(() => import("@/domains/org/pages/AIGovernance"));
+const DefectDetection = lazy(() => import("@/domains/workOrders/pages/DefectDetection"));
+const ShiftCalendar = lazy(() => import("@/domains/workOrders/pages/ShiftCalendar"));
 
 // Sprint 29–52 lazy imports
 const IoTDashboard = lazy(() => import("@/domains/workOrders/pages/IoTDashboard"));
@@ -848,6 +882,66 @@ const App = () => (
                       </RoleGuard>
                     </ProtectedRoute>
                   } />
+
+                  {/* CRM */}
+                  <Route path="/crm/accounts" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMAccounts /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/contacts" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMContacts /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/pipeline" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/pipeline-settings" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineSettings /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/leads" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMLeads /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/calendar-sync" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMCalendarSync /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/sequences" element={<ProtectedRoute><AppLayout><SuspenseWrap><SalesSequences /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Inventory */}
+                  <Route path="/stock-movements" element={<ProtectedRoute><AppLayout><SuspenseWrap><StockMovements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/goods-receipt" element={<ProtectedRoute><AppLayout><SuspenseWrap><GoodsReceipt /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Finance */}
+                  <Route path="/bank-reconciliation" element={<ProtectedRoute><AppLayout><SuspenseWrap><BankReconciliation /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Platform */}
+                  <Route path="/audit-log" element={<ProtectedRoute><AppLayout><SuspenseWrap><AuditLog /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/ml-studio" element={<ProtectedRoute><AppLayout><SuspenseWrap><MLStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* ESG */}
+                  <Route path="/esg-dashboard" element={<ProtectedRoute><AppLayout><SuspenseWrap><ESGDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Analytics */}
+                  <Route path="/dashboard-builder" element={<ProtectedRoute><AppLayout><SuspenseWrap><DashboardBuilder /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/scheduled-reports" element={<ProtectedRoute><AppLayout><SuspenseWrap><ScheduledReports /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/digital-twin" element={<ProtectedRoute><AppLayout><SuspenseWrap><DigitalTwin /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Operations */}
+                  <Route path="/subcontractors" element={<ProtectedRoute><AppLayout><SuspenseWrap><Subcontractors /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* IoT & Analytics */}
+                  <Route path="/iot-dashboard" element={<ProtectedRoute><AppLayout><SuspenseWrap><IoTDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/anomaly-monitor" element={<ProtectedRoute><AppLayout><SuspenseWrap><AnomalyMonitor /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/auto-ml" element={<ProtectedRoute><AppLayout><SuspenseWrap><AutoMLStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/explainability" element={<ProtectedRoute><AppLayout><SuspenseWrap><ExplainabilityDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/llm-finetune" element={<ProtectedRoute><AppLayout><SuspenseWrap><LLMFineTuner /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/prompt-studio" element={<ProtectedRoute><AppLayout><SuspenseWrap><PromptStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* CRM extras */}
+                  <Route path="/crm/activities" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMActivityTimeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/deals/:id" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMDealDetail /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/crm/pipeline-report" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineReport /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Finance */}
+                  <Route path="/financial-statements" element={<ProtectedRoute><AppLayout><SuspenseWrap><FinancialStatements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/revenue-recognition" element={<ProtectedRoute><AppLayout><SuspenseWrap><RevenueRecognition /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/subscriptions" element={<ProtectedRoute><AppLayout><SuspenseWrap><SubscriptionManagement /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/agent-console" element={<ProtectedRoute><AppLayout><SuspenseWrap><AgentConsole /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Knowledge */}
+                  <Route path="/knowledge-search" element={<ProtectedRoute><AppLayout><SuspenseWrap><KnowledgeSearch /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* AI & Org */}
+                  <Route path="/ai-governance" element={<ProtectedRoute><AppLayout><SuspenseWrap><AIGovernance /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
+                  {/* Operations */}
+                  <Route path="/defect-detection" element={<ProtectedRoute><AppLayout><SuspenseWrap><DefectDetection /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/shift-calendar" element={<ProtectedRoute><AppLayout><SuspenseWrap><ShiftCalendar /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Catch-all for 404 */}
                   {/* Sprint 29–52 routes */}

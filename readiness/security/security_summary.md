@@ -1,7 +1,7 @@
 # Guardian Flow Security & Policy Summary
 
-**Assessment Date**: October 2025  
-**Product Version**: v6.0 - Platform as a Service  
+**Assessment Date**: April 2026  
+**Product Version**: v6.1 — Enterprise FSM + PaaS  
 **Security Posture**: Production-Ready with Minor Warnings
 
 ---
@@ -539,6 +539,6 @@ Guardian Flow demonstrates **strong security fundamentals** with minor configura
 
 ---
 
-*Security Assessment Date: October 2025*  
+*Security Assessment Date: April 2026*  
 *Assessed By: Guardian Flow Security Team*  
 *Next Review: Q1 2026*

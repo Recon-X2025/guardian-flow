@@ -1,229 +1,245 @@
-# RBAC & Tenant Isolation Implementation
+# RBAC & Tenant Isolation
+
+**Version:** 7.0 | **Date:** April 2026
 
 ## Overview
-This document describes the backend-first RBAC and tenant isolation implementation for Guardian Flow.
+
+All data in Guardian Flow is tenant-scoped at the application layer. Every database query includes a `tenant_id` filter. There is no row-level security in the database itself — isolation is enforced entirely in the Express.js route handlers and service layer.
+
+---
 
 ## Architecture
 
-### 1. Central Permission Store
-- **Permissions collection**: Stores all system permissions with categories
-- **Role-Permissions mapping**: Links roles to permissions via `role_permissions` collection
-- **User-Roles mapping**: Assigns roles to users via `user_roles` collection with tenant context
+```
+Client Request
+    │
+    ▼
+JWT Middleware (authenticateToken)
+    │  Validates token
+    │  Extracts: { id, email, roles, permissions, tenantId }
+    │
+    ▼
+Route Handler
+    │  Checks required permissions
+    │  Scopes all queries to req.user.tenantId
+    │
+    ▼
+Database Query
+    { tenant_id: req.user.tenantId, ...otherFilters }
+```
 
-### 2. JWT Middleware & Auth Context
-- **API Middleware**: All protected endpoints use JWT authentication middleware
-- **Auth Context**: Contains user ID, email, roles, permissions, and tenant_id
-- **Token Validation**: JWT tokens validated on every API request
+---
 
-### 3. Backend Auth/Me Endpoint
-- **Endpoint**: `POST /functions/v1/auth-me`
-- **Purpose**: Returns server-validated user context (roles, permissions, tenant_id)
-- **Usage**: Frontend calls this on login to cache auth context
-- **Response Format**:
+## JWT Authentication
+
+### Login Response
+
 ```json
 {
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "full_name": "John Doe"
-  },
-  "roles": ["partner_admin", "technician"],
-  "permissions": ["tickets.view", "workorders.create"],
-  "tenant_id": "tenant-uuid",
-  "is_admin": false
+  "token": "<jwt>",
+  "user": { "id": "uuid", "email": "user@example.com", "full_name": "..." },
+  "roles": ["dispatcher"],
+  "permissions": ["workorders.view", "workorders.create", "dispatch.execute"],
+  "tenant_id": "tenant-uuid"
 }
 ```
 
-### 4. Frontend Integration
-- **RBACContext**: Fetches auth/me on login, caches roles/permissions/tenant_id
-- **Module Visibility**: Components use `useRBAC()` hook to check permissions
-- **Protected Actions**: `<ProtectedAction>` component disables UI based on permissions
-- **Route Guards**: `<RoleGuard>` protects entire routes by role
-
-## Application-Level Tenant Isolation
-
-### Tenant Isolation Strategy
-All multi-tenant collections enforce tenant isolation at the application layer:
+### Middleware Usage
 
 ```javascript
-// Example tenant filtering in query
-async function getTickets(userId, tenantId) {
-  const user = await getUserWithRoles(userId);
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 
-  // System and tenant admins see all data for their tenant
-  if (user.roles.includes('sys_admin') || user.roles.includes('tenant_admin')) {
-    return db.collection('tickets').find({ tenant_id: tenantId });
+// Required authentication
+router.get('/work-orders', authenticateToken, handler);
+
+// Optional (populates req.user if token present, proceeds if not)
+router.get('/public-resource', optionalAuth, handler);
+```
+
+Token payload is available as `req.user`:
+```javascript
+const { id, email, roles, permissions, tenantId } = req.user;
+```
+
+---
+
+## Tenant Isolation Patterns
+
+### Standard Query Pattern
+
+All collection queries must include `tenant_id`:
+
+```javascript
+// Correct — tenant-scoped
+const tickets = await adapter.findMany('tickets', {
+  tenant_id: req.user.tenantId,
+  status: 'open',
+});
+
+// Wrong — returns data from all tenants
+const tickets = await adapter.findMany('tickets', { status: 'open' });
+```
+
+### Role-Based Scoping Within a Tenant
+
+```javascript
+async function getWorkOrders(req) {
+  const { tenantId, roles, id: userId } = req.user;
+  const base = { tenant_id: tenantId };
+
+  if (roles.includes('sys_admin') || roles.includes('tenant_admin')) {
+    // See all work orders in tenant
+    return adapter.findMany('work_orders', base);
   }
 
-  // Partner admins see only their tenant's data
-  if (user.roles.includes('partner_admin')) {
-    return db.collection('tickets').find({
-      tenant_id: tenantId,
-      customer_id: user.id
-    });
+  if (roles.includes('dispatcher') || roles.includes('ops_manager')) {
+    // See all work orders in tenant
+    return adapter.findMany('work_orders', base);
   }
 
-  // Default authenticated user view
-  return db.collection('tickets').find({
-    tenant_id: tenantId,
-    assigned_to: user.id
-  });
+  if (roles.includes('technician')) {
+    // See only assigned work orders
+    return adapter.findMany('work_orders', { ...base, assigned_to: userId });
+  }
+
+  if (roles.includes('partner_admin')) {
+    // See only work orders linked to their partner organisation
+    return adapter.findMany('work_orders', { ...base, partner_id: userId });
+  }
 }
 ```
 
-### Collections with Tenant Isolation
-1. **tickets**: Partner admins see only their tenant's tickets
-2. **work_orders**: Scoped by technician's tenant_id
-3. **invoices**: Filtered by customer tenant_id
-4. **quotes**: Linked to customer tenant
-5. **sapos_offers**: Accessible via work order tenant context
-6. **profiles**: Users see only their tenant's profiles
-7. **penalty_applications**: Scoped to work order tenant
-8. **audit_logs**: Filtered by tenant_id
+---
 
-### Authorization Helper Functions
-Application-level helpers for role and permission checking:
-- `hasRole(user, role)`: Checks if user has specific role
-- `hasAnyRole(user, roles[])`: Checks if user has any of specified roles
-- `hasPermission(user, permission)`: Checks if user has permission
-- `hasAnyPermission(user, permissions[])`: Checks if user has any permission
+## Collections with Tenant Isolation
+
+All of the following collections are always queried with `{ tenant_id: ... }`:
+
+| Collection | Notes |
+|------------|-------|
+| `tickets` | Partner admins additionally scoped by `customer_id` |
+| `work_orders` | Technicians scoped by `assigned_to` |
+| `service_orders` | |
+| `invoices` | |
+| `quotes` | |
+| `ledger_entries` | |
+| `payments` | |
+| `penalties` | |
+| `audit_logs` | |
+| `decision_records` (FlowSpace) | |
+| `dex_contexts` | |
+| `knowledge_base_articles` | |
+| `knowledge_base_chunks` | |
+| `ai_governance_logs` | |
+| `crm_accounts` | |
+| `crm_contacts` | |
+| `crm_leads` | |
+| `crm_deals` | |
+| `profiles` | |
+| `assets` | |
+| `inventory` | |
+
+---
+
+## Frontend RBAC Integration
+
+The frontend fetches the auth context immediately after login:
+
+```typescript
+// AuthContext calls GET /api/auth/me on login
+// Caches: { user, roles, permissions, tenant_id }
+
+// RBACContext provides permission checking
+const { hasRole, hasPermission } = useRBAC();
+
+if (hasRole('sys_admin')) { /* show admin UI */ }
+if (hasPermission('workorders.create')) { /* show create button */ }
+```
+
+Route-level protection:
+```tsx
+<Route path="/org-console" element={
+  <RoleGuard allowedRoles={['sys_admin', 'tenant_admin']}>
+    <OrgManagementConsole />
+  </RoleGuard>
+} />
+```
+
+---
 
 ## Error Handling
 
-### Standardized 403 Response
-All API errors include:
-- `code`: Error code (e.g., "forbidden", "unauthorized")
-- `message`: Human-readable error message
-- `correlationId`: Unique request ID for debugging
-- `allowedActions`: List of user's actual permissions (for debugging)
+### Standardised 403 Response
 
-### Frontend Error Handler
-Use `handleApiError()` from `src/lib/apiClient.ts` to show user-friendly toast messages:
-
-```typescript
-import { handleApiError, invokeEdgeFunction } from '@/lib/apiClient';
-
-try {
-  const result = await invokeEdgeFunction('my-function', { body: data });
-} catch (error) {
-  handleApiError(error, toast);
+```json
+{
+  "code": "forbidden",
+  "message": "Insufficient permissions to perform this action",
+  "correlationId": "req-abc-123",
+  "allowedActions": ["workorders.view"]
 }
 ```
 
-## Testing
+All API errors include a `correlationId` (set by the `correlationId` middleware at request entry).
 
-### Playwright Tests
-File: `tests/tenant-isolation.spec.ts`
-
-Tests cover:
-1. **Cross-tenant ticket access**: Tenant A cannot view Tenant B tickets
-2. **Cross-tenant work order access**: Tenant B cannot view Tenant A work orders
-3. **Profile isolation**: Partner admin sees only own tenant profiles
-4. **API error responses**: 403 errors include correlation IDs
-5. **Auth/me validation**: Endpoint returns correct tenant context
-
-### Database Test Function
-Function: `testTenantIsolation()`
-
-Creates test tenants and validates:
-- Tenant creation
-- Data isolation at application level
-- Middleware enforcement
-
-## Module Visibility by Role
-
-### Sys Admin
-- All modules visible
-- Can access all tenants' data
-- Can manage roles and permissions
-
-### Tenant Admin
-- All modules visible
-- Can access only own tenant's data
-- Can manage users within tenant
-
-### Partner Admin
-- Tickets, Work Orders, Invoices, Quotes
-- Can access only own tenant's data
-- Cannot access system settings
-
-### Ops Manager
-- Tickets, Work Orders, Dispatch, Inventory, Scheduler
-- Can manage work orders and assignments
-
-### Technician
-- Assigned work orders only
-- Photo capture, service orders
-- Limited read-only access
-
-### Finance Manager
-- Invoices, Penalties, Finance dashboard
-- Audit logs for financial operations
-
-### Fraud Investigator
-- Fraud alerts, investigation tools
-- Audit logs for fraud cases
-
-## API Authorization Flow
-
-1. **Client Request**: Frontend includes JWT token in Authorization header
-2. **API Middleware**: Validates authentication via `authenticateToken` middleware
-3. **Validation**:
-   - Verifies JWT token
-   - Fetches user roles from `user_roles` collection
-   - Fetches permissions from `role_permissions` collection
-   - Checks required permissions/roles
-4. **Response**:
-   - Success: Returns auth context with user, roles, permissions, tenant_id
-   - Failure: Returns standardized error with correlation ID
-5. **Query Filtering**: Database queries filtered by tenant_id at application layer
+---
 
 ## Audit Logging
 
 All sensitive operations are logged via `logAuditEvent()`:
-```typescript
+
+```javascript
+import { logAuditEvent } from '../services/audit.js';
+
 await logAuditEvent(db, {
-  userId: context.user.id,
+  userId: req.user.id,
   action: 'workorder.release.override',
   resourceType: 'work_order',
   resourceId: woId,
-  actorRole: context.roles[0],
-  tenantId: context.tenantId,
+  actorRole: req.user.roles[0],
+  tenantId: req.user.tenantId,
   reason: 'Emergency override',
-  mfaVerified: true,
-  correlationId: requestId,
+  correlationId: req.correlationId,
 });
 ```
 
-## Deployment Checklist
+Audit logs are stored in `audit_logs` collection with 7-year immutable retention (partitioned 2025–2031).
 
-- [x] Auth/me endpoint deployed
-- [x] Tenant isolation middleware applied to all routes
-- [x] Frontend RBACContext integrated
-- [x] Standardized error responses with correlation IDs
-- [x] Tenant isolation tests passing
-- [ ] Load test auth/me endpoint for performance
-- [ ] Monitor correlation IDs in production logs
-- [ ] Document role assignment procedures for ops team
+---
 
-## Monitoring & Observability
+## sys_admin Cross-Tenant Access
 
-### Key Metrics
-- Auth/me endpoint latency (p50, p95, p99)
-- 403 error rate by endpoint
-- Role check failures
-- Tenant isolation violations (should be 0)
+`sys_admin` is the only role that may access data across tenants. All route handlers check for this explicitly:
 
-### Alerts
-- Spike in 403 errors
-- Auth/me endpoint latency > 500ms
-- Multiple failed authorization attempts from single user
+```javascript
+const filter = roles.includes('sys_admin')
+  ? {}                              // no tenant filter
+  : { tenant_id: tenantId };       // scoped to own tenant
+```
 
-## Security Best Practices
+---
 
-1. **Never store roles in profiles collection** - Use dedicated `user_roles` collection
-2. **Always filter by tenant_id in queries** - Prevents data leakage across tenants
-3. **Include correlation IDs in all API responses** - Essential for debugging
-4. **Validate permissions on backend** - Never trust frontend checks alone
-5. **Audit all privilege escalations** - Log role grants/removals
-6. **Test tenant isolation regularly** - Run automated tests on every deploy
+## Module Visibility by Role
+
+| Module | sys_admin | tenant_admin | ops_manager | dispatcher | technician | finance_manager | fraud_investigator | partner_admin |
+|--------|:---------:|:------------:|:-----------:|:----------:|:----------:|:---------------:|:-----------------:|:-------------:|
+| Work Orders | ✅ | ✅ | ✅ (view) | ✅ | ✅ (own) | ✅ (view) | ✅ (view) | ✅ (own tenant) |
+| Finance | ✅ | ✅ | ✅ (view) | ❌ | ❌ | ✅ | ❌ | ✅ (view) |
+| Fraud / Compliance | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| CRM | ✅ | ✅ | ✅ (view) | ✅ (view) | ❌ | ✅ (view) | ❌ | ❌ |
+| Analytics | ✅ | ✅ | ✅ | ✅ (view) | ❌ | ✅ | ✅ (view) | ❌ |
+| Admin Console | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Org Console (MAC) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Developer Portal | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Marketplace | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| ML Studio | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+## Security Principles
+
+1. **Application-layer isolation** — `tenant_id` filter on every query; no database-level RLS
+2. **Never trust the client** — all permission checks run on the backend regardless of frontend state
+3. **Audit all privilege operations** — role grants, overrides, and admin actions must be logged
+4. **No cross-tenant data leakage** — `sys_admin` cross-tenant access is intentional and audited
+5. **Correlation IDs on every error** — required for debugging security incidents in production

@@ -1,27 +1,45 @@
 # RBAC Action-Level Permissions Guide
 
+**Version:** 7.0 | **Date:** April 2026
+
 ## Overview
-GuardianFlow implements comprehensive Role-Based Access Control (RBAC) at the **button and action level**, not just page visibility. Every interactive element respects role permissions.
+
+Guardian Flow implements Role-Based Access Control (RBAC) at the **button and action level**, not just page visibility. Backend middleware enforces permissions on every API request. Frontend components hide or disable actions based on the current user's role.
+
+## Roles
+
+| Role | Scope |
+|------|-------|
+| `sys_admin` | All modules, all tenants |
+| `tenant_admin` | All modules, own tenant only |
+| `ops_manager` | View-only across operations |
+| `dispatcher` | Create/manage assignments; view-only on finance |
+| `technician` | Own assigned work orders only |
+| `finance_manager` | Full finance; read-only operations |
+| `fraud_investigator` | Fraud/compliance; read-only operations |
+| `support_agent` | Tickets, customer portal |
+| `partner_admin` | Tenant-scoped tickets, work orders, invoices |
+| `ml_ops` | ML studio, model monitoring |
+| `customer` | Self-service portal only |
 
 ## Permission Types
 
-Each role has 5 types of permissions per resource:
+Each role has 5 permission types per resource:
 
-| Permission | Description | Example |
-|------------|-------------|---------|
-| `view` | Can see the resource | View work orders list |
-| `create` | Can create new records | Create new work order |
-| `edit` | Can modify existing records | Update work order status |
-| `delete` | Can remove records | Delete draft work order |
-| `execute` | Can perform special actions | Generate SO, Release to field, Run precheck |
+| Permission | Description |
+|------------|-------------|
+| `view` | Can read / list the resource |
+| `create` | Can create new records |
+| `edit` | Can modify existing records |
+| `delete` | Can remove records |
+| `execute` | Can perform special actions (e.g., release to field, generate SO) |
 
 ## Role Permission Matrix
 
-### Operations Manager
-**Philosophy**: View-only oversight role
+### Operations Manager — view-only across all operational modules
 
 | Resource | View | Create | Edit | Delete | Execute |
-|----------|------|--------|------|--------|---------|
+|----------|:----:|:------:|:----:|:------:|:-------:|
 | Work Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Service Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Dispatch | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -30,239 +48,176 @@ Each role has 5 types of permissions per resource:
 | Inventory | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Finance | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-**Result**: Operations Managers can monitor everything but cannot take any actions. Buttons are hidden or disabled.
+All action buttons are hidden; "View Only" badges and alert banners are shown instead.
 
-### Dispatcher
-**Philosophy**: Create and manage assignments, but not generate financial documents
+### Dispatcher — create and manage assignments
 
 | Resource | View | Create | Edit | Delete | Execute |
-|----------|------|--------|------|--------|---------|
+|----------|:----:|:------:|:----:|:------:|:-------:|
 | Work Orders | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Service Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Dispatch | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Technicians | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-**Result**: Can assign work, release to field, check-in/out technicians, but **cannot generate Service Orders** (only view).
+Can assign work, release to field, check technicians in/out. **Cannot generate Service Orders.**
 
-### Technician
-**Philosophy**: Execute assigned work, minimal administrative access
+### Technician — execute assigned work
 
 | Resource | View | Create | Edit | Delete | Execute |
-|----------|------|--------|------|--------|---------|
+|----------|:----:|:------:|:----:|:------:|:-------:|
 | Work Orders | ✅ | ❌ | ✅ | ❌ | ✅ |
 | Service Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Dispatch | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Inventory | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-**Result**: Can update their work orders, complete tasks, view inventory. Cannot create work orders or generate documents.
+Can update their own work orders and complete tasks. Cannot create work orders or generate documents.
 
-### Finance Manager
-**Philosophy**: Financial operations only
+### Finance Manager — financial operations only
 
 | Resource | View | Create | Edit | Delete | Execute |
-|----------|------|--------|------|--------|---------|
+|----------|:----:|:------:|:----:|:------:|:-------:|
 | Work Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Service Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Finance | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Customers | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-**Result**: Read-only on operational data, full control over invoices, payments, settlements.
+Read-only on all operational data; full control over invoices, payments, settlements.
 
-### Fraud Investigator
-**Philosophy**: Investigate fraud, no operational access
+### Fraud Investigator — investigate; no operational write access
 
 | Resource | View | Create | Edit | Delete | Execute |
-|----------|------|--------|------|--------|---------|
+|----------|:----:|:------:|:----:|:------:|:-------:|
 | Work Orders | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Fraud | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Fraud & Compliance | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Customers | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-**Result**: Can investigate fraud cases, flag anomalies, but cannot modify operational data.
+Can flag anomalies and progress investigations. Cannot modify operational records.
+
+---
 
 ## Implementation
 
-### 1. Using `useActionPermissions` Hook
+### Frontend: `useActionPermissions` Hook
 
 ```typescript
 import { useActionPermissions } from '@/hooks/useActionPermissions';
 
-function MyComponent() {
-  const woPerms = useActionPermissions('workOrders');
-  const soPerms = useActionPermissions('serviceOrders');
-  
+function WorkOrderActions() {
+  const woPerms  = useActionPermissions('workOrders');
+  const soPerms  = useActionPermissions('serviceOrders');
+
   return (
     <>
-      {/* Edit button - only if user can edit */}
-      {woPerms.edit && (
-        <Button onClick={handleEdit}>Edit</Button>
-      )}
-      
-      {/* Generate SO - only if user can execute */}
-      {soPerms.execute && (
+      {woPerms.edit && <Button onClick={handleEdit}>Edit</Button>}
+
+      {soPerms.execute ? (
         <Button onClick={handleGenerateSO}>Generate SO</Button>
-      )}
-      
-      {/* View-only state for Operations Manager */}
-      {soPerms.view && !soPerms.execute && (
-        <Button disabled title="View-only access">
-          View SO
-        </Button>
-      )}
+      ) : soPerms.view ? (
+        <Button disabled title="View-only access">View SO</Button>
+      ) : null}
     </>
   );
 }
 ```
 
-### 2. Conditional Action Execution
+Role configuration source: `src/config/rolePermissions.ts`  
+Hook implementation: `src/hooks/useActionPermissions.tsx`
+
+### Frontend: View-Only Patterns
+
+When a role has `view` but no `create/edit/execute`, show an informational alert:
 
 ```typescript
-const handleAction = () => {
-  if (!woPerms.execute) {
-    toast({
-      title: 'Permission Denied',
-      description: 'You do not have permission to perform this action',
-      variant: 'destructive',
-    });
-    return;
-  }
-  
-  // Proceed with action
-  performAction();
-};
-```
+const isViewOnly = !perms.create && !perms.edit && !perms.execute;
 
-### 3. View-Only Alerts
-
-```typescript
 {isViewOnly && (
-  <Alert className="bg-blue-50 border-blue-200">
-    <EyeOff className="h-4 w-4 text-blue-600" />
+  <Alert>
     <AlertDescription>
-      <strong>View-Only Mode:</strong> You can view this information but cannot perform actions.
+      <strong>View-Only Mode:</strong> You can view this data but cannot perform actions.
     </AlertDescription>
   </Alert>
 )}
 ```
 
-## Examples
+### Backend: Enforcing Permissions
 
-### Dispatch Page - Operations Manager View
-```typescript
-// Dispatch.tsx
-const dispatchPerms = useActionPermissions('dispatch');
-const isViewOnly = !dispatchPerms.create && !dispatchPerms.edit && !dispatchPerms.execute;
+Frontend RBAC is UX-only. **Every** protected backend route validates the JWT and checks tenant scope:
 
-// Show alert
-{isViewOnly && <Alert>View-Only Mode</Alert>}
+```javascript
+// Middleware applied to all protected routes
+router.use(authenticateToken);
 
-// Hide action buttons
-{dispatchPerms.execute && (
-  <Button onClick={handleCheckIn}>Check In</Button>
-)}
-{dispatchPerms.edit && (
-  <Button onClick={handleComplete}>Mark Complete</Button>
-)}
-{isViewOnly && <Badge>View Only</Badge>}
+// Per-endpoint permission check example
+router.post('/work-orders', authenticateToken, async (req, res) => {
+  if (!req.user.permissions.includes('workorders.create')) {
+    return res.status(403).json({ code: 'forbidden', message: 'Insufficient permissions' });
+  }
+  // ...
+});
 ```
 
-**Result for Operations Manager**: 
-- Sees all work orders
-- All action buttons are hidden
-- Shows "View Only" badges instead
-- Alert banner explains view-only status
+---
 
-### Work Orders - Generate SO Button
-```typescript
-// WorkOrders.tsx
-const soPerms = useActionPermissions('serviceOrders');
+## Tenant Isolation in RBAC
 
-{soPerms.execute ? (
-  <Button onClick={() => setGenerateSOOpen(true)}>
-    Generate SO
-  </Button>
-) : soPerms.view ? (
-  <Button disabled title="View-only access to Service Orders">
-    View SO
-  </Button>
-) : null}
-```
+All permission checks also enforce `tenant_id` scoping:
 
-**Result for Operations Manager**:
-- See disabled "View SO" button
-- Cannot click or generate
-- Tooltip explains view-only access
+- `sys_admin` — may query any tenant
+- All other roles — queries are hard-scoped to `req.user.tenantId`
+- `partner_admin` — additionally scoped to their assigned partner organisation
 
-**Result for Dispatcher**:
-- Same as Operations Manager (view-only for SO)
-- Can still perform other dispatch actions
+---
 
-**Result for Tenant Admin**:
-- Full "Generate SO" button
-- Can create service orders
+## Adding Permissions for a New Resource
 
-## Key Principles
-
-1. **Action-Level Control**: Every button respects RBAC, not just page visibility
-2. **Graceful Degradation**: View-only roles see disabled buttons with explanations, not hidden features
-3. **Clear Feedback**: Users know why they can't perform an action
-4. **Role Hierarchy**: sys_admin can do everything; specific roles have limited scopes
-5. **Tenant Isolation**: All permissions respect tenant boundaries
-
-## Testing RBAC
-
-### Test Operations Manager
-1. Login as operations_manager
-2. Navigate to Dispatch → Should see "View-Only Mode" alert
-3. Try to click any action button → Should be hidden or disabled
-4. Navigate to Work Orders → "Generate SO" should be disabled "View SO"
-5. Dashboard → Should show view-only metrics
-
-### Test Dispatcher
-1. Login as dispatcher
-2. Navigate to Dispatch → Can check-in/out, release to field
-3. Navigate to Work Orders → Can edit WOs, but SO button shows "View SO"
-4. Cannot access Finance or Fraud pages
-
-### Test Technician
-1. Login as technician
-2. Dashboard → Shows "My Assigned WOs", "Completed Today"
-3. Work Orders → Can edit only assigned WOs
-4. Dispatch → View-only, no action buttons
-
-## Adding New Permissions
-
-To add permissions for a new resource:
-
-1. **Update `rolePermissions.ts`**:
+1. Update `src/config/rolePermissions.ts`:
 ```typescript
 export const roleActionPermissions = {
-  operations_manager: {
+  ops_manager: {
     newResource: { view: true, create: false, edit: false, delete: false, execute: false },
   },
-  // ... other roles
+  // ...other roles
 };
 ```
 
-2. **Use in Component**:
+2. Use in component:
 ```typescript
-const newPerms = useActionPermissions('newResource');
-
-{newPerms.create && <Button>Create New</Button>}
-{newPerms.edit && <Button>Edit</Button>}
+const perms = useActionPermissions('newResource');
+{perms.create && <Button>Create</Button>}
 ```
 
-3. **Document in this file**
+3. Add backend permission check to the new route.
+4. Document the change in this file.
 
-## Security Notes
+---
 
-- **Frontend RBAC is UX only** - Always enforce permissions in backend (tenant isolation + Express.js route handlers)
-- **Never trust client state** - Backend must validate every action
-- **Audit logging** - All sensitive actions logged in `events_log` table
-- **Tenant isolation** - Every permission check also validates tenant_id
+## Security Principles
 
-## Resources
+1. **Frontend RBAC is UX only** — never a security boundary; backend must validate every action
+2. **Tenant isolation is always enforced** — `tenant_id` filter on every query, every role
+3. **Audit all sensitive actions** — `logAuditEvent()` for any privilege-bearing operation
+4. **Graceful degradation** — view-only roles see disabled buttons with tooltips, not hidden features
 
-- Role Configuration: `src/config/rolePermissions.ts`
-- Hook Implementation: `src/hooks/useActionPermissions.tsx`
-- Example Implementation: `src/pages/Dispatch.tsx`, `src/pages/WorkOrders.tsx`
-- Dashboard Config: `src/config/dashboardConfig.ts`
+---
+
+## Testing RBAC
+
+### Manual Test Matrix
+
+| Role | Dispatch page | Work Orders SO button | Finance page |
+|------|:-------------:|:---------------------:|:------------:|
+| sys_admin | Full access | Generate SO | Full access |
+| ops_manager | View-only alert | View SO (disabled) | View-only |
+| dispatcher | Can assign/check-in | View SO (disabled) | No access |
+| technician | View-only | No SO button | No access |
+| finance_manager | View-only | View SO (disabled) | Full access |
+
+### Key Files
+
+| Purpose | Path |
+|---------|------|
+| Role permission config | `src/config/rolePermissions.ts` |
+| `useActionPermissions` hook | `src/hooks/useActionPermissions.tsx` |
+| Dashboard config (role-specific tiles) | `src/config/dashboardConfig.ts` |
+| Backend auth middleware | `server/middleware/auth.js` |
+| Tenant isolation docs | `docs/RBAC_TENANT_ISOLATION.md` |
