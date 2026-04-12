@@ -280,27 +280,39 @@ Replaced the simple greedy scheduler in `server/services/ai/scheduler.js` with a
 
 ---
 
-### 🔄 S8 — Computer Vision (Photo Validation)
+### ✅ S8 — Computer Vision (Photo Validation)
 
 **Gate:** G2 | **Effort:** 1 sprint  
-**Status:** 🔄 In Progress
+**Status:** ✅ Completed  
+**Completed:** 2026-04-12
 
-#### Planned Deliverables
-- Wire `server/services/ai/vision.js` `visionAnalysis()` to real OpenAI GPT-4o vision API
-- DefectDetection page calls real vision endpoint for photo uploads
-- Mock fallback retained for environments without OpenAI key
+#### What Was Built
+- Upgraded `server/services/ai/vision.js` from random mock to real GPT-4o Vision API integration. Sends base64 image as `data:{mimeType};base64,{image}` URL in the OpenAI chat completion request. Structured system prompt extracts `defects[]`, `overall_condition`, `overall_score`, `description`, `recommended_action`
+- Mock fallback retained for environments without `OPENAI_API_KEY` — returns deterministic random defects with all new schema fields
+- Updated `server/routes/vision.js` to accept optional `context` field in request body — passed to GPT-4o for more targeted analysis
+- Rebuilt `DefectDetection.tsx`: shows provider badge (GPT-4o vs Mock), overall condition label (good/fair/poor/critical), human-readable recommended action, defect list with severity badges + location text, optional context input field for technician notes. Uses `apiClient.request()` for auth header injection
 
-#### Definition of Done (Planned)
-- [ ] Photo uploads to `/api/ai/vision` produce real GPT-4o analysis when `OPENAI_API_KEY` set
-- [ ] DefectDetection page displays actual defect findings
-- [ ] Mock fallback works without errors
+#### Definition of Done ✅
+- [x] POST `/api/ai/vision/analyse` calls GPT-4o Vision when `OPENAI_API_KEY` is set
+- [x] Returns structured response: `defects[]` with severity + location, `overallCondition`, `overallScore`, `description`, `recommendedAction`, `provider`
+- [x] Mock fallback returns all fields with same schema when no API key
+- [x] DefectDetection page renders all new fields (condition badge, action recommendation, severity, location)
+- [x] Provider badge shows "GPT-4o" vs "Mock"
+- [x] Context note passed from UI through to OpenAI prompt
+- [x] TypeScript clean — 0 errors
+- [x] All 253 tests pass
+
+#### Files Changed
+- `server/services/ai/vision.js` — GPT-4o Vision integration + updated mock fallback
+- `server/routes/vision.js` — accept `context` param
+- `src/domains/workOrders/pages/DefectDetection.tsx` — fully updated UI
 
 ---
 
-### 🔲 S8–S9 — Subscription / Recurring Billing
+### 🔄 S8–S9 — Subscription / Recurring Billing
 
 **Gate:** G2 | **Effort:** 2 sprints  
-**Status:** 🔲 To be Commenced
+**Status:** 🔄 In Progress
 
 #### Planned Deliverables
 - `server/routes/subscriptions.js` — subscription plan CRUD, billing cycle management
