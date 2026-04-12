@@ -536,6 +536,59 @@ All Gate 3 sprints delivered:
 
 **Final platform parity: ~90%+ — Preferred Enterprise Choice ✅**
 
+---
+
+## ✅ Post-Gate 3 — Stub Elimination & Security Hardening
+
+**Commit:** `19080a5`  
+**Status:** ✅ Completed  
+**Completed:** 2026-04-12  
+
+### What Was Built
+
+Eliminated all `Math.random()` stubs and weak credential generation identified in the `BUILD_REPORT.md` gap analysis. No new external dependencies added.
+
+#### 1. ML Studio — Train Endpoint (`server/routes/ml-studio.js`)
+- `POST /api/ml-studio/experiments/:id/train` now calls `trainModel(type, config)` from `server/ml/orchestrator.js`
+- Algorithm string → orchestrator type mapping (`equipment_failure`, `sla_breach`, `forecast` and common aliases)
+- Experiment status transitions: `queued → training → completed` (or `failed` on error)
+- Real metrics (accuracy, f1, recall, precision) returned from the trained model; `isSynthetic` flag indicates whether synthetic fallback data was used
+
+#### 2. ML Studio — Predict Endpoint (`server/routes/ml-studio.js`)
+- `POST /api/ml-studio/predict/:model_id` loads model weights from `ml_models` / `forecast_models` via DB adapter
+- Dispatches to real functions: `predictFailure(weights, features)`, `predictSlaBreach(weights, workOrder)`, or `holtWintersPredict(config, horizon)`
+- Returns HTTP 422 "model not trained yet" if weights are not in DB
+
+#### 3. Developer Portal — Usage Stats (`server/routes/developer-portal.js`)
+- `GET /api/developer-portal/usage` replaces `Math.floor(Math.random() * 10000)` with `adapter.countDocuments('partner_api_usage', { tenant_id })`
+- `top_endpoints` now derived from the 200 most recent real usage records, sorted by frequency
+
+#### 4. RBAC Fallback Permission Matrix (`server/middleware/rbac.js`)
+- Added `finance_manager` (invoice view/create/pay/approve, report view, portal access, work order/ticket read)
+- Added `ops_manager` (work order full CRUD + assign, ticket full CRUD, schedule manage, report view)
+- Added `dispatcher` (work order read/assign, schedule manage, ticket read)
+- Added `partner_admin` (portal access, work order/ticket read, invoice view, partner manage)
+- Expanded `tenant_admin` from 5 to 16 permissions (full WO, ticket, invoice, report, schedule, user, settings)
+
+#### 5. OAuth Client Secret Entropy (`server/routes/developer-portal.js`)
+- App creation and `POST /apps/:id/regenerate-secret` now use `randomBytes(32).toString('hex')` — 256-bit CSPRNG output (was `randomUUID()`, 122-bit)
+
+### Definition of Done ✅
+- [x] ML Studio train wired to `server/ml/orchestrator.js`; no `Math.random()` metrics
+- [x] ML Studio predict uses real model weights from DB; returns 422 on untrained model
+- [x] Developer Portal usage count sourced from `partner_api_usage` collection
+- [x] RBAC fallback matrix includes `finance_manager`, `ops_manager`, `dispatcher`, `partner_admin`
+- [x] `client_secret` uses `randomBytes(32).toString('hex')` at creation and rotation
+- [x] All 253 tests pass — 0 regressions
+
+### Files Changed
+- `server/routes/ml-studio.js` — train + predict endpoints rewired
+- `server/routes/developer-portal.js` — usage stats + client_secret entropy
+- `server/routes/scheduled-reports.js` — `mock_data: { rows: 42 }` removed; real `countDocuments`
+- `server/middleware/rbac.js` — fallback permission matrix expanded
+
+---
+
 ## Parity Scorecard (Updated Per Sprint)
 
 | After | Parity | Enterprise Gate |
@@ -544,6 +597,9 @@ All Gate 3 sprints delivered:
 | Gate 1 complete (S4) | ~55% | Passes demo |
 | Gate 2 complete (S10) | ~75% | Passes tech eval |
 | Gate 3 complete (S18) | ~90%+ | Preferred choice ✅ |
+| Post-Gate 3 stub fixes | ~75% honest (1 comms blocker remaining) | Commercial viable |
+
+> Note: The Gate 3 parity (~90%+) measures feature breadth vs. market comparables. The honest completeness figure (~75%) reflects that outbound communications delivery, scheduled report file generation, and full RBAC remain as residual gaps. Communications is the sole remaining launch-blocking gap.
 
 ---
 
