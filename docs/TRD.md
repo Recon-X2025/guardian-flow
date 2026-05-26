@@ -130,10 +130,6 @@ correlationId  →  metricsMiddleware  →  helmet  →  cors
 - `/api/audit-log` — financial audit log
 - `/api/currency` — currency conversion
 
-**CRM:**
-- `/api/crm` — accounts, contacts, leads, deals, pipeline stages
-  - `POST /api/crm/leads/:id/convert` — lead conversion
-
 **AI / ML:**
 - `/api/ai/rag/query`, `/api/ai/rag/index` — RAG engine
 - `POST /api/ai/assistant` — LLM chat (mock default, real with OPENAI_API_KEY)

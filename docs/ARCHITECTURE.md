@@ -48,16 +48,13 @@ graph TD
             SCH["Scheduling Solver"]:::application
             ROT["Route Optimizer"]:::application
             AST["Asset Lifecycle"]:::application
+            CUST["Customer 360"]:::application
         end
         subgraph FIN ["Financials"]
             INV["Invoicing"]:::application
             PAY["Payments Gateway"]:::application
             LED["General Ledger"]:::application
             DIS["Dispute Management"]:::application
-        end
-        subgraph CRM_Dom ["CRM"]
-            CRM_Mgt["Leads & Deals CRM"]:::application
-            CUST["Customer 360"]:::application
         end
         subgraph AI_ML ["AI / ML Platform"]
             LLM["LLM Assistant (GPT-4o)"]:::application
@@ -94,12 +91,12 @@ graph TD
     %% Interactions & Connections
     SPA & WS_Client & PWA -->|HTTPS / WSS| GW
     GW --> MW_Sec --> MW_Auth --> MW_Val
-    MW_Val --> FSM & FIN & CRM_Dom & AI_ML & PaaS
+    MW_Val --> FSM & FIN & AI_ML & PaaS
     
-    FSM & FIN & CRM_Dom & AI_ML & PaaS --> DEX
+    FSM & FIN & AI_ML & PaaS --> DEX
     AI_ML & DEX --> FLW
     
-    DEX & FLW & FSM & FIN & CRM_Dom & AI_ML & PaaS --> DB_Factory
+    DEX & FLW & FSM & FIN & AI_ML & PaaS --> DB_Factory
     DB_Factory --> Mongo
     DB_Factory --> Postgres
     PaaS --> Disk
@@ -130,7 +127,6 @@ src/
 │   ├── knowledge/             # Knowledge base, FAQ, RAG engine
 │   ├── marketplace/           # Extension marketplace
 │   ├── training/              # Training platform
-│   ├── crm/                   # Accounts, contacts, leads, deals, pipeline
 │   ├── org/                   # Organisation Management Console (MAC)
 │   ├── dex/                   # DEX ExecutionContext UI
 │   ├── flowspace/             # FlowSpace decision ledger UI
@@ -156,7 +152,7 @@ src/
 | shadcn/ui + Radix UI | Component primitives |
 | Tailwind CSS | Utility styling |
 | Recharts | Charts and analytics |
-| dnd-kit | Drag-and-drop (CRM pipeline, scheduler) |
+| dnd-kit | Drag-and-drop (scheduler) |
 | Lucide React | Icons |
 | jsPDF | PDF generation |
 | react-day-picker | Date selection |
@@ -303,11 +299,6 @@ Tenant isolation:
 | `knowledge_base_chunks` | Chunked + embedded KB content for RAG |
 | `ai_governance_logs` | All LLM call audit records |
 | `connector_configs` | ERP connector configurations |
-| `crm_accounts` | CRM accounts |
-| `crm_contacts` | CRM contacts |
-| `crm_leads` | CRM leads |
-| `crm_deals` | CRM deals |
-| `crm_pipeline_stages` | Pipeline stage configuration |
 | `schema_migrations` | Migration tracking (idempotent) |
 
 ---

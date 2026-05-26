@@ -180,9 +180,9 @@ To bridge the gap between current parity (~37%) and full enterprise readiness, d
 * **Goal:** Enable multi-technician management, offline capabilities, and field resource coordination.
 * **Key Requirements:** Crew scheduling, drag-and-drop Gantt Dispatch Board, PWA mobile offline support, and technician truck inventory tracking.
 
-### Phase 13 — Financial & CRM Hardening (Sprints 37–39)
-* **Goal:** Integrate Accounts Payable, ASC 606 revenue compliance, and basic CRM pipeline functionality.
-* **Key Requirements:** 3-way invoice matching, supplier portals, revenue recognition engines, and Kanban-style sales pipelines.
+### Phase 13 — Financial Hardening (Sprints 37–39)
+* **Goal:** Integrate Accounts Payable and ASC 606 revenue compliance.
+* **Key Requirements:** 3-way invoice matching, supplier portals, and revenue recognition engines.
 
 ### Phase 14 — Platform Intelligence & Standards (Sprints 40–42)
 * **Goal:** Implement advanced developer standards, real-world data connections, and legal compliance structures.

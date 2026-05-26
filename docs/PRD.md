@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-Guardian Flow is a multi-tenant enterprise field service management (FSM) platform with PaaS capabilities. It covers work order orchestration, financial management, CRM, analytics, compliance, AI/ML services, developer extensibility, and ESG reporting in a single product.
+Guardian Flow is a multi-tenant enterprise field service management (FSM) platform with PaaS capabilities. It covers work order orchestration, financial management, analytics, compliance, AI/ML services, developer extensibility, and ESG reporting in a single product.
 
 **Current parity vs enterprise market leaders:** ~37% (see `PLATFORM_COMPREHENSIVE_AUDIT.md` for full breakdown).
 
@@ -81,17 +81,9 @@ Status legend:
 | Recurring / subscription billing | ❌ | Not built |
 | Multi-jurisdiction tax engine | ❌ | Not built |
 
-### 2.3 CRM
+### 2.3 CRM (Removed)
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Accounts | ✅ | |
-| Contacts | ✅ | |
-| Leads (with server-side scoring) | ✅ | Lead convert endpoint: `POST /api/crm/leads/:id/convert` |
-| Deals | ✅ | |
-| Pipeline (Kanban drag-and-drop) | ✅ | dnd-kit based |
-| Email / Calendar sync (Gmail, Outlook) | ❌ | Not built |
-| Marketing automation | ❌ | Not built |
+The CRM module has been completely removed from the Guardian Flow platform build as it is out of scope for the operations platform.
 
 ### 2.4 AI / ML Platform
 
