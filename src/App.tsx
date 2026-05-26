@@ -112,12 +112,7 @@ const TrainingPlatform = lazy(() => import("@/domains/training/pages/TrainingPla
 const OrgManagementConsole = lazy(() => import("@/domains/org/pages/OrgManagementConsole"));
 const AssetRegister = lazy(() => import("@/domains/workOrders/pages/AssetRegister"));
 const ConnectorManagement = lazy(() => import("@/domains/org/pages/ConnectorManagement"));
-const CRMAccounts = lazy(() => import("@/domains/crm/pages/Accounts"));
-const CRMContacts = lazy(() => import("@/domains/crm/pages/Contacts"));
-const CRMPipeline = lazy(() => import("@/domains/crm/pages/Pipeline"));
-const CRMPipelineSettings = lazy(() => import("@/domains/crm/pages/PipelineSettings"));
-const CRMLeads = lazy(() => import("@/domains/crm/pages/Leads"));
-const CRMCalendarSync = lazy(() => import("@/domains/crm/pages/CalendarSync"));
+
 const ScheduleOptimizer = lazy(() => import("@/domains/workOrders/pages/ScheduleOptimizer"));
 const NLPQueryInterface = lazy(() => import("@/domains/shared/pages/NLPQueryInterface"));
 const CustomReportBuilder = lazy(() => import("@/domains/analytics/pages/CustomReportBuilder"));
@@ -140,16 +135,14 @@ const DashboardBuilder = lazy(() => import("@/domains/analytics/pages/DashboardB
 const ScheduledReports = lazy(() => import("@/domains/analytics/pages/ScheduledReports"));
 const MLStudio = lazy(() => import("@/domains/shared/pages/MLStudio"));
 const Subcontractors = lazy(() => import("@/domains/workOrders/pages/Subcontractors"));
-const SalesSequences = lazy(() => import("@/domains/crm/pages/SalesSequences"));
+
 const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
 const AnalyticsIoTDashboard = lazy(() => import("@/domains/analytics/pages/IoTDashboard"));
 const AutoMLStudio = lazy(() => import("@/domains/analytics/pages/AutoMLStudio"));
 const ExplainabilityDashboard = lazy(() => import("@/domains/analytics/pages/ExplainabilityDashboard"));
 const LLMFineTuner = lazy(() => import("@/domains/analytics/pages/LLMFineTuner"));
 const PromptStudio = lazy(() => import("@/domains/analytics/pages/PromptStudio"));
-const CRMActivityTimeline = lazy(() => import("@/domains/crm/pages/ActivityTimeline"));
-const CRMDealDetail = lazy(() => import("@/domains/crm/pages/DealDetail"));
-const CRMPipelineReport = lazy(() => import("@/domains/crm/pages/PipelineReport"));
+
 const FinancialStatements = lazy(() => import("@/domains/financial/pages/FinancialStatements"));
 const KnowledgeSearch = lazy(() => import("@/domains/knowledge/pages/KnowledgeSearch"));
 const AIGovernance = lazy(() => import("@/domains/org/pages/AIGovernance"));
@@ -181,7 +174,7 @@ const E2ETestSuite = lazy(() => import("@/domains/shared/pages/E2ETestSuite"));
 const LaunchReadiness = lazy(() => import("@/domains/shared/pages/LaunchReadiness"));
 const ExpenseManagement = lazy(() => import("@/domains/shared/pages/ExpenseManagement"));
 const FixedAssets = lazy(() => import("@/domains/financial/pages/FixedAssets"));
-const CustomersCRMPipeline = lazy(() => import("@/domains/customers/pages/CRMPipeline"));
+
 
 const queryClient = new QueryClient();
 
@@ -880,14 +873,7 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
-                  {/* CRM */}
-                  <Route path="/crm/accounts" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMAccounts /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/contacts" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMContacts /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/pipeline" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/pipeline-settings" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineSettings /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/leads" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMLeads /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/calendar-sync" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMCalendarSync /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/sequences" element={<ProtectedRoute><AppLayout><SuspenseWrap><SalesSequences /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
 
                   {/* Inventory */}
                   <Route path="/stock-movements" element={<ProtectedRoute><AppLayout><SuspenseWrap><StockMovements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
@@ -917,10 +903,7 @@ const App = () => (
                   <Route path="/llm-finetune" element={<ProtectedRoute><AppLayout><SuspenseWrap><LLMFineTuner /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/prompt-studio" element={<ProtectedRoute><AppLayout><SuspenseWrap><PromptStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
-                  {/* CRM extras */}
-                  <Route path="/crm/activities" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMActivityTimeline /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/deals/:id" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMDealDetail /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/crm/pipeline-report" element={<ProtectedRoute><AppLayout><SuspenseWrap><CRMPipelineReport /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+
 
                   {/* Finance */}
                   <Route path="/financial-statements" element={<ProtectedRoute><AppLayout><SuspenseWrap><FinancialStatements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
@@ -989,13 +972,7 @@ const App = () => (
                     </ProtectedRoute>
                   } />
 
-                  <Route path="/crm-pipeline" element={
-                    <ProtectedRoute>
-                      <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent","finance_manager"]} showError={true}>
-                        <AppLayout><SuspenseWrap><CustomersCRMPipeline /></SuspenseWrap></AppLayout>
-                      </RoleGuard>
-                    </ProtectedRoute>
-                  } />
+
                   <Route path="/esg-reporting" element={
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","finance_manager"]} showError={true}>

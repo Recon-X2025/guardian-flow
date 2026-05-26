@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wrench, Loader2, Shield, CheckCircle2 } from 'lucide-react';
-import { SeedAccountsButton } from '@/domains/shared/components/SeedAccountsButton';
 import { toast } from 'sonner';
 
 export default function Auth() {
@@ -121,9 +120,6 @@ export default function Auth() {
     }
   };
 
-  const handleAccountSelect = (email: string, password: string) => {
-    setLoginForm({ email, password });
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-primary/10 via-background to-accent/10">
@@ -282,8 +278,6 @@ export default function Auth() {
             </div>
           </CardContent>
         </Card>
-        
-        <SeedAccountsButton onSelectAccount={handleAccountSelect} />
         </div>
       </div>
     </div>

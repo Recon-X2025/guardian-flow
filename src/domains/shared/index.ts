@@ -50,7 +50,6 @@ export * from './components/NLPQueryExecutor';
 export * from './components/OperationalCommandView';
 export * from './components/ModuleSandboxProvider';
 export * from './components/CreateDemoDataButton';
-export * from './components/SeedAccountsButton';
 export * from './components/SeedDataManager';
 export * from './components/SeedDemoDataButton';
 

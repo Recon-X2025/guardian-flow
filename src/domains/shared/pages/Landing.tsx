@@ -163,7 +163,7 @@ export default function Landing() {
       <header className="sticky top-0 z-50 w-full border-b border-white/10 backdrop-blur-xl" style={{ background: 'rgba(11, 17, 32, 0.9)' }}>
         <div className="container flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #2563EB 100%)' }}>
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #004FFB 0%, #0088FF 50%, #00BCFF 100%)' }}>
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="text-xl font-bold text-gradient">
@@ -181,7 +181,7 @@ export default function Landing() {
             <Button
               asChild
               className="font-semibold text-white hover:opacity-90 transition-all"
-              style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #2563EB 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #004FFB 0%, #0088FF 50%, #00BCFF 100%)' }}
             >
               <Link to="/auth">Get Started</Link>
             </Button>
@@ -192,13 +192,13 @@ export default function Landing() {
       {/* Hero Section */}
       <section className="relative overflow-hidden py-24 sm:py-32">
         {/* Gradient orbs */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] opacity-30" style={{ background: '#7C3AED' }} />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full blur-[100px] opacity-20" style={{ background: '#2563EB' }} />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full blur-[120px] opacity-30" style={{ background: '#004FFB' }} />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full blur-[100px] opacity-20" style={{ background: '#00BCFF' }} />
 
         <div className="container relative px-6">
           <div className="mx-auto max-w-4xl text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 text-sm mb-8" style={{ background: 'rgba(255,255,255,0.05)', color: '#94A3B8' }}>
-              <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: '#7C3AED' }} />
+              <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: '#004FFB' }} />
               AI-Powered Enterprise Platform
             </div>
             <h1 className="text-5xl font-bold tracking-tight sm:text-7xl leading-tight text-white">
@@ -214,7 +214,7 @@ export default function Landing() {
                 size="lg"
                 onClick={() => navigate("/auth")}
                 className="gap-2 font-semibold text-white hover:opacity-90 transition-all px-8 py-6 text-lg"
-                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #2563EB 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #004FFB 0%, #0088FF 50%, #00BCFF 100%)' }}
               >
                 Start Free Trial
                 <ArrowRight className="h-5 w-5" />
@@ -223,7 +223,7 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 onClick={() => document.getElementById("industries")?.scrollIntoView({ behavior: "smooth" })}
-                className="border-white/20 text-white hover:bg-white/10 px-8 py-6 text-lg"
+                className="border-white/20 text-white hover:bg-white/10 px-8 py-6 text-lg bg-transparent"
               >
                 Explore Platform
               </Button>
@@ -266,20 +266,20 @@ export default function Landing() {
               return (
                 <div
                   key={industry.id}
-                  className="group relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 hover:border-purple-500/50"
+                  className="group relative overflow-hidden rounded-xl p-6 cursor-pointer transition-all duration-300 hover:border-[#00BCFF]/50"
                   style={{ background: '#1E293B', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   <div
                     className="h-14 w-14 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300"
-                    style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.2), rgba(99,102,241,0.2))' }}
+                    style={{ background: 'linear-gradient(135deg, rgba(0,79,251,0.2), rgba(0,188,255,0.2))' }}
                   >
-                    <Icon className="h-7 w-7" style={{ color: '#8B5CF6' }} />
+                    <Icon className="h-7 w-7" style={{ color: '#00BCFF' }} />
                   </div>
                   <h3 className="text-xl font-semibold text-white mb-4">{industry.title}</h3>
                   <ul className="space-y-3">
                     {industry.benefits.map((benefit, index) => (
                       <li key={index} className="flex items-start gap-3 text-sm transition-colors" style={{ color: '#94A3B8' }}>
-                        <Check className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                        <Check className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: '#00C971' }} />
                         <span>{benefit}</span>
                       </li>
                     ))}
@@ -315,15 +315,15 @@ export default function Landing() {
                 >
                   <div
                     className="h-12 w-12 rounded-xl flex items-center justify-center mb-4 transition-all"
-                    style={{ background: 'rgba(124,58,237,0.15)' }}
+                    style={{ background: 'rgba(0,79,251,0.15)' }}
                   >
-                    <Icon className="h-6 w-6" style={{ color: '#8B5CF6' }} />
+                    <Icon className="h-6 w-6" style={{ color: '#00BCFF' }} />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">{module.title}</h3>
                   <p className="text-sm leading-relaxed mb-4" style={{ color: '#94A3B8' }}>
                     {module.description}
                   </p>
-                  <div className="flex items-center text-sm font-medium" style={{ color: '#8B5CF6' }}>
+                  <div className="flex items-center text-sm font-medium" style={{ color: '#00BCFF' }}>
                     Learn More
                     <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -360,7 +360,7 @@ export default function Landing() {
               <ul className="space-y-3 mb-8">
                 {["Field Service Management", "Customer Portal", "Basic Analytics", "Up to 50 active users"].map((feature) => (
                   <li key={feature} className="flex items-center gap-3 text-sm" style={{ color: '#CBD5E1' }}>
-                    <Check className="h-4 w-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                    <Check className="h-4 w-4 flex-shrink-0" style={{ color: '#00C971' }} />
                     {feature}
                   </li>
                 ))}
@@ -378,15 +378,15 @@ export default function Landing() {
             <div
               className="rounded-xl p-8 relative"
               style={{
-                background: 'linear-gradient(180deg, rgba(124,58,237,0.15) 0%, #1E293B 100%)',
-                border: '1px solid rgba(124,58,237,0.3)',
-                boxShadow: '0 0 40px rgba(124,58,237,0.15)'
+                background: 'linear-gradient(180deg, rgba(0,79,251,0.15) 0%, #1E293B 100%)',
+                border: '1px solid rgba(0,79,251,0.3)',
+                boxShadow: '0 0 40px rgba(0,79,251,0.15)'
               }}
             >
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span
                   className="px-4 py-1 text-xs font-semibold text-white rounded-full"
-                  style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #004FFB 0%, #00BCFF 100%)' }}
                 >
                   Most Popular
                 </span>
@@ -400,14 +400,14 @@ export default function Landing() {
               <ul className="space-y-3 mb-8">
                 {["All Starter features", "Asset Lifecycle Management", "AI Forecasting & Scheduling", "Advanced Analytics & BI", "Up to 200 active users"].map((feature) => (
                   <li key={feature} className="flex items-center gap-3 text-sm" style={{ color: '#CBD5E1' }}>
-                    <Check className="h-4 w-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                    <Check className="h-4 w-4 flex-shrink-0" style={{ color: '#00C971' }} />
                     {feature}
                   </li>
                 ))}
               </ul>
               <Button
                 className="w-full font-semibold text-white"
-                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #2563EB 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #004FFB 0%, #0088FF 50%, #00BCFF 100%)' }}
                 onClick={() => navigate("/auth")}
               >
                 Get Started
@@ -425,7 +425,7 @@ export default function Landing() {
               <ul className="space-y-3 mb-8">
                 {["All Professional features", "Fraud Detection & Compliance", "Marketplace & Extensions", "White-label options", "Unlimited users"].map((feature) => (
                   <li key={feature} className="flex items-center gap-3 text-sm" style={{ color: '#CBD5E1' }}>
-                    <Check className="h-4 w-4 flex-shrink-0" style={{ color: '#8B5CF6' }} />
+                    <Check className="h-4 w-4 flex-shrink-0" style={{ color: '#00C971' }} />
                     {feature}
                   </li>
                 ))}
@@ -464,7 +464,7 @@ export default function Landing() {
             </div>
             <Button
               variant="outline"
-              className="w-full border-white/20 text-white hover:bg-white/10"
+              className="w-full border-white/20 text-white hover:bg-white/10 bg-transparent"
               onClick={() => navigate("/pricing-calculator")}
             >
               Build Custom Bundle
@@ -475,7 +475,7 @@ export default function Landing() {
 
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden" style={{ background: '#0B1120' }}>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full blur-[100px] opacity-30" style={{ background: '#7C3AED' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full blur-[100px] opacity-30" style={{ background: '#004FFB' }} />
         <div className="container relative px-6">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-5xl mb-4 text-white">
@@ -491,7 +491,7 @@ export default function Landing() {
                 size="lg"
                 onClick={() => navigate("/auth")}
                 className="gap-2 font-semibold text-white hover:opacity-90 transition-all px-8"
-                style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #2563EB 100%)' }}
+                style={{ background: 'linear-gradient(135deg, #004FFB 0%, #0088FF 50%, #00BCFF 100%)' }}
               >
                 Start Free Trial
                 <ArrowRight className="h-4 w-4" />
@@ -500,7 +500,7 @@ export default function Landing() {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate("/contact")}
-                className="border-white/20 text-white hover:bg-white/10 px-8"
+                className="border-white/20 text-white hover:bg-white/10 px-8 bg-transparent"
               >
                 Contact Sales
               </Button>
@@ -517,7 +517,7 @@ export default function Landing() {
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="h-8 w-8 rounded-lg flex items-center justify-center"
-                  style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 50%, #2563EB 100%)' }}
+                  style={{ background: 'linear-gradient(135deg, #004FFB 0%, #00BCFF 100%)' }}
                 >
                   <Sparkles className="h-4 w-4 text-white" />
                 </div>
@@ -530,29 +530,29 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold text-white mb-4">Product</h4>
               <ul className="space-y-2 text-sm" style={{ color: '#64748B' }}>
-                <li><a href="#offerings" className="hover:text-purple-400 transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-purple-400 transition-colors">Pricing</a></li>
-                <li><a href="/developer" className="hover:text-purple-400 transition-colors">Developer API</a></li>
+                <li><a href="#offerings" className="hover:text-[#00BCFF] transition-colors">Features</a></li>
+                <li><a href="#pricing" className="hover:text-[#00BCFF] transition-colors">Pricing</a></li>
+                <li><a href="/developer" className="hover:text-[#00BCFF] transition-colors">Developer API</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Company</h4>
               <ul className="space-y-2 text-sm" style={{ color: '#64748B' }}>
-                <li><a href="/privacy" className="hover:text-purple-400 transition-colors">Privacy Policy</a></li>
-                <li><a href="/terms" className="hover:text-purple-400 transition-colors">Terms of Service</a></li>
-                <li><a href="/contact" className="hover:text-purple-400 transition-colors">Contact</a></li>
+                <li><a href="/privacy" className="hover:text-[#00BCFF] transition-colors">Privacy Policy</a></li>
+                <li><a href="/terms" className="hover:text-[#00BCFF] transition-colors">Terms of Service</a></li>
+                <li><a href="/contact" className="hover:text-[#00BCFF] transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Connect</h4>
               <div className="flex gap-4">
-                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors" style={{ color: '#64748B' }}>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#00BCFF] transition-colors" style={{ color: '#64748B' }}>
                   <Twitter className="h-5 w-5" />
                 </a>
-                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors" style={{ color: '#64748B' }}>
+                <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#00BCFF] transition-colors" style={{ color: '#64748B' }}>
                   <Linkedin className="h-5 w-5" />
                 </a>
-                <a href="mailto:contact@guardianflow.com" className="hover:text-purple-400 transition-colors" style={{ color: '#64748B' }}>
+                <a href="mailto:contact@guardianflow.com" className="hover:text-[#00BCFF] transition-colors" style={{ color: '#64748B' }}>
                   <Mail className="h-5 w-5" />
                 </a>
               </div>

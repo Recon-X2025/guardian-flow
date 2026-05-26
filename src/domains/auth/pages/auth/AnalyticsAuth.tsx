@@ -7,7 +7,6 @@ import { useRBAC, type AppRole } from "@/domains/auth/contexts/RBACContext";
 import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { logAuthEvent } from "@/domains/auth/hooks/useAuthAudit";
 import { getModuleAwareRedirect, MODULE_RELEVANT_ROLES } from "@/domains/auth/lib/authRedirects";
-import { SeedAccountsButton } from "@/domains/shared/components/SeedAccountsButton";
 import { ModuleSandboxProvider } from "@/domains/shared/components/ModuleSandboxProvider";
 import { toast } from "sonner";
 
@@ -16,8 +15,6 @@ export default function AnalyticsAuth() {
   const config = AUTH_MODULES.analytics;
   const { hasRole } = useRBAC();
   const { user, signOut } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
   const handleAuthSuccess = async () => {
@@ -33,11 +30,6 @@ export default function AnalyticsAuth() {
     }
   };
 
-  const handleSelectAccount = (selectedEmail: string, selectedPassword: string) => {
-    setEmail(selectedEmail);
-    setPassword(selectedPassword);
-  };
-
   return (
     <ModularAuthLayout config={config}>
       <div className="space-y-6">
@@ -48,12 +40,9 @@ export default function AnalyticsAuth() {
             onSandboxReady={() => navigate(getModuleAwareRedirect('analytics', hasRole))}
           />
         )}
-        <SeedAccountsButton onSelectAccount={handleSelectAccount} module="analytics" />
         <EnhancedAuthForm 
           config={config} 
           onSuccess={handleAuthSuccess}
-          initialEmail={email}
-          initialPassword={password}
         />
       </div>
     </ModularAuthLayout>
