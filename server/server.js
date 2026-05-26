@@ -405,6 +405,13 @@ process.on('unhandledRejection', (reason) => {
 server.listen(PORT, () => {
   logger.info('Server started', { port: PORT, database: process.env.DB_NAME || 'guardianflow', nodeEnv: process.env.NODE_ENV || 'development' });
   console.log(`Server running on http://localhost:${PORT}`);
+
+  // Start Temporal Recovery Workflow in background
+  import('./src/workflows/trigger.js')
+    .then(({ startDexRecoveryWorkflow }) => startDexRecoveryWorkflow())
+    .catch((err) => {
+      logger.error('Failed to auto-start Temporal DEX recovery workflow', { error: err.message });
+    });
 });
 
 // Graceful shutdown

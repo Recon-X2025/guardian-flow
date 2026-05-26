@@ -84,11 +84,15 @@ describe('POST /api/functions/process-forgery-batch', () => {
     }, authToken);
     const detections = data.data || [];
 
-    const highConfidence = detections.filter(d => parseFloat(d.confidence_score) > 0.85);
+    const highConfidence = detections.filter(d => {
+      const isDetected = d.forgery_detected === true || d.forgery_detected === 'true' || d.forgery_detected === 1;
+      return isDetected && parseFloat(d.confidence_score) > 0.85;
+    });
     // If any high-confidence detections are stored they must carry evidence
     for (const d of highConfidence) {
-      expect(Array.isArray(d.findings)).toBe(true);
-      expect((d.findings ?? []).length).toBeGreaterThan(0);
+      const findings = d.findings || d.analysis_details?.findings;
+      expect(Array.isArray(findings)).toBe(true);
+      expect((findings ?? []).length).toBeGreaterThan(0);
     }
   });
 

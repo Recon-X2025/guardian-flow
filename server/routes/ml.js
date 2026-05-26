@@ -58,7 +58,9 @@ export default function mlRoutes() {
         return res.status(404).json({ error: 'No trained model found. Run POST /api/ml/train/failure first.' });
       }
 
-      const modelWeights = model.hyperparameters;
+      const modelWeights = typeof model.hyperparameters === 'string'
+        ? JSON.parse(model.hyperparameters)
+        : model.hyperparameters;
 
       // Get equipment events
       const events = await db.collection('asset_lifecycle_events')
@@ -82,7 +84,7 @@ export default function mlRoutes() {
       ];
 
       const prediction = predictFailure(modelWeights, features);
-      res.json({ equipmentId, ...prediction });
+      res.json({ equipmentId, prediction });
     } catch (err) {
       console.error('Predict failure error:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -102,7 +104,9 @@ export default function mlRoutes() {
         return res.status(404).json({ error: 'No trained model found. Run POST /api/ml/train/sla first.' });
       }
 
-      const modelWeights = model.hyperparameters;
+      const modelWeights = typeof model.hyperparameters === 'string'
+        ? JSON.parse(model.hyperparameters)
+        : model.hyperparameters;
 
       if (workOrderId) {
         const wo = await db.collection('work_orders').findOne({ id: workOrderId });
@@ -114,7 +118,7 @@ export default function mlRoutes() {
           technician_id: null,
         };
         const prediction = predictSlaBreach(modelWeights, woData);
-        return res.json({ workOrderId, ...prediction });
+        return res.json({ workOrderId, prediction });
       }
 
       // Predict for all open work orders
@@ -158,7 +162,9 @@ export default function mlRoutes() {
         return res.status(404).json({ error: 'No trained model found. Run POST /api/ml/train/forecast first.' });
       }
 
-      const weights = model.config;
+      const weights = typeof model.config === 'string'
+        ? JSON.parse(model.config)
+        : model.config;
       const predictions = holtWintersPredict(weights, horizon);
       res.json({ forecastType, horizon, predictions, model: { alpha: weights.alpha, beta: weights.beta, gamma: weights.gamma } });
     } catch (err) {
@@ -171,14 +177,18 @@ export default function mlRoutes() {
 
   router.post('/detect/anomalies', authenticateToken, async (req, res) => {
     try {
-      const { values, config } = req.body;
+      const { config } = req.body;
+      const values = req.body.values || req.body.data;
 
       if (!values || !Array.isArray(values)) {
-        return res.status(400).json({ error: 'Request body must include a "values" array of numbers' });
+        return res.status(400).json({ error: 'Request body must include a "values" or "data" array of numbers' });
       }
 
       const result = detectAnomalies(values, config || {});
-      res.json(result);
+      res.json({
+        ...result,
+        anomaly_count: result.anomalies.length,
+      });
     } catch (err) {
       console.error('Anomaly detection error:', err);
       res.status(500).json({ error: 'Internal server error' });

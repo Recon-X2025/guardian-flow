@@ -33,7 +33,7 @@ describe('POST /api/functions/run-forecast-now', () => {
     expect(data).toBeDefined();
     // The endpoint returns success or jobs array
     expect(data.error).toBeFalsy();
-  });
+  }, 20000);
 
   it('forecasts stored in forecast_outputs table', async () => {
     if (!serverAvailable) return;

@@ -35,10 +35,10 @@ router.get('/:customerId', async (req, res) => {
     // Fetch all data in parallel
     const [customer, workOrders, invoices, csatScores, commThreads] = await Promise.all([
       adapter.findOne('customers', { id: customerId, tenant_id: tenantId }),
-      adapter.find('work_orders', { customer_id: customerId, tenant_id: tenantId }),
-      adapter.find('invoices', { customer_id: customerId, tenant_id: tenantId }),
-      adapter.find('customer_csat', { customer_id: customerId, tenant_id: tenantId }),
-      adapter.find('communication_threads', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('work_orders', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('invoices', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('customer_csat', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('communication_threads', { customer_id: customerId, tenant_id: tenantId }),
     ]);
 
     if (!customer) {
@@ -98,10 +98,10 @@ router.get('/:customerId/timeline', async (req, res) => {
 
     const [customer, workOrders, invoices, commThreads, bookings] = await Promise.all([
       adapter.findOne('customers', { id: customerId, tenant_id: tenantId }),
-      adapter.find('work_orders', { customer_id: customerId, tenant_id: tenantId }),
-      adapter.find('invoices', { customer_id: customerId, tenant_id: tenantId }),
-      adapter.find('communication_threads', { customer_id: customerId, tenant_id: tenantId }),
-      adapter.find('customer_bookings', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('work_orders', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('invoices', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('communication_threads', { customer_id: customerId, tenant_id: tenantId }),
+      adapter.findMany('customer_bookings', { customer_id: customerId, tenant_id: tenantId }),
     ]);
 
     if (!customer) {

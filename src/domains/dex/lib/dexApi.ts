@@ -15,16 +15,16 @@ import type {
   TraceEvent,
 } from '../types';
 
-const BASE = '/api/dex';
+const BASE = '/trpc/dex';
 
 export const dexApi = {
   async createContext(payload: ExecutionContextCreatePayload): Promise<ExecutionContext> {
-    const res = await apiClient.request<{ context: ExecutionContext }>(`${BASE}/contexts`, {
+    const res = await apiClient.request<any>(`${BASE}.createContext`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ json: payload }),
     });
     if (res.error) throw new Error(res.error.message);
-    return res.data!.context;
+    return res.data!.result.data.json.context;
   },
 
   async listContexts(params: {
@@ -35,51 +35,52 @@ export const dexApi = {
     limit?: number;
     skip?: number;
   } = {}): Promise<ExecutionContextListResponse> {
-    const qs = new URLSearchParams();
-    if (params.flow_id)      qs.set('flow_id',       params.flow_id);
-    if (params.entity_type)  qs.set('entity_type',   params.entity_type);
-    if (params.entity_id)    qs.set('entity_id',     params.entity_id);
-    if (params.current_stage) qs.set('current_stage', params.current_stage);
-    if (params.limit)        qs.set('limit',         String(params.limit));
-    if (params.skip)         qs.set('skip',          String(params.skip));
-
-    const res = await apiClient.request<ExecutionContextListResponse>(
-      `${BASE}/contexts${qs.toString() ? `?${qs}` : ''}`,
+    // Map snake_case parameters expected by the original listContexts call to the input schema expected by listContexts query
+    const inputObj = { json: params };
+    const qs = `input=${encodeURIComponent(JSON.stringify(inputObj))}`;
+    const res = await apiClient.request<any>(
+      `${BASE}.listContexts?${qs}`,
     );
     if (res.error) throw new Error(res.error.message);
-    return res.data!;
+    return res.data!.result.data.json;
   },
 
   async getContext(id: string): Promise<ExecutionContext> {
-    const res = await apiClient.request<{ context: ExecutionContext }>(`${BASE}/contexts/${id}`);
+    const inputObj = { json: { id } };
+    const qs = `input=${encodeURIComponent(JSON.stringify(inputObj))}`;
+    const res = await apiClient.request<any>(`${BASE}.getContext?${qs}`);
     if (res.error) throw new Error(res.error.message);
-    return res.data!.context;
+    return res.data!.result.data.json.context;
   },
 
   async transition(id: string, payload: TransitionPayload): Promise<{ current_stage: string; trace_event: TraceEvent }> {
-    const res = await apiClient.request<{ current_stage: string; trace_event: TraceEvent }>(
-      `${BASE}/contexts/${id}/transition`,
-      { method: 'POST', body: JSON.stringify(payload) },
+    const res = await apiClient.request<any>(
+      `${BASE}.transitionStage`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ json: { id, ...payload } }),
+      },
     );
     if (res.error) throw new Error(res.error.message);
-    return res.data!;
+    return res.data!.result.data.json;
   },
 
   async emitSignal(id: string, payload: SignalPayload): Promise<unknown> {
-    const res = await apiClient.request(`${BASE}/contexts/${id}/signal`, {
+    const res = await apiClient.request<any>(`${BASE}.emitSignal`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ json: { id, ...payload } }),
     });
     if (res.error) throw new Error(res.error.message);
-    return res.data;
+    return res.data!.result.data.json;
   },
 
   async manageCheckpoint(id: string, payload: CheckpointCreatePayload | CheckpointResolvePayload): Promise<Checkpoint> {
-    const res = await apiClient.request<Checkpoint>(`${BASE}/contexts/${id}/checkpoint`, {
+    const res = await apiClient.request<any>(`${BASE}.manageCheckpoint`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ json: { id, ...payload } }),
     });
     if (res.error) throw new Error(res.error.message);
-    return res.data!;
+    const data = res.data!.result.data.json;
+    return data.checkpoint ? data.checkpoint : data;
   },
 };

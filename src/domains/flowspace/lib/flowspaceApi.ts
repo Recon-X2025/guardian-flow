@@ -12,60 +12,53 @@ import type {
   DecisionLineageResponse,
 } from '../types';
 
-const BASE = '/api/flowspace';
+const BASE = '/trpc/flowspace';
 
 export const flowspaceApi = {
   /**
    * Write a new decision record.
    */
   async writeRecord(payload: DecisionRecordCreatePayload): Promise<{ id: string; created_at: string }> {
-    const res = await apiClient.request<{ id: string; created_at: string }>(`${BASE}/record`, {
+    const res = await apiClient.request<any>(`${BASE}.writeRecord`, {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ json: payload }),
     });
     if (res.error) throw new Error(res.error.message);
-    return res.data!;
+    return res.data!.result.data.json;
   },
 
   /**
    * List decision records with optional filters.
    */
   async listRecords(filters: DecisionRecordFilters = {}): Promise<DecisionRecordListResponse> {
-    const params = new URLSearchParams();
-    if (filters.domain)      params.set('domain',      filters.domain);
-    if (filters.actor_type)  params.set('actor_type',  filters.actor_type);
-    if (filters.actor_id)    params.set('actor_id',    filters.actor_id);
-    if (filters.action)      params.set('action',      filters.action);
-    if (filters.entity_type) params.set('entity_type', filters.entity_type);
-    if (filters.entity_id)   params.set('entity_id',   filters.entity_id);
-    if (filters.since)       params.set('since',       filters.since);
-    if (filters.until)       params.set('until',       filters.until);
-    if (filters.limit)       params.set('limit',       String(filters.limit));
-    if (filters.skip)        params.set('skip',        String(filters.skip));
-
-    const qs = params.toString();
-    const res = await apiClient.request<DecisionRecordListResponse>(
-      `${BASE}/records${qs ? `?${qs}` : ''}`,
+    const inputObj = { json: filters };
+    const qs = `input=${encodeURIComponent(JSON.stringify(inputObj))}`;
+    const res = await apiClient.request<any>(
+      `${BASE}.listRecords?${qs}`,
     );
     if (res.error) throw new Error(res.error.message);
-    return res.data!;
+    return res.data!.result.data.json;
   },
 
   /**
    * Get a single decision record by ID.
    */
   async getRecord(id: string): Promise<DecisionRecord> {
-    const res = await apiClient.request<{ record: DecisionRecord }>(`${BASE}/records/${id}`);
+    const inputObj = { json: { id } };
+    const qs = `input=${encodeURIComponent(JSON.stringify(inputObj))}`;
+    const res = await apiClient.request<any>(`${BASE}.getRecord?${qs}`);
     if (res.error) throw new Error(res.error.message);
-    return res.data!.record;
+    return res.data!.result.data.json.record;
   },
 
   /**
    * Get the causal lineage chain for a decision record.
    */
   async getLineage(id: string): Promise<DecisionLineageResponse> {
-    const res = await apiClient.request<DecisionLineageResponse>(`${BASE}/records/${id}/lineage`);
+    const inputObj = { json: { id } };
+    const qs = `input=${encodeURIComponent(JSON.stringify(inputObj))}`;
+    const res = await apiClient.request<any>(`${BASE}.getLineage?${qs}`);
     if (res.error) throw new Error(res.error.message);
-    return res.data!;
+    return res.data!.result.data.json;
   },
 };

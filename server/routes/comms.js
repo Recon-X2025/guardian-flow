@@ -135,12 +135,12 @@ router.get('/threads/:customerId', authenticateToken, async (req, res) => {
     if (channel) filter.channel = channel;
     if (status) filter.status = status;
 
-    const threads = await adapter.find(THREADS_COLLECTION, filter);
+    const threads = await adapter.findMany(THREADS_COLLECTION, filter);
 
     // For each thread, fetch recent messages
     const threadsWithMessages = await Promise.all(
       threads.map(async (thread) => {
-        const messages = await adapter.find(MESSAGES_COLLECTION, {
+        const messages = await adapter.findMany(MESSAGES_COLLECTION, {
           tenant_id: tenantId,
           thread_id: thread.id,
         });

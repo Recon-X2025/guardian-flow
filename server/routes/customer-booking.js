@@ -78,7 +78,7 @@ router.get('/availability', async (req, res) => {
     const adapter = await getAdapter();
 
     // Find already-booked slots for this date and tenant
-    const existingBookings = await adapter.find(COLLECTION, {
+    const existingBookings = await adapter.findMany(COLLECTION, {
       tenant_id: tenantId,
       date: targetDate,
       status: { $in: ['confirmed', 'pending'] },
