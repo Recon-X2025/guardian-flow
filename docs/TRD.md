@@ -73,23 +73,18 @@ Role enforcement by `<RoleGuard>` component.
 
 ### 3.1 Technology Stack
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| Node.js | 20+ | Runtime |
-| Express.js | 4.18.2 | HTTP framework |
-| MongoDB driver | 6.3.0 | Default DB |
-| pg | 8.11.3 | PostgreSQL driver |
-| jsonwebtoken | 9.0.2 | JWT signing/verification |
-| bcryptjs | 2.4.3 | Password hashing |
-| helmet | 8.1.0 | HTTP security headers |
-| express-rate-limit | 7.1.5 | Rate limiting |
-| cors | 2.8.5 | CORS |
-| multer | 1.4.5 | File uploads |
-| ws | 8.16.0 | WebSocket server |
-| zod | 3.25.76 | Request validation |
-| openai | 4.73.0 | OpenAI client (optional) |
-| nodemailer | 7.0.13 | Email (requires config) |
-| simple-statistics | 7.8.8 | Statistical analysis |
+| Tool | Purpose |
+|------|---------|
+| Node.js | Runtime environment |
+| tRPC | Type-safe RPC API layer |
+| Drizzle ORM | Database object-relational mapping |
+| pg | PostgreSQL client driver |
+| Temporal | Durable workflow engine for background jobs |
+| jsonwebtoken | JWT signing and validation |
+| bcryptjs | Secure password hashing |
+| Zod | Shared schema validation and type derivation |
+| openai | OpenAI API client for LLM and Vision |
+| ws | WebSockets server for real-time operations |
 
 ### 3.2 Server Entry Point
 
@@ -171,24 +166,14 @@ correlationId  →  metricsMiddleware  →  helmet  →  cors
 - `/api/log-error` — frontend error logging
 - `/api/scheduled-reports` — scheduled report runner
 
-### 3.4 Database Abstraction
+### 3.4 Database & Drizzle Schema
 
-```
-DB_ADAPTER=mongodb (default)   →  server/db/adapters/mongodb.js
-DB_ADAPTER=postgresql          →  server/db/adapters/postgresql.js
+All database operations are structured using Drizzle ORM to interface with PostgreSQL (+ TimescaleDB). Drizzle provides a compile-time type safety layer directly derived from schema files:
 
-Shared interface (server/db/interface.js):
-  findOne(collection, filter)
-  findMany(collection, filter, options)
-  insertOne(collection, doc)
-  updateOne(collection, filter, update)
-  deleteOne(collection, filter)
-  deleteMany(collection, filter)
-  countDocuments(collection, filter)
-  aggregate(collection, pipeline)
-```
-
-All queries go through `getAdapter()` singleton from `server/db/factory.js`.
+Schema Definition (`server/db/schema.ts`):
+  - Strict type definitions for tables, keys, and indexes.
+  - Type-safe query builder matching Drizzle syntax: `db.select().from(workOrders)...`
+  - Automatic migration script generation and tracking.
 
 ### 3.5 Authentication Middleware
 

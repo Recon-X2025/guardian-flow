@@ -301,16 +301,28 @@ router.post('/generate-offer', authenticateToken, async (req, res) => {
     const { customer_id, context, equipment_type } = req.body;
 
     const result = await chatCompletion([
-      { role: 'system', content: 'You are an AI sales assistant for a field service management company. Generate personalized service offers based on customer context and equipment.' },
-      { role: 'user', content: `Generate a service offer for customer ${customer_id || 'unknown'}. Context: ${context || 'general maintenance'}. Equipment: ${equipment_type || 'various'}` },
-    ], { feature: 'generate_offer', tenant_id: req.user.id });
+      { role: 'system', content: 'You are an AI sales assistant for a field service management company. Generate personalized service offers based on customer context and equipment. Return the response as a JSON object containing: { "title": "string", "description": "string", "price_suggestion": number, "valid_days": number }' },
+      { role: 'user', content: `Generate a service offer for customer ${customer_id || 'unknown'}. Context: ${context || 'general maintenance'}. Equipment: ${equipment_type || 'various'}. Return ONLY valid JSON.` },
+    ], { feature: 'generate_offer', tenant_id: req.user.id, response_format: { type: 'json_object' } });
+
+    let parsed;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch (e) {
+      parsed = {
+        title: 'AI-Generated Service Offer',
+        description: result.content,
+        price_suggestion: 250,
+        valid_days: 30,
+      };
+    }
 
     res.json({
       offer: {
-        title: 'AI-Generated Service Offer',
-        description: result.content,
-        price_suggestion: Math.floor(Math.random() * 500) + 100,
-        valid_days: 30,
+        title: parsed.title || 'AI-Generated Service Offer',
+        description: parsed.description || result.content,
+        price_suggestion: Number(parsed.price_suggestion) || 250,
+        valid_days: Number(parsed.valid_days) || 30,
       },
       model: result.model,
       provider: result.provider,
@@ -330,17 +342,29 @@ router.post('/fraud-detection', authenticateToken, async (req, res) => {
     const { transaction_data, invoice_id } = req.body;
 
     const result = await chatCompletion([
-      { role: 'system', content: 'You are a fraud detection AI. Analyze transaction patterns and flag suspicious activity. Return a risk score from 0-100 and explanation.' },
-      { role: 'user', content: `Analyze this transaction for fraud: ${JSON.stringify(transaction_data || { amount: 0 })}` },
-    ], { feature: 'fraud_detection', tenant_id: req.user.id });
+      { role: 'system', content: 'You are a fraud detection AI. Analyze transaction patterns and flag suspicious activity. Return ONLY a JSON object containing: { "risk_score": number (0-100), "risk_level": "low"|"medium"|"high", "analysis": "string", "recommendation": "Approve"|"Review"|"Block" }' },
+      { role: 'user', content: `Analyze this transaction for fraud: ${JSON.stringify(transaction_data || { amount: 0 })}. Return ONLY valid JSON.` },
+    ], { feature: 'fraud_detection', tenant_id: req.user.id, response_format: { type: 'json_object' } });
 
-    const riskScore = Math.floor(Math.random() * 30); // Low risk for normal transactions
+    let parsed;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch (e) {
+      parsed = {
+        risk_score: 15,
+        risk_level: 'low',
+        analysis: result.content,
+        recommendation: 'Approve',
+      };
+    }
+
+    const riskScore = Number(parsed.risk_score) || 15;
 
     res.json({
       risk_score: riskScore,
-      risk_level: riskScore < 30 ? 'low' : riskScore < 60 ? 'medium' : 'high',
-      analysis: result.content,
-      recommendation: riskScore < 30 ? 'Approve' : riskScore < 60 ? 'Review' : 'Block',
+      risk_level: parsed.risk_level || 'low',
+      analysis: parsed.analysis || result.content,
+      recommendation: parsed.recommendation || 'Approve',
       model: result.model,
       provider: result.provider,
     });
@@ -352,7 +376,7 @@ router.post('/fraud-detection', authenticateToken, async (req, res) => {
       actorType: 'ai',
       actorId: result.model || 'fraud-detection',
       action: 'fraud_risk_assessed',
-      rationale: result.content,
+      rationale: parsed.analysis || result.content,
       context: { invoice_id, risk_score: riskScore },
       confidenceScore: riskScore < 30 ? 0.9 : riskScore < 60 ? 0.6 : 0.85,
       modelVersion: result.model ?? null,
@@ -374,20 +398,30 @@ router.post('/predictive-maintenance', authenticateToken, async (req, res) => {
     const { equipment_id, sensor_data } = req.body;
 
     const result = await chatCompletion([
-      { role: 'system', content: 'You are a predictive maintenance AI. Analyze equipment data and predict maintenance needs. Return predictions with confidence scores.' },
-      { role: 'user', content: `Predict maintenance needs for equipment ${equipment_id || 'unknown'}. Sensor data: ${JSON.stringify(sensor_data || {})}` },
-    ], { feature: 'predictive_maintenance', tenant_id: req.user.id });
+      { role: 'system', content: 'You are a predictive maintenance AI. Analyze equipment data and predict maintenance needs. Return ONLY a JSON object containing: { "failure_probability": number (0-1.0), "predicted_failure_date": "ISO string"|null, "recommended_action": "string", "analysis": "string" }' },
+      { role: 'user', content: `Predict maintenance needs for equipment ${equipment_id || 'unknown'}. Sensor data: ${JSON.stringify(sensor_data || {})}. Return ONLY valid JSON.` },
+    ], { feature: 'predictive_maintenance', tenant_id: req.user.id, response_format: { type: 'json_object' } });
 
-    const failureProbability = Math.random() * 0.4; // 0-40% probability
+    let parsed;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch (e) {
+      parsed = {
+        failure_probability: 0.1,
+        predicted_failure_date: null,
+        recommended_action: 'Continue monitoring',
+        analysis: result.content,
+      };
+    }
+
+    const failureProbability = Number(parsed.failure_probability) || 0.1;
 
     res.json({
       equipment_id,
       failure_probability: failureProbability,
-      predicted_failure_date: failureProbability > 0.2 ?
-        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
-      recommended_action: failureProbability > 0.2 ?
-        'Schedule preventive maintenance' : 'Continue monitoring',
-      analysis: result.content,
+      predicted_failure_date: parsed.predicted_failure_date || null,
+      recommended_action: parsed.recommended_action || 'Continue monitoring',
+      analysis: parsed.analysis || result.content,
       model: result.model,
       provider: result.provider,
     });

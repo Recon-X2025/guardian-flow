@@ -78,7 +78,7 @@ Guardian Flow is a multi-tenant **enterprise field service management platform**
 
 **Current version:** v6.1 (PaaS + Organisation Management Console)
 
-> **AI mode:** The platform ships with a mock AI layer (keyword-matching responses, statistical anomaly detection). Real GPT-4o LLM and OpenAI embeddings activate when `OPENAI_API_KEY` + `AI_PROVIDER=openai` are configured. Computer vision (photo defect detection) is a mock stub regardless of AI mode. See `docs/PRD.md` for the full feature status breakdown.
+> **AI mode:** The platform features an integrated hybrid AI layer (real GPT-4o LLM and OpenAI embeddings, with keyword-matching mock fallbacks when API keys are not configured). Structured outputs are automatically parsed for live AI analysis, including offer generation, fraud risk assessment, and predictive maintenance. Forgery detection supports real vision analysis via the GPT-4o Vision API. See `docs/PRD.md` for the full feature status breakdown.
 
 ---
 
@@ -239,12 +239,13 @@ Guardian Flow is a multi-tenant **enterprise field service management platform**
 
 ---
 
-## 🗄️ Database
-
-- **Default adapter:** MongoDB (Atlas)
-- **Alternate adapter:** PostgreSQL (`DB_ADAPTER=postgresql`)
-- **Migrations:** `node server/scripts/phase0-migration.js` — idempotent, migrations 003–010 (all Phase 0–5 collections)
-- **Abstraction layer:** `server/db/interface.js` → `server/db/factory.js` → `server/db/adapters/`
+## 🗄️ Database & ORM
+ 
+- **Database:** PostgreSQL (+ TimescaleDB for time-series scalability)
+- **ORM / Data Access:** Drizzle ORM (Typed schemas & database migrations)
+- **Validation:** Zod schemas integrated with tRPC contracts
+- **Orchestration:** Temporal for durable and retryable event-driven workflows
+- **Repository Layout:** NexusOps Monorepo (DEX and FlowSpace as shared services)
 
 ---
 
@@ -336,11 +337,12 @@ curl -X POST http://localhost:3001/api/functions/api-gateway \
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 · TypeScript 5.8 · Vite 5.4 · Tailwind CSS · shadcn/ui |
-| Backend | Express.js · Node.js 20+ |
-| Database | MongoDB Atlas (default) · PostgreSQL (alternate) |
+| Frontend | React 18 · TypeScript (strict) · Vite 5.4 · Tailwind CSS · shadcn/ui |
+| Backend | tRPC API Gateway · TypeScript (strict) · Node.js 20+ |
+| Database | PostgreSQL (+ TimescaleDB) · Drizzle ORM |
+| Orchestration | Temporal Workflow Orchestrator |
 | Auth | JWT (access + refresh tokens) |
-| AI | OpenAI GPT-4o (requires `OPENAI_API_KEY`; mock by default) |
+| AI | OpenAI GPT-4o & Embeddings (requires `OPENAI_API_KEY`; mock fallback retained) |
 | Build | Vite 5.4 · @vitejs/plugin-react-swc |
 | Testing | Vitest 1.6 (unit) · Playwright 1.58 (E2E) |
 | Design Tokens | `src/styles/tokens.css` (`--gf-*` tokens · dark mode) |

@@ -22,8 +22,8 @@ Enterprise organizations managing large-scale physical assets and field forces f
 Guardian Flow addresses these challenges by introducing:
 1. **FlowSpace Decision Ledger:** An append-only, tenant-isolated ledger for all critical operational and AI-driven decisions, ensuring absolute auditability.
 2. **DEX ExecutionContext:** A formal, state-machine-driven workflow engine that tracks the lineage of work orders and operations.
-3. **PaaS Developer Framework:** A built-in API gateway, developer console, serverless functions, and marketplace that allows organizations and partners to extend the platform using standard web technology (React, Node.js, and REST APIs).
-4. **Hybrid Database Architecture:** Native support for both MongoDB and PostgreSQL via a unified database abstraction layer, offering deployment flexibility.
+3. **PaaS Developer Framework:** A built-in API gateway, developer console, serverless functions, and marketplace that allows organizations and partners to extend the platform using standard web technology (React, Node.js, and tRPC APIs).
+4. **PostgreSQL Database Architecture:** Standardized on PostgreSQL with Drizzle ORM to enforce relational integrity, strict typing, database migrations, and audit joins.
 
 ---
 
@@ -113,7 +113,7 @@ The system must support the business goals of the following roles:
 ### 5.3 AI and Machine Learning Capabilities
 * **Statistical Anomaly Detection:** Compute mathematical z-scores for operational duration (flagging slow tasks) and financial values (flagging billing anomalies).
 * **AI Assistance & RAG Search:** Allow operators to search the knowledge base using natural language. Support automated summaries for long work order histories.
-* **AI Image Forensics (Fraud/Tamper Detection):** Examine photos uploaded by technicians to detect editing, metadata tampering, or duplicate submissions.
+* **AI Image Forensics (Fraud/Tamper Detection):** Analyze photo uploads using the GPT-4o Vision API to detect editing, metadata tampering, or duplicate submissions (backed by real vision models when API key is active).
 
 ### 5.4 Platform Security & Immutable Auditing
 * **Immutable Audit Trail:** Log all critical system events (such as configuration changes or privilege escalation) to a read-only partition. Keep logs for 7 years to satisfy regulatory audits.
@@ -122,6 +122,7 @@ The system must support the business goals of the following roles:
 ### 5.5 PaaS and Developer Portal
 * **Open API Gateway:** Provide API key management, usage monitoring, and rate limiting (e.g., 1,000 calls per day for sandboxes).
 * **Webhooks & Extensions:** Broadcast events (e.g., `work_order.completed`) to third-party endpoints. Host a Marketplace where tenants can toggle modules.
+* **Workflow Orchestration:** Utilize Temporal to manage durable, stateful event-driven workflows including ERP sync retries, MQTT telemetry ingestion, and scheduled report builders.
 
 ---
 

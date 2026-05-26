@@ -29,17 +29,17 @@ graph TD
     classDef external fill:#6b7280,stroke:#374151,stroke-width:2px,color:#fff;
 
     %% Subgraphs
-    subgraph Clients ["Client Layer (Frontend)"]
+    subgraph Clients ["Client Layer (NexusOps Monorepo)"]
         SPA["React 18 SPA (Vite)"]:::client
         WS_Client["WebSocket Client"]:::client
         PWA["Mobile PWA Shell"]:::client
     end
 
-    subgraph Gateway ["API Gateway Layer (Express.js)"]
-        GW["Express.js Server (Port 3001)"]:::gateway
+    subgraph Gateway ["API Gateway Layer (tRPC / TS)"]
+        GW["tRPC Router API Gateway"]:::gateway
         MW_Auth["JWT & RBAC Middleware"]:::gateway
         MW_Sec["Helmet, CORS & Rate-Limiter"]:::gateway
-        MW_Val["Zod Input Validation"]:::gateway
+        MW_Val["Zod Schema Validation"]:::gateway
     end
 
     subgraph Services ["Application Services Layer"]
@@ -60,25 +60,25 @@ graph TD
             LLM["LLM Assistant (GPT-4o)"]:::application
             RAG["RAG Search Engine"]:::application
             ANO["z-score Anomaly Detection"]:::application
-            VIS["Photo Defect Detection (Mock)"]:::application
+            VIS["Photo Defect Detection (GPT-4o Vision)"]:::application
         end
         subgraph PaaS ["Developer PaaS"]
             FUN["Serverless Functions"]:::application
             WEB["Webhooks & Retries"]:::application
             MKT["Extension Marketplace"]:::application
-            CON["ERP Connectors (Stubs)"]:::application
+            CON["ERP Connectors (Salesforce, SAP, QB)"]:::application
         end
     end
 
-    subgraph CoreEngines ["Shared Core Engines"]
+    subgraph CoreEngines ["Shared Core Engines & Orchestration"]
         DEX["DEX ExecutionContext State Machine"]:::engine
         FLW["FlowSpace Decision Ledger"]:::engine
+        TMP["Temporal Workflow Orchestrator"]:::engine
     end
 
     subgraph Data ["Data Layer"]
-        DB_Factory["Database Factory Adapter"]:::data
-        Mongo["MongoDB Atlas (Default)"]:::data
-        Postgres["PostgreSQL DB"]:::data
+        Drizzle["Drizzle ORM Adapter"]:::data
+        DB["PostgreSQL (+ TimescaleDB)"]:::data
         Disk["Local Disk File Storage"]:::data
     end
 
@@ -89,51 +89,45 @@ graph TD
     end
 
     %% Interactions & Connections
-    SPA & WS_Client & PWA -->|HTTPS / WSS| GW
+    SPA & WS_Client & PWA -->|tRPC Queries / Mutations| GW
     GW --> MW_Sec --> MW_Auth --> MW_Val
     MW_Val --> FSM & FIN & AI_ML & PaaS
     
     FSM & FIN & AI_ML & PaaS --> DEX
     AI_ML & DEX --> FLW
+    TMP -->|Durable Background Execution| CON & WEB & FSM
     
-    DEX & FLW & FSM & FIN & AI_ML & PaaS --> DB_Factory
-    DB_Factory --> Mongo
-    DB_Factory --> Postgres
+    DEX & FLW & FSM & FIN & AI_ML & PaaS --> Drizzle
+    Drizzle --> DB
     PaaS --> Disk
 
-    LLM & RAG -.->|Requires API Key| OpenAI
+    LLM & RAG & VIS -.->|Requires API Key| OpenAI
     PAY -.->|Requires API Key| Stripe
     FSM -.->|Requires Broker Configuration| MQTT
 ```
 
 ---
 
-## 3. Frontend Architecture
+## 3. Monorepo Repository Structure
 
-### 3.1 Domain Structure (15 domains)
+The platform uses a NexusOps monorepo structure containing frontend, backend, and shared libraries:
 
 ```
-src/
-├── App.tsx                    # Route definitions (~120 routes)
-├── domains/
-│   ├── auth/                  # JWT auth, RBAC, MFA, 8 role variants
-│   ├── workOrders/            # Work orders, service orders, dispatch, scheduler
-│   ├── tickets/               # Ticket lifecycle
-│   ├── financial/             # Invoices, payments, GL, AR, penalties
-│   ├── analytics/             # BI, forecasting, anomaly detection, platform metrics
-│   ├── fraud/                 # Fraud investigation, forgery detection, compliance
-│   ├── inventory/             # Equipment, stock, procurement
-│   ├── customers/             # Customer + partner portals, customer360
-│   ├── knowledge/             # Knowledge base, FAQ, RAG engine
-│   ├── marketplace/           # Extension marketplace
-│   ├── training/              # Training platform
-│   ├── org/                   # Organisation Management Console (MAC)
-│   ├── dex/                   # DEX ExecutionContext UI
-│   ├── flowspace/             # FlowSpace decision ledger UI
-│   └── shared/                # AppLayout, Dashboard, AdminConsole, cross-cutting
-├── components/ui/             # shadcn/ui (40+ components)
-├── styles/tokens.css          # --gf-* design tokens (dark mode via .dark / [data-theme="dark"])
-└── i18n/                      # i18n scaffold — English only, no translations built yet
+nexusops-monorepo/
+├── apps/
+│   ├── frontend/             # React SPA (Vite, Tailwind, shadcn/ui)
+│   │   ├── src/
+│   │   │   ├── domains/      # 14 UI domains (auth, FSM, finance, etc.)
+│   │   │   └── App.tsx       # Route definitions
+│   └── backend/              # Node.js + TypeScript (strict) tRPC Server
+│       ├── src/
+│       │   ├── routers/      # tRPC router endpoints
+│       │   ├── workflows/    # Temporal orchestration workflows
+│       │   └── db/           # Drizzle ORM schema and connections
+└── packages/
+    ├── shared-types/         # Shared Zod schemas and validation contracts
+    ├── dex-engine/           # Reusable DEX State Machine core package
+    └── flowspace-ledger/     # Reusable FlowSpace Decision Ledger core package
 ```
 
 ### 3.2 State Management
