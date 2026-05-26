@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,6 +155,7 @@ export default function MarketplaceManagement() {
 
         <TabsContent value="extensions" className="mt-4">
           <Card>
+            <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Marketplace Extensions</CardTitle>
@@ -169,6 +170,7 @@ export default function MarketplaceManagement() {
               </div>
             </CardHeader>
             <CardContent>
+              <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Extension</TableHead>

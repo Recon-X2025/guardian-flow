@@ -130,7 +130,7 @@ function SyncDialog({
   const sampleEmail = JSON.stringify([{
     id: 'msg_001', subject: 'Re: Proposal Review', direction: 'inbound',
     from: 'john@acme.com', to: ['me@company.com'],
-    body_snippet: 'Thanks for the proposal. We'd like to move forward…',
+    body_snippet: "Thanks for the proposal. We'd like to move forward…",
     sent_at: new Date().toISOString(),
   }], null, 2);
 

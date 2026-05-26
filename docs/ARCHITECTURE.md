@@ -18,56 +18,95 @@ Guardian Flow is a multi-tenant enterprise field service management platform wit
 
 ## 2. High-Level Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                         CLIENT LAYER                             │
-│   React 18 SPA (Vite)   │  WebSocket Client  │  External APIs   │
-│   15 domain modules       │  Real-time events │  Partner webhooks│
-└────────────┬─────────────────────┬────────────────────┬──────────┘
-             │                     │                    │
-             ▼                     ▼                    ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                      API GATEWAY LAYER                           │
-│   Express.js  ·  Port 3001                                       │
-│                                                                  │
-│   Helmet  │  CORS  │  Rate-limit  │  Correlation IDs             │
-│   JWT auth middleware  │  RBAC checks  │  Zod validation          │
-│   Telemetry middleware  │  Metrics collection                     │
-└────────────┬─────────────────────────────────────────────────────┘
-             │
-             ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER (57 routes)                  │
-│                                                                  │
-│  FSM Operations          Financial              CRM              │
-│  /api/schedule           /api/payments          /api/crm         │
-│  /api/assets             /api/ledger            /api/customer360 │
-│  /api/skills             /api/budgeting         /api/comms       │
-│  /api/shifts             /api/bank-recon                         │
-│  /api/customer-booking   /api/goods-receipt                      │
-│  /api/subcontractors     /api/audit-log                          │
-│                                                                  │
-│  AI / ML                 Compliance             PaaS             │
-│  /api/ai (LLM, RAG)      /api/anomalies         /api/functions   │
-│  /api/ml (train/exp)     /api/compliance-policy /api/developer   │
-│  /api/knowledge-base     /api/security          /api/connectors  │
-│  /api/knowledge-query    /api/sla               /api/partner     │
-│  /api/iot-telemetry                             /api/webhooks    │
-│                                                                  │
-│  Platform Services                                               │
-│  /api/flowspace  /api/dex  /api/sso  /api/org  /api/esg         │
-│  /api/currency   /api/metrics  /api/storage  /api/auth           │
-└────────────┬─────────────────────────────────────────────────────┘
-             │
-             ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                         DATA LAYER                               │
-│                                                                  │
-│  MongoDB Atlas (default)  │  PostgreSQL (DB_ADAPTER=postgresql)  │
-│  Native driver · pool 20  │  pg library · same adapter interface │
-│                                                                  │
-│  File storage: disk-based (Multer)  ·  WebSocket: ws library     │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    %% Styling definitions
+    classDef client fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
+    classDef gateway fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
+    classDef application fill:#f59e0b,stroke:#b45309,stroke-width:2px,color:#fff;
+    classDef engine fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff;
+    classDef data fill:#ef4444,stroke:#b91c1c,stroke-width:2px,color:#fff;
+    classDef external fill:#6b7280,stroke:#374151,stroke-width:2px,color:#fff;
+
+    %% Subgraphs
+    subgraph Clients ["Client Layer (Frontend)"]
+        SPA["React 18 SPA (Vite)"]:::client
+        WS_Client["WebSocket Client"]:::client
+        PWA["Mobile PWA Shell"]:::client
+    end
+
+    subgraph Gateway ["API Gateway Layer (Express.js)"]
+        GW["Express.js Server (Port 3001)"]:::gateway
+        MW_Auth["JWT & RBAC Middleware"]:::gateway
+        MW_Sec["Helmet, CORS & Rate-Limiter"]:::gateway
+        MW_Val["Zod Input Validation"]:::gateway
+    end
+
+    subgraph Services ["Application Services Layer"]
+        subgraph FSM ["FSM Operations"]
+            WO["Work Order CRUD"]:::application
+            SCH["Scheduling Solver"]:::application
+            ROT["Route Optimizer"]:::application
+            AST["Asset Lifecycle"]:::application
+        end
+        subgraph FIN ["Financials"]
+            INV["Invoicing"]:::application
+            PAY["Payments Gateway"]:::application
+            LED["General Ledger"]:::application
+            DIS["Dispute Management"]:::application
+        end
+        subgraph CRM_Dom ["CRM"]
+            CRM_Mgt["Leads & Deals CRM"]:::application
+            CUST["Customer 360"]:::application
+        end
+        subgraph AI_ML ["AI / ML Platform"]
+            LLM["LLM Assistant (GPT-4o)"]:::application
+            RAG["RAG Search Engine"]:::application
+            ANO["z-score Anomaly Detection"]:::application
+            VIS["Photo Defect Detection (Mock)"]:::application
+        end
+        subgraph PaaS ["Developer PaaS"]
+            FUN["Serverless Functions"]:::application
+            WEB["Webhooks & Retries"]:::application
+            MKT["Extension Marketplace"]:::application
+            CON["ERP Connectors (Stubs)"]:::application
+        end
+    end
+
+    subgraph CoreEngines ["Shared Core Engines"]
+        DEX["DEX ExecutionContext State Machine"]:::engine
+        FLW["FlowSpace Decision Ledger"]:::engine
+    end
+
+    subgraph Data ["Data Layer"]
+        DB_Factory["Database Factory Adapter"]:::data
+        Mongo["MongoDB Atlas (Default)"]:::data
+        Postgres["PostgreSQL DB"]:::data
+        Disk["Local Disk File Storage"]:::data
+    end
+
+    subgraph ExtServices ["External Services"]
+        OpenAI["OpenAI API (GPT-4o / Embeddings)"]:::external
+        Stripe["Stripe Payments API"]:::external
+        MQTT["MQTT Telemetry Broker"]:::external
+    end
+
+    %% Interactions & Connections
+    SPA & WS_Client & PWA -->|HTTPS / WSS| GW
+    GW --> MW_Sec --> MW_Auth --> MW_Val
+    MW_Val --> FSM & FIN & CRM_Dom & AI_ML & PaaS
+    
+    FSM & FIN & CRM_Dom & AI_ML & PaaS --> DEX
+    AI_ML & DEX --> FLW
+    
+    DEX & FLW & FSM & FIN & CRM_Dom & AI_ML & PaaS --> DB_Factory
+    DB_Factory --> Mongo
+    DB_Factory --> Postgres
+    PaaS --> Disk
+
+    LLM & RAG -.->|Requires API Key| OpenAI
+    PAY -.->|Requires API Key| Stripe
+    FSM -.->|Requires Broker Configuration| MQTT
 ```
 
 ---

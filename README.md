@@ -406,6 +406,7 @@ guardian-flow/
 | **Contributor Onboarding & Build Context** | [`docs/CONTRIBUTOR_ONBOARDING.md`](docs/CONTRIBUTOR_ONBOARDING.md) |
 | Build Report (build + test + audit) | [`BUILD_REPORT.md`](BUILD_REPORT.md) |
 | Platform Comprehensive Audit | [`docs/PLATFORM_COMPREHENSIVE_AUDIT.md`](docs/PLATFORM_COMPREHENSIVE_AUDIT.md) |
+| Business Requirements (BRD) | [`docs/BRD.md`](docs/BRD.md) |
 | Product Requirements (PRD) | [`docs/PRD.md`](docs/PRD.md) |
 | Architecture | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Technical Requirements (TRD) | [`docs/TRD.md`](docs/TRD.md) |

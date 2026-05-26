@@ -142,8 +142,7 @@ const MLStudio = lazy(() => import("@/domains/shared/pages/MLStudio"));
 const Subcontractors = lazy(() => import("@/domains/workOrders/pages/Subcontractors"));
 const SalesSequences = lazy(() => import("@/domains/crm/pages/SalesSequences"));
 const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
-const IoTDashboard = lazy(() => import("@/domains/analytics/pages/IoTDashboard"));
-const AnomalyMonitor = lazy(() => import("@/domains/analytics/pages/AnomalyMonitor"));
+const AnalyticsIoTDashboard = lazy(() => import("@/domains/analytics/pages/IoTDashboard"));
 const AutoMLStudio = lazy(() => import("@/domains/analytics/pages/AutoMLStudio"));
 const ExplainabilityDashboard = lazy(() => import("@/domains/analytics/pages/ExplainabilityDashboard"));
 const LLMFineTuner = lazy(() => import("@/domains/analytics/pages/LLMFineTuner"));
@@ -160,13 +159,11 @@ const ShiftCalendar = lazy(() => import("@/domains/workOrders/pages/ShiftCalenda
 // Sprint 29–52 lazy imports
 const IoTDashboard = lazy(() => import("@/domains/workOrders/pages/IoTDashboard"));
 const MaintenanceTriggers = lazy(() => import("@/domains/workOrders/pages/MaintenanceTriggers"));
-const RevenueRecognition = lazy(() => import("@/domains/financial/pages/RevenueRecognition"));
 const BudgetPlanner = lazy(() => import("@/domains/financial/pages/BudgetPlanner"));
 const FlowDesigner = lazy(() => import("@/domains/dex/pages/FlowDesigner"));
 const SLAEngine = lazy(() => import("@/domains/shared/pages/SLAEngine"));
 const CustomerSuccess = lazy(() => import("@/domains/customers/pages/CustomerSuccess"));
 const ESGReporting = lazy(() => import("@/domains/analytics/pages/ESGReporting"));
-const DigitalTwin = lazy(() => import("@/domains/analytics/pages/DigitalTwin"));
 const InventoryOptimisation = lazy(() => import("@/domains/inventory/pages/InventoryOptimisation"));
 const AuditFramework = lazy(() => import("@/domains/fraud/pages/AuditFramework"));
 const PlatformConfig = lazy(() => import("@/domains/shared/pages/PlatformConfig"));
@@ -184,7 +181,7 @@ const E2ETestSuite = lazy(() => import("@/domains/shared/pages/E2ETestSuite"));
 const LaunchReadiness = lazy(() => import("@/domains/shared/pages/LaunchReadiness"));
 const ExpenseManagement = lazy(() => import("@/domains/shared/pages/ExpenseManagement"));
 const FixedAssets = lazy(() => import("@/domains/financial/pages/FixedAssets"));
-const CRMPipeline = lazy(() => import("@/domains/customers/pages/CRMPipeline"));
+const CustomersCRMPipeline = lazy(() => import("@/domains/customers/pages/CRMPipeline"));
 
 const queryClient = new QueryClient();
 
@@ -909,14 +906,12 @@ const App = () => (
                   {/* Analytics */}
                   <Route path="/dashboard-builder" element={<ProtectedRoute><AppLayout><SuspenseWrap><DashboardBuilder /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/scheduled-reports" element={<ProtectedRoute><AppLayout><SuspenseWrap><ScheduledReports /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/digital-twin" element={<ProtectedRoute><AppLayout><SuspenseWrap><DigitalTwin /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* Operations */}
                   <Route path="/subcontractors" element={<ProtectedRoute><AppLayout><SuspenseWrap><Subcontractors /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
                   {/* IoT & Analytics */}
-                  <Route path="/iot-dashboard" element={<ProtectedRoute><AppLayout><SuspenseWrap><IoTDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/anomaly-monitor" element={<ProtectedRoute><AppLayout><SuspenseWrap><AnomalyMonitor /></SuspenseWrap></AppLayout></ProtectedRoute>} />
+                  <Route path="/analytics/iot-dashboard" element={<ProtectedRoute><AppLayout><SuspenseWrap><AnalyticsIoTDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/auto-ml" element={<ProtectedRoute><AppLayout><SuspenseWrap><AutoMLStudio /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/explainability" element={<ProtectedRoute><AppLayout><SuspenseWrap><ExplainabilityDashboard /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/llm-finetune" element={<ProtectedRoute><AppLayout><SuspenseWrap><LLMFineTuner /></SuspenseWrap></AppLayout></ProtectedRoute>} />
@@ -929,7 +924,6 @@ const App = () => (
 
                   {/* Finance */}
                   <Route path="/financial-statements" element={<ProtectedRoute><AppLayout><SuspenseWrap><FinancialStatements /></SuspenseWrap></AppLayout></ProtectedRoute>} />
-                  <Route path="/revenue-recognition" element={<ProtectedRoute><AppLayout><SuspenseWrap><RevenueRecognition /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/subscriptions" element={<ProtectedRoute><AppLayout><SuspenseWrap><SubscriptionManagement /></SuspenseWrap></AppLayout></ProtectedRoute>} />
                   <Route path="/agent-console" element={<ProtectedRoute><AppLayout><SuspenseWrap><AgentConsole /></SuspenseWrap></AppLayout></ProtectedRoute>} />
 
@@ -998,7 +992,7 @@ const App = () => (
                   <Route path="/crm-pipeline" element={
                     <ProtectedRoute>
                       <RoleGuard roles={["sys_admin","tenant_admin","ops_manager","support_agent","finance_manager"]} showError={true}>
-                        <AppLayout><SuspenseWrap><CRMPipeline /></SuspenseWrap></AppLayout>
+                        <AppLayout><SuspenseWrap><CustomersCRMPipeline /></SuspenseWrap></AppLayout>
                       </RoleGuard>
                     </ProtectedRoute>
                   } />

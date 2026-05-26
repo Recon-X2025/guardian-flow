@@ -52,6 +52,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <main className="flex-1 p-3 sm:p-4 md:p-6 bg-background">
               {children}
             </main>
+            </div>
+          </div>
         </div>
         <AICopilotWidget />
         <InstallPrompt />
