@@ -491,6 +491,9 @@ router.get('/cash-flow', async (req, res) => {
   } catch (error) {
     logger.error('Ledger: cash-flow error', { error: error.message });
     res.status(500).json({ error: 'Failed to compute cash flow' });
+  }
+});
+
 // ── Sprint 3: Journal Entry Reversal ─────────────────────────────────────────
 
 /**
