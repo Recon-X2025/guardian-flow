@@ -127,14 +127,15 @@ export default function CommsHub() {
     }
     setSending(true);
     try {
-      const result = await apiClient.post('/api/comms/send', {
+      const result = await apiClient.post<{ threadId: string }>('/api/comms/send', {
         channel: newChannel,
         recipient: newRecipient,
         message: newBody,
         subject: newSubject || undefined,
         customerId: newCustomerId || undefined,
       });
-      toast({ title: 'Message sent', description: `Thread ${result.threadId}` });
+      if (result.error) throw result.error;
+      toast({ title: 'Message sent', description: `Thread ${result.data?.threadId || ''}` });
       setComposing(false);
       setNewRecipient('');
       setNewSubject('');

@@ -275,7 +275,7 @@ export default function Penalties() {
       <PenaltyDetailsDialog
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
-        penalty={selectedPenalty}
+        penalty={selectedPenalty as any}
       />
     </div>
   );

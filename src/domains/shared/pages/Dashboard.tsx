@@ -62,6 +62,7 @@ interface StatusDataPoint {
   name: string;
   value: number;
   color: string;
+  [key: string]: any;
 }
 
 interface WorkOrder {
@@ -344,7 +345,7 @@ interface Invoice {
               <CardContent>
                 <div className="text-2xl font-bold">{formattedValue}</div>
                 {'subtitle' in card && card.subtitle && (
-                  <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{card.subtitle as string}</p>
                 )}
               </CardContent>
             </Card>
@@ -400,7 +401,7 @@ interface Invoice {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }: { name: string; percent?: number }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                      label={(props: any) => `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                       outerRadius={60}
                       className="sm:outerRadius-80"
                       fill="#8884d8"

@@ -50,7 +50,7 @@ export function InvoiceDetailDialog({ open, onOpenChange, invoice }: InvoiceDeta
     
     setLoadingHistory(true);
     try {
-      const response = await apiClient.request(`/api/payments/history/${invoice.id}`, {
+      const response = await apiClient.request<{ payment_history: any[] }>(`/api/payments/history/${invoice.id}`, {
         method: 'GET',
       });
 

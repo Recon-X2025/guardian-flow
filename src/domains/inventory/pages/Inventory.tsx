@@ -232,7 +232,7 @@ export default function Inventory() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toast({ title: item.name, description: `SKU: ${item.sku} | Qty: ${item.quantity} | Reorder: ${item.reorder_level}` })}
+                        onClick={() => toast({ title: item.sku, description: `Description: ${item.description || 'N/A'} | Qty: ${getTotalStock(item)}` })}
                       >
                         View Details
                       </Button>

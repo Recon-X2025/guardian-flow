@@ -27,11 +27,11 @@ export default function DeveloperLanding() {
 
     setLoading(true);
     try {
-      const result = await apiClient.functions.invoke('create-sandbox-tenant', {
+      const { data, error } = await apiClient.functions.invoke<any>('create-sandbox-tenant', {
         body: { email, name }
       });
 
-      if (result.error) throw result.error;
+      if (error) throw error;
 
       toast({
         title: "Sandbox Created!",

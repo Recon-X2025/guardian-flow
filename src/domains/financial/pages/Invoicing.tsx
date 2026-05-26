@@ -539,7 +539,7 @@ export default function Invoicing() {
         <ComprehensiveInvoiceDetailDialog
           open={invoiceDialogOpen}
           onOpenChange={setInvoiceDialogOpen}
-          invoice={selectedInvoice}
+          invoice={selectedInvoice as any}
         />
       ) : (
         <InvoiceDetailDialog

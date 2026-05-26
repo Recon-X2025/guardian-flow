@@ -22,6 +22,11 @@ interface AuditLog {
   ip_address?: string;
   user_agent?: string;
   correlation_id?: string;
+  mfa_verified?: boolean;
+  actor_role?: string;
+  tenant_id?: string;
+  reason?: string;
+  changes?: Record<string, unknown>;
 }
 
 interface FullTracesDialogProps {

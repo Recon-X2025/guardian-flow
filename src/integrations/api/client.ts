@@ -27,7 +27,7 @@ export interface Session {
 }
 
 // Generic record type for database operations
-export type DbRecord = Record<string, unknown>;
+export type DbRecord = any;
 
 // Database query options
 export interface QueryOptions {
@@ -75,12 +75,48 @@ class ApiClient {
     this.token = token;
   }
 
+  getToken() {
+    return this.token;
+  }
+
   // Public method for direct API calls
   async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     return this._request<T>(endpoint, options);
+  }
+
+  async get<T>(endpoint: string, options: RequestInit = {}) {
+    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  }
+
+  async post<T>(endpoint: string, body?: unknown, options: RequestInit = {}) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async put<T>(endpoint: string, body?: unknown, options: RequestInit = {}) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async patch<T>(endpoint: string, body?: unknown, options: RequestInit = {}) {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async delete<T>(endpoint: string, options: RequestInit = {}) {
+    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   }
 
   private async _request<T>(
@@ -216,12 +252,17 @@ class ApiClient {
     class QueryBuilder {
       private options: QueryOptions = { select: '*', where: {} };
 
-      select(columns: string = '*') {
+      select(columns: string = '*', options?: any) {
         this.options.select = columns;
         return this;
       }
 
       eq(column: string, value: unknown) {
+        this.options.where = { ...this.options.where, [column]: value };
+        return this;
+      }
+
+      is(column: string, value: unknown) {
         this.options.where = { ...this.options.where, [column]: value };
         return this;
       }
@@ -256,6 +297,20 @@ class ApiClient {
         return this;
       }
 
+      not(column: string, operator: string, value: unknown) {
+        if (operator === 'is' && value === null) {
+          this.options.where = { ...this.options.where, [column]: { operator: '!=', value: null } };
+        } else {
+          this.options.where = { ...this.options.where, [column]: { operator: '!=', value } };
+        }
+        return this;
+      }
+
+      or(filters: string) {
+        this.options.where = { ...this.options.where, _or: filters };
+        return this;
+      }
+
       order(column: string, options?: { ascending?: boolean }) {
         this.options.orderBy = `${column} ${options?.ascending === false ? 'DESC' : 'ASC'}`;
         return this;
@@ -277,12 +332,36 @@ class ApiClient {
         return this;
       }
 
-      async then<TResult>(callback?: (result: { data: DbRecord[] | null; error: ApiResponse<unknown>['error'] | null; count: number }) => TResult) {
+      then(): Promise<{ data: any; error: ApiResponse<unknown>['error'] | null; count: number }>;
+      then<TResult>(callback: (result: { data: any; error: ApiResponse<unknown>['error'] | null; count: number }) => TResult | PromiseLike<TResult>): Promise<TResult>;
+      async then<TResult>(callback?: (result: { data: any; error: ApiResponse<unknown>['error'] | null; count: number }) => TResult | PromiseLike<TResult>): Promise<any> {
         const result = await self.query(table, this.options);
+        const isSingle = this.options.limit === 1;
+        const processedResult = {
+          ...result,
+          data: isSingle ? (result.data && result.data.length > 0 ? result.data[0] : null) : result.data
+        };
         if (callback) {
-          return callback(result);
+          return callback(processedResult);
         }
-        return result;
+        return processedResult;
+      }
+
+      async catch<TResult>(callback?: (reason: any) => TResult) {
+        try {
+          const result = await self.query(table, this.options);
+          const isSingle = this.options.limit === 1;
+          const processedResult = {
+            ...result,
+            data: isSingle ? (result.data && result.data.length > 0 ? result.data[0] : null) : result.data
+          };
+          return processedResult as any;
+        } catch (err) {
+          if (callback) {
+            return callback(err);
+          }
+          throw err;
+        }
       }
     }
 
@@ -296,7 +375,7 @@ class ApiClient {
         eq: (column: string, value: unknown) => self.update(table, data, { [column]: value }),
       }),
       delete: () => ({
-        eq: (column: string, value: unknown) => self.delete(table, { [column]: value }),
+        eq: (column: string, value: unknown) => self.deleteRow(table, { [column]: value }),
       }),
     });
   }
@@ -311,7 +390,7 @@ class ApiClient {
     );
 
     if (response.error) {
-      return { data: null, error: response.error };
+      return { data: null, error: response.error, count: 0 };
     }
 
     return {
@@ -355,7 +434,7 @@ class ApiClient {
     return { data: response.data?.data || null, error: null };
   }
 
-  private async delete(table: string, where: Record<string, unknown>) {
+  private async deleteRow(table: string, where: Record<string, unknown>) {
     const id = Object.values(where)[0];
     const response = await this._request<{ data: DbRecord }>(
       `/api/db/${table}/${id}`,
@@ -424,7 +503,7 @@ class ApiClient {
 
   // Edge functions replacement
   functions = {
-    invoke: async <T = unknown>(functionName: string, options?: { body?: unknown; headers?: Record<string, string> }) => {
+    invoke: async <T = any>(functionName: string, options?: { body?: unknown; headers?: Record<string, string> }) => {
       const response = await this._request<T>(
         `/api/functions/${functionName}`,
         {

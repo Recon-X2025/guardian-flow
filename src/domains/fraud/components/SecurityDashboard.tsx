@@ -44,9 +44,11 @@ export function SecurityDashboard() {
 
   const fetchSecurityMetrics = async () => {
     try {
-      const result = await apiClient.functions.invoke('security-monitor');
+      const result = await apiClient.functions.invoke<SecurityMetrics>('security-monitor');
       if (result.error) throw result.error;
-      setMetrics(data);
+      if (result.data) {
+        setMetrics(result.data);
+      }
     } catch (error) {
       console.error('Failed to fetch security metrics:', error);
     } finally {
@@ -110,7 +112,7 @@ export function SecurityDashboard() {
             <div className="font-semibold mb-2">Suspicious Activity Detected</div>
             {metrics.security_events.suspicious_patterns.map((pattern, idx) => (
               <div key={idx} className="text-sm">
-                {pattern.type}: {JSON.stringify(pattern)}
+                {pattern.pattern_type}: {JSON.stringify(pattern)}
               </div>
             ))}
           </AlertDescription>

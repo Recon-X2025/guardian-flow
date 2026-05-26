@@ -26,6 +26,7 @@ interface ServiceContract {
   start_date?: string;
   end_date?: string;
   status: string;
+  currency?: string;
   customers?: ContractCustomer;
 }
 

@@ -45,7 +45,7 @@ export default function FAQPage() {
       if (selectedCategory) params.append('category', selectedCategory);
       if (searchQuery) params.append('search', searchQuery);
 
-      const response = await apiClient.request(`/api/faqs?${params.toString()}`, {
+      const response = await apiClient.request<{ faqs: FAQ[] }>(`/api/faqs?${params.toString()}`, {
         method: 'GET',
       });
 
@@ -65,7 +65,7 @@ export default function FAQPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiClient.request('/api/faqs/categories', {
+      const response = await apiClient.request<{ categories: Category[] }>('/api/faqs/categories', {
         method: 'GET',
       });
 

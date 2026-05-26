@@ -96,7 +96,7 @@ export default function KnowledgeBase() {
         params.append('tag', selectedTag);
       }
 
-      const response = await apiClient.request(`/api/knowledge-base/articles?${params.toString()}`, {
+      const response = await apiClient.request<{ articles: Article[] }>(`/api/knowledge-base/articles?${params.toString()}`, {
         method: 'GET',
       });
 
@@ -119,9 +119,9 @@ export default function KnowledgeBase() {
       setLoading(true);
       // Fetch all statuses - get published, draft, and archived
       const allStatusResponses = await Promise.all([
-        apiClient.request('/api/knowledge-base/articles?status=published&limit=200', { method: 'GET' }),
-        apiClient.request('/api/knowledge-base/articles?status=draft&limit=200', { method: 'GET' }),
-        apiClient.request('/api/knowledge-base/articles?status=archived&limit=200', { method: 'GET' }),
+        apiClient.request<{ articles: Article[] }>('/api/knowledge-base/articles?status=published&limit=200', { method: 'GET' }),
+        apiClient.request<{ articles: Article[] }>('/api/knowledge-base/articles?status=draft&limit=200', { method: 'GET' }),
+        apiClient.request<{ articles: Article[] }>('/api/knowledge-base/articles?status=archived&limit=200', { method: 'GET' }),
       ]);
 
       const allArticles = [];
@@ -146,7 +146,7 @@ export default function KnowledgeBase() {
 
   const fetchCategories = async () => {
     try {
-      const response = await apiClient.request('/api/knowledge-base/categories', {
+      const response = await apiClient.request<{ categories: Category[] }>('/api/knowledge-base/categories', {
         method: 'GET',
       });
 
@@ -159,7 +159,7 @@ export default function KnowledgeBase() {
 
   const fetchTags = async () => {
     try {
-      const response = await apiClient.request('/api/knowledge-base/tags', {
+      const response = await apiClient.request<{ tags: Tag[] }>('/api/knowledge-base/tags', {
         method: 'GET',
       });
 
@@ -172,7 +172,7 @@ export default function KnowledgeBase() {
 
   const fetchArticle = async (articleId: string) => {
     try {
-      const response = await apiClient.request(`/api/knowledge-base/articles/${articleId}`, {
+      const response = await apiClient.request<{ article: Article }>(`/api/knowledge-base/articles/${articleId}`, {
         method: 'GET',
       });
 
@@ -539,7 +539,7 @@ export default function KnowledgeBase() {
       <ArticleEditorDialog
         open={editorOpen}
         onOpenChange={setEditorOpen}
-        article={editingArticle}
+        article={editingArticle as any}
         onSuccess={handleEditorSuccess}
       />
 

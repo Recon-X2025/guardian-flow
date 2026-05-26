@@ -26,6 +26,7 @@ interface Technician {
   certification_level?: string;
   certifications?: string[];
   specializations?: string[];
+  skills?: string[];
   availability?: string;
 }
 

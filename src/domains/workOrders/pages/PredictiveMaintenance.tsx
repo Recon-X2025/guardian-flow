@@ -24,6 +24,7 @@ interface Prediction {
   recommended_action?: string;
   status: string;
   equipment?: {
+    name?: string;
     serial_number?: string;
     model?: string;
     manufacturer?: string;

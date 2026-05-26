@@ -27,7 +27,7 @@ interface EquipmentItem {
   manufacturer?: string;
   model?: string;
   status: string;
-  warranty_end_date?: string;
+  warranty_expiry?: string;
   customers?: CustomerInfo;
 }
 

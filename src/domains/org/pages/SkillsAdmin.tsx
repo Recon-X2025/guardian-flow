@@ -58,8 +58,8 @@ export default function SkillsAdmin() {
     setLoading(true);
     try {
       const [skillsRes, certsRes] = await Promise.all([
-        apiClient.get('/api/skills'),
-        apiClient.get('/api/skills/certifications'),
+        apiClient.get<{ skills: Skill[] }>('/api/skills'),
+        apiClient.get<{ certifications: Certification[] }>('/api/skills/certifications'),
       ]);
       setSkills(skillsRes.data?.skills ?? []);
       setCertifications(certsRes.data?.certifications ?? []);

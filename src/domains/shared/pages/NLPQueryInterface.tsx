@@ -163,7 +163,7 @@ export default function NLPQueryInterface() {
             <CardContent>
               {result.chartType === 'number' && (
                 <div className="text-center py-8">
-                  <p className="text-6xl font-bold text-primary">{result.results[0]?.[valueKey] ?? result.rowCount}</p>
+                  <p className="text-6xl font-bold text-primary">{String(result.results[0]?.[valueKey] ?? result.rowCount)}</p>
                 </div>
               )}
               {result.chartType === 'bar' && result.results.length > 0 && (

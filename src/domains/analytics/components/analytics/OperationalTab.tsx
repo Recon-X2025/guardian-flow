@@ -23,15 +23,15 @@ export function OperationalTab() {
         .then();
 
       if (data) {
-        const dailyCounts = data.reduce((acc: Record<string, number>, wo: { created_at: string }) => {
+        const dailyCounts = data.reduce((acc: Record<string, number>, wo: any) => {
           const day = new Date(wo.created_at).toISOString().split('T')[0];
           acc[day] = (acc[day] || 0) + 1;
           return acc;
-        }, {});
+        }, {} as Record<string, number>);
 
         const chartData = Object.entries(dailyCounts).map(([date, count]) => ({
           date,
-          count
+          count: count as number
         }));
 
         setTrendData(chartData);

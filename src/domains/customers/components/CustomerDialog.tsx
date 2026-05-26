@@ -13,7 +13,7 @@ interface CustomerDialogProps {
 }
 
 export function CustomerDialog({ open, onOpenChange, customer, onSuccess }: CustomerDialogProps) {
-  const [formData, setFormData] = useState(customer || {});
+  const [formData, setFormData] = useState<Partial<{ id: string; company_name?: string; email?: string }>>(customer || {});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -59,8 +59,11 @@ export default function FixedAssets() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await apiClient.get('/finance/fixed-assets');
-      setAssets(data.assets ?? data ?? []);
+      const response = await apiClient.get<any>('/finance/fixed-assets');
+      if (response.data) {
+        const data = response.data;
+        setAssets(data.assets ?? data ?? []);
+      }
     } catch {
       toast.error('Failed to load fixed assets');
     } finally {
@@ -76,9 +79,14 @@ export default function FixedAssets() {
   const runDepreciation = async () => {
     setDepRunning(true);
     try {
-      const res = await apiClient.post('/finance/fixed-assets/depreciation-run', { period: depPeriod });
-      toast.success(`Depreciation run complete — ${res.assetsProcessed} assets, ${fmt(res.totalDepreciation)} total`);
-      load();
+      const response = await apiClient.post<{ assetsProcessed: number; totalDepreciation: number }>('/finance/fixed-assets/depreciation-run', { period: depPeriod });
+      if (response.data) {
+        const res = response.data;
+        toast.success(`Depreciation run complete — ${res.assetsProcessed} assets, ${fmt(res.totalDepreciation)} total`);
+        load();
+      } else {
+        throw new Error('Failed');
+      }
     } catch {
       toast.error('Depreciation run failed');
     } finally {
@@ -108,8 +116,11 @@ export default function FixedAssets() {
     setExpandedId(id);
     if (!scheduleData[id]) {
       try {
-        const res = await apiClient.get(`/finance/fixed-assets/${id}/depreciation-schedule`);
-        setScheduleData(p => ({ ...p, [id]: res.schedule ?? [] }));
+        const response = await apiClient.get<{ schedule?: DepEntry[] }>(`/finance/fixed-assets/${id}/depreciation-schedule`);
+        if (response.data) {
+          const res = response.data;
+          setScheduleData(p => ({ ...p, [id]: res.schedule ?? [] }));
+        }
       } catch { /* ignore */ }
     }
   };

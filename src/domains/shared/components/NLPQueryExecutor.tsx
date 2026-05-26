@@ -20,6 +20,8 @@ interface QueryResult {
   results?: Record<string, unknown>[];
   executionTime?: number;
   error?: string;
+  rowCount?: number;
+  explanation?: string;
 }
 
 export default function NLPQueryExecutor() {

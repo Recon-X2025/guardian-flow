@@ -151,13 +151,13 @@ export default function MaintenanceCalendar() {
 
   const handleCreateSchedule = (formData: FormData) => {
     createScheduleMutation.mutate({
-      asset_id: formData.get('asset_id'),
-      schedule_name: formData.get('schedule_name'),
-      maintenance_type: formData.get('maintenance_type'),
-      frequency: formData.get('frequency'),
-      frequency_value: parseInt(formData.get('frequency_value') || '1'),
-      start_date: formData.get('start_date'),
-      estimated_duration_hours: parseFloat(formData.get('estimated_duration_hours') || '2'),
+      asset_id: formData.get('asset_id') as string,
+      schedule_name: formData.get('schedule_name') as string,
+      maintenance_type: formData.get('maintenance_type') as string,
+      frequency: formData.get('frequency') as string,
+      frequency_value: parseInt((formData.get('frequency_value') as string) || '1', 10),
+      start_date: formData.get('start_date') as string,
+      estimated_duration_hours: parseFloat((formData.get('estimated_duration_hours') as string) || '2'),
     });
   };
 

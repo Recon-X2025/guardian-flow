@@ -6,6 +6,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { errorHandler } from './utils/errorHandler.js';
 import logger from './utils/logger.js';
+import { createExpressMiddleware } from '@trpc/server/adapters/express';
+import { appRouter } from './src/routers/_app.js';
+import { createContext } from './src/trpc.js';
 import authRoutes from './routes/auth.js';
 import dbRoutes from './routes/database.js';
 import storageRoutes from './routes/storage.js';
@@ -224,6 +227,14 @@ const healthCheck = async (req, res) => {
 };
 app.get('/health', healthCheck);
 app.get('/api/health', healthCheck);
+
+app.use('/trpc', createExpressMiddleware({
+  router: appRouter,
+  createContext,
+  onError({ path, error }) {
+    console.error(`[tRPC Error] Error on path '${path}':`, error);
+  }
+}));
 
 // Routes
 app.use('/api/auth', authLimiter, authRoutes);

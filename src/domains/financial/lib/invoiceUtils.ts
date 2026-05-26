@@ -58,7 +58,7 @@ export function convertInvoiceRowToInvoice(row: LegacyInvoiceRow): Invoice {
         updated_by: row.updated_by || '',
         updated_at: row.updated_at || new Date().toISOString(),
       },
-    };
+    } as any;
   }
 
   // Otherwise, construct from legacy fields
@@ -158,7 +158,7 @@ export function convertInvoiceRowToInvoice(row: LegacyInvoiceRow): Invoice {
       updated_by: row.updated_by || '',
       updated_at: row.updated_at || new Date().toISOString(),
     },
-  };
+  } as any;
 }
 
 /**

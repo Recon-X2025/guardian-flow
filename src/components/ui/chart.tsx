@@ -20,7 +20,7 @@ interface ChartPayloadItem {
   value?: number | string;
   color?: string;
   fill?: string;
-  payload?: Record<string, string | number>;
+  payload?: any;
 }
 
 type ChartContextProps = {

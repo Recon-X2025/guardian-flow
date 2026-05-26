@@ -25,6 +25,11 @@ interface IndustryWorkflow {
   compliance_requirements?: string[];
   version?: string;
   status: string;
+  workflow_definition?: {
+    steps?: any[];
+    compliance_requirements?: any;
+  };
+  is_active?: boolean;
 }
 
 export default function IndustryWorkflows() {
@@ -45,7 +50,7 @@ export default function IndustryWorkflows() {
           },
           orderBy: "created_at DESC"
         });
-        return response.data || [];
+        return (response.data as IndustryWorkflow[]) || [];
       } catch (error) {
         console.error("Error fetching workflow templates:", error);
         return [];

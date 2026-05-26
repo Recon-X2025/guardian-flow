@@ -53,9 +53,9 @@ export default function TechnicianProfile() {
     setLoading(true);
     try {
       const [skillsRes, certsRes, techSkillsRes] = await Promise.all([
-        apiClient.get('/api/skills'),
-        apiClient.get('/api/skills/certifications'),
-        apiClient.get(`/api/skills/technicians/${techId}`),
+        apiClient.get<{ skills: Skill[] }>('/api/skills'),
+        apiClient.get<{ certifications: Certification[] }>('/api/skills/certifications'),
+        apiClient.get<{ techSkills: TechSkill[] }>(`/api/skills/technicians/${techId}`),
       ]);
       setAllSkills(skillsRes.data?.skills ?? []);
       setAllCerts(certsRes.data?.certifications ?? []);

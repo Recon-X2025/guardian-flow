@@ -513,7 +513,9 @@ export default function DecisionLedger() {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-medium truncate">{rec.action}</span>
                       {rec.lineage_parent_id && (
-                        <Link2 className="h-3 w-3 text-muted-foreground shrink-0" title="Has lineage parent" />
+                        <span title="Has lineage parent" className="shrink-0">
+                          <Link2 className="h-3 w-3 text-muted-foreground" />
+                        </span>
                       )}
                     </div>
                     {rec.rationale && (

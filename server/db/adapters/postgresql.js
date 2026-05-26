@@ -92,6 +92,21 @@ function buildWhere(filter, offset = 0) {
         values.push(...v.$in);
         return;
       }
+      if (v.$ne !== undefined) {
+        if (v.$ne === null) {
+          clauses.push(`"${k}" IS NOT NULL`);
+        } else {
+          clauses.push(`"${k}" != $${offset + values.length + 1}`);
+          values.push(v.$ne);
+        }
+        return;
+      }
+      if (v.$regex !== undefined) {
+        const opSql = v.$options === 'i' ? '~*' : '~';
+        clauses.push(`"${k}" ${opSql} $${offset + values.length + 1}`);
+        values.push(v.$regex);
+        return;
+      }
       if (v.$gt !== undefined) {
         clauses.push(`"${k}" > $${offset + values.length + 1}`);
         values.push(v.$gt);
@@ -114,8 +129,12 @@ function buildWhere(filter, offset = 0) {
       }
     }
     // Default: equality
-    clauses.push(`"${k}" = $${offset + values.length + 1}`);
-    values.push(v);
+    if (v === null) {
+      clauses.push(`"${k}" IS NULL`);
+    } else {
+      clauses.push(`"${k}" = $${offset + values.length + 1}`);
+      values.push(v);
+    }
   });
 
   return { text: 'WHERE ' + clauses.join(' AND '), values };

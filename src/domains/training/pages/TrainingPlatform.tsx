@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/integrations/api/client";
+import { useAuth } from "@/domains/auth/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,8 +50,8 @@ export default function TrainingPlatform() {
         .select('*')
         .eq('is_published', true)
         .order('created_at', { ascending: false });
-      if (result.error) throw result.error;
-      return result.data;
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -64,8 +65,8 @@ export default function TrainingPlatform() {
           training_courses (*)
         `)
         .order('enrolled_at', { ascending: false });
-      if (result.error) throw result.error;
-      return result.data;
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -79,8 +80,8 @@ export default function TrainingPlatform() {
           training_courses (title)
         `)
         .order('issued_at', { ascending: false });
-      if (result.error) throw result.error;
-      return result.data;
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -90,7 +91,7 @@ export default function TrainingPlatform() {
       const { user } = useAuth();
       if (!user) return [];
       
-      const result = await apiClient.functions.invoke('training-ai-recommend', {
+      const { data, error } = await apiClient.functions.invoke<{ recommendations?: CourseRecommendation[] }>('training-ai-recommend', {
         body: { userId: user.id }
       });
       
@@ -98,7 +99,7 @@ export default function TrainingPlatform() {
         console.error('AI recommendations error:', error);
         return [];
       }
-      return result.data?.recommendations || [];
+      return data?.recommendations || [];
     },
   });
 

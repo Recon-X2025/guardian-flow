@@ -123,11 +123,11 @@ export default function Templates() {
       formData.append('preview_data', JSON.stringify({}));
 
       // Upload via API endpoint
-      const result = await apiClient.functions.invoke('template-upload', {
+      const { data, error } = await apiClient.functions.invoke<any>('template-upload', {
         body: formData,
       });
 
-      if (result.error) throw result.error;
+      if (error) throw error;
 
       toast({
         title: 'Template uploaded',

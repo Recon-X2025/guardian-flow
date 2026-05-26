@@ -119,7 +119,7 @@ export async function invokeEdgeFunction<T = unknown>(
 }
 
 interface ToastFunction {
-  (options: { variant?: string; title: string; description: string }): void;
+  (options: any): any;
 }
 
 /**

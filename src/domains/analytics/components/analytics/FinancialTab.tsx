@@ -134,7 +134,7 @@ export function FinancialTab() {
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
                       <TableCell>{new Date(invoice.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell>{formatCurrency(invoice.total_amount)}</TableCell>
+                      <TableCell>{formatCurrency(Number(invoice.total_amount) || 0)}</TableCell>
                       <TableCell>
                         <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
                           {invoice.status}

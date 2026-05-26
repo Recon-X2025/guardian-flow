@@ -16,6 +16,10 @@ interface ComplianceReport {
   id: string;
   report_type: string;
   generated_at: string;
+  period_start: string;
+  period_end: string;
+  compliance_score: number;
+  findings?: any;
 }
 
 export default function ComplianceDashboard() {

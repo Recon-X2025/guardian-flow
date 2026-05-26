@@ -90,8 +90,10 @@ export default function Customer360() {
     if (!customerId) return;
     setLoading(true);
     try {
-      const result = await apiClient.get(`/api/customer360/${customerId}`);
-      setData(result);
+      const result = await apiClient.get<Customer360Data>(`/api/customer360/${customerId}`);
+      if (result.data) {
+        setData(result.data);
+      }
     } catch {
       toast({ title: 'Error', description: 'Could not load customer data.', variant: 'destructive' });
     } finally {
@@ -103,8 +105,10 @@ export default function Customer360() {
     if (!customerId) return;
     setTimelineLoading(true);
     try {
-      const result = await apiClient.get(`/api/customer360/${customerId}/timeline`);
-      setTimeline(result.events || []);
+      const result = await apiClient.get<{ events: TimelineEvent[] }>(`/api/customer360/${customerId}/timeline`);
+      if (result.data) {
+        setTimeline(result.data.events || []);
+      }
     } catch {
       toast({ title: 'Error', description: 'Could not load timeline.', variant: 'destructive' });
     } finally {

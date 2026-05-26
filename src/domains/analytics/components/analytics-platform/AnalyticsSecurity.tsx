@@ -310,7 +310,7 @@ export function AnalyticsSecurity() {
                     <div>Conditions: {JSON.stringify(policy.conditions)}</div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => toast({ title: "Edit Policy", description: `Editing ${policy.name}...` })}>
+                <Button size="sm" variant="outline" onClick={() => toast("Edit Policy", { description: `Editing ${policy.name}...` })}>
                   Edit Policy
                 </Button>
               </div>

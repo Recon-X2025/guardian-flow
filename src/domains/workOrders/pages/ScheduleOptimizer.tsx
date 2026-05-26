@@ -21,6 +21,9 @@ interface ScheduleAssignment {
   scheduled_start: string;
   scheduled_end: string;
   optimization_score?: number;
+  priority_score?: number;
+  skill_match_score?: number;
+  applied?: boolean;
   work_orders?: {
     wo_number: string;
     title?: string;

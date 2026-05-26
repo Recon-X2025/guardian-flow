@@ -35,7 +35,7 @@ export function ArticleDocumentUpload({ articleId, onUploadSuccess }: ArticleDoc
 
   const fetchAttachments = async () => {
     try {
-      const response = await apiClient.request(`/api/knowledge-base/articles/${articleId}/attachments`, {
+      const response = await apiClient.request<{ attachments: UploadedFile[] }>(`/api/knowledge-base/articles/${articleId}/attachments`, {
         method: 'GET',
       });
       if (response.error) throw response.error;
@@ -95,7 +95,7 @@ export function ArticleDocumentUpload({ articleId, onUploadSuccess }: ArticleDoc
           const fileData = base64Data.split(',')[1]; // Remove data:type;base64, prefix
 
           // Upload via storage endpoint
-          const response = await apiClient.request('/api/functions/upload-image', {
+          const response = await apiClient.request<{ filePath: string }>('/api/functions/upload-image', {
             method: 'POST',
             body: JSON.stringify({
               file: {

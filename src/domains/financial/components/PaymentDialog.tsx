@@ -79,7 +79,7 @@ export function PaymentDialog({ open, onOpenChange, invoice, onSuccess }: Paymen
 
   const fetchGateways = async () => {
     try {
-      const response = await apiClient.request('/api/payments/gateways', { method: 'GET' });
+      const response = await apiClient.request<{ gateways: PaymentGateway[] }>('/api/payments/gateways', { method: 'GET' });
       if (response.error) throw response.error;
       setGateways(response.data?.gateways || []);
       

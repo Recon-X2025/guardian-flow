@@ -9,14 +9,16 @@ import { apiClient } from '@/integrations/api/client';
 interface ServiceBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function ServiceBookingDialog({ open, onOpenChange }: ServiceBookingDialogProps) {
+export function ServiceBookingDialog({ open, onOpenChange, onSuccess }: ServiceBookingDialogProps) {
   const [formData, setFormData] = useState({ title: '', description: '', priority: 'medium' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await apiClient.functions.invoke('customer-book-service', { body: formData });
+    onSuccess?.();
     onOpenChange(false);
   };
 

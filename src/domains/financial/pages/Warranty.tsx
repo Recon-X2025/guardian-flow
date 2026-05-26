@@ -232,7 +232,7 @@ export default function Warranty() {
                         onClick={() => {
                           toast({
                             title: "RMA Created",
-                            description: `Return Merchandise Authorization initiated for ${warranty.name}`
+                            description: `Return Merchandise Authorization initiated for ${warranty.unit_serial || 'Unknown Unit'}`
                           });
                         }}
                       >

@@ -149,7 +149,7 @@ function DetailPanel({ asset, onClose }: DetailPanelProps) {
 interface GraphData {
   asset: Asset;
   ancestors: Asset[];
-  descendants: Array<Asset & { _depth: number }>;
+  descendants: Array<Asset & { _depth: number; dependency_type?: string }>;
   impactScore: number;
 }
 

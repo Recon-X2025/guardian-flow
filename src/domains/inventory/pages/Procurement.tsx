@@ -84,7 +84,7 @@ export default function Procurement() {
 
   const totalItems = items.length;
   const totalValue = items.reduce((sum, item) => 
-    sum + (parseFloat(item.unit_price) || 0), 0
+    sum + (parseFloat(String(item.unit_price)) || 0), 0
   );
 
   const filteredStock = stockLevels.filter(sl => 
@@ -229,8 +229,8 @@ export default function Procurement() {
         <PurchaseOrderDialog
           open={poDialogOpen}
           onOpenChange={setPoDialogOpen}
-          item={selectedStock.item}
-          stockLevel={selectedStock}
+          item={selectedStock.item as any}
+          stockLevel={selectedStock as any}
           onSuccess={fetchData}
         />
       )}

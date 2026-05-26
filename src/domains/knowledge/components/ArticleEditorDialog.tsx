@@ -81,7 +81,7 @@ export function ArticleEditorDialog({ open, onOpenChange, article, onSuccess }: 
 
   const fetchCategories = async () => {
     try {
-      const response = await apiClient.request('/api/knowledge-base/categories', {
+      const response = await apiClient.request<{ categories: Category[] }>('/api/knowledge-base/categories', {
         method: 'GET',
       });
       if (response.error) throw response.error;
@@ -141,7 +141,7 @@ export function ArticleEditorDialog({ open, onOpenChange, article, onSuccess }: 
         });
       } else {
         // Create new article
-        const response = await apiClient.request('/api/knowledge-base/articles', {
+        const response = await apiClient.request<{ article: Article }>('/api/knowledge-base/articles', {
           method: 'POST',
           body: JSON.stringify(formData),
           headers: {

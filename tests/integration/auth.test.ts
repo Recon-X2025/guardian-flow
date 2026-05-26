@@ -53,7 +53,7 @@ describe('Authentication Integration', () => {
       const { status, data } = await apiPost('/api/auth/signup', {
         email: testEmail,
         password: testPassword,
-        name: 'Test User',
+        fullName: 'Test User',
       });
       // 200/201 = created, 409 = email already exists (from prior test run)
       expect([200, 201, 409]).toContain(status);
@@ -67,7 +67,7 @@ describe('Authentication Integration', () => {
       const { status } = await apiPost('/api/auth/signup', {
         email: testEmail,
         password: testPassword,
-        name: 'Duplicate User',
+        fullName: 'Duplicate User',
       });
       expect([400, 409, 422]).toContain(status);
     });

@@ -144,7 +144,7 @@ export default function ForecastCenter() {
       console.log('Geography data loaded:', data?.length || 0, 'records');
       
       if (data && data.length > 0) {
-        const uniqueCountries = [...new Set(data.map(g => g.country))].filter(Boolean);
+        const uniqueCountries = [...new Set(data.map((g: any) => g.country))].filter(Boolean) as string[];
         if (uniqueCountries.length === 0) {
           setCountries(FALLBACK.countries.map(c => ({ name: c })));
         } else {
@@ -174,7 +174,7 @@ export default function ForecastCenter() {
       const data = result.data;
       
       if (data && data.length > 0) {
-        const uniqueRegions = [...new Set(data.map(g => g.region))].filter(Boolean);
+        const uniqueRegions = [...new Set(data.map((g: any) => g.region))].filter(Boolean) as string[];
         if (uniqueRegions.length === 0) {
           setRegions(FALLBACK.regions.map(r => ({ name: r })));
         } else {
@@ -199,7 +199,7 @@ export default function ForecastCenter() {
       const data = result.data;
       
       if (data && data.length > 0) {
-        const uniqueStates = [...new Set(data.map(g => g.state))].filter(Boolean);
+        const uniqueStates = [...new Set(data.map((g: any) => g.state))].filter(Boolean) as string[];
         if (uniqueStates.length === 0) {
           setStates(FALLBACK.states.map(s => ({ name: s })));
         } else {
@@ -225,7 +225,7 @@ export default function ForecastCenter() {
       const data = result.data;
       
       if (data && data.length > 0) {
-        const uniqueCities = [...new Set(data.map(g => g.city))].filter(Boolean);
+        const uniqueCities = [...new Set(data.map((g: any) => g.city))].filter(Boolean) as string[];
         if (uniqueCities.length === 0) {
           setCities(FALLBACK.cities.map(c => ({ name: c })));
         } else {
@@ -252,7 +252,7 @@ export default function ForecastCenter() {
       const data = result.data;
       
       if (data && data.length > 0) {
-        const uniqueHubs = [...new Set(data.map(g => g.partner_hub))].filter(Boolean);
+        const uniqueHubs = [...new Set(data.map((g: any) => g.partner_hub))].filter(Boolean) as string[];
         if (uniqueHubs.length === 0) {
           setHubs(FALLBACK.hubs.map(h => ({ name: h })));
         } else {
@@ -280,7 +280,7 @@ export default function ForecastCenter() {
       const data = result.data;
       
       if (data && data.length > 0) {
-        const uniquePinCodes = [...new Set(data.map(g => g.pin_code))].filter(Boolean);
+        const uniquePinCodes = [...new Set(data.map((g: any) => g.pin_code))].filter(Boolean) as string[];
         if (uniquePinCodes.length === 0) {
           setPinCodes(FALLBACK.pinCodes.map(p => ({ name: p })));
         } else {

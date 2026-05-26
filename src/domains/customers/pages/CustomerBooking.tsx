@@ -58,10 +58,12 @@ export default function CustomerBooking() {
     if (!serviceType || !date) return;
     setLoading(true);
     try {
-      const data = await apiClient.get(
+      const result = await apiClient.get<{ slots: TimeSlot[] }>(
         `/api/customer-booking/availability?serviceType=${serviceType}&date=${date}&tenantId=${TENANT_ID}`,
       );
-      setSlots(data.slots || []);
+      if (result.data) {
+        setSlots(result.data.slots || []);
+      }
     } catch {
       toast({ title: 'Error', description: 'Could not load available slots.', variant: 'destructive' });
     } finally {
@@ -93,7 +95,7 @@ export default function CustomerBooking() {
     }
     setLoading(true);
     try {
-      const data = await apiClient.post('/api/customer-booking/book', {
+      const result = await apiClient.post<{ bookingReference: string }>('/api/customer-booking/book', {
         tenantId: TENANT_ID,
         customerName,
         customerEmail,
@@ -103,8 +105,10 @@ export default function CustomerBooking() {
         startTime: selectedSlot!.startTime,
         notes,
       });
-      setBookingRef(data.bookingReference);
-      setConfirmed(true);
+      if (result.data) {
+        setBookingRef(result.data.bookingReference);
+        setConfirmed(true);
+      }
     } catch {
       toast({ title: 'Error', description: 'Booking failed. Please try again.', variant: 'destructive' });
     } finally {

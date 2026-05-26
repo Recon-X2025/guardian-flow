@@ -77,7 +77,7 @@ export default function ImageForensicsModule() {
         }
 
         // Invoke forensics analysis API endpoint
-        const result = await apiClient.functions.invoke("analyze-image-forensics", {
+        const { data, error } = await apiClient.functions.invoke<ForensicResult>("analyze-image-forensics", {
           body: { 
             filePath: fileName,
             fileName: file.name

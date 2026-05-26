@@ -20,6 +20,7 @@ import {
 import { apiClient } from '@/integrations/api/client';
 import { toast } from '@/components/ui/sonner';
 import { useRBAC } from '@/domains/auth/contexts/RBACContext';
+import { useAuth } from '@/domains/auth/contexts/AuthContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -329,7 +330,7 @@ export default function ExpenseManagement() {
   const [policies, setPolicies]     = useState<Policy[]>([]);
   const [loading, setLoading]       = useState(true);
   const [showNew, setShowNew]       = useState(false);
-  const { user }                    = useRBAC();
+  const { user }                    = useAuth();
 
   const isManager = (() => {
     const roles = (user as { roles?: string[]; role?: string } | null);

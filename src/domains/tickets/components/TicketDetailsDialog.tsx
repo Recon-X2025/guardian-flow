@@ -12,14 +12,16 @@ import { format } from "date-fns";
 
 interface WorkOrder {
   id: string;
-  wo_number: string;
-  status: string;
+  wo_number?: string;
+  status?: string;
   technician_id?: string;
+  part_status?: string;
+  completed_at?: string;
 }
 
 interface Ticket {
   id: string;
-  ticket_number: string;
+  ticket_number?: string;
   title?: string;
   description?: string;
   status: string;
@@ -30,6 +32,8 @@ interface Ticket {
   created_at: string;
   scheduled_date?: string;
   work_orders?: WorkOrder[];
+  updated_at?: string;
+  unit_serial?: string;
 }
 
 interface TicketDetailsDialogProps {
