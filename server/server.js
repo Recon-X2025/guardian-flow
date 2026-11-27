@@ -125,6 +125,9 @@ import financialStatementsRoutes from './routes/financial-statements.js';
 import { isConnected } from './db/client.js';
 import { getAdapter } from './db/factory.js';
 import { authenticateToken } from './middleware/auth.js';
+// tenantContext middleware is available for explicit use, but authenticateToken
+// now automatically attaches req.db (tenant-scoped adapter) after authentication.
+// import { tenantContext } from './middleware/tenantContext.js';
 import WebSocketManager from './websocket/server.js';
 import { correlationId } from './middleware/correlationId.js';
 import { metricsMiddleware } from './metrics/middleware.js';

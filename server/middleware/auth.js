@@ -3,6 +3,8 @@ import { randomUUID } from 'crypto';
 import { db } from '../db/client.js';
 import logger from '../utils/logger.js';
 import { isTokenRevoked, isUserTokenRevokedBefore } from '../db/tokenBlacklist.js';
+import { getAdapter } from '../db/factory.js';
+import { createTenantScopedAdapter } from '../db/tenantScope.js';
 
 // Fail fast in production if JWT secret is missing or too short
 if (process.env.NODE_ENV === 'production') {
@@ -69,12 +71,34 @@ export async function authenticateToken(req, res, next) {
 
     const mappedRoles = roles.map(r => roleMap[r.role] || r.role);
 
+    // Resolve tenant_id: prefer JWT claim, fall back to profile lookup
+    let tenantId = decoded.tenantId || null;
+    if (!tenantId) {
+      try {
+        const profile = await db.collection('profiles').findOne(
+          { id: decoded.userId },
+          { projection: { tenant_id: 1 } }
+        );
+        tenantId = profile?.tenant_id || null;
+      } catch (_) { /* profile lookup is best-effort */ }
+    }
+
     req.user = {
       ...user,
+      tenantId,
       roles: roles.map(r => r.role),
       mappedRoles: mappedRoles,
       tokenData: { jti: decoded.jti, exp: decoded.exp, iat: decoded.iat },
     };
+
+    // Attach tenant-scoped DB adapter for multi-tenant isolation
+    req.tenantId = tenantId;
+    try {
+      const baseAdapter = await getAdapter();
+      req.db = createTenantScopedAdapter(baseAdapter, tenantId);
+    } catch (_) {
+      // Non-fatal — routes can still use the global adapter
+    }
 
     next();
   } catch (error) {
@@ -91,10 +115,14 @@ export async function authenticateToken(req, res, next) {
 
 /**
  * Generate JWT token for user
+ * @param {string} userId
+ * @param {string|null} [tenantId] — included in the JWT when available
  */
-export function generateToken(userId) {
+export function generateToken(userId, tenantId) {
   const jti = randomUUID();
-  return jwt.sign({ userId, jti }, JWT_SECRET, { expiresIn: '1h' });
+  const payload = { userId, jti };
+  if (tenantId) payload.tenantId = tenantId;
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 }
 
 

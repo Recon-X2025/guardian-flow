@@ -71,7 +71,21 @@ async function connectWithRetry(retries = MAX_RETRIES) {
   // In development, server starts but health check reports degraded
 }
 
-connectWithRetry();
+connectWithRetry().then(() => {
+  // Create tenant_id indexes for multi-tenant query performance.
+  // These are background indexes — safe to run on every startup.
+  const tenantIndexedCollections = [
+    'profiles', 'work_orders', 'tickets', 'assets', 'invoices',
+    'quotes', 'contacts', 'contracts', 'inventory', 'expenses',
+    'budgets', 'service_orders', 'dispatches', 'equipment',
+    'maintenance_plans', 'audit_logs', 'notifications',
+    'auth_audit_log', 'documents', 'comments',
+  ];
+  for (const coll of tenantIndexedCollections) {
+    db.collection(coll).createIndex({ tenant_id: 1 }, { background: true }).catch(() => {});
+  }
+  console.log('📇 tenant_id indexes ensured for multi-tenant collections');
+}).catch(() => {});
 
 mongoClient.on('error',                  (err) => { console.error('❌ Unexpected MongoDB error', err.message); connected = false; });
 mongoClient.on('topologyOpening',        ()    => { connected = false; });
@@ -246,6 +260,10 @@ async function aggregate(table, pipeline) {
   }
 }
 
+function getCollection(name) {
+  return db.collection(name);
+}
+
 // ── Validated adapter export ──────────────────────────────────────────────────
 const mongoAdapter = validateAdapter({
   findMany,
@@ -262,6 +280,9 @@ const mongoAdapter = validateAdapter({
   ensureIndex,
   close,
 });
+
+// Attach getCollection as a non-interface extension
+mongoAdapter.getCollection = getCollection;
 
 export { mongoClient };
 export default mongoAdapter;

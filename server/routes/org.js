@@ -153,6 +153,19 @@ router.post('/', authenticateToken, async (req, res) => {
 
     await adapter.insertOne('tenants', org);
 
+    // Also update the creating user's profile to belong to this new org
+    // (only if they don't already have a tenant_id)
+    try {
+      const creatorProfile = await adapter.findOne('profiles', { id: req.user.id });
+      if (creatorProfile && !creatorProfile.tenant_id) {
+        await adapter.updateOne(
+          'profiles',
+          { id: req.user.id },
+          { $set: { tenant_id: id, updated_at: now } }
+        );
+      }
+    } catch (_) { /* best-effort — profile update is non-critical */ }
+
     logger.info('Org created', { id, name: org.name, created_by: req.user.id });
     return res.status(201).json({ org });
   } catch (err) {

@@ -94,6 +94,10 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
     const userId = randomUUID();
     const adapter = await getAdapter();
 
+    // Create the organization for this user
+    const orgId = randomUUID();
+    const now = new Date();
+
     await transaction(async () => {
       // Create user
       await adapter.insertOne('users', {
@@ -102,38 +106,48 @@ router.post('/signup', validate(signupSchema), async (req, res) => {
         password_hash: hashedPassword,
         full_name: fullName,
         active: true,
-        created_at: new Date(),
+        created_at: now,
       });
 
-      // Create profile
+      // Create the user's organization
+      await adapter.insertOne('organizations', {
+        id: orgId,
+        name: `${fullName}'s Organization`,
+        owner_id: userId,
+        active: true,
+        created_at: now,
+      });
+
+      // Create profile with tenant_id pointing to the new org
       await adapter.insertOne('profiles', {
         id: userId,
         email,
         full_name: fullName,
-        created_at: new Date(),
+        tenant_id: orgId,
+        created_at: now,
       });
 
-      // Check if this is the first user
-      const userCount = await adapter.countDocuments('users', {});
-      const defaultRole = userCount <= 1 ? 'admin' : 'technician';
-
+      // First user of their org always gets admin role
       await adapter.insertOne('user_roles', {
+        id: randomUUID(),
         user_id: userId,
-        role: defaultRole,
-        created_at: new Date(),
+        role: 'admin',
+        tenant_id: orgId,
+        created_at: now,
       });
     });
 
-    const token = generateToken(userId);
+    const token = generateToken(userId, orgId);
     const { refreshToken, expiresAt: refreshExpiresAt } = await createRefreshToken(userId);
 
-    logger.info('User signed up', { userId, email });
+    logger.info('User signed up', { userId, email, orgId });
 
     res.json({
       user: {
         id: userId,
         email,
         full_name: fullName,
+        tenant_id: orgId,
       },
       session: {
         access_token: token,
@@ -175,17 +189,24 @@ router.post('/signin', validate(signinSchema), async (req, res) => {
     // Get user roles
     const roles = await findMany('user_roles', { user_id: user.id });
 
-    const token = generateToken(user.id);
+    // Look up tenant_id from profile for the JWT
+    let tenantId = null;
+    try {
+      const profile = await findOne('profiles', { id: user.id });
+      tenantId = profile?.tenant_id || null;
+    } catch (_) { /* best-effort */ }
+
+    const token = generateToken(user.id, tenantId);
     const { refreshToken, expiresAt: refreshExpiresAt } = await createRefreshToken(user.id);
 
-    logger.info('User signed in', { userId: user.id, email: user.email });
+    logger.info('User signed in', { userId: user.id, email: user.email, tenantId });
 
     // Sprint 6: auth audit log
     try {
       const auditAdapter = await getAdapter();
       await auditAdapter.insertOne('auth_audit_log', {
         id: randomUUID(),
-        tenant_id: user.tenant_id || 'default',
+        tenant_id: tenantId || 'default',
         user_id: user.id,
         email: user.email,
         event: 'signin',
@@ -201,6 +222,7 @@ router.post('/signin', validate(signinSchema), async (req, res) => {
         email: user.email,
         full_name: user.full_name,
         phone: user.phone,
+        tenant_id: tenantId,
       },
       session: {
         access_token: token,
@@ -422,8 +444,15 @@ router.post('/refresh', validate(refreshSchema), async (req, res) => {
     const adapter = await getAdapter();
     await adapter.deleteMany('refresh_tokens', { id: stored.id });
 
+    // Look up tenant_id for the refreshed JWT
+    let refreshTenantId = null;
+    try {
+      const profile = await findOne('profiles', { id: user.id });
+      refreshTenantId = profile?.tenant_id || null;
+    } catch (_) { /* best-effort */ }
+
     // Issue new tokens
-    const accessToken = generateToken(user.id);
+    const accessToken = generateToken(user.id, refreshTenantId);
     const { refreshToken: newRefreshToken, expiresAt } = await createRefreshToken(user.id);
 
     res.json({

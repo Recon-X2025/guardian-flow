@@ -13,6 +13,7 @@
  */
 
 import { getAdapter } from './factory.js';
+import { createTenantScopedAdapter } from './tenantScope.js';
 
 const adapter = await getAdapter();
 
@@ -25,6 +26,20 @@ export const deleteMany     = adapter.deleteMany.bind(adapter);
 export const countDocuments = adapter.countDocuments.bind(adapter);
 export const aggregate      = adapter.aggregate.bind(adapter);
 export const transaction    = adapter.transaction.bind(adapter);
+
+/**
+ * Get a tenant-scoped adapter instance.
+ * Routes that have access to req.tenantId can use this to get an adapter
+ * that automatically filters all queries by tenant_id.
+ *
+ * Preferred approach: use `req.db` from the tenantContext middleware instead.
+ *
+ * @param {string} tenantId
+ * @returns {import('./interface.js').DbAdapter}
+ */
+export function getTenantAdapter(tenantId) {
+  return createTenantScopedAdapter(adapter, tenantId);
+}
 
 /**
  * Get a raw MongoDB collection (MongoDB adapter only).
